@@ -169,7 +169,22 @@ typedef struct {
   XcbCookie                                 (SYS_DECL* free_pixmap)(xcb_connection_t*, xcb_pixmap_t);
   XcbCookie                                 (SYS_DECL* put_image)(xcb_connection_t*, u8 format, xcb_drawable_t, xcb_gcontext_t, u16 width, u16 height, i16 dstX, i16 dstY, u8 leftPad, u8 depth, u32 dataLen, const u8* data);
   XcbCookie                                 (SYS_DECL* create_gc)(xcb_connection_t*, xcb_gcontext_t, xcb_drawable_t, u32 valueMask, const void* valueList);
-  XcbCookie                                 (SYS_DECL* create_pixmap)(xcb_connection_t*, uint8_t depth, xcb_pixmap_t, xcb_drawable_t, uint16_t width, uint16_t height);
+  XcbCookie                                 (SYS_DECL* create_pixmap)(xcb_connection_t*, u8 depth, xcb_pixmap_t, xcb_drawable_t, uint16_t width, uint16_t height);
+  XcbCookie                                 (SYS_DECL* query_pointer)(xcb_connection_t*, xcb_window_t);
+  xcb_query_pointer_reply_t*                (SYS_DECL* query_pointer_reply)(xcb_connection_t*, XcbCookie, xcb_generic_error_t**);
+  XcbCookie                                 (SYS_DECL* grab_pointer)(xcb_connection_t*, u8 ownerEvents, xcb_window_t grabWindow, u16 eventMask, u8 pointerMode, u8 keyboardMode, xcb_window_t confineTo, xcb_cursor_t cursor, xcb_timestamp_t);
+  XcbCookie                                 (SYS_DECL* ungrab_pointer)(xcb_connection_t*, xcb_timestamp_t);
+  XcbCookie                                 (SYS_DECL* change_property)(xcb_connection_t*, u8 mode, xcb_window_t window, xcb_atom_t property, xcb_atom_t type, u8 format, u32 dataLen, const void* data);
+  XcbCookie                                 (SYS_DECL* get_property)(xcb_connection_t*, u8 del, xcb_window_t window, xcb_atom_t property, xcb_atom_t type, u32 longOffset, u32 longLength);
+  xcb_get_property_reply_t*                 (SYS_DECL* get_property_reply)(xcb_connection_t*, XcbCookie, xcb_generic_error_t**);
+  void*                                     (SYS_DECL* get_property_value)(const xcb_get_property_reply_t*);
+  XcbCookie                                 (SYS_DECL* change_window_attributes)(xcb_connection_t*, xcb_window_t, u32 valueMask, const void* valueList);
+  XcbCookie                                 (SYS_DECL* destroy_window)(xcb_connection_t*, xcb_window_t);
+  XcbCookie                                 (SYS_DECL* configure_window)(xcb_connection_t*, xcb_window_t, u16 valueMask, const void* valueList);
+  XcbCookie                                 (SYS_DECL* create_window)(xcb_connection_t*, u8 depth, xcb_window_t wid, xcb_window_t parent, i16 x, i16 y, u16 width, u16 height, u16 borderWidth, u16 class, xcb_visualid_t, u32 valueMask, const void* valueList);
+  XcbCookie                                 (SYS_DECL* map_window)(xcb_connection_t*, xcb_window_t);
+  XcbCookie                                 (SYS_DECL* warp_pointer)(xcb_connection_t*, xcb_window_t srcWindow, xcb_window_t dstWindow, i16 srcX, i16 srcY, u16 srcWidth, u16 srcHeight, i16 dstX, i16 dstY);
+  XcbCookie                                 (SYS_DECL* set_selection_owner)(xcb_connection_t*, xcb_window_t owner, xcb_atom_t selection, xcb_timestamp_t);
   // clang-format on
 } Xcb;
 
@@ -575,48 +590,44 @@ static void pal_init_xcb(GapPal* pal, Xcb* out) {
     }                                                                                              \
   } while (false)
 
+  XCB_LOAD_SYM(change_property);
+  XCB_LOAD_SYM(change_window_attributes);
+  XCB_LOAD_SYM(configure_window);
   XCB_LOAD_SYM(connect);
+  XCB_LOAD_SYM(connection_has_error);
+  XCB_LOAD_SYM(convert_selection);
+  XCB_LOAD_SYM(create_gc);
+  XCB_LOAD_SYM(create_pixmap);
+  XCB_LOAD_SYM(create_window);
+  XCB_LOAD_SYM(delete_property);
+  XCB_LOAD_SYM(delete_property);
+  XCB_LOAD_SYM(destroy_window);
   XCB_LOAD_SYM(disconnect);
   XCB_LOAD_SYM(flush);
-  XCB_LOAD_SYM(get_maximum_request_length);
-  XCB_LOAD_SYM(get_setup);
-  XCB_LOAD_SYM(setup_roots_iterator);
-  XCB_LOAD_SYM(intern_atom);
-  XCB_LOAD_SYM(intern_atom_reply);
-  XCB_LOAD_SYM(get_file_descriptor);
-  XCB_LOAD_SYM(connection_has_error);
-  XCB_LOAD_SYM(poll_for_event);
-  XCB_LOAD_SYM(get_extension_data);
-  XCB_LOAD_SYM(send_event);
-  XCB_LOAD_SYM(convert_selection);
-  XCB_LOAD_SYM(delete_property);
   XCB_LOAD_SYM(free_cursor);
   XCB_LOAD_SYM(free_gc);
   XCB_LOAD_SYM(free_pixmap);
+  XCB_LOAD_SYM(generate_id);
+  XCB_LOAD_SYM(get_extension_data);
+  XCB_LOAD_SYM(get_file_descriptor);
+  XCB_LOAD_SYM(get_maximum_request_length);
+  XCB_LOAD_SYM(get_property_reply);
+  XCB_LOAD_SYM(get_property_value);
+  XCB_LOAD_SYM(get_property);
+  XCB_LOAD_SYM(get_setup);
+  XCB_LOAD_SYM(grab_pointer);
+  XCB_LOAD_SYM(intern_atom_reply);
+  XCB_LOAD_SYM(intern_atom);
+  XCB_LOAD_SYM(map_window);
+  XCB_LOAD_SYM(poll_for_event);
   XCB_LOAD_SYM(put_image);
-  XCB_LOAD_SYM(create_gc);
-  XCB_LOAD_SYM(create_pixmap);
-
-  /*
-
-  xcb_query_pointer
-  xcb_query_pointer_reply
-  xcb_grab_pointer
-  xcb_ungrab_pointer
-  xcb_change_property
-  xcb_get_property
-  xcb_get_property_reply
-  xcb_delete_property
-  xcb_get_property_value
-  xcb_change_window_attributes
-  xcb_destroy_window
-  xcb_configure_window
-  xcb_create_window
-  xcb_map_window
-  xcb_warp_pointer
-  xcb_set_selection_owner
-
-  */
+  XCB_LOAD_SYM(query_pointer_reply);
+  XCB_LOAD_SYM(query_pointer);
+  XCB_LOAD_SYM(send_event);
+  XCB_LOAD_SYM(set_selection_owner);
+  XCB_LOAD_SYM(setup_roots_iterator);
+  XCB_LOAD_SYM(ungrab_pointer);
+  XCB_LOAD_SYM(warp_pointer);
 
 #undef XCB_LOAD_SYM
 
