@@ -32,9 +32,6 @@ void SYS_DECL free(void*); // free from stdlib, xcb allocates various structures
 
 typedef unsigned int           XcbCookie;
 typedef struct sXcbPictFormats XcbPictFormats;
-typedef struct sXkbContext     XkbContext;
-typedef struct sXkbKeyMap      XkbKeyMap;
-typedef struct sXkbState       XkbState;
 typedef struct sXcbSetup       XcbSetup;
 typedef struct sXcbConnection  XcbConnection;
 typedef struct XcbExtension    XcbExtension;
@@ -42,10 +39,6 @@ typedef u32                    XcbCursor;
 typedef u32                    XcbDrawable;
 typedef u32                    XcbPictFormat;
 typedef u32                    XcbPicture;
-typedef u32                    XcbRandrCrtc;
-typedef u32                    XcbRandrMode;
-typedef u32                    XcbRandrOutput;
-typedef u32                    XkbKeycode;
 typedef u32                    XcbTimestamp;
 typedef u32                    XcbDrawable;
 typedef u32                    XcbWindow;
@@ -56,6 +49,15 @@ typedef u32                    XcbColormap;
 typedef u32                    XcbVisualId;
 typedef u32                    XcbEventMask;
 typedef u8                     XcbButton;
+
+typedef struct sXkbContext XkbContext;
+typedef struct sXkbKeyMap  XkbKeyMap;
+typedef struct sXkbState   XkbState;
+typedef u32                XkbKeycode;
+
+typedef u32 XRandrCrtc;
+typedef u32 XRandrMode;
+typedef u32 XRandrOutput;
 
 typedef struct {
   XcbWindow   root;
@@ -285,7 +287,7 @@ typedef struct {
   u16          numModes;
   u16          namesLen;
   u8           pad1[8];
-} XcbRandrScreenResources;
+} XRandrScreenResources;
 
 typedef struct {
   u8           responseType;
@@ -293,12 +295,12 @@ typedef struct {
   u16          sequence;
   u32          length;
   XcbTimestamp timestamp;
-  XcbRandrCrtc crtc;
+  XRandrCrtc   crtc;
   u32          mmWidth, mmHeight;
   u8           connection;
   u8           subpixelOrder;
   u16          numCrtcs, numModes, numPreferred, numClones, nameLen;
-} XcbRandrOutputInfo;
+} XRandrOutputInfo;
 
 typedef struct {
   u32 id;
@@ -311,13 +313,13 @@ typedef struct {
   u16 vtotal;
   u16 nameLen;
   u32 modeFlags;
-} XcbRandrModeInfo;
+} XRandrModeInfo;
 
 typedef struct {
-  XcbRandrModeInfo* data;
-  int               rem;
-  int               index;
-} XcbRandrModeInfoIterator;
+  XRandrModeInfo* data;
+  int             rem;
+  int             index;
+} XRandrModeInfoIterator;
 
 typedef struct {
   u8           responseType;
@@ -327,11 +329,11 @@ typedef struct {
   XcbTimestamp timestamp;
   i16          x, y;
   u16          width, height;
-  XcbRandrMode mode;
+  XRandrMode   mode;
   u16          rotation;
   u16          rotations;
   u16          numOutputs, numPossibleOutputs;
-} XcbRandrCrtcInfo;
+} XRandrCrtcInfo;
 
 typedef struct {
   u8           responseType;
@@ -344,7 +346,7 @@ typedef struct {
   u16          subpixelOrder;
   u16          width, height;
   u16          mwidth, mheight;
-} XcbRandrScreenChangeEvent;
+} XRandrScreenChangeEvent;
 
 typedef struct {
   DynLib* lib;
@@ -422,23 +424,23 @@ typedef struct {
   DynLib*       lib;
   XcbExtension* id;
   // clang-format off
-  XcbCookie                (SYS_DECL* query_version)(XcbConnection*, u32 majorVersion, u32 minorVersion);
-  void*                    (SYS_DECL* query_version_reply)(XcbConnection*, XcbCookie, XcbGenericError**);
-  XcbCookie                (SYS_DECL* get_screen_resources_current)(XcbConnection*, XcbWindow);
-  XcbRandrScreenResources* (SYS_DECL* get_screen_resources_current_reply)(XcbConnection*, XcbCookie, XcbGenericError**);
-  XcbRandrOutput*          (SYS_DECL* get_screen_resources_current_outputs)(const XcbRandrScreenResources*);
-  int                      (SYS_DECL* get_screen_resources_current_outputs_length)(const XcbRandrScreenResources*);
-  XcbCookie                (SYS_DECL* get_output_info)(XcbConnection*, XcbRandrOutput, XcbTimestamp configTimestamp);
-  XcbRandrOutputInfo*      (SYS_DECL* get_output_info_reply)(XcbConnection*, XcbCookie, XcbGenericError**);
-  u8*                      (SYS_DECL* get_output_info_name)(const XcbRandrOutputInfo*);
-  int                      (SYS_DECL* get_output_info_name_length)(const XcbRandrOutputInfo*);
-  XcbRandrModeInfoIterator (SYS_DECL* get_screen_resources_current_modes_iterator)(const XcbRandrScreenResources*);
-  void                     (SYS_DECL* mode_info_next)(XcbRandrModeInfoIterator*);
-  XcbCookie                (SYS_DECL* get_crtc_info)(XcbConnection*, XcbRandrCrtc, XcbTimestamp configTimestamp);
-  XcbRandrCrtcInfo*        (SYS_DECL* get_crtc_info_reply)(XcbConnection*, XcbCookie, XcbGenericError**);
-  XcbCookie                (SYS_DECL* select_input)(XcbConnection*, XcbWindow, u16 enable);
+  XcbCookie              (SYS_DECL* query_version)(XcbConnection*, u32 majorVersion, u32 minorVersion);
+  void*                  (SYS_DECL* query_version_reply)(XcbConnection*, XcbCookie, XcbGenericError**);
+  XcbCookie              (SYS_DECL* get_screen_resources_current)(XcbConnection*, XcbWindow);
+  XRandrScreenResources* (SYS_DECL* get_screen_resources_current_reply)(XcbConnection*, XcbCookie, XcbGenericError**);
+  XRandrOutput*          (SYS_DECL* get_screen_resources_current_outputs)(const XRandrScreenResources*);
+  int                    (SYS_DECL* get_screen_resources_current_outputs_length)(const XRandrScreenResources*);
+  XcbCookie              (SYS_DECL* get_output_info)(XcbConnection*, XRandrOutput, XcbTimestamp configTimestamp);
+  XRandrOutputInfo*      (SYS_DECL* get_output_info_reply)(XcbConnection*, XcbCookie, XcbGenericError**);
+  u8*                    (SYS_DECL* get_output_info_name)(const XRandrOutputInfo*);
+  int                    (SYS_DECL* get_output_info_name_length)(const XRandrOutputInfo*);
+  XRandrModeInfoIterator (SYS_DECL* get_screen_resources_current_modes_iterator)(const XRandrScreenResources*);
+  void                   (SYS_DECL* mode_info_next)(XRandrModeInfoIterator*);
+  XcbCookie              (SYS_DECL* get_crtc_info)(XcbConnection*, XRandrCrtc, XcbTimestamp configTimestamp);
+  XRandrCrtcInfo*        (SYS_DECL* get_crtc_info_reply)(XcbConnection*, XcbCookie, XcbGenericError**);
+  XcbCookie              (SYS_DECL* select_input)(XcbConnection*, XcbWindow, u16 enable);
   // clang-format on
-} XcbRandr;
+} XRandr;
 
 typedef struct {
   DynLib*       lib;
@@ -508,7 +510,7 @@ struct sGapPal {
   Xcb          xcb;
   XcbXkbCommon xkb;
   XcbXFixes    xfixes;
-  XcbRandr     xrandr;
+  XRandr       xrandr;
   XcbRender    xrender;
 
   XkbContext* xkbContext;
@@ -1055,7 +1057,7 @@ static bool pal_xfixes_init(GapPal* pal, XcbXFixes* out) {
  * Initialize the RandR extension.
  * More info: https://xcb.freedesktop.org/manual/group__XCB__RandR__API.html
  */
-static bool pal_randr_init(GapPal* pal, XcbRandr* out, u8* firstEventOut) {
+static bool pal_randr_init(GapPal* pal, XRandr* out, u8* firstEventOut) {
   DynLibResult loadRes = dynlib_load(pal->alloc, string_lit("libxcb-randr.so"), &out->lib);
   if (loadRes != DynLibResult_Success) {
     const String err = dynlib_result_str(loadRes);
@@ -1216,8 +1218,8 @@ static void pal_init_extensions(GapPal* pal) {
 }
 
 static f32
-pal_randr_refresh_rate(GapPal* pal, XcbRandrScreenResources* screen, const XcbRandrMode mode) {
-  XcbRandrModeInfoIterator i = pal->xrandr.get_screen_resources_current_modes_iterator(screen);
+pal_randr_refresh_rate(GapPal* pal, XRandrScreenResources* screen, const XRandrMode mode) {
+  XRandrModeInfoIterator i = pal->xrandr.get_screen_resources_current_modes_iterator(screen);
   for (; i.rem; pal->xrandr.mode_info_next(&i)) {
     if (i.data->id != mode) {
       continue;
@@ -1244,17 +1246,17 @@ static void pal_randr_query_displays(GapPal* pal) {
   dynarray_for_t(&pal->displays, GapPalDisplay, d) { string_maybe_free(g_allocHeap, d->name); }
   dynarray_clear(&pal->displays);
 
-  XcbGenericError*         err = null;
-  XcbRandrScreenResources* screen =
+  XcbGenericError*       err = null;
+  XRandrScreenResources* screen =
       xcb_call(pal->xcbCon, pal->xrandr.get_screen_resources_current, &err, pal->xcbScreen->root);
   if (UNLIKELY(err)) {
     diag_crash_msg("Xcb failed to retrieve RandR screen-info, err: {}", fmt_int(err->errorCode));
   }
 
-  const XcbRandrOutput* outputs = pal->xrandr.get_screen_resources_current_outputs(screen);
-  const u32 numOutputs          = pal->xrandr.get_screen_resources_current_outputs_length(screen);
+  const XRandrOutput* outputs    = pal->xrandr.get_screen_resources_current_outputs(screen);
+  const u32           numOutputs = pal->xrandr.get_screen_resources_current_outputs_length(screen);
   for (u32 i = 0; i != numOutputs; ++i) {
-    XcbRandrOutputInfo* output =
+    XRandrOutputInfo* output =
         xcb_call(pal->xcbCon, pal->xrandr.get_output_info, &err, outputs[i], 0);
     if (UNLIKELY(err)) {
       diag_crash_msg("Xcb failed to retrieve RandR output-info, err: {}", fmt_int(err->errorCode));
@@ -1265,7 +1267,7 @@ static void pal_randr_query_displays(GapPal* pal) {
     };
 
     if (output->crtc) {
-      XcbRandrCrtcInfo* crtc =
+      XRandrCrtcInfo* crtc =
           xcb_call(pal->xcbCon, pal->xrandr.get_crtc_info, &err, output->crtc, 0);
       if (UNLIKELY(err)) {
         diag_crash_msg("Xcb failed to retrieve RandR crtc-info, err: {}", fmt_int(err->errorCode));
@@ -1880,7 +1882,7 @@ void gap_pal_update(GapPal* pal) {
       if (pal->extensions & GapPalXcbExtFlags_Randr) {
         switch (evt->responseType - pal->randrFirstEvent) {
         case 0 /* XCB_RANDR_SCREEN_CHANGE_NOTIFY */: {
-          const XcbRandrScreenChangeEvent* screenChangeMsg = (const void*)evt;
+          const XRandrScreenChangeEvent* screenChangeMsg = (const void*)evt;
 
           log_d("Display change detected");
           pal_randr_query_displays(pal);
