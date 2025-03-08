@@ -37,6 +37,8 @@ typedef struct sXcbPictFormats XcbPictFormats;
 typedef struct sXkbContext     XkbContext;
 typedef struct sXkbKeyMap      XkbKeyMap;
 typedef struct sXkbState       XkbState;
+typedef struct sXcbSetup       XcbSetup;
+typedef struct sXcbConnection  XcbConnection;
 typedef u32                    XcbCursor;
 typedef u32                    XcbDrawable;
 typedef u32                    XcbPictFormat;
@@ -45,6 +47,62 @@ typedef u32                    XcbRandrCrtc;
 typedef u32                    XcbRandrMode;
 typedef u32                    XcbRandrOutput;
 typedef u32                    XkbKeycode;
+typedef u32                    XcbTimestamp;
+typedef u32                    XcbWindow;
+
+typedef struct {
+  u8  responseType;
+  u8  pad0;
+  u16 sequence;
+  u32 length;
+  u8  present;
+  u8  major_opcode;
+  u8  first_event, first_error;
+} XcbExtensionData;
+
+typedef struct {
+  u8         responseType;
+  u8         pad0;
+  u16        sequence;
+  u32        length;
+  xcb_atom_t atom;
+} XcbAtomData;
+
+typedef struct {
+  u8        responseType;
+  u8        sameScreen;
+  u16       sequence;
+  u32       length;
+  XcbWindow root, child;
+  i16       rootX, rootY;
+  i16       winX, winY;
+  u16       mask;
+  u8        pad0[2];
+} XcbPointerData;
+
+typedef struct {
+  u8         responseType;
+  u8         format;
+  u16        sequence;
+  u32        length;
+  xcb_atom_t type;
+  u32        bytesAfter;
+  u32        valueLen;
+  u8         pad0[12];
+} XcbPropertyData;
+
+typedef struct {
+  u8  responseType;
+  u8  pad0;
+  u16 sequence;
+  u32 pad[7];
+  u32 fullSequence;
+} XcbGenericEvent;
+
+typedef struct {
+  xcb_screen_t* data;
+  int           rem, index;
+} XcbScreenItr;
 
 typedef enum {
   XkbKeyDirection_Up,
@@ -73,30 +131,30 @@ typedef struct {
 } XcbPictFormatInfoItr;
 
 typedef struct {
-  u8              responseType;
-  u8              pad0;
-  u16             sequence;
-  u32             length;
-  xcb_timestamp_t timestamp;
-  xcb_timestamp_t configTimestamp;
-  u16             numCrtcs;
-  u16             numOutputs;
-  u16             numModes;
-  u16             namesLen;
-  u8              pad1[8];
+  u8           responseType;
+  u8           pad0;
+  u16          sequence;
+  u32          length;
+  XcbTimestamp timestamp;
+  XcbTimestamp configTimestamp;
+  u16          numCrtcs;
+  u16          numOutputs;
+  u16          numModes;
+  u16          namesLen;
+  u8           pad1[8];
 } XcbRandrScreenResources;
 
 typedef struct {
-  u8              responseType;
-  u8              status;
-  u16             sequence;
-  u32             length;
-  xcb_timestamp_t timestamp;
-  XcbRandrCrtc    crtc;
-  u32             mmWidth, mmHeight;
-  u8              connection;
-  u8              subpixelOrder;
-  u16             numCrtcs, numModes, numPreferred, numClones, nameLen;
+  u8           responseType;
+  u8           status;
+  u16          sequence;
+  u32          length;
+  XcbTimestamp timestamp;
+  XcbRandrCrtc crtc;
+  u32          mmWidth, mmHeight;
+  u8           connection;
+  u8           subpixelOrder;
+  u16          numCrtcs, numModes, numPreferred, numClones, nameLen;
 } XcbRandrOutputInfo;
 
 typedef struct {
@@ -119,88 +177,88 @@ typedef struct {
 } XcbRandrModeInfoIterator;
 
 typedef struct {
-  u8              responseType;
-  u8              status;
-  u16             sequence;
-  u32             length;
-  xcb_timestamp_t timestamp;
-  i16             x, y;
-  u16             width, height;
-  XcbRandrMode    mode;
-  u16             rotation;
-  u16             rotations;
-  u16             numOutputs, numPossibleOutputs;
+  u8           responseType;
+  u8           status;
+  u16          sequence;
+  u32          length;
+  XcbTimestamp timestamp;
+  i16          x, y;
+  u16          width, height;
+  XcbRandrMode mode;
+  u16          rotation;
+  u16          rotations;
+  u16          numOutputs, numPossibleOutputs;
 } XcbRandrCrtcInfo;
 
 typedef struct {
-  u8              responseType;
-  u8              rotation;
-  u16             sequence;
-  xcb_timestamp_t timestamp;
-  xcb_timestamp_t configTimestamp;
-  xcb_window_t    root, requestWindow;
-  u16             sizeID;
-  u16             subpixelOrder;
-  u16             width, height;
-  u16             mwidth, mheight;
+  u8           responseType;
+  u8           rotation;
+  u16          sequence;
+  XcbTimestamp timestamp;
+  XcbTimestamp configTimestamp;
+  XcbWindow    root, requestWindow;
+  u16          sizeID;
+  u16          subpixelOrder;
+  u16          width, height;
+  u16          mwidth, mheight;
 } XcbRandrScreenChangeEvent;
 
 typedef struct {
   DynLib* lib;
   // clang-format off
-  xcb_connection_t*                         (SYS_DECL* connect)(const char* displayName, int* screenOut);
-  void                                      (SYS_DECL* disconnect)(xcb_connection_t*);
-  int                                       (SYS_DECL* flush)(xcb_connection_t*);
-  u32                                       (SYS_DECL* get_maximum_request_length)(xcb_connection_t*);
-  const struct xcb_setup_t*                 (SYS_DECL* get_setup)(xcb_connection_t*);
-  xcb_screen_iterator_t                     (SYS_DECL* setup_roots_iterator)(const struct xcb_setup_t*);
-  XcbCookie                                 (SYS_DECL* intern_atom)(xcb_connection_t*, u8 onlyIfExists, u16 nameLen, const char* name);
-  xcb_intern_atom_reply_t*                  (SYS_DECL* intern_atom_reply)(xcb_connection_t*, XcbCookie, xcb_generic_error_t**);
-  int                                       (SYS_DECL* get_file_descriptor)(xcb_connection_t*);
-  int                                       (SYS_DECL* connection_has_error)(xcb_connection_t*);
-  xcb_generic_event_t*                      (SYS_DECL* poll_for_event)(xcb_connection_t*);
-  const struct xcb_query_extension_reply_t* (SYS_DECL* get_extension_data)(xcb_connection_t*, xcb_extension_t*);
-  XcbCookie                                 (SYS_DECL* send_event)(xcb_connection_t*, u8 propagate, xcb_window_t destination, u32 eventMask, const char* event);
-  XcbCookie                                 (SYS_DECL* convert_selection)(xcb_connection_t*, xcb_window_t requestor, xcb_atom_t selection, xcb_atom_t target, xcb_atom_t property, xcb_timestamp_t time);
-  u32                                       (SYS_DECL* generate_id)(xcb_connection_t*);
-  XcbCookie                                 (SYS_DECL* delete_property)(xcb_connection_t*, xcb_window_t, xcb_atom_t property);
-  XcbCookie                                 (SYS_DECL* free_cursor)(xcb_connection_t*, xcb_cursor_t);
-  XcbCookie                                 (SYS_DECL* free_gc)(xcb_connection_t*, xcb_gcontext_t);
-  XcbCookie                                 (SYS_DECL* free_pixmap)(xcb_connection_t*, xcb_pixmap_t);
-  XcbCookie                                 (SYS_DECL* put_image)(xcb_connection_t*, u8 format, xcb_drawable_t, xcb_gcontext_t, u16 width, u16 height, i16 dstX, i16 dstY, u8 leftPad, u8 depth, u32 dataLen, const u8* data);
-  XcbCookie                                 (SYS_DECL* create_gc)(xcb_connection_t*, xcb_gcontext_t, xcb_drawable_t, u32 valueMask, const void* valueList);
-  XcbCookie                                 (SYS_DECL* create_pixmap)(xcb_connection_t*, u8 depth, xcb_pixmap_t, xcb_drawable_t, uint16_t width, uint16_t height);
-  XcbCookie                                 (SYS_DECL* query_pointer)(xcb_connection_t*, xcb_window_t);
-  xcb_query_pointer_reply_t*                (SYS_DECL* query_pointer_reply)(xcb_connection_t*, XcbCookie, xcb_generic_error_t**);
-  XcbCookie                                 (SYS_DECL* grab_pointer)(xcb_connection_t*, u8 ownerEvents, xcb_window_t grabWindow, u16 eventMask, u8 pointerMode, u8 keyboardMode, xcb_window_t confineTo, xcb_cursor_t cursor, xcb_timestamp_t);
-  XcbCookie                                 (SYS_DECL* ungrab_pointer)(xcb_connection_t*, xcb_timestamp_t);
-  XcbCookie                                 (SYS_DECL* change_property)(xcb_connection_t*, u8 mode, xcb_window_t window, xcb_atom_t property, xcb_atom_t type, u8 format, u32 dataLen, const void* data);
-  XcbCookie                                 (SYS_DECL* get_property)(xcb_connection_t*, u8 del, xcb_window_t window, xcb_atom_t property, xcb_atom_t type, u32 longOffset, u32 longLength);
-  xcb_get_property_reply_t*                 (SYS_DECL* get_property_reply)(xcb_connection_t*, XcbCookie, xcb_generic_error_t**);
-  void*                                     (SYS_DECL* get_property_value)(const xcb_get_property_reply_t*);
-  XcbCookie                                 (SYS_DECL* change_window_attributes)(xcb_connection_t*, xcb_window_t, u32 valueMask, const void* valueList);
-  XcbCookie                                 (SYS_DECL* destroy_window)(xcb_connection_t*, xcb_window_t);
-  XcbCookie                                 (SYS_DECL* configure_window)(xcb_connection_t*, xcb_window_t, u16 valueMask, const void* valueList);
-  XcbCookie                                 (SYS_DECL* create_window)(xcb_connection_t*, u8 depth, xcb_window_t wid, xcb_window_t parent, i16 x, i16 y, u16 width, u16 height, u16 borderWidth, u16 class, xcb_visualid_t, u32 valueMask, const void* valueList);
-  XcbCookie                                 (SYS_DECL* map_window)(xcb_connection_t*, xcb_window_t);
-  XcbCookie                                 (SYS_DECL* warp_pointer)(xcb_connection_t*, xcb_window_t srcWindow, xcb_window_t dstWindow, i16 srcX, i16 srcY, u16 srcWidth, u16 srcHeight, i16 dstX, i16 dstY);
-  XcbCookie                                 (SYS_DECL* set_selection_owner)(xcb_connection_t*, xcb_window_t owner, xcb_atom_t selection, xcb_timestamp_t);
+  XcbConnection*          (SYS_DECL* connect)(const char* displayName, int* screenOut);
+  void                    (SYS_DECL* disconnect)(XcbConnection*);
+  int                     (SYS_DECL* flush)(XcbConnection*);
+  u32                     (SYS_DECL* get_maximum_request_length)(XcbConnection*);
+  const XcbSetup*         (SYS_DECL* get_setup)(XcbConnection*);
+  XcbScreenItr            (SYS_DECL* setup_roots_iterator)(const XcbSetup*);
+  XcbCookie               (SYS_DECL* intern_atom)(XcbConnection*, u8 onlyIfExists, u16 nameLen, const char* name);
+  XcbAtomData*            (SYS_DECL* intern_atom_reply)(XcbConnection*, XcbCookie, xcb_generic_error_t**);
+  int                     (SYS_DECL* get_file_descriptor)(XcbConnection*);
+  int                     (SYS_DECL* connection_has_error)(XcbConnection*);
+  XcbGenericEvent*        (SYS_DECL* poll_for_event)(XcbConnection*);
+  const XcbExtensionData* (SYS_DECL* get_extension_data)(XcbConnection*, xcb_extension_t*);
+  XcbCookie               (SYS_DECL* send_event)(XcbConnection*, u8 propagate, XcbWindow destination, u32 eventMask, const char* event);
+  XcbCookie               (SYS_DECL* convert_selection)(XcbConnection*, XcbWindow requestor, xcb_atom_t selection, xcb_atom_t target, xcb_atom_t property, XcbTimestamp time);
+  u32                     (SYS_DECL* generate_id)(XcbConnection*);
+  XcbCookie               (SYS_DECL* delete_property)(XcbConnection*, XcbWindow, xcb_atom_t property);
+  XcbCookie               (SYS_DECL* free_cursor)(XcbConnection*, xcb_cursor_t);
+  XcbCookie               (SYS_DECL* free_gc)(XcbConnection*, xcb_gcontext_t);
+  XcbCookie               (SYS_DECL* free_pixmap)(XcbConnection*, xcb_pixmap_t);
+  XcbCookie               (SYS_DECL* put_image)(XcbConnection*, u8 format, xcb_drawable_t, xcb_gcontext_t, u16 width, u16 height, i16 dstX, i16 dstY, u8 leftPad, u8 depth, u32 dataLen, const u8* data);
+  XcbCookie               (SYS_DECL* create_gc)(XcbConnection*, xcb_gcontext_t, xcb_drawable_t, u32 valueMask, const void* valueList);
+  XcbCookie               (SYS_DECL* create_pixmap)(XcbConnection*, u8 depth, xcb_pixmap_t, xcb_drawable_t, uint16_t width, uint16_t height);
+  XcbCookie               (SYS_DECL* query_pointer)(XcbConnection*, XcbWindow);
+  XcbPointerData*         (SYS_DECL* query_pointer_reply)(XcbConnection*, XcbCookie, xcb_generic_error_t**);
+  XcbCookie               (SYS_DECL* grab_pointer)(XcbConnection*, u8 ownerEvents, XcbWindow grabWindow, u16 eventMask, u8 pointerMode, u8 keyboardMode, XcbWindow confineTo, xcb_cursor_t cursor, XcbTimestamp);
+  XcbCookie               (SYS_DECL* ungrab_pointer)(XcbConnection*, XcbTimestamp);
+  XcbCookie               (SYS_DECL* change_property)(XcbConnection*, u8 mode, XcbWindow window, xcb_atom_t property, xcb_atom_t type, u8 format, u32 dataLen, const void* data);
+  XcbCookie               (SYS_DECL* get_property)(XcbConnection*, u8 del, XcbWindow window, xcb_atom_t property, xcb_atom_t type, u32 longOffset, u32 longLength);
+  XcbPropertyData*        (SYS_DECL* get_property_reply)(XcbConnection*, XcbCookie, xcb_generic_error_t**);
+  void*                   (SYS_DECL* get_property_value)(const XcbPropertyData*);
+  XcbCookie               (SYS_DECL* change_window_attributes)(XcbConnection*, XcbWindow, u32 valueMask, const void* valueList);
+  XcbCookie               (SYS_DECL* destroy_window)(XcbConnection*, XcbWindow);
+  XcbCookie               (SYS_DECL* configure_window)(XcbConnection*, XcbWindow, u16 valueMask, const void* valueList);
+  XcbCookie               (SYS_DECL* create_window)(XcbConnection*, u8 depth, XcbWindow wid, XcbWindow parent, i16 x, i16 y, u16 width, u16 height, u16 borderWidth, u16 class, xcb_visualid_t, u32 valueMask, const void* valueList);
+  XcbCookie               (SYS_DECL* map_window)(XcbConnection*, XcbWindow);
+  XcbCookie               (SYS_DECL* warp_pointer)(XcbConnection*, XcbWindow srcWindow, XcbWindow dstWindow, i16 srcX, i16 srcY, u16 srcWidth, u16 srcHeight, i16 dstX, i16 dstY);
+  XcbCookie               (SYS_DECL* set_selection_owner)(XcbConnection*, XcbWindow owner, xcb_atom_t selection, XcbTimestamp);
   // clang-format on
 } Xcb;
 
 typedef struct {
   DynLib* lib;
   // clang-format off
-  int         (SYS_DECL* setup_xkb_extension)(xcb_connection_t*, u16 xkbMajor, u16 xkbMinor, i32 flags, u16* xkbMajorOut, u16* xkbMinorOut, u8* baseEventOut, u8* baseErrorOut);
+  int         (SYS_DECL* setup_xkb_extension)(XcbConnection*, u16 xkbMajor, u16 xkbMinor, i32 flags, u16* xkbMajorOut, u16* xkbMinorOut, u8* baseEventOut, u8* baseErrorOut);
   XkbContext* (SYS_DECL* context_new)(i32 flags);
   void        (SYS_DECL* context_unref)(XkbContext*);
-  XcbCookie   (SYS_DECL* per_client_flags_unchecked)(xcb_connection_t*, u16 deviceSpec, u32 change, u32 value, u32 ctrlsToChange, u32 autoCtrls, u32 autoCtrlsValues);
-  i32         (SYS_DECL* get_core_keyboard_device_id)(xcb_connection_t*);
-  XkbKeyMap*  (SYS_DECL* keymap_new_from_device)(XkbContext*, xcb_connection_t*, i32 deviceId, i32 flags);
+  XcbCookie   (SYS_DECL* per_client_flags_unchecked)(XcbConnection*, u16 deviceSpec, u32 change, u32 value, u32 ctrlsToChange, u32 autoCtrls, u32 autoCtrlsValues);
+  i32         (SYS_DECL* get_core_keyboard_device_id)(XcbConnection*);
+  XkbKeyMap*  (SYS_DECL* keymap_new_from_device)(XkbContext*, XcbConnection*, i32 deviceId, i32 flags);
   void        (SYS_DECL* keymap_unref)(XkbKeyMap*);
   u32         (SYS_DECL* keymap_num_layouts)(XkbKeyMap*);
   const char* (SYS_DECL* keymap_layout_get_name)(XkbKeyMap*, u32 index);
-  XkbState*   (SYS_DECL* state_new_from_device)(XkbKeyMap*, xcb_connection_t*, i32 deviceId);
+  XkbState*   (SYS_DECL* state_new_from_device)(XkbKeyMap*, XcbConnection*, i32 deviceId);
   void        (SYS_DECL* state_unref)(XkbState*);
   i32         (SYS_DECL* state_key_get_utf8)(XkbState*, XkbKeycode, char* buffer, usize size);
   i32         (SYS_DECL* state_update_key)(XkbState*, XkbKeycode, XkbKeyDirection);
@@ -210,10 +268,10 @@ typedef struct {
 typedef struct {
   DynLib* lib;
   // clang-format off
-  XcbCookie (SYS_DECL* query_version)(xcb_connection_t*, u32 majorVersion, u32 minorVersion);
-  void*     (SYS_DECL* query_version_reply)(xcb_connection_t*, XcbCookie, xcb_generic_error_t**);
-  XcbCookie (SYS_DECL* show_cursor)(xcb_connection_t*, xcb_window_t);
-  XcbCookie (SYS_DECL* hide_cursor)(xcb_connection_t*, xcb_window_t);
+  XcbCookie (SYS_DECL* query_version)(XcbConnection*, u32 majorVersion, u32 minorVersion);
+  void*     (SYS_DECL* query_version_reply)(XcbConnection*, XcbCookie, xcb_generic_error_t**);
+  XcbCookie (SYS_DECL* show_cursor)(XcbConnection*, XcbWindow);
+  XcbCookie (SYS_DECL* hide_cursor)(XcbConnection*, XcbWindow);
   // clang-format on
 } XcbXFixes;
 
@@ -221,21 +279,21 @@ typedef struct {
   DynLib*          lib;
   xcb_extension_t* id;
   // clang-format off
-  XcbCookie                (SYS_DECL* query_version)(xcb_connection_t*, u32 majorVersion, u32 minorVersion);
-  void*                    (SYS_DECL* query_version_reply)(xcb_connection_t*, XcbCookie, xcb_generic_error_t**);
-  XcbCookie                (SYS_DECL* get_screen_resources_current)(xcb_connection_t*, xcb_window_t);
-  XcbRandrScreenResources* (SYS_DECL* get_screen_resources_current_reply)(xcb_connection_t*, XcbCookie, xcb_generic_error_t**);
+  XcbCookie                (SYS_DECL* query_version)(XcbConnection*, u32 majorVersion, u32 minorVersion);
+  void*                    (SYS_DECL* query_version_reply)(XcbConnection*, XcbCookie, xcb_generic_error_t**);
+  XcbCookie                (SYS_DECL* get_screen_resources_current)(XcbConnection*, XcbWindow);
+  XcbRandrScreenResources* (SYS_DECL* get_screen_resources_current_reply)(XcbConnection*, XcbCookie, xcb_generic_error_t**);
   XcbRandrOutput*          (SYS_DECL* get_screen_resources_current_outputs)(const XcbRandrScreenResources*);
   int                      (SYS_DECL* get_screen_resources_current_outputs_length)(const XcbRandrScreenResources*);
-  XcbCookie                (SYS_DECL* get_output_info)(xcb_connection_t*, XcbRandrOutput, xcb_timestamp_t configTimestamp);
-  XcbRandrOutputInfo*      (SYS_DECL* get_output_info_reply)(xcb_connection_t*, XcbCookie, xcb_generic_error_t**);
+  XcbCookie                (SYS_DECL* get_output_info)(XcbConnection*, XcbRandrOutput, XcbTimestamp configTimestamp);
+  XcbRandrOutputInfo*      (SYS_DECL* get_output_info_reply)(XcbConnection*, XcbCookie, xcb_generic_error_t**);
   u8*                      (SYS_DECL* get_output_info_name)(const XcbRandrOutputInfo*);
   int                      (SYS_DECL* get_output_info_name_length)(const XcbRandrOutputInfo*);
   XcbRandrModeInfoIterator (SYS_DECL* get_screen_resources_current_modes_iterator)(const XcbRandrScreenResources*);
   void                     (SYS_DECL* mode_info_next)(XcbRandrModeInfoIterator*);
-  XcbCookie                (SYS_DECL* get_crtc_info)(xcb_connection_t*, XcbRandrCrtc, xcb_timestamp_t configTimestamp);
-  XcbRandrCrtcInfo*        (SYS_DECL* get_crtc_info_reply)(xcb_connection_t*, XcbCookie, xcb_generic_error_t**);
-  XcbCookie                (SYS_DECL* select_input)(xcb_connection_t*, xcb_window_t, u16 enable);
+  XcbCookie                (SYS_DECL* get_crtc_info)(XcbConnection*, XcbRandrCrtc, XcbTimestamp configTimestamp);
+  XcbRandrCrtcInfo*        (SYS_DECL* get_crtc_info_reply)(XcbConnection*, XcbCookie, xcb_generic_error_t**);
+  XcbCookie                (SYS_DECL* select_input)(XcbConnection*, XcbWindow, u16 enable);
   // clang-format on
 } XcbRandr;
 
@@ -243,15 +301,15 @@ typedef struct {
   DynLib*          lib;
   xcb_extension_t* id;
   // clang-format off
-  XcbCookie            (SYS_DECL* query_version)(xcb_connection_t*, u32 majorVersion, u32 minorVersion);
-  void*                (SYS_DECL* query_version_reply)(xcb_connection_t*, XcbCookie, xcb_generic_error_t**);
-  XcbCookie            (SYS_DECL* query_pict_formats)(xcb_connection_t*);
-  XcbPictFormats*      (SYS_DECL* query_pict_formats_reply)(xcb_connection_t*, XcbCookie, xcb_generic_error_t**);
+  XcbCookie            (SYS_DECL* query_version)(XcbConnection*, u32 majorVersion, u32 minorVersion);
+  void*                (SYS_DECL* query_version_reply)(XcbConnection*, XcbCookie, xcb_generic_error_t**);
+  XcbCookie            (SYS_DECL* query_pict_formats)(XcbConnection*);
+  XcbPictFormats*      (SYS_DECL* query_pict_formats_reply)(XcbConnection*, XcbCookie, xcb_generic_error_t**);
   XcbPictFormatInfoItr (SYS_DECL* query_pict_formats_formats_iterator)(const XcbPictFormats*);
   void                 (SYS_DECL* pictforminfo_next)(XcbPictFormatInfoItr*);
-  XcbCookie            (SYS_DECL* create_picture)(xcb_connection_t*, XcbPicture, XcbDrawable, XcbPictFormat, u32 valueMask, const void* valueList);
-  XcbCookie            (SYS_DECL* create_cursor)(xcb_connection_t*, XcbCursor, XcbPicture, u16 x, u16 y);
-  XcbCookie            (SYS_DECL* free_picture)(xcb_connection_t*, XcbPicture);
+  XcbCookie            (SYS_DECL* create_picture)(XcbConnection*, XcbPicture, XcbDrawable, XcbPictFormat, u32 valueMask, const void* valueList);
+  XcbCookie            (SYS_DECL* create_cursor)(XcbConnection*, XcbCursor, XcbPicture, u16 x, u16 y);
+  XcbCookie            (SYS_DECL* free_picture)(XcbConnection*, XcbPicture);
   // clang-format on
 } XcbRender;
 
@@ -295,7 +353,7 @@ struct sGapPal {
   DynArray   windows;  // GapPalWindow[]
   DynArray   displays; // GapPalDisplay[]
 
-  xcb_connection_t* xcbCon;
+  XcbConnection*    xcbCon;
   xcb_screen_t*     xcbScreen;
   GapPalXcbExtFlags extensions;
   usize             maxRequestLength;
@@ -562,15 +620,14 @@ static GapKey pal_xcb_translate_key(const xcb_keycode_t key) {
  * Xcb atoms are named tokens that are used in the x11 specification.
  */
 static xcb_atom_t pal_xcb_atom(GapPal* pal, const String name) {
-  xcb_generic_error_t*     err = null;
-  xcb_intern_atom_reply_t* reply =
-      pal_xcb_call(pal->xcbCon, pal->xcb.intern_atom, &err, 0, name.size, name.ptr);
+  xcb_generic_error_t* err = null;
+  XcbAtomData* data = pal_xcb_call(pal->xcbCon, pal->xcb.intern_atom, &err, 0, name.size, name.ptr);
   if (UNLIKELY(err)) {
     diag_crash_msg(
         "Xcb failed to retrieve atom: {}, err: {}", fmt_text(name), fmt_int(err->error_code));
   }
-  const xcb_atom_t result = reply->atom;
-  free(reply);
+  const xcb_atom_t result = data->atom;
+  free(data);
   return result;
 }
 
@@ -637,8 +694,8 @@ static void pal_init_xcb(GapPal* pal, Xcb* out) {
   pal->maxRequestLength = out->get_maximum_request_length(pal->xcbCon) * 4;
 
   // Find the screen for our connection.
-  const xcb_setup_t*    setup     = out->get_setup(pal->xcbCon);
-  xcb_screen_iterator_t screenItr = out->setup_roots_iterator(setup);
+  const XcbSetup* setup     = out->get_setup(pal->xcbCon);
+  XcbScreenItr    screenItr = out->setup_roots_iterator(setup);
   if (!screenItr.data) {
     diag_crash_msg("Xcb no screen found");
   }
@@ -673,7 +730,7 @@ static void pal_xcb_wm_state_update(
   const xcb_client_message_event_t evt = {
       .response_type  = XCB_CLIENT_MESSAGE,
       .format         = sizeof(xcb_atom_t) * 8,
-      .window         = (xcb_window_t)windowId,
+      .window         = (XcbWindow)windowId,
       .type           = pal->atomWmState,
       .data.data32[0] = active ? 1 : 0,
       .data.data32[1] = stateAtom,
@@ -691,7 +748,7 @@ static void pal_xcb_bypass_compositor(GapPal* pal, const GapWindowId windowId, c
   pal->xcb.change_property(
       pal->xcbCon,
       XCB_PROP_MODE_REPLACE,
-      (xcb_window_t)windowId,
+      (XcbWindow)windowId,
       pal->atomWmStateBypassCompositor,
       XCB_ATOM_CARDINAL,
       sizeof(u32) * 8,
@@ -703,11 +760,11 @@ static void pal_xcb_cursor_grab(GapPal* pal, const GapWindowId windowId) {
   pal->xcb.grab_pointer(
       pal->xcbCon,
       true,
-      (xcb_window_t)windowId,
+      (XcbWindow)windowId,
       XCB_EVENT_MASK_BUTTON_PRESS | XCB_EVENT_MASK_BUTTON_RELEASE | XCB_EVENT_MASK_POINTER_MOTION,
       XCB_GRAB_MODE_ASYNC,
       XCB_GRAB_MODE_ASYNC,
-      (xcb_window_t)windowId,
+      (XcbWindow)windowId,
       XCB_NONE,
       XCB_CURRENT_TIME);
 }
@@ -888,7 +945,7 @@ static bool pal_randr_init(GapPal* pal, XcbRandr* out, u8* firstEventOut) {
 
 #undef XRANDR_LOAD_SYM
 
-  const xcb_query_extension_reply_t* data = pal->xcb.get_extension_data(pal->xcbCon, out->id);
+  const XcbExtensionData* data = pal->xcb.get_extension_data(pal->xcbCon, out->id);
   if (!data || !data->present) {
     log_w("Xcb RandR extention not present");
     return false;
@@ -974,7 +1031,7 @@ static bool pal_xrender_init(GapPal* pal, XcbRender* out) {
 
 #undef XRENDER_LOAD_SYM
 
-  const xcb_query_extension_reply_t* data = pal->xcb.get_extension_data(pal->xcbCon, out->id);
+  const XcbExtensionData* data = pal->xcb.get_extension_data(pal->xcbCon, out->id);
   if (!data || !data->present) {
     log_w("Xcb XRender extention not present");
     return false;
@@ -1098,33 +1155,32 @@ static void pal_randr_query_displays(GapPal* pal) {
   free(screen);
 }
 
-static GapVector pal_query_cursor_pos(GapPal* pal, const GapWindowId windowId) {
-  GapPalWindow* window = pal_maybe_window(pal, windowId);
+static GapVector pal_query_cursor_pos(GapPal* pal, const GapWindowId winId) {
+  GapPalWindow* window = pal_maybe_window(pal, winId);
   if (!window) {
     return gap_vector(0, 0);
   }
 
-  GapVector                  result = gap_vector(0, 0);
-  xcb_generic_error_t*       err    = null;
-  xcb_query_pointer_reply_t* reply =
-      pal_xcb_call(pal->xcbCon, pal->xcb.query_pointer, &err, (xcb_window_t)windowId);
+  GapVector            result = gap_vector(0, 0);
+  xcb_generic_error_t* err    = null;
+  XcbPointerData* data = pal_xcb_call(pal->xcbCon, pal->xcb.query_pointer, &err, (XcbWindow)winId);
 
   if (UNLIKELY(err)) {
     log_w(
         "Xcb failed to query the x11 cursor position",
-        log_param("window-id", fmt_int(windowId)),
+        log_param("window-id", fmt_int(winId)),
         log_param("error", fmt_int(err->error_code)));
     goto Return;
   }
 
   // Xcb uses top-left as opposed to bottom-left, so we have to remap the y coordinate.
   result = (GapVector){
-      .x = reply->win_x,
-      .y = window->params[GapParam_WindowSize].height - reply->win_y,
+      .x = data->winX,
+      .y = window->params[GapParam_WindowSize].height - data->winY,
   };
 
 Return:
-  free(reply);
+  free(data);
   return result;
 }
 
@@ -1153,7 +1209,7 @@ pal_set_window_min_size(GapPal* pal, const GapWindowId windowId, const GapVector
   pal->xcb.change_property(
       pal->xcbCon,
       XCB_PROP_MODE_REPLACE,
-      (xcb_window_t)windowId,
+      (XcbWindow)windowId,
       XCB_ATOM_WM_NORMAL_HINTS,
       XCB_ATOM_WM_SIZE_HINTS,
       32,
@@ -1330,7 +1386,7 @@ static void pal_event_clip_copy_clear(GapPal* pal, const GapWindowId windowId) {
 }
 
 static void
-pal_clip_send_targets(GapPal* pal, const xcb_window_t requestor, const xcb_atom_t property) {
+pal_clip_send_targets(GapPal* pal, const XcbWindow requestor, const xcb_atom_t property) {
   const xcb_atom_t targets[] = {
       pal->atomTargets,
       pal->atomUtf8String,
@@ -1348,10 +1404,7 @@ pal_clip_send_targets(GapPal* pal, const xcb_window_t requestor, const xcb_atom_
 }
 
 static void pal_clip_send_utf8(
-    GapPal*             pal,
-    const GapPalWindow* window,
-    const xcb_window_t  requestor,
-    const xcb_atom_t    property) {
+    GapPal* pal, const GapPalWindow* window, const XcbWindow requestor, const xcb_atom_t property) {
   pal->xcb.change_property(
       pal->xcbCon,
       XCB_PROP_MODE_REPLACE,
@@ -1400,13 +1453,13 @@ static void pal_event_clip_paste_notify(GapPal* pal, const GapWindowId windowId)
   if (!window) {
     return;
   }
-  xcb_generic_error_t*      err   = null;
-  xcb_get_property_reply_t* reply = pal_xcb_call(
+  xcb_generic_error_t* err   = null;
+  XcbPropertyData*     reply = pal_xcb_call(
       pal->xcbCon,
       pal->xcb.get_property,
       &err,
       0,
-      (xcb_window_t)windowId,
+      (XcbWindow)windowId,
       pal->atomVoloClipboard,
       XCB_ATOM_ANY,
       0,
@@ -1416,8 +1469,8 @@ static void pal_event_clip_paste_notify(GapPal* pal, const GapWindowId windowId)
   }
 
   string_maybe_free(g_allocHeap, window->clipPaste);
-  if (reply->value_len) {
-    const String selectionMem = mem_create(pal->xcb.get_property_value(reply), reply->value_len);
+  if (reply->valueLen) {
+    const String selectionMem = mem_create(pal->xcb.get_property_value(reply), reply->valueLen);
     window->clipPaste         = string_dup(g_allocHeap, selectionMem);
     window->flags |= GapPalWindowFlags_ClipPaste;
   } else {
@@ -1425,7 +1478,7 @@ static void pal_event_clip_paste_notify(GapPal* pal, const GapWindowId windowId)
   }
   free(reply);
 
-  pal->xcb.delete_property(pal->xcbCon, (xcb_window_t)windowId, pal->atomVoloClipboard);
+  pal->xcb.delete_property(pal->xcbCon, (XcbWindow)windowId, pal->atomVoloClipboard);
 }
 
 GapPal* gap_pal_create(Allocator* alloc) {
@@ -1506,8 +1559,8 @@ void gap_pal_update(GapPal* pal) {
   pal_clear_volatile(pal);
 
   // Handle all xcb events in the buffer.
-  for (xcb_generic_event_t* evt; (evt = pal->xcb.poll_for_event(pal->xcbCon)); free(evt)) {
-    switch (evt->response_type & ~0x80) {
+  for (XcbGenericEvent* evt; (evt = pal->xcb.poll_for_event(pal->xcbCon)); free(evt)) {
+    switch (evt->responseType & ~0x80) {
 
     case 0: {
       const xcb_generic_error_t* errMsg = (const void*)evt;
@@ -1679,7 +1732,7 @@ void gap_pal_update(GapPal* pal) {
     } break;
     default:
       if (pal->extensions & GapPalXcbExtFlags_Randr) {
-        switch (evt->response_type - pal->randrFirstEvent) {
+        switch (evt->responseType - pal->randrFirstEvent) {
         case 0 /* XCB_RANDR_SCREEN_CHANGE_NOTIFY */: {
           const XcbRandrScreenChangeEvent* screenChangeMsg = (const void*)evt;
 
@@ -1824,7 +1877,7 @@ void gap_pal_cursor_load(GapPal* pal, const GapCursor id, const AssetIconComp* a
 }
 
 GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
-  xcb_connection_t* con = pal->xcbCon;
+  XcbConnection*    con = pal->xcbCon;
   const GapWindowId id  = pal->xcb.generate_id(con);
 
   if (size.width <= 0) {
@@ -1848,7 +1901,7 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
   pal->xcb.create_window(
       con,
       XCB_COPY_FROM_PARENT,
-      (xcb_window_t)id,
+      (XcbWindow)id,
       pal->xcbScreen->root,
       0,
       0,
@@ -1864,7 +1917,7 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
   pal->xcb.change_property(
       con,
       XCB_PROP_MODE_REPLACE,
-      (xcb_window_t)id,
+      (XcbWindow)id,
       pal->atomProtoMsg,
       XCB_ATOM_ATOM,
       sizeof(xcb_atom_t) * 8,
@@ -1882,12 +1935,12 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
 
   if (pal->extensions & GapPalXcbExtFlags_Randr) {
     const u16 mask = 1 /* XCB_RANDR_NOTIFY_MASK_SCREEN_CHANGE */;
-    pal->xrandr.select_input(pal->xcbCon, (xcb_window_t)id, mask);
+    pal->xrandr.select_input(pal->xcbCon, (XcbWindow)id, mask);
   }
 
   gap_pal_window_icon_set(pal, id, GapIcon_Main);
   pal_set_window_min_size(pal, id, gap_vector(pal_window_min_width, pal_window_min_height));
-  pal->xcb.map_window(con, (xcb_window_t)id);
+  pal->xcb.map_window(con, (XcbWindow)id);
 
   log_i("Window created", log_param("id", fmt_int(id)), log_param("size", gap_vector_fmt(size)));
 
@@ -1896,7 +1949,7 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
 
 void gap_pal_window_destroy(GapPal* pal, const GapWindowId windowId) {
 
-  pal->xcb.destroy_window(pal->xcbCon, (xcb_window_t)windowId);
+  pal->xcb.destroy_window(pal->xcbCon, (XcbWindow)windowId);
 
   for (usize i = 0; i != pal->windows.size; ++i) {
     GapPalWindow* window = dynarray_at_t(&pal->windows, i, GapPalWindow);
@@ -1948,7 +2001,7 @@ void gap_pal_window_title_set(GapPal* pal, const GapWindowId windowId, const Str
   pal->xcb.change_property(
       pal->xcbCon,
       XCB_PROP_MODE_REPLACE,
-      (xcb_window_t)windowId,
+      (XcbWindow)windowId,
       XCB_ATOM_WM_NAME,
       pal->atomUtf8String,
       sizeof(u8) * 8,
@@ -1996,7 +2049,7 @@ void gap_pal_window_resize(
     const u32 values[2] = {size.x, size.y};
     pal->xcb.configure_window(
         pal->xcbCon,
-        (xcb_window_t)windowId,
+        (XcbWindow)windowId,
         XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT,
         values);
   }
@@ -2009,11 +2062,11 @@ void gap_pal_window_cursor_hide(GapPal* pal, const GapWindowId windowId, const b
   }
 
   if (hidden && !(pal->flags & GapPalFlags_CursorHidden)) {
-    pal->xfixes.hide_cursor(pal->xcbCon, (xcb_window_t)windowId);
+    pal->xfixes.hide_cursor(pal->xcbCon, (XcbWindow)windowId);
     pal->flags |= GapPalFlags_CursorHidden;
 
   } else if (!hidden && pal->flags & GapPalFlags_CursorHidden) {
-    pal->xfixes.show_cursor(pal->xcbCon, (xcb_window_t)windowId);
+    pal->xfixes.show_cursor(pal->xcbCon, (XcbWindow)windowId);
     pal->flags &= ~GapPalFlags_CursorHidden;
   }
 }
@@ -2056,14 +2109,14 @@ void gap_pal_window_icon_set(GapPal* pal, const GapWindowId windowId, const GapI
     pal->xcb.change_property(
         pal->xcbCon,
         XCB_PROP_MODE_REPLACE,
-        (xcb_window_t)windowId,
+        (XcbWindow)windowId,
         pal->atomWmIcon,
         XCB_ATOM_CARDINAL,
         sizeof(u32) * 8,
         (u32)(pal->icons[icon].size / sizeof(u32)),
         pal->icons[icon].ptr);
   } else {
-    pal->xcb.delete_property(pal->xcbCon, (xcb_window_t)windowId, pal->atomWmIcon);
+    pal->xcb.delete_property(pal->xcbCon, (XcbWindow)windowId, pal->atomWmIcon);
   }
 
   window->icon = icon;
@@ -2074,7 +2127,7 @@ void gap_pal_window_cursor_set(GapPal* pal, const GapWindowId windowId, const Ga
   diag_assert(window);
 
   pal->xcb.change_window_attributes(
-      pal->xcbCon, (xcb_window_t)windowId, XCB_CW_CURSOR, &pal->cursors[cursor]);
+      pal->xcbCon, (XcbWindow)windowId, XCB_CW_CURSOR, &pal->cursors[cursor]);
 
   window->cursor = cursor;
 }
@@ -2092,8 +2145,7 @@ void gap_pal_window_cursor_pos_set(
       .x = position.x,
       .y = window->params[GapParam_WindowSize].height - position.y,
   };
-  pal->xcb.warp_pointer(
-      pal->xcbCon, XCB_NONE, (xcb_window_t)windowId, 0, 0, 0, 0, xcbPos.x, xcbPos.y);
+  pal->xcb.warp_pointer(pal->xcbCon, XCB_NONE, (XcbWindow)windowId, 0, 0, 0, 0, xcbPos.x, xcbPos.y);
 
   pal_window((GapPal*)pal, windowId)->params[GapParam_CursorPos] = position;
 }
@@ -2115,14 +2167,14 @@ void gap_pal_window_clip_copy(GapPal* pal, const GapWindowId windowId, const Str
   string_maybe_free(g_allocHeap, window->clipCopy);
   window->clipCopy = string_dup(g_allocHeap, value);
   pal->xcb.set_selection_owner(
-      pal->xcbCon, (xcb_window_t)windowId, pal->atomClipboard, XCB_CURRENT_TIME);
+      pal->xcbCon, (XcbWindow)windowId, pal->atomClipboard, XCB_CURRENT_TIME);
 }
 
 void gap_pal_window_clip_paste(GapPal* pal, const GapWindowId windowId) {
-  pal->xcb.delete_property(pal->xcbCon, (xcb_window_t)windowId, pal->atomVoloClipboard);
+  pal->xcb.delete_property(pal->xcbCon, (XcbWindow)windowId, pal->atomVoloClipboard);
   pal->xcb.convert_selection(
       pal->xcbCon,
-      (xcb_window_t)windowId,
+      (XcbWindow)windowId,
       pal->atomClipboard,
       pal->atomUtf8String,
       pal->atomVoloClipboard,
