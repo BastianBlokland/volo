@@ -87,11 +87,6 @@ jobs:
       with:
         fetch-depth: 0
 
-    - name: prepare-ubuntu
-      if: matrix.config.os == 'linux'
-      run: |
-        sudo apt install libxcb1-dev
-
     - name: test-unix
       if: matrix.config.toolchain == 'unix'
       run: |
