@@ -8,8 +8,6 @@
 #include "pal_internal.h"
 
 #include <xcb/xcb.h>
-#include <xcb/xkb.h>
-#include <xkbcommon/xkbcommon-x11.h>
 
 void SYS_DECL free(void*); // free from stdlib, xcb allocates various structures for us to free.
 
@@ -36,6 +34,9 @@ void SYS_DECL free(void*); // free from stdlib, xcb allocates various structures
 
 typedef unsigned int           XcbCookie;
 typedef struct sXcbPictFormats XcbPictFormats;
+typedef struct sXkbContext     XkbContext;
+typedef struct sXkbKeyMap      XkbKeyMap;
+typedef struct sXkbState       XkbState;
 typedef u32                    XcbCursor;
 typedef u32                    XcbDrawable;
 typedef u32                    XcbPictFormat;
@@ -43,16 +44,18 @@ typedef u32                    XcbPicture;
 typedef u32                    XcbRandrCrtc;
 typedef u32                    XcbRandrMode;
 typedef u32                    XcbRandrOutput;
+typedef u32                    XkbKeycode;
+
+typedef enum {
+  XkbKeyDirection_Up,
+  XkbKeyDirection_Down,
+} XkbKeyDirection;
 
 typedef struct {
-  u16 redShift;
-  u16 redMask;
-  u16 greenShift;
-  u16 greenMask;
-  u16 blueShift;
-  u16 blueMask;
-  u16 alphaShift;
-  u16 alphaMask;
+  u16 redShift, redMask;
+  u16 greenShift, greenMask;
+  u16 blueShift, blueMask;
+  u16 alphaShift, alphaMask;
 } XcbDirectFormat;
 
 typedef struct {
@@ -141,6 +144,25 @@ typedef struct {
   u16             width, height;
   u16             mwidth, mheight;
 } XcbRandrScreenChangeEvent;
+
+typedef struct {
+  DynLib* lib;
+  // clang-format off
+  int         (SYS_DECL* setup_xkb_extension)(xcb_connection_t*, u16 xkbMajor, u16 xkbMinor, i32 flags, u16* xkbMajorOut, u16* xkbMinorOut, u8* baseEventOut, u8* baseErrorOut);
+  XkbContext* (SYS_DECL* context_new)(i32 flags);
+  void        (SYS_DECL* context_unref)(XkbContext*);
+  XcbCookie   (SYS_DECL* per_client_flags_unchecked)(xcb_connection_t*, u16 deviceSpec, u32 change, u32 value, u32 ctrlsToChange, u32 autoCtrls, u32 autoCtrlsValues);
+  i32         (SYS_DECL* get_core_keyboard_device_id)(xcb_connection_t*);
+  XkbKeyMap*  (SYS_DECL* keymap_new_from_device)(XkbContext*, xcb_connection_t*, i32 deviceId, i32 flags);
+  void        (SYS_DECL* keymap_unref)(XkbKeyMap*);
+  u32         (SYS_DECL* keymap_num_layouts)(XkbKeyMap*);
+  const char* (SYS_DECL* keymap_layout_get_name)(XkbKeyMap*, u32 index);
+  XkbState*   (SYS_DECL* state_new_from_device)(XkbKeyMap*, xcb_connection_t*, i32 deviceId);
+  void        (SYS_DECL* state_unref)(XkbState*);
+  i32         (SYS_DECL* state_key_get_utf8)(XkbState*, XkbKeycode, char* buffer, usize size);
+  i32         (SYS_DECL* state_update_key)(XkbState*, XkbKeycode, XkbKeyDirection);
+  // clang-format on
+} XcbXkbCommon;
 
 typedef struct {
   DynLib* lib;
@@ -234,17 +256,20 @@ struct sGapPal {
   xcb_screen_t*     xcbScreen;
   GapPalXcbExtFlags extensions;
   usize             maxRequestLength;
+  u8                xkbFirstEvent, xkbFirstError;
   u8                randrFirstEvent;
-  GapPalFlags       flags;
 
-  XcbXFixes xfixes;
-  XcbRandr  xrandr;
-  XcbRender xrender;
+  GapPalFlags flags;
 
-  struct xkb_context* xkbContext;
-  i32                 xkbDeviceId;
-  struct xkb_keymap*  xkbKeymap;
-  struct xkb_state*   xkbState;
+  XcbXkbCommon xkb;
+  XcbXFixes    xfixes;
+  XcbRandr     xrandr;
+  XcbRender    xrender;
+
+  XkbContext* xkbContext;
+  i32         xkbDeviceId;
+  XkbKeyMap*  xkbKeymap;
+  XkbState*   xkbState;
 
   XcbPictFormat formatArgb32;
 
@@ -591,57 +616,89 @@ static void pal_xcb_cursor_grab_release(GapPal* pal) {
   xcb_ungrab_pointer(pal->xcbCon, XCB_CURRENT_TIME);
 }
 
-static void pal_xkb_enable_flag(GapPal* pal, const xcb_xkb_per_client_flag_t flag) {
-  xcb_xkb_per_client_flags_unchecked(pal->xcbCon, XCB_XKB_ID_USE_CORE_KBD, flag, flag, 0, 0, 0);
+static void pal_xkb_enable_flag(GapPal* pal, const i32 flag) {
+  enum { XCB_XKB_ID_USE_CORE_KBD = 256 };
+  pal->xkb.per_client_flags_unchecked(pal->xcbCon, XCB_XKB_ID_USE_CORE_KBD, flag, flag, 0, 0, 0);
 }
 
 /**
  * Initialize the xkb extension, gives us additional control over keyboard input.
  * More info: https://en.wikipedia.org/wiki/X_keyboard_extension
  */
-static bool pal_xkb_init(GapPal* pal) {
-  xcb_generic_error_t*           err   = null;
-  xcb_xkb_use_extension_reply_t* reply = pal_xcb_call(
-      pal->xcbCon, xcb_xkb_use_extension, &err, XCB_XKB_MAJOR_VERSION, XCB_XKB_MINOR_VERSION);
-
-  if (UNLIKELY(err)) {
-    log_w("Xcb failed to initialize the xkb ext", log_param("error", fmt_int(err->error_code)));
-    free(reply);
+static bool pal_xkb_init(GapPal* pal, XcbXkbCommon* out) {
+  DynLibResult loadRes = dynlib_load(pal->alloc, string_lit("libxkbcommon-x11.so"), &out->lib);
+  if (loadRes != DynLibResult_Success) {
+    const String err = dynlib_result_str(loadRes);
+    log_w("Failed to load XkbCommon ('libxkbcommon-x11.so')", log_param("err", fmt_text(err)));
     return false;
   }
 
-  MAYBE_UNUSED const u16 versionMajor = reply->serverMajor;
-  MAYBE_UNUSED const u16 versionMinor = reply->serverMinor;
-  free(reply);
+#define XKB_LOAD_SYM(_PREFIX_, _NAME_)                                                             \
+  do {                                                                                             \
+    const String symName = string_lit(#_PREFIX_ "_" #_NAME_);                                      \
+    out->_NAME_          = dynlib_symbol(out->lib, symName);                                       \
+    if (!out->_NAME_) {                                                                            \
+      log_w("XkbCommon symbol '{}' missing", log_param("sym", fmt_text(symName)));                 \
+      return false;                                                                                \
+    }                                                                                              \
+  } while (false)
 
-  pal->xkbContext = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
+  XKB_LOAD_SYM(xkb_x11, setup_xkb_extension);
+  XKB_LOAD_SYM(xkb, context_new);
+  XKB_LOAD_SYM(xkb, context_unref);
+  XKB_LOAD_SYM(xcb_xkb, per_client_flags_unchecked);
+  XKB_LOAD_SYM(xkb_x11, get_core_keyboard_device_id);
+  XKB_LOAD_SYM(xkb_x11, keymap_new_from_device);
+  XKB_LOAD_SYM(xkb, keymap_unref);
+  XKB_LOAD_SYM(xkb, keymap_num_layouts);
+  XKB_LOAD_SYM(xkb, keymap_layout_get_name);
+  XKB_LOAD_SYM(xkb_x11, state_new_from_device);
+  XKB_LOAD_SYM(xkb, state_unref);
+  XKB_LOAD_SYM(xkb, state_key_get_utf8);
+  XKB_LOAD_SYM(xkb, state_update_key);
+
+#undef XKB_LOAD_SYM
+
+  xcb_generic_error_t* err = null;
+
+  u16       versionMajor;
+  u16       versionMinor;
+  const int setupRes = out->setup_xkb_extension(
+      pal->xcbCon, 1, 0, 0, &versionMajor, &versionMinor, &pal->xkbFirstEvent, &pal->xkbFirstError);
+
+  if (UNLIKELY(!setupRes)) {
+    log_w("Xcb failed to initialize xkb", log_param("error", fmt_int(err->error_code)));
+    return false;
+  }
+
+  pal->xkbContext = out->context_new(0);
   if (UNLIKELY(!pal->xkbContext)) {
     log_w("Xcb failed to create the xkb-common context");
     return false;
   }
-  pal->xkbDeviceId = xkb_x11_get_core_keyboard_device_id(pal->xcbCon);
+  pal->xkbDeviceId = out->get_core_keyboard_device_id(pal->xcbCon);
   if (UNLIKELY(pal->xkbDeviceId < 0)) {
     log_w("Xcb failed to retrieve the xkb keyboard device-id");
     return false;
   }
-  pal->xkbKeymap = xkb_x11_keymap_new_from_device(
-      pal->xkbContext, pal->xcbCon, pal->xkbDeviceId, XKB_KEYMAP_COMPILE_NO_FLAGS);
+  pal->xkbKeymap = out->keymap_new_from_device(pal->xkbContext, pal->xcbCon, pal->xkbDeviceId, 0);
   if (!pal->xkbKeymap) {
     log_w("Xcb failed to retrieve the xkb keyboard keymap");
     return false;
   }
-  pal->xkbState = xkb_x11_state_new_from_device(pal->xkbKeymap, pal->xcbCon, pal->xkbDeviceId);
+  pal->xkbState = out->state_new_from_device(pal->xkbKeymap, pal->xcbCon, pal->xkbDeviceId);
   if (!pal->xkbKeymap) {
     log_w("Xcb failed to retrieve the xkb keyboard state");
     return false;
   }
 
-  const xkb_layout_index_t layoutCount   = xkb_keymap_num_layouts(pal->xkbKeymap);
-  const char*              layoutNameRaw = xkb_keymap_layout_get_name(pal->xkbKeymap, 0);
-  const String layoutName = layoutNameRaw ? string_from_null_term(layoutNameRaw) : string_empty;
+  const u32    layoutCount   = out->keymap_num_layouts(pal->xkbKeymap);
+  const char*  layoutNameRaw = out->keymap_layout_get_name(pal->xkbKeymap, 0);
+  const String layoutName    = layoutNameRaw ? string_from_null_term(layoutNameRaw) : string_empty;
 
   log_i(
-      "Xcb initialized the xkb keyboard extension",
+      "Xcb initialized XkbCommon",
+      log_param("path", fmt_path(dynlib_path(out->lib))),
       log_param("version", fmt_list_lit(fmt_int(versionMajor), fmt_int(versionMinor))),
       log_param("device-id", fmt_int(pal->xkbDeviceId)),
       log_param("layout-count", fmt_int(layoutCount)),
@@ -656,7 +713,7 @@ static bool pal_xfixes_init(GapPal* pal, XcbXFixes* out) {
   DynLibResult loadRes = dynlib_load(pal->alloc, string_lit("libxcb-xfixes.so"), &out->lib);
   if (loadRes != DynLibResult_Success) {
     const String err = dynlib_result_str(loadRes);
-    log_w("Failed to load xfixes library ('libxcb-xfixes.so')", log_param("err", fmt_text(err)));
+    log_w("Failed to load XFixes ('libxcb-xfixes.so')", log_param("err", fmt_text(err)));
     return false;
   }
 
@@ -682,11 +739,11 @@ static bool pal_xfixes_init(GapPal* pal, XcbXFixes* out) {
   free(reply);
 
   if (UNLIKELY(err)) {
-    log_w("Failed to initialize Xcb xfixes", log_param("error", fmt_int(err->error_code)));
+    log_w("Failed to initialize XFixes", log_param("error", fmt_int(err->error_code)));
     return false;
   }
 
-  log_i("Xcb initialized xfixes extension", log_param("path", fmt_path(dynlib_path(out->lib))));
+  log_i("Xcb initialized XFixes", log_param("path", fmt_path(dynlib_path(out->lib))));
   return true;
 }
 
@@ -698,7 +755,7 @@ static bool pal_randr_init(GapPal* pal, XcbRandr* out, u8* firstEventOut) {
   DynLibResult loadRes = dynlib_load(pal->alloc, string_lit("libxcb-randr.so"), &out->lib);
   if (loadRes != DynLibResult_Success) {
     const String err = dynlib_result_str(loadRes);
-    log_w("Failed to load XRandR library ('libxcb-randr.so')", log_param("err", fmt_text(err)));
+    log_w("Failed to load XRandR ('libxcb-randr.so')", log_param("err", fmt_text(err)));
     return false;
   }
 
@@ -741,12 +798,12 @@ static bool pal_randr_init(GapPal* pal, XcbRandr* out, u8* firstEventOut) {
   free(version);
 
   if (UNLIKELY(err)) {
-    log_w("Failed to initialize Xcb RandR extension", log_param("err", fmt_int(err->error_code)));
+    log_w("Failed to initialize XRandR", log_param("err", fmt_int(err->error_code)));
     return false;
   }
 
   *firstEventOut = data->first_event;
-  log_i("Xcb initialized RandR extension", log_param("path", fmt_path(dynlib_path(out->lib))));
+  log_i("Xcb initialized XRandR", log_param("path", fmt_path(dynlib_path(out->lib))));
   return true;
 }
 
@@ -790,7 +847,7 @@ static bool pal_xrender_init(GapPal* pal, XcbRender* out) {
   DynLibResult loadRes = dynlib_load(pal->alloc, string_lit("libxcb-render.so"), &out->lib);
   if (loadRes != DynLibResult_Success) {
     const String err = dynlib_result_str(loadRes);
-    log_w("Failed to load xrender library ('libxcb-render.so')", log_param("err", fmt_text(err)));
+    log_w("Failed to load XRender ('libxcb-render.so')", log_param("err", fmt_text(err)));
     return false;
   }
 
@@ -819,7 +876,7 @@ static bool pal_xrender_init(GapPal* pal, XcbRender* out) {
 
   const xcb_query_extension_reply_t* data = xcb_get_extension_data(pal->xcbCon, out->id);
   if (!data || !data->present) {
-    log_w("Xcb render extention not present");
+    log_w("Xcb XRender extention not present");
     return false;
   }
   xcb_generic_error_t* err     = null;
@@ -827,7 +884,7 @@ static bool pal_xrender_init(GapPal* pal, XcbRender* out) {
   free(version);
 
   if (UNLIKELY(err)) {
-    log_w("Failed to initialize Xcb render extension", log_param("err", fmt_int(err->error_code)));
+    log_w("Failed to initialize XRender extension", log_param("err", fmt_int(err->error_code)));
     return false;
   }
   if (!pal_xrender_find_formats(pal)) {
@@ -835,12 +892,12 @@ static bool pal_xrender_init(GapPal* pal, XcbRender* out) {
     return false;
   }
 
-  log_i("Xcb initialized xrender extension", log_param("path", fmt_path(dynlib_path(out->lib))));
+  log_i("Xcb initialized XRender", log_param("path", fmt_path(dynlib_path(out->lib))));
   return true;
 }
 
 static void pal_init_extensions(GapPal* pal) {
-  if (pal_xkb_init(pal)) {
+  if (pal_xkb_init(pal, &pal->xkb)) {
     pal->extensions |= GapPalXcbExtFlags_Xkb;
   }
   if (pal_xfixes_init(pal, &pal->xfixes)) {
@@ -887,7 +944,7 @@ static void pal_randr_query_displays(GapPal* pal) {
   XcbRandrScreenResources* screen = pal_xcb_call(
       pal->xcbCon, pal->xrandr.get_screen_resources_current, &err, pal->xcbScreen->root);
   if (UNLIKELY(err)) {
-    diag_crash_msg("Xcb failed to retrieve randr screen-info, err: {}", fmt_int(err->error_code));
+    diag_crash_msg("Xcb failed to retrieve RandR screen-info, err: {}", fmt_int(err->error_code));
   }
 
   const XcbRandrOutput* outputs = pal->xrandr.get_screen_resources_current_outputs(screen);
@@ -896,7 +953,7 @@ static void pal_randr_query_displays(GapPal* pal) {
     XcbRandrOutputInfo* output =
         pal_xcb_call(pal->xcbCon, pal->xrandr.get_output_info, &err, outputs[i], 0);
     if (UNLIKELY(err)) {
-      diag_crash_msg("Xcb failed to retrieve randr output-info, err: {}", fmt_int(err->error_code));
+      diag_crash_msg("Xcb failed to retrieve RandR output-info, err: {}", fmt_int(err->error_code));
     }
     const String name = {
         .ptr  = pal->xrandr.get_output_info_name(output),
@@ -907,7 +964,7 @@ static void pal_randr_query_displays(GapPal* pal) {
       XcbRandrCrtcInfo* crtc =
           pal_xcb_call(pal->xcbCon, pal->xrandr.get_crtc_info, &err, output->crtc, 0);
       if (UNLIKELY(err)) {
-        diag_crash_msg("Xcb failed to retrieve randr crtc-info, err: {}", fmt_int(err->error_code));
+        diag_crash_msg("Xcb failed to retrieve RandR crtc-info, err: {}", fmt_int(err->error_code));
       }
       const GapVector position       = gap_vector(crtc->x, crtc->y);
       const GapVector size           = gap_vector(crtc->width, crtc->height);
@@ -1144,9 +1201,9 @@ static void pal_event_text(GapPal* pal, const GapWindowId windowId, const xcb_ke
     return;
   }
   if (pal->extensions & GapPalXcbExtFlags_Xkb) {
-    char      buffer[32];
-    const int textSize = xkb_state_key_get_utf8(pal->xkbState, keyCode, buffer, sizeof(buffer));
-    dynstring_append(&window->inputText, mem_create(buffer, textSize));
+    char      buff[32];
+    const int textSize = pal->xkb.state_key_get_utf8(pal->xkbState, keyCode, buff, sizeof(buff));
+    dynstring_append(&window->inputText, mem_create(buff, textSize));
   } else {
     /**
      * Xkb is not supported on this platform.
@@ -1289,7 +1346,7 @@ GapPal* gap_pal_create(Allocator* alloc) {
      * By default x-server will send repeated press and release when holding a key, making it
      * impossible to detect 'true' presses and releases. This flag disables that behavior.
      */
-    pal_xkb_enable_flag(pal, XCB_XKB_PER_CLIENT_FLAG_DETECTABLE_AUTO_REPEAT);
+    pal_xkb_enable_flag(pal, 1 /* XCB_XKB_PER_CLIENT_FLAG_DETECTABLE_AUTO_REPEAT */);
   }
 
   if (pal->extensions & GapPalXcbExtFlags_Randr) {
@@ -1305,6 +1362,19 @@ void gap_pal_destroy(GapPal* pal) {
   }
   dynarray_for_t(&pal->displays, GapPalDisplay, d) { string_maybe_free(g_allocHeap, d->name); }
 
+  if (pal->xkbContext) {
+    pal->xkb.context_unref(pal->xkbContext);
+  }
+  if (pal->xkbKeymap) {
+    pal->xkb.keymap_unref(pal->xkbKeymap);
+  }
+  if (pal->xkbState) {
+    pal->xkb.state_unref(pal->xkbState);
+  }
+
+  if (pal->xkb.lib) {
+    dynlib_destroy(pal->xkb.lib);
+  }
   if (pal->xfixes.lib) {
     dynlib_destroy(pal->xfixes.lib);
   }
@@ -1315,15 +1385,6 @@ void gap_pal_destroy(GapPal* pal) {
     dynlib_destroy(pal->xrender.lib);
   }
 
-  if (pal->xkbContext) {
-    xkb_context_unref(pal->xkbContext);
-  }
-  if (pal->xkbKeymap) {
-    xkb_keymap_unref(pal->xkbKeymap);
-  }
-  if (pal->xkbState) {
-    xkb_state_unref(pal->xkbState);
-  }
   array_for_t(pal->icons, Mem, icon) { alloc_maybe_free(pal->alloc, *icon); }
   array_for_t(pal->cursors, xcb_cursor_t, cursor) {
     if (*cursor != XCB_NONE) {
@@ -1486,7 +1547,7 @@ void gap_pal_update(GapPal* pal) {
       const xcb_key_press_event_t* pressMsg = (const void*)evt;
       pal_event_press(pal, pressMsg->event, pal_xcb_translate_key(pressMsg->detail));
       if (pal->extensions & GapPalXcbExtFlags_Xkb) {
-        xkb_state_update_key(pal->xkbState, pressMsg->detail, XKB_KEY_DOWN);
+        pal->xkb.state_update_key(pal->xkbState, pressMsg->detail, XkbKeyDirection_Down);
       }
       pal_event_text(pal, pressMsg->event, pressMsg->detail);
     } break;
@@ -1495,7 +1556,7 @@ void gap_pal_update(GapPal* pal) {
       const xcb_key_release_event_t* releaseMsg = (const void*)evt;
       pal_event_release(pal, releaseMsg->event, pal_xcb_translate_key(releaseMsg->detail));
       if (pal->extensions & GapPalXcbExtFlags_Xkb) {
-        xkb_state_update_key(pal->xkbState, releaseMsg->detail, XKB_KEY_UP);
+        pal->xkb.state_update_key(pal->xkbState, releaseMsg->detail, XkbKeyDirection_Up);
       }
     } break;
 
