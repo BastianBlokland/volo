@@ -22,14 +22,12 @@ target_link_libraries(lib_gap PRIVATE lib_log lib_asset)
 #
 if(${VOLO_PLATFORM} STREQUAL "linux")
 
-  message(STATUS "> Configuring xcb (with xkb, xkbcommon and xkbcommon-x11 extensions) package")
+  message(STATUS "> Configuring xcb (with xkbcommon and xkbcommon-x11 extensions) package")
   find_package(xcb REQUIRED)
-  find_package(xcb-xkb REQUIRED)
   find_package(xkbcommon REQUIRED)
   find_package(xkbcommon-x11 REQUIRED)
   target_link_libraries(lib_gap PRIVATE
     xcb
-    xcb-xkb
     xkbcommon
     xkbcommon-x11
     )

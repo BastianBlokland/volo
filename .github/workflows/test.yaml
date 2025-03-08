@@ -90,7 +90,7 @@ jobs:
     - name: prepare-ubuntu
       if: matrix.config.os == 'linux'
       run: |
-        sudo apt install libxcb1-dev libxcb-xkb-dev libxkbcommon-dev libxkbcommon-x11-dev
+        sudo apt install libxcb1-dev libxkbcommon-dev libxkbcommon-x11-dev
 
     - name: test-unix
       if: matrix.config.toolchain == 'unix'

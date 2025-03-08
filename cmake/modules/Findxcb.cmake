@@ -1,5 +1,5 @@
 # --------------------------------------------------------------------------------------------------
-# CMake utility to find the xcb-xkb (https://xcb.freedesktop.org/) library.
+# CMake utility to find the xcb (https://xcb.freedesktop.org/) library.
 # --------------------------------------------------------------------------------------------------
 
 #
