@@ -88,11 +88,13 @@ ecs_comp_define(RendLightRendererComp) {
 
 ecs_comp_define(RendLightComp) {
   DynArray entries; // RendLight[]
+  DynArray debug;   // RendLightDebug[]
 };
 
 static void ecs_destruct_light(void* data) {
   RendLightComp* comp = data;
   dynarray_destroy(&comp->entries);
+  dynarray_destroy(&comp->debug);
 }
 
 ecs_view_define(GlobalInitView) {
@@ -504,7 +506,17 @@ ecs_module_init(rend_light_module) {
 
 RendLightComp* rend_light_create(EcsWorld* world, const EcsEntityId entity) {
   return ecs_world_add_t(
-      world, entity, RendLightComp, .entries = dynarray_create_t(g_allocHeap, RendLight, 4));
+      world,
+      entity,
+      RendLightComp,
+      .entries = dynarray_create_t(g_allocHeap, RendLight, 4),
+      .debug   = dynarray_create_t(g_allocHeap, RendLightDebug, 0));
+}
+
+usize rend_light_debug_count(const RendLightComp* light) { return light->debug.size; }
+
+const RendLightDebug* rend_light_debug_data(const RendLightComp* light) {
+  return dynarray_begin_t(&light->debug, RendLightDebug);
 }
 
 void rend_light_directional(
