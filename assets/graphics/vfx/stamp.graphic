@@ -5,8 +5,8 @@
     { "program": "shaders/vfx/stamp.frag" }
   ],
   "samplers": [
-    { "texture": "textures/vfx/stamp_color.atlas", "anisotropy": "x4", "mipBlending": true },
-    { "texture": "textures/vfx/stamp_normal.atlas", "anisotropy": "x4", "mipBlending": true }
+    { "texture": "textures/vfx/stamp_color.atlas", "anisotropy": "None", "mipBlending": true },
+    { "texture": "textures/vfx/stamp_normal.atlas", "anisotropy": "None", "mipBlending": true }
   ],
   "mesh": "meshes/vfx/stamp_box.procmesh",
   "blend": "AlphaConstant",
