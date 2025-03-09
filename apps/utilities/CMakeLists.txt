@@ -8,26 +8,8 @@ add_executable(app_schemasetup schemasetup.c)
 target_link_libraries(app_schemasetup PRIVATE lib_app_cli lib_asset lib_log)
 configure_debuggable(app_schemasetup)
 
-add_custom_target(run.schemasetup COMMAND app_schemasetup "--out"
-  "${CMAKE_SOURCE_DIR}/assets/schemas/arraytex.schema.json"
-  "${CMAKE_SOURCE_DIR}/assets/schemas/atlas.schema.json"
-  "${CMAKE_SOURCE_DIR}/assets/schemas/decal.schema.json"
-  "${CMAKE_SOURCE_DIR}/assets/schemas/fonttex.schema.json"
-  "${CMAKE_SOURCE_DIR}/assets/schemas/graphic.schema.json"
-  "${CMAKE_SOURCE_DIR}/assets/schemas/icon.schema.json"
-  "${CMAKE_SOURCE_DIR}/assets/schemas/inputs.schema.json"
-  "${CMAKE_SOURCE_DIR}/assets/schemas/level.schema.json"
-  "${CMAKE_SOURCE_DIR}/assets/schemas/prefabs.schema.json"
-  "${CMAKE_SOURCE_DIR}/assets/schemas/procmesh.schema.json"
-  "${CMAKE_SOURCE_DIR}/assets/schemas/proctex.schema.json"
-  "${CMAKE_SOURCE_DIR}/assets/schemas/products.schema.json"
-  "${CMAKE_SOURCE_DIR}/assets/schemas/script_import_mesh_binder.json"
-  "${CMAKE_SOURCE_DIR}/assets/schemas/script_import_texture_binder.json"
-  "${CMAKE_SOURCE_DIR}/assets/schemas/script_scene_binder.json"
-  "${CMAKE_SOURCE_DIR}/assets/schemas/terrain.schema.json"
-  "${CMAKE_SOURCE_DIR}/assets/schemas/vfx.schema.json"
-  "${CMAKE_SOURCE_DIR}/assets/schemas/weapons.schema.json"
-  VERBATIM USES_TERMINAL)
+add_custom_target(run.schemasetup COMMAND
+  app_schemasetup "${CMAKE_SOURCE_DIR}/assets/schemas/" VERBATIM USES_TERMINAL)
 
 message(STATUS "> application: fetch")
 
@@ -90,4 +72,5 @@ add_executable(app_vkgen vkgen.c)
 target_link_libraries(app_vkgen PRIVATE lib_app_cli lib_net lib_xml lib_log)
 configure_debuggable(app_vkgen)
 
-add_custom_target(run.vkgen COMMAND app_vkgen "${CMAKE_SOURCE_DIR}/libs/rend/src/rvk/vulkan_api" VERBATIM USES_TERMINAL)
+add_custom_target(run.vkgen COMMAND
+  app_vkgen "${CMAKE_SOURCE_DIR}/libs/rend/src/rvk/vulkan_api" VERBATIM USES_TERMINAL)

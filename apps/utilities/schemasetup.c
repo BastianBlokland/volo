@@ -18,6 +18,7 @@
 #include "cli_app.h"
 #include "cli_help.h"
 #include "cli_parse.h"
+#include "cli_read.h"
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_dynstring.h"
@@ -41,7 +42,7 @@
 typedef void (*SchemaWriter)(DynString*, const void* context);
 
 typedef struct {
-  String       pattern;
+  String       name;
   SchemaWriter writer;
   const void*  context;
 } SchemaConfig;
@@ -61,68 +62,56 @@ static void schema_writer_script(DynString* str, const void* context) {
 
 // clang-format off
 static const SchemaConfig g_schemaConfigs[] = {
-    {.pattern = string_static("arraytex.schema.json"),              .context = &g_assetTexArrayDefMeta,           .writer = schema_writer_data   },
-    {.pattern = string_static("atlas.schema.json"),                 .context = &g_assetAtlasDefMeta,              .writer = schema_writer_data   },
-    {.pattern = string_static("decal.schema.json"),                 .context = &g_assetDecalDefMeta,              .writer = schema_writer_data   },
-    {.pattern = string_static("fonttex.schema.json"),               .context = &g_assetFontTexDefMeta,            .writer = schema_writer_data   },
-    {.pattern = string_static("graphic.schema.json"),               .context = &g_assetGraphicDefMeta,            .writer = schema_writer_data   },
-    {.pattern = string_static("icon.schema.json"),                  .context = &g_assetIconDefMeta,               .writer = schema_writer_data   },
-    {.pattern = string_static("inputs.schema.json"),                .context = &g_assetInputDefMeta,              .writer = schema_writer_data   },
-    {.pattern = string_static("level.schema.json"),                 .context = &g_assetLevelDefMeta,              .writer = schema_writer_data   },
-    {.pattern = string_static("prefabs.schema.json"),               .context = &g_assetPrefabDefMeta,             .writer = schema_writer_data   },
-    {.pattern = string_static("procmesh.schema.json"),              .context = &g_assetProcMeshDefMeta,           .writer = schema_writer_data   },
-    {.pattern = string_static("proctex.schema.json"),               .context = &g_assetTexProcDefMeta,            .writer = schema_writer_data   },
-    {.pattern = string_static("products.schema.json"),              .context = &g_assetProductDefMeta,            .writer = schema_writer_data   },
-    {.pattern = string_static("terrain.schema.json"),               .context = &g_assetTerrainDefMeta,            .writer = schema_writer_data   },
-    {.pattern = string_static("vfx.schema.json"),                   .context = &g_assetVfxDefMeta,                .writer = schema_writer_data   },
-    {.pattern = string_static("weapons.schema.json"),               .context = &g_assetWeaponDefMeta,             .writer = schema_writer_data   },
-    {.pattern = string_static("script_import_mesh_binder.json"),    .context = &g_assetScriptImportMeshBinder,    .writer = schema_writer_script },
-    {.pattern = string_static("script_import_texture_binder.json"), .context = &g_assetScriptImportTextureBinder, .writer = schema_writer_script },
-    {.pattern = string_static("script_scene_binder.json"),          .context = &g_assetScriptSceneBinder,         .writer = schema_writer_script },
+    {.name = string_static("arraytex.schema.json"),              .context = &g_assetTexArrayDefMeta,           .writer = schema_writer_data   },
+    {.name = string_static("atlas.schema.json"),                 .context = &g_assetAtlasDefMeta,              .writer = schema_writer_data   },
+    {.name = string_static("decal.schema.json"),                 .context = &g_assetDecalDefMeta,              .writer = schema_writer_data   },
+    {.name = string_static("fonttex.schema.json"),               .context = &g_assetFontTexDefMeta,            .writer = schema_writer_data   },
+    {.name = string_static("graphic.schema.json"),               .context = &g_assetGraphicDefMeta,            .writer = schema_writer_data   },
+    {.name = string_static("icon.schema.json"),                  .context = &g_assetIconDefMeta,               .writer = schema_writer_data   },
+    {.name = string_static("inputs.schema.json"),                .context = &g_assetInputDefMeta,              .writer = schema_writer_data   },
+    {.name = string_static("level.schema.json"),                 .context = &g_assetLevelDefMeta,              .writer = schema_writer_data   },
+    {.name = string_static("prefabs.schema.json"),               .context = &g_assetPrefabDefMeta,             .writer = schema_writer_data   },
+    {.name = string_static("procmesh.schema.json"),              .context = &g_assetProcMeshDefMeta,           .writer = schema_writer_data   },
+    {.name = string_static("proctex.schema.json"),               .context = &g_assetTexProcDefMeta,            .writer = schema_writer_data   },
+    {.name = string_static("products.schema.json"),              .context = &g_assetProductDefMeta,            .writer = schema_writer_data   },
+    {.name = string_static("terrain.schema.json"),               .context = &g_assetTerrainDefMeta,            .writer = schema_writer_data   },
+    {.name = string_static("vfx.schema.json"),                   .context = &g_assetVfxDefMeta,                .writer = schema_writer_data   },
+    {.name = string_static("weapons.schema.json"),               .context = &g_assetWeaponDefMeta,             .writer = schema_writer_data   },
+    {.name = string_static("script_import_mesh_binder.json"),    .context = &g_assetScriptImportMeshBinder,    .writer = schema_writer_script },
+    {.name = string_static("script_import_texture_binder.json"), .context = &g_assetScriptImportTextureBinder, .writer = schema_writer_script },
+    {.name = string_static("script_scene_binder.json"),          .context = &g_assetScriptSceneBinder,         .writer = schema_writer_script },
 };
 // clang-format on
 
-static const SchemaConfig* scheme_for_path(const String path) {
-  const String fileName = path_filename(path);
-  array_for_t(g_schemaConfigs, SchemaConfig, config) {
-    if (string_match_glob(fileName, config->pattern, StringMatchFlags_IgnoreCase)) {
-      return config;
-    }
-  }
-  return null;
-}
-
-bool scheme_validate_path(const String input) { return scheme_for_path(input) != null; }
-
-static bool schema_write(const SchemaConfig* config, const String path) {
-  DynString dynString = dynstring_create(g_allocHeap, 64 * usize_kibibyte);
+static bool schema_write(const SchemaConfig* config, const String outDir) {
+  const String outPath   = path_build_scratch(outDir, config->name);
+  DynString    dynString = dynstring_create(g_allocHeap, 64 * usize_kibibyte);
 
   config->writer(&dynString, config->context);
 
   FileResult res;
-  if ((res = file_write_to_path_atomic(path, dynstring_view(&dynString)))) {
+  if ((res = file_write_to_path_atomic(outPath, dynstring_view(&dynString)))) {
     log_e(
         "Failed to write output file",
         log_param("err", fmt_text(file_result_str(res))),
-        log_param("path", fmt_path(path)));
+        log_param("path", fmt_path(outPath)));
   }
 
   dynstring_destroy(&dynString);
   return res == FileResult_Success;
 }
 
-static CliId g_optOut, g_optHelp;
+static CliId g_optDir, g_optHelp;
 
 void app_cli_configure(CliApp* app) {
   cli_app_register_desc(app, string_lit("Utility to generate schema files."));
 
-  g_optOut = cli_register_flag(app, 'o', string_lit("out"), CliOptionFlags_RequiredMultiValue);
-  cli_register_desc(app, g_optOut, string_lit("Output paths."));
-  cli_register_validator(app, g_optOut, scheme_validate_path);
+  g_optDir = cli_register_arg(app, string_lit("dir"), CliOptionFlags_Required);
+  cli_register_desc(app, g_optDir, string_lit("Output directory."));
 
   g_optHelp = cli_register_flag(app, 'h', string_lit("help"), CliOptionFlags_None);
   cli_register_desc(app, g_optHelp, string_lit("Display this help page."));
-  cli_register_exclusions(app, g_optHelp, g_optOut);
+  cli_register_exclusions(app, g_optHelp, g_optDir);
 }
 
 i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
@@ -136,20 +125,19 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   log_add_sink(g_logger, log_sink_pretty_default(g_allocHeap, ~LogMask_Debug));
   log_add_sink(g_logger, log_sink_json_default(g_allocHeap, LogMask_All));
 
-  const CliParseValues outPathsRaw = cli_parse_values(invoc, g_optOut);
-  for (u32 i = 0; i != outPathsRaw.count; ++i) {
-    const String outPathRaw = outPathsRaw.values[i];
-    const String outPath    = path_build_scratch(outPathRaw);
+  const String outDir = cli_read_string(invoc, g_optDir, string_empty);
+  if (string_is_empty(outDir)) {
+    log_e("Output directory missing");
+    return 1;
+  }
+  file_create_dir_sync(outDir);
 
-    const SchemaConfig* config = scheme_for_path(outPath);
-    if (!config) {
-      log_e("Unable to determine schema type", log_param("path", fmt_path(outPath)));
-      return 1;
-    }
+  for (u32 i = 0; i != array_elems(g_schemaConfigs); ++i) {
+    const SchemaConfig* config = &g_schemaConfigs[i];
 
-    log_i("Generating schema file", log_param("path", fmt_path(outPath)));
+    log_i("Generating schema file", log_param("file", fmt_text(config->name)));
 
-    if (!schema_write(config, outPath)) {
+    if (!schema_write(config, outDir)) {
       return 1;
     }
   }
