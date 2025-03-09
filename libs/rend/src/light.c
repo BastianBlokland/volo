@@ -183,6 +183,15 @@ ecs_system_define(RendLightInitSys) {
   }
 }
 
+static void rend_light_debug_clear(RendLightComp* comp) { dynarray_clear(&comp->debug); }
+
+static void rend_light_debug_push(
+    RendLightComp* comp, const RendLightDebugType type, const GeoVector frustum[8]) {
+  RendLightDebug* entry = dynarray_push_t(&comp->debug, RendLightDebug);
+  entry->type           = type;
+  mem_cpy(mem_var(entry->frustum), mem_create(frustum, sizeof(GeoVector) * 8));
+}
+
 INLINE_HINT static void rend_light_add(RendLightComp* comp, const RendLight light) {
   *((RendLight*)dynarray_push(&comp->entries, 1).ptr) = light;
 }
@@ -303,7 +312,8 @@ static GeoBox rend_light_shadow_discretize(GeoBox box, const f32 step) {
   return geo_box_dilate(&box, geo_vector(step * 0.5f, step * 0.5f, step * 0.5f));
 }
 
-static GeoMatrix rend_light_dir_shadow_proj(
+static GeoMatrix rend_light_compute_dir_shadow_proj(
+    RendLightComp*             comp,
     const SceneTerrainComp*    terrain,
     const GapWindowAspectComp* winAspect,
     const SceneCameraComp*     cam,
@@ -321,6 +331,8 @@ static GeoMatrix rend_light_dir_shadow_proj(
     const GeoBox worldBounds   = geo_box_dilate(&terrainBounds, geo_vector(0, g_worldHeight, 0));
     rend_clip_frustum_far_to_bounds(frustum, &worldBounds);
   }
+
+  rend_light_debug_push(comp, RendLightDebug_ShadowTargetFrustum, frustum);
 
   // Compute the bounding box in light-space.
   GeoBox bounds = geo_box_inverted3();
@@ -344,6 +356,12 @@ ecs_system_define(RendLightRenderSys) {
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   if (!globalItr) {
     return; // Global dependencies not yet available.
+  }
+
+  // Clear debug output from the previous frame.
+  for (EcsIterator* itr = ecs_view_itr(ecs_world_view_t(world, LightView)); ecs_view_walk(itr);) {
+    RendLightComp* light = ecs_view_write_t(itr, RendLightComp);
+    rend_light_debug_clear(light);
   }
 
   RendLightRendererComp*        renderer = ecs_view_write_t(globalItr, RendLightRendererComp);
@@ -419,8 +437,8 @@ ecs_system_define(RendLightRenderSys) {
 
           renderer->hasShadow         = true;
           renderer->shadowTransMatrix = transMat;
-          renderer->shadowProjMatrix =
-              rend_light_dir_shadow_proj(terrain, winAspect, cam, camTrans, &viewMat);
+          renderer->shadowProjMatrix  = rend_light_compute_dir_shadow_proj(
+              light, terrain, winAspect, cam, camTrans, &viewMat);
 
           shadowViewProj = geo_matrix_mul(&renderer->shadowProjMatrix, &viewMat);
         } else {
