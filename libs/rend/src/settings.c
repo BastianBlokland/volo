@@ -78,7 +78,7 @@ void rend_settings_global_to_default(RendSettingsGlobalComp* s) {
   s->flags |= RendGlobalFlags_Validation | RendGlobalFlags_DebugGpu;
 #endif
 
-  s->shadowFilterSize = 0.125f;
+  s->shadowFilterSize = 0.1f;
   s->fogDilation      = -3.0f;
 }
 
