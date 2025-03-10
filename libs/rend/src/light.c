@@ -323,7 +323,7 @@ static GeoMatrix rend_light_compute_dir_shadow_proj(
     const GapWindowAspectComp* winAspect,
     const SceneCameraComp*     cam,
     const SceneTransformComp*  camTrans,
-    const GeoMatrix*           lightViewMatrix,
+    const GeoQuat              lightRot,
     RendLightDebugStorage*     debug) {
   // Compute the world-space camera frustum corners.
   GeoVector       frustum[8];
@@ -343,9 +343,10 @@ static GeoMatrix rend_light_compute_dir_shadow_proj(
   }
 
   // Compute the bounding box in light-space.
-  GeoBox bounds = geo_box_inverted3();
+  const GeoQuat lightRotInv = geo_quat_inverse(lightRot);
+  GeoBox        bounds      = geo_box_inverted3();
   for (u32 i = 0; i != array_elems(frustum); ++i) {
-    const GeoVector localCorner = geo_matrix_transform3_point(lightViewMatrix, frustum[i]);
+    const GeoVector localCorner = geo_quat_rotate(lightRotInv, frustum[i]);
     bounds                      = geo_box_encapsulate(&bounds, localCorner);
   }
 
@@ -444,13 +445,14 @@ ecs_system_define(RendLightRenderSys) {
         }
         GeoMatrix shadowViewProj;
         if (shadow) {
-          const GeoMatrix transMat = geo_matrix_from_quat(entry->data_directional.rotation);
+          const GeoQuat   transRot = entry->data_directional.rotation;
+          const GeoMatrix transMat = geo_matrix_from_quat(transRot);
           const GeoMatrix viewMat  = geo_matrix_inverse(&transMat);
 
           renderer->hasShadow         = true;
           renderer->shadowTransMatrix = transMat;
           renderer->shadowProjMatrix  = rend_light_compute_dir_shadow_proj(
-              terrain, winAspect, cam, camTrans, &viewMat, debugStorage);
+              terrain, winAspect, cam, camTrans, transRot, debugStorage);
 
           shadowViewProj = geo_matrix_mul(&renderer->shadowProjMatrix, &viewMat);
         } else {
