@@ -358,11 +358,11 @@ void thread_cond_wait(const ThreadCondition condHandle, const ThreadMutex mutexH
 }
 
 void thread_cond_wait_timeout(
-    const ThreadCondition condHandle, const ThreadMutex mutexHandle, TimeDuration timeout) {
+    const ThreadCondition condHandle, const ThreadMutex mutexHandle, const TimeDuration timeout) {
   ThreadConditionData* condData  = (ThreadConditionData*)condHandle;
   ThreadMutexData*     mutexData = (ThreadMutexData*)mutexHandle;
 
-  DWORD milliseconds = (DWORD)(timeout / time_millisecond);
+  const DWORD milliseconds = (DWORD)(timeout / time_millisecond);
 
   const BOOL sleepRes = SleepConditionVariableCS(&condData->impl, &mutexData->impl, milliseconds);
   if (UNLIKELY(!sleepRes && GetLastError() != ERROR_TIMEOUT)) {
