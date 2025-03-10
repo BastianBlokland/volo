@@ -291,12 +291,18 @@ static void rend_clip_frustum_far_dist(GeoVector frustum[PARAM_ARRAY_SIZE(8)], c
 }
 
 static void
-rend_clip_frustum_far_to_plane(GeoVector frustum[PARAM_ARRAY_SIZE(8)], const GeoPlane* clipPlane) {
+rend_clip_frustum_to_plane(GeoVector frustum[PARAM_ARRAY_SIZE(8)], const GeoPlane* clipPlane) {
   for (u32 i = 0; i != 4; ++i) {
-    const u32       idxNear    = i;
-    const u32       idxFar     = 4 + i;
-    const GeoVector dirToFront = geo_vector_norm(geo_vector_sub(frustum[idxNear], frustum[idxFar]));
-    const GeoRay    rayToFront = {.dir = dirToFront, .point = frustum[idxFar]};
+    const u32       idxNear   = i;
+    const u32       idxFar    = 4 + i;
+    const GeoVector dirToBack = geo_vector_norm(geo_vector_sub(frustum[idxFar], frustum[idxNear]));
+    const GeoRay    rayToBack = {.dir = dirToBack, .point = frustum[idxNear]};
+    const f32       nearClipDist = geo_plane_intersect_ray(clipPlane, &rayToBack);
+    if (nearClipDist > 0) {
+      frustum[idxNear] = geo_ray_position(&rayToBack, nearClipDist);
+    }
+    const GeoVector dirToFront  = geo_vector_mul(dirToBack, -1.0f);
+    const GeoRay    rayToFront  = {.dir = dirToFront, .point = frustum[idxFar]};
     const f32       farClipDist = geo_plane_intersect_ray(clipPlane, &rayToFront);
     if (farClipDist > 0) {
       frustum[idxFar] = geo_ray_position(&rayToFront, farClipDist);
@@ -306,12 +312,12 @@ rend_clip_frustum_far_to_plane(GeoVector frustum[PARAM_ARRAY_SIZE(8)], const Geo
 
 static void
 rend_clip_frustum_far_to_bounds(GeoVector frustum[PARAM_ARRAY_SIZE(8)], const GeoBox* clipBounds) {
-  rend_clip_frustum_far_to_plane(frustum, &(GeoPlane){geo_up, clipBounds->max.y});
-  rend_clip_frustum_far_to_plane(frustum, &(GeoPlane){geo_down, -clipBounds->min.y});
-  rend_clip_frustum_far_to_plane(frustum, &(GeoPlane){geo_right, clipBounds->max.x});
-  rend_clip_frustum_far_to_plane(frustum, &(GeoPlane){geo_left, -clipBounds->min.x});
-  rend_clip_frustum_far_to_plane(frustum, &(GeoPlane){geo_forward, clipBounds->max.z});
-  rend_clip_frustum_far_to_plane(frustum, &(GeoPlane){geo_backward, -clipBounds->min.z});
+  rend_clip_frustum_to_plane(frustum, &(GeoPlane){geo_up, clipBounds->max.y});
+  rend_clip_frustum_to_plane(frustum, &(GeoPlane){geo_down, -clipBounds->min.y});
+  rend_clip_frustum_to_plane(frustum, &(GeoPlane){geo_right, clipBounds->max.x});
+  rend_clip_frustum_to_plane(frustum, &(GeoPlane){geo_left, -clipBounds->min.x});
+  rend_clip_frustum_to_plane(frustum, &(GeoPlane){geo_forward, clipBounds->max.z});
+  rend_clip_frustum_to_plane(frustum, &(GeoPlane){geo_backward, -clipBounds->min.z});
 }
 
 static GeoBox rend_light_shadow_discretize(GeoBox box, const f32 step) {
@@ -335,8 +341,8 @@ static GeoMatrix rend_light_compute_dir_shadow_proj(
   // Clip the camera frustum to the region that actually contains content.
   rend_clip_frustum_far_dist(frustum, g_lightDirMaxShadowDist);
   if (scene_terrain_loaded(terrain)) {
-    const GeoBox terrainBounds = scene_terrain_bounds(terrain);
-    const GeoBox worldBounds   = geo_box_dilate(&terrainBounds, geo_vector(0, g_worldHeight, 0));
+    GeoBox worldBounds = scene_terrain_bounds(terrain);
+    worldBounds.max.y += g_worldHeight;
     rend_clip_frustum_far_to_bounds(frustum, &worldBounds);
   }
 
