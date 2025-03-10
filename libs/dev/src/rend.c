@@ -1308,7 +1308,13 @@ ecs_system_define(DevRendDrawSys) {
       const RendLightDebug* debugItr    = rend_light_debug_data(light);
       const RendLightDebug* debugItrEnd = debugItr + rend_light_debug_count(light);
       for (; debugItr != debugItrEnd; ++debugItr) {
-        dev_frustum_points(shape, debugItr->frustum, geo_color_white);
+        GeoColor color;
+        switch (debugItr->type) {
+        case RendLightDebug_ShadowTargetFrustum:
+          color = geo_color_blue;
+          break;
+        }
+        dev_frustum_points(shape, debugItr->frustum, color);
       }
     }
   }
