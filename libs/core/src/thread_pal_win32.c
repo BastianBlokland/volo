@@ -365,7 +365,7 @@ void thread_cond_wait_timeout(
   DWORD milliseconds = (DWORD)(timeout / time_millisecond);
 
   const BOOL sleepRes = SleepConditionVariableCS(&condData->impl, &mutexData->impl, milliseconds);
-  if (UNLIKELY(!sleepRes)) {
+  if (UNLIKELY(!sleepRes && GetLastError() != ERROR_TIMEOUT)) {
     diag_crash_msg("SleepConditionVariableCS() failed");
   }
 }
