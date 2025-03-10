@@ -946,11 +946,22 @@ static void rend_light_tab_draw(
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Debug light"));
   ui_table_next_column(canvas, &table);
-  ui_toggle_flag(
-      canvas,
-      (u32*)&settingsGlobal->flags,
-      RendGlobalFlags_DebugLight,
-      .tooltip = g_tooltipDebugLight);
+  ui_layout_push(canvas);
+  {
+    ui_layout_resize(canvas, UiAlign_BottomLeft, ui_vector(100.0f, 0), UiBase_Absolute, Ui_X);
+    ui_label(canvas, string_lit("Enable:"));
+    ui_layout_next(canvas, Ui_Right, 5.0f);
+    ui_toggle_flag(
+        canvas,
+        (u32*)&settingsGlobal->flags,
+        RendGlobalFlags_DebugLight,
+        .tooltip = g_tooltipDebugLight);
+    ui_layout_next(canvas, Ui_Right, 5.0f);
+    ui_label(canvas, string_lit("Freeze:"));
+    ui_layout_next(canvas, Ui_Right, 5.0f);
+    ui_toggle_flag(canvas, (u32*)&settingsGlobal->flags, RendGlobalFlags_DebugLightFreeze);
+  }
+  ui_layout_pop(canvas);
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Debug shadow"));

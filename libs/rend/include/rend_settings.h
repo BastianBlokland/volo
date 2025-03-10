@@ -113,11 +113,12 @@ ecs_comp_extern_public(RendSettingsComp) {
 };
 
 typedef enum eRendGlobalFlags {
-  RendGlobalFlags_Validation = 1 << 0,
-  RendGlobalFlags_Verbose    = 1 << 1,
-  RendGlobalFlags_DebugGpu   = 1 << 2,
-  RendGlobalFlags_DebugLight = 1 << 3,
-  RendGlobalFlags_Fog        = 1 << 4,
+  RendGlobalFlags_Validation       = 1 << 0,
+  RendGlobalFlags_Verbose          = 1 << 1,
+  RendGlobalFlags_DebugGpu         = 1 << 2,
+  RendGlobalFlags_DebugLight       = 1 << 3,
+  RendGlobalFlags_DebugLightFreeze = 1 << 4,
+  RendGlobalFlags_Fog              = 1 << 5,
 } RendGlobalFlags;
 
 ecs_comp_extern_public(RendSettingsGlobalComp) {
