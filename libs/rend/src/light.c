@@ -23,11 +23,9 @@
 
 #include "light_internal.h"
 
-#define rend_shadow_discretize_enable 0
-
 static const f32 g_lightMinAmbient        = 0.01f; // NOTE: Total black looks pretty bad.
 static const f32 g_lightDirMaxShadowDist  = 250.0f;
-static const f32 g_lightDirShadowStepSize = 10.0f;
+static const f32 g_lightDirShadowStepSize = 2.0f;
 static const f32 g_worldHeight            = 10.0f;
 
 typedef enum {
@@ -358,16 +356,11 @@ static GeoMatrix rend_light_compute_dir_shadow_proj(
     bounds                      = geo_box_encapsulate(&bounds, localCorner);
   }
 
-#if rend_shadow_discretize_enable
   /**
    * Discretize the bounds so the shadow projection stays the same for small movements, this reduces
    * the visible shadow 'shimmering'.
    */
   bounds = rend_light_shadow_discretize(bounds, g_lightDirShadowStepSize);
-#else
-  (void)rend_light_shadow_discretize;
-  (void)g_lightDirShadowStepSize;
-#endif
 
   if (debug) {
     const GeoBoxRotated local = {.box = bounds, .rotation = geo_quat_ident};
