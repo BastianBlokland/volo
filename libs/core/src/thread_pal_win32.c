@@ -15,8 +15,7 @@ ASSERT(sizeof(LONG64) == sizeof(i64), "Expected LONG64 to be 64 bit");
 
 /**
  * Requested minimum OS scheduling interval in milliseconds.
- * This is a tradeoff between overhead due to many context switches if set too low and taking a long
- * time to wake threads when set too high.
+ * This is a tradeoff between scheduler overhead if set low and bad sleep granularity when set high.
  */
 static const u32 g_win32SchedulingInterval = 2;
 
