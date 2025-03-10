@@ -1313,10 +1313,7 @@ ecs_system_define(DevRendDrawSys) {
         case RendLightDebug_ShadowFrustumTarget:
           color = geo_color_blue;
           break;
-        case RendLightDebug_ShadowFrustumRaw:
-          color = geo_color_green;
-          break;
-        case RendLightDebug_ShadowFrustumDiscrete:
+        case RendLightDebug_ShadowFrustum:
           color = geo_color_white;
           break;
         }

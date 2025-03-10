@@ -23,6 +23,8 @@
 
 #include "light_internal.h"
 
+#define rend_shadow_discretize_enable 0
+
 static const f32 g_lightMinAmbient        = 0.01f; // NOTE: Total black looks pretty bad.
 static const f32 g_lightDirMaxShadowDist  = 250.0f;
 static const f32 g_lightDirShadowStepSize = 10.0f;
@@ -350,26 +352,23 @@ static GeoMatrix rend_light_compute_dir_shadow_proj(
     bounds                      = geo_box_encapsulate(&bounds, localCorner);
   }
 
-  if (debug) {
-    const GeoBoxRotated local = {.box = bounds, .rotation = geo_quat_ident};
-    const GeoBoxRotated world = geo_box_rotated_transform3(&local, geo_vector(0), lightRot, 1.0f);
-    GeoVector           shadowCorners[8];
-    geo_box_rotated_corners3(&world, shadowCorners);
-    rend_light_debug_push(debug, RendLightDebug_ShadowFrustumRaw, shadowCorners);
-  }
-
+#if rend_shadow_discretize_enable
   /**
    * Discretize the bounds so the shadow projection stays the same for small movements, this reduces
    * the visible shadow 'shimmering'.
    */
   bounds = rend_light_shadow_discretize(bounds, g_lightDirShadowStepSize);
+#else
+  (void)rend_light_shadow_discretize;
+  (void)g_lightDirShadowStepSize;
+#endif
 
   if (debug) {
     const GeoBoxRotated local = {.box = bounds, .rotation = geo_quat_ident};
     const GeoBoxRotated world = geo_box_rotated_transform3(&local, geo_vector(0), lightRot, 1.0f);
     GeoVector           shadowCorners[8];
     geo_box_rotated_corners3(&world, shadowCorners);
-    rend_light_debug_push(debug, RendLightDebug_ShadowFrustumDiscrete, shadowCorners);
+    rend_light_debug_push(debug, RendLightDebug_ShadowFrustum, shadowCorners);
   }
 
   return geo_matrix_proj_ortho_box(
