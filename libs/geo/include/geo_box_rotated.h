@@ -27,6 +27,11 @@ GeoBoxRotated geo_box_rotated_dilate(const GeoBoxRotated*, GeoVector size);
 GeoBoxRotated geo_box_rotated_from_capsule(GeoVector bottom, GeoVector top, f32 radius);
 
 /**
+ * Retrieve the 8 corners of the rotated 3d box.
+ */
+void geo_box_rotated_corners3(const GeoBoxRotated*, GeoVector corners[PARAM_ARRAY_SIZE(8)]);
+
+/**
  * Transform the given rotated box.
  */
 GeoBoxRotated

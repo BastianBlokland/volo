@@ -47,6 +47,56 @@ static GeoVector geo_rotate_around(const GeoVector point, const GeoQuat rot, con
   return geo_vector_add(point, geo_quat_rotate(rot, geo_vector_sub(v, point)));
 }
 
+static GeoVector geo_box_rotated_world_point(const GeoBoxRotated* box, const GeoVector localPoint) {
+#ifdef VOLO_SIMD
+  const SimdVec localPointVec = simd_vec_load(localPoint.comps);
+  const SimdVec localMin      = simd_vec_load(box->box.min.comps);
+  const SimdVec localMax      = simd_vec_load(box->box.max.comps);
+  const SimdVec half          = simd_vec_broadcast(0.5f);
+  const SimdVec rot           = simd_vec_load(box->rotation.comps);
+  const SimdVec localCenter   = simd_vec_mul(simd_vec_add(localMin, localMax), half);
+  const SimdVec worldPoint =
+      simd_vec_add(localCenter, simd_quat_rotate(rot, simd_vec_sub(localPointVec, localCenter)));
+
+  GeoVector res;
+  simd_vec_store(worldPoint, res.comps);
+  return res;
+#else
+  const GeoVector boxCenter = geo_box_center(&box->box);
+  return geo_rotate_around(boxCenter, box->rotation, localPoint);
+#endif
+}
+
+static GeoVector geo_box_rotated_local_point(const GeoBoxRotated* box, const GeoVector point) {
+#ifdef VOLO_SIMD
+  const SimdVec pointVec    = simd_vec_load(point.comps);
+  const SimdVec localMin    = simd_vec_load(box->box.min.comps);
+  const SimdVec localMax    = simd_vec_load(box->box.max.comps);
+  const SimdVec half        = simd_vec_broadcast(0.5f);
+  const SimdVec localCenter = simd_vec_mul(simd_vec_add(localMin, localMax), half);
+  const SimdVec boxInvRot   = simd_quat_conjugate(simd_vec_load(box->rotation.comps));
+  const SimdVec localPoint =
+      simd_vec_add(localCenter, simd_quat_rotate(boxInvRot, simd_vec_sub(pointVec, localCenter)));
+
+  GeoVector res;
+  simd_vec_store(localPoint, res.comps);
+  return res;
+#else
+  const GeoVector boxCenter      = geo_box_center(&box->box);
+  const GeoQuat   boxInvRotation = geo_quat_inverse(box->rotation);
+  return geo_rotate_around(boxCenter, boxInvRotation, point);
+#endif
+}
+
+static GeoRay geo_box_rotated_local_ray(const GeoBoxRotated* box, const GeoRay* worldRay) {
+  const GeoVector boxCenter      = geo_box_center(&box->box);
+  const GeoQuat   boxInvRotation = geo_quat_inverse(box->rotation);
+  return (GeoRay){
+      .point = geo_rotate_around(boxCenter, boxInvRotation, worldRay->point),
+      .dir   = geo_quat_rotate(boxInvRotation, worldRay->dir),
+  };
+}
+
 static void geo_box_corners(const GeoBox* b, GeoVector out[8]) {
   out[0] = geo_vector(b->min.x, b->min.y, b->min.z);
   out[1] = geo_vector(b->min.x, b->min.y, b->max.z);
@@ -136,6 +186,17 @@ geo_box_rotated_from_capsule(const GeoVector bottom, const GeoVector top, const 
   };
 }
 
+void geo_box_rotated_corners3(const GeoBoxRotated* b, GeoVector corners[PARAM_ARRAY_SIZE(8)]) {
+  corners[0] = geo_box_rotated_world_point(b, geo_vector(b->box.min.x, b->box.min.y, b->box.min.z));
+  corners[1] = geo_box_rotated_world_point(b, geo_vector(b->box.min.x, b->box.min.y, b->box.max.z));
+  corners[2] = geo_box_rotated_world_point(b, geo_vector(b->box.max.x, b->box.min.y, b->box.min.z));
+  corners[3] = geo_box_rotated_world_point(b, geo_vector(b->box.max.x, b->box.min.y, b->box.max.z));
+  corners[4] = geo_box_rotated_world_point(b, geo_vector(b->box.min.x, b->box.max.y, b->box.min.z));
+  corners[5] = geo_box_rotated_world_point(b, geo_vector(b->box.min.x, b->box.max.y, b->box.max.z));
+  corners[6] = geo_box_rotated_world_point(b, geo_vector(b->box.max.x, b->box.max.y, b->box.min.z));
+  corners[7] = geo_box_rotated_world_point(b, geo_vector(b->box.max.x, b->box.max.y, b->box.max.z));
+}
+
 GeoBoxRotated geo_box_rotated_transform3(
     const GeoBoxRotated* box, const GeoVector offset, const GeoQuat rotation, const f32 scale) {
 #ifdef VOLO_SIMD
@@ -176,57 +237,6 @@ GeoBoxRotated geo_box_rotated_transform3(
       .rotation = geo_quat_mul(rotation, box->rotation),
   };
 #endif
-}
-
-MAYBE_UNUSED static GeoVector
-geo_box_rotated_world_point(const GeoBoxRotated* box, const GeoVector localPoint) {
-#ifdef VOLO_SIMD
-  const SimdVec localPointVec = simd_vec_load(localPoint.comps);
-  const SimdVec localMin      = simd_vec_load(box->box.min.comps);
-  const SimdVec localMax      = simd_vec_load(box->box.max.comps);
-  const SimdVec half          = simd_vec_broadcast(0.5f);
-  const SimdVec rot           = simd_vec_load(box->rotation.comps);
-  const SimdVec localCenter   = simd_vec_mul(simd_vec_add(localMin, localMax), half);
-  const SimdVec worldPoint =
-      simd_vec_add(localCenter, simd_quat_rotate(rot, simd_vec_sub(localPointVec, localCenter)));
-
-  GeoVector res;
-  simd_vec_store(worldPoint, res.comps);
-  return res;
-#else
-  const GeoVector boxCenter = geo_box_center(&box->box);
-  return geo_rotate_around(boxCenter, box->rotation, localPoint);
-#endif
-}
-
-static GeoVector geo_box_rotated_local_point(const GeoBoxRotated* box, const GeoVector point) {
-#ifdef VOLO_SIMD
-  const SimdVec pointVec    = simd_vec_load(point.comps);
-  const SimdVec localMin    = simd_vec_load(box->box.min.comps);
-  const SimdVec localMax    = simd_vec_load(box->box.max.comps);
-  const SimdVec half        = simd_vec_broadcast(0.5f);
-  const SimdVec localCenter = simd_vec_mul(simd_vec_add(localMin, localMax), half);
-  const SimdVec boxInvRot   = simd_quat_conjugate(simd_vec_load(box->rotation.comps));
-  const SimdVec localPoint =
-      simd_vec_add(localCenter, simd_quat_rotate(boxInvRot, simd_vec_sub(pointVec, localCenter)));
-
-  GeoVector res;
-  simd_vec_store(localPoint, res.comps);
-  return res;
-#else
-  const GeoVector boxCenter      = geo_box_center(&box->box);
-  const GeoQuat   boxInvRotation = geo_quat_inverse(box->rotation);
-  return geo_rotate_around(boxCenter, boxInvRotation, point);
-#endif
-}
-
-static GeoRay geo_box_rotated_local_ray(const GeoBoxRotated* box, const GeoRay* worldRay) {
-  const GeoVector boxCenter      = geo_box_center(&box->box);
-  const GeoQuat   boxInvRotation = geo_quat_inverse(box->rotation);
-  return (GeoRay){
-      .point = geo_rotate_around(boxCenter, boxInvRotation, worldRay->point),
-      .dir   = geo_quat_rotate(boxInvRotation, worldRay->dir),
-  };
 }
 
 f32 geo_box_rotated_intersect_ray(const GeoBoxRotated* box, const GeoRay* ray) {
