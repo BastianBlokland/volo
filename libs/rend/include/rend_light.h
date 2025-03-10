@@ -10,7 +10,9 @@ typedef enum {
 } RendLightFlags;
 
 typedef enum {
-  RendLightDebug_ShadowTargetFrustum,
+  RendLightDebug_ShadowFrustumTarget,
+  RendLightDebug_ShadowFrustumRaw,
+  RendLightDebug_ShadowFrustumDiscrete,
 } RendLightDebugType;
 
 typedef struct {

@@ -1310,8 +1310,14 @@ ecs_system_define(DevRendDrawSys) {
       for (; debugItr != debugItrEnd; ++debugItr) {
         GeoColor color;
         switch (debugItr->type) {
-        case RendLightDebug_ShadowTargetFrustum:
+        case RendLightDebug_ShadowFrustumTarget:
           color = geo_color_blue;
+          break;
+        case RendLightDebug_ShadowFrustumRaw:
+          color = geo_color_green;
+          break;
+        case RendLightDebug_ShadowFrustumDiscrete:
+          color = geo_color_white;
           break;
         }
         dev_frustum_points(shape, debugItr->frustum, color);

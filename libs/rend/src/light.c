@@ -339,7 +339,7 @@ static GeoMatrix rend_light_compute_dir_shadow_proj(
   }
 
   if (debug) {
-    rend_light_debug_push(debug, RendLightDebug_ShadowTargetFrustum, frustum);
+    rend_light_debug_push(debug, RendLightDebug_ShadowFrustumTarget, frustum);
   }
 
   // Compute the bounding box in light-space.
@@ -350,11 +350,27 @@ static GeoMatrix rend_light_compute_dir_shadow_proj(
     bounds                      = geo_box_encapsulate(&bounds, localCorner);
   }
 
+  if (debug) {
+    const GeoBoxRotated local = {.box = bounds, .rotation = geo_quat_ident};
+    const GeoBoxRotated world = geo_box_rotated_transform3(&local, geo_vector(0), lightRot, 1.0f);
+    GeoVector           shadowCorners[8];
+    geo_box_rotated_corners3(&world, shadowCorners);
+    rend_light_debug_push(debug, RendLightDebug_ShadowFrustumRaw, shadowCorners);
+  }
+
   /**
    * Discretize the bounds so the shadow projection stays the same for small movements, this reduces
    * the visible shadow 'shimmering'.
    */
   bounds = rend_light_shadow_discretize(bounds, g_lightDirShadowStepSize);
+
+  if (debug) {
+    const GeoBoxRotated local = {.box = bounds, .rotation = geo_quat_ident};
+    const GeoBoxRotated world = geo_box_rotated_transform3(&local, geo_vector(0), lightRot, 1.0f);
+    GeoVector           shadowCorners[8];
+    geo_box_rotated_corners3(&world, shadowCorners);
+    rend_light_debug_push(debug, RendLightDebug_ShadowFrustumDiscrete, shadowCorners);
+  }
 
   return geo_matrix_proj_ortho_box(
       bounds.min.x, bounds.max.x, bounds.min.y, bounds.max.y, bounds.min.z, bounds.max.z);
