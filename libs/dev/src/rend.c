@@ -9,12 +9,15 @@
 #include "dev_panel.h"
 #include "dev_register.h"
 #include "dev_rend.h"
+#include "dev_shape.h"
 #include "dev_widget.h"
 #include "ecs_entity.h"
 #include "ecs_utils.h"
 #include "ecs_view.h"
 #include "ecs_world.h"
 #include "geo_box.h"
+#include "geo_color.h"
+#include "rend_light.h"
 #include "rend_object.h"
 #include "rend_register.h"
 #include "rend_reset.h"
@@ -252,6 +255,8 @@ ecs_view_define(ResourceView) {
   ecs_access_maybe_read(RendResMeshComp);
   ecs_access_maybe_read(RendResTextureComp);
 }
+
+ecs_view_define(LightView) { ecs_access_read(RendLightComp); }
 
 static void ecs_destruct_rend_panel(void* data) {
   DevRendPanelComp* comp = data;
@@ -1187,7 +1192,10 @@ static void rend_panel_draw(
   ui_panel_end(canvas, &panelComp->panel);
 }
 
-ecs_view_define(GlobalView) { ecs_access_write(RendSettingsGlobalComp); }
+ecs_view_define(GlobalView) {
+  ecs_access_write(RendSettingsGlobalComp);
+  ecs_access_write(DevShapeComp);
+}
 
 ecs_view_define(PainterView) {
   ecs_access_with(SceneCameraComp);
@@ -1267,12 +1275,41 @@ ecs_system_define(DevRendUpdatePanelSys) {
   }
 }
 
+ecs_system_define(DevRendDrawSys) {
+  EcsView*     globalView = ecs_world_view_t(world, GlobalView);
+  EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
+  if (!globalItr) {
+    return;
+  }
+  const RendSettingsGlobalComp* settingsGlobal = ecs_view_read_t(globalItr, RendSettingsGlobalComp);
+
+  EcsView*      lightView = ecs_world_view_t(world, LightView);
+  DevShapeComp* shape     = ecs_view_write_t(globalItr, DevShapeComp);
+
+  if (settingsGlobal->flags & RendGlobalFlags_DebugLight) {
+    /**
+     * Draw the debug output for all light components.
+     * NOTE: Draws the output from the last frame, not the current one.
+     */
+    for (EcsIterator* itr = ecs_view_itr(lightView); ecs_view_walk(itr);) {
+      const RendLightComp* light = ecs_view_read_t(itr, RendLightComp);
+
+      const RendLightDebug* debugItr    = rend_light_debug_data(light);
+      const RendLightDebug* debugItrEnd = debugItr + rend_light_debug_count(light);
+      for (; debugItr != debugItrEnd; ++debugItr) {
+        dev_frustum_points(shape, debugItr->frustum, geo_color_white);
+      }
+    }
+  }
+}
+
 ecs_module_init(dev_rend_module) {
   ecs_register_comp(DevRendPanelComp, .destructor = ecs_destruct_rend_panel);
 
   ecs_register_view(RendObjView);
   ecs_register_view(GraphicView);
   ecs_register_view(ResourceView);
+  ecs_register_view(LightView);
   ecs_register_view(GlobalView);
   ecs_register_view(PainterView);
   ecs_register_view(PanelUpdateView);
@@ -1285,6 +1322,8 @@ ecs_module_init(dev_rend_module) {
       ecs_view_id(PanelUpdateView),
       ecs_view_id(PainterView),
       ecs_view_id(GlobalView));
+
+  ecs_register_system(DevRendDrawSys, ecs_view_id(GlobalView), ecs_view_id(LightView));
 
   // NOTE: Update the panel before clearing the objects so we can inspect the last frame's objects.
   ASSERT((u32)DevOrder_RendUpdate < (u32)RendOrder_ObjectClear, "Invalid update order");
