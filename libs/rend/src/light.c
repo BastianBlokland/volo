@@ -291,18 +291,21 @@ static void rend_clip_frustum_far_dist(GeoVector frustum[PARAM_ARRAY_SIZE(8)], c
 static void
 rend_clip_frustum_to_plane(GeoVector frustum[PARAM_ARRAY_SIZE(8)], const GeoPlane* clipPlane) {
   for (u32 i = 0; i != 4; ++i) {
-    const u32       idxNear   = i;
-    const u32       idxFar    = 4 + i;
-    const GeoVector dirToBack = geo_vector_norm(geo_vector_sub(frustum[idxFar], frustum[idxNear]));
-    const GeoRay    rayToBack = {.dir = dirToBack, .point = frustum[idxNear]};
+    const u32       idxNear = i;
+    const u32       idxFar  = 4 + i;
+    const GeoVector delta   = geo_vector_sub(frustum[idxFar], frustum[idxNear]);
+    const f32       length  = geo_vector_mag(delta);
+
+    const GeoVector dirToBack    = geo_vector_div(delta, length);
+    const GeoRay    rayToBack    = {.dir = dirToBack, .point = frustum[idxNear]};
     const f32       nearClipDist = geo_plane_intersect_ray(clipPlane, &rayToBack);
-    if (nearClipDist > 0) {
+    if (nearClipDist > 0 && nearClipDist < length) {
       frustum[idxNear] = geo_ray_position(&rayToBack, nearClipDist);
     }
     const GeoVector dirToFront  = geo_vector_mul(dirToBack, -1.0f);
     const GeoRay    rayToFront  = {.dir = dirToFront, .point = frustum[idxFar]};
     const f32       farClipDist = geo_plane_intersect_ray(clipPlane, &rayToFront);
-    if (farClipDist > 0) {
+    if (farClipDist > 0 && farClipDist < length) {
       frustum[idxFar] = geo_ray_position(&rayToFront, farClipDist);
     }
   }
