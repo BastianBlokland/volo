@@ -25,7 +25,7 @@
 
 static const f32 g_lightMinAmbient        = 0.01f; // NOTE: Total black looks pretty bad.
 static const f32 g_lightDirMaxShadowDist  = 250.0f;
-static const f32 g_lightDirShadowStepSize = 10.0f;
+static const f32 g_lightDirShadowStepSize = 2.0f;
 static const f32 g_worldHeight            = 10.0f;
 
 typedef enum {
@@ -86,13 +86,19 @@ ecs_comp_define(RendLightRendererComp) {
   GeoMatrix   shadowTransMatrix, shadowProjMatrix;
 };
 
+typedef struct {
+  DynArray entries; // RendLightDebug[]
+} RendLightDebugStorage;
+
 ecs_comp_define(RendLightComp) {
-  DynArray entries; // RendLight[]
+  DynArray              entries; // RendLight[]
+  RendLightDebugStorage debug;
 };
 
 static void ecs_destruct_light(void* data) {
   RendLightComp* comp = data;
   dynarray_destroy(&comp->entries);
+  dynarray_destroy(&comp->debug.entries);
 }
 
 ecs_view_define(GlobalInitView) {
@@ -179,6 +185,17 @@ ecs_system_define(RendLightInitSys) {
     rend_light_renderer_create(world, assets);
     rend_light_create(world, ecs_world_global(world)); // Global light component for convenience.
   }
+}
+
+static void rend_light_debug_clear(RendLightDebugStorage* debug) {
+  dynarray_clear(&debug->entries);
+}
+
+static void rend_light_debug_push(
+    RendLightDebugStorage* debug, const RendLightDebugType type, const GeoVector frustum[8]) {
+  RendLightDebug* entry = dynarray_push_t(&debug->entries, RendLightDebug);
+  entry->type           = type;
+  mem_cpy(mem_var(entry->frustum), mem_create(frustum, sizeof(GeoVector) * 8));
 }
 
 INLINE_HINT static void rend_light_add(RendLightComp* comp, const RendLight light) {
@@ -272,14 +289,23 @@ static void rend_clip_frustum_far_dist(GeoVector frustum[PARAM_ARRAY_SIZE(8)], c
 }
 
 static void
-rend_clip_frustum_far_to_plane(GeoVector frustum[PARAM_ARRAY_SIZE(8)], const GeoPlane* clipPlane) {
+rend_clip_frustum_to_plane(GeoVector frustum[PARAM_ARRAY_SIZE(8)], const GeoPlane* clipPlane) {
   for (u32 i = 0; i != 4; ++i) {
-    const u32       idxNear    = i;
-    const u32       idxFar     = 4 + i;
-    const GeoVector dirToFront = geo_vector_norm(geo_vector_sub(frustum[idxNear], frustum[idxFar]));
-    const GeoRay    rayToFront = {.dir = dirToFront, .point = frustum[idxFar]};
+    const u32       idxNear = i;
+    const u32       idxFar  = 4 + i;
+    const GeoVector delta   = geo_vector_sub(frustum[idxFar], frustum[idxNear]);
+    const f32       length  = geo_vector_mag(delta);
+
+    const GeoVector dirToBack    = geo_vector_div(delta, length);
+    const GeoRay    rayToBack    = {.dir = dirToBack, .point = frustum[idxNear]};
+    const f32       nearClipDist = geo_plane_intersect_ray(clipPlane, &rayToBack);
+    if (nearClipDist > 0 && nearClipDist < length) {
+      frustum[idxNear] = geo_ray_position(&rayToBack, nearClipDist);
+    }
+    const GeoVector dirToFront  = geo_vector_mul(dirToBack, -1.0f);
+    const GeoRay    rayToFront  = {.dir = dirToFront, .point = frustum[idxFar]};
     const f32       farClipDist = geo_plane_intersect_ray(clipPlane, &rayToFront);
-    if (farClipDist > 0) {
+    if (farClipDist > 0 && farClipDist < length) {
       frustum[idxFar] = geo_ray_position(&rayToFront, farClipDist);
     }
   }
@@ -287,12 +313,12 @@ rend_clip_frustum_far_to_plane(GeoVector frustum[PARAM_ARRAY_SIZE(8)], const Geo
 
 static void
 rend_clip_frustum_far_to_bounds(GeoVector frustum[PARAM_ARRAY_SIZE(8)], const GeoBox* clipBounds) {
-  rend_clip_frustum_far_to_plane(frustum, &(GeoPlane){geo_up, clipBounds->max.y});
-  rend_clip_frustum_far_to_plane(frustum, &(GeoPlane){geo_down, -clipBounds->min.y});
-  rend_clip_frustum_far_to_plane(frustum, &(GeoPlane){geo_right, clipBounds->max.x});
-  rend_clip_frustum_far_to_plane(frustum, &(GeoPlane){geo_left, -clipBounds->min.x});
-  rend_clip_frustum_far_to_plane(frustum, &(GeoPlane){geo_forward, clipBounds->max.z});
-  rend_clip_frustum_far_to_plane(frustum, &(GeoPlane){geo_backward, -clipBounds->min.z});
+  rend_clip_frustum_to_plane(frustum, &(GeoPlane){geo_up, clipBounds->max.y});
+  rend_clip_frustum_to_plane(frustum, &(GeoPlane){geo_down, -clipBounds->min.y});
+  rend_clip_frustum_to_plane(frustum, &(GeoPlane){geo_right, clipBounds->max.x});
+  rend_clip_frustum_to_plane(frustum, &(GeoPlane){geo_left, -clipBounds->min.x});
+  rend_clip_frustum_to_plane(frustum, &(GeoPlane){geo_forward, clipBounds->max.z});
+  rend_clip_frustum_to_plane(frustum, &(GeoPlane){geo_backward, -clipBounds->min.z});
 }
 
 static GeoBox rend_light_shadow_discretize(GeoBox box, const f32 step) {
@@ -301,12 +327,13 @@ static GeoBox rend_light_shadow_discretize(GeoBox box, const f32 step) {
   return geo_box_dilate(&box, geo_vector(step * 0.5f, step * 0.5f, step * 0.5f));
 }
 
-static GeoMatrix rend_light_dir_shadow_proj(
+static GeoMatrix rend_light_compute_dir_shadow_proj(
     const SceneTerrainComp*    terrain,
     const GapWindowAspectComp* winAspect,
     const SceneCameraComp*     cam,
     const SceneTransformComp*  camTrans,
-    const GeoMatrix*           lightViewMatrix) {
+    const GeoQuat              lightRot,
+    RendLightDebugStorage*     debug) {
   // Compute the world-space camera frustum corners.
   GeoVector       frustum[8];
   const GeoVector winCamMin = geo_vector(0, 0), winCamMax = geo_vector(1, 1);
@@ -315,15 +342,20 @@ static GeoMatrix rend_light_dir_shadow_proj(
   // Clip the camera frustum to the region that actually contains content.
   rend_clip_frustum_far_dist(frustum, g_lightDirMaxShadowDist);
   if (scene_terrain_loaded(terrain)) {
-    const GeoBox terrainBounds = scene_terrain_bounds(terrain);
-    const GeoBox worldBounds   = geo_box_dilate(&terrainBounds, geo_vector(0, g_worldHeight, 0));
+    GeoBox worldBounds = scene_terrain_bounds(terrain);
+    worldBounds.max.y += g_worldHeight;
     rend_clip_frustum_far_to_bounds(frustum, &worldBounds);
   }
 
+  if (debug) {
+    rend_light_debug_push(debug, RendLightDebug_ShadowFrustumTarget, frustum);
+  }
+
   // Compute the bounding box in light-space.
-  GeoBox bounds = geo_box_inverted3();
+  const GeoQuat lightRotInv = geo_quat_inverse(lightRot);
+  GeoBox        bounds      = geo_box_inverted3();
   for (u32 i = 0; i != array_elems(frustum); ++i) {
-    const GeoVector localCorner = geo_matrix_transform3_point(lightViewMatrix, frustum[i]);
+    const GeoVector localCorner = geo_quat_rotate(lightRotInv, frustum[i]);
     bounds                      = geo_box_encapsulate(&bounds, localCorner);
   }
 
@@ -332,6 +364,14 @@ static GeoMatrix rend_light_dir_shadow_proj(
    * the visible shadow 'shimmering'.
    */
   bounds = rend_light_shadow_discretize(bounds, g_lightDirShadowStepSize);
+
+  if (debug) {
+    const GeoBoxRotated local = {.box = bounds, .rotation = geo_quat_ident};
+    const GeoBoxRotated world = geo_box_rotated_transform3(&local, geo_vector(0), lightRot, 1.0f);
+    GeoVector           shadowCorners[8];
+    geo_box_rotated_corners3(&world, shadowCorners);
+    rend_light_debug_push(debug, RendLightDebug_ShadowFrustum, shadowCorners);
+  }
 
   return geo_matrix_proj_ortho_box(
       bounds.min.x, bounds.max.x, bounds.min.y, bounds.max.y, bounds.min.z, bounds.max.z);
@@ -348,12 +388,20 @@ ecs_system_define(RendLightRenderSys) {
   const RendSettingsGlobalComp* settings = ecs_view_read_t(globalItr, RendSettingsGlobalComp);
   const SceneTerrainComp*       terrain  = ecs_view_read_t(globalItr, SceneTerrainComp);
 
-  const bool               debugLight = (settings->flags & RendGlobalFlags_DebugLight) != 0;
+  const bool debugLight         = (settings->flags & RendGlobalFlags_DebugLight) != 0;
+  const bool debugLightFreeze   = (settings->flags & RendGlobalFlags_DebugLightFreeze) != 0;
   const RendLightVariation var  = debugLight ? RendLightVariation_Debug : RendLightVariation_Normal;
   const SceneTags          tags = SceneTags_Light;
 
   renderer->hasShadow        = false;
   renderer->ambientIntensity = 0.0f;
+
+  // Clear debug output from the previous frame.
+  if (debugLight && !debugLightFreeze) {
+    for (EcsIterator* itr = ecs_view_itr(ecs_world_view_t(world, LightView)); ecs_view_walk(itr);) {
+      rend_light_debug_clear(&ecs_view_write_t(itr, RendLightComp)->debug);
+    }
+  }
 
   EcsIterator* camItr = ecs_view_first(ecs_world_view_t(world, CameraView));
   if (!camItr) {
@@ -370,7 +418,9 @@ ecs_system_define(RendLightRenderSys) {
   EcsIterator* objItr  = ecs_view_itr(objView);
 
   for (EcsIterator* itr = ecs_view_itr(ecs_world_view_t(world, LightView)); ecs_view_walk(itr);) {
-    RendLightComp* light = ecs_view_write_t(itr, RendLightComp);
+    RendLightComp*         light        = ecs_view_write_t(itr, RendLightComp);
+    RendLightDebugStorage* debugStorage = (debugLight && !debugLightFreeze) ? &light->debug : null;
+
     dynarray_for_t(&light->entries, RendLight, entry) {
       if (entry->type == RendLightType_Ambient) {
         renderer->ambientIntensity += entry->data_ambient.intensity;
@@ -412,13 +462,14 @@ ecs_system_define(RendLightRenderSys) {
         }
         GeoMatrix shadowViewProj;
         if (shadow) {
-          const GeoMatrix transMat = geo_matrix_from_quat(entry->data_directional.rotation);
+          const GeoQuat   transRot = entry->data_directional.rotation;
+          const GeoMatrix transMat = geo_matrix_from_quat(transRot);
           const GeoMatrix viewMat  = geo_matrix_inverse(&transMat);
 
           renderer->hasShadow         = true;
           renderer->shadowTransMatrix = transMat;
-          renderer->shadowProjMatrix =
-              rend_light_dir_shadow_proj(terrain, winAspect, cam, camTrans, &viewMat);
+          renderer->shadowProjMatrix  = rend_light_compute_dir_shadow_proj(
+              terrain, winAspect, cam, camTrans, transRot, debugStorage);
 
           shadowViewProj = geo_matrix_mul(&renderer->shadowProjMatrix, &viewMat);
         } else {
@@ -504,7 +555,17 @@ ecs_module_init(rend_light_module) {
 
 RendLightComp* rend_light_create(EcsWorld* world, const EcsEntityId entity) {
   return ecs_world_add_t(
-      world, entity, RendLightComp, .entries = dynarray_create_t(g_allocHeap, RendLight, 4));
+      world,
+      entity,
+      RendLightComp,
+      .entries = dynarray_create_t(g_allocHeap, RendLight, 4),
+      .debug   = dynarray_create_t(g_allocHeap, RendLightDebug, 0));
+}
+
+usize rend_light_debug_count(const RendLightComp* light) { return light->debug.entries.size; }
+
+const RendLightDebug* rend_light_debug_data(const RendLightComp* light) {
+  return dynarray_begin_t(&light->debug.entries, RendLightDebug);
 }
 
 void rend_light_directional(

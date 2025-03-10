@@ -86,13 +86,13 @@ spec(box) {
     geo_box_corners3(&box, corners);
 
     check_eq_vector(corners[0], geo_vector(-1, -1, -1));
-    check_eq_vector(corners[1], geo_vector(-1, -1, 1));
-    check_eq_vector(corners[2], geo_vector(1, -1, -1));
-    check_eq_vector(corners[3], geo_vector(1, -1, 1));
-    check_eq_vector(corners[4], geo_vector(-1, 1, -1));
+    check_eq_vector(corners[1], geo_vector(-1, 1, -1));
+    check_eq_vector(corners[2], geo_vector(1, 1, -1));
+    check_eq_vector(corners[3], geo_vector(1, -1, -1));
+    check_eq_vector(corners[4], geo_vector(-1, -1, 1));
     check_eq_vector(corners[5], geo_vector(-1, 1, 1));
-    check_eq_vector(corners[6], geo_vector(1, 1, -1));
-    check_eq_vector(corners[7], geo_vector(1, 1, 1));
+    check_eq_vector(corners[6], geo_vector(1, 1, 1));
+    check_eq_vector(corners[7], geo_vector(1, -1, 1));
   }
 
   it("can lookup the closest point in the box") {
