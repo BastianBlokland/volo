@@ -15,8 +15,7 @@ ASSERT(sizeof(LONG64) == sizeof(i64), "Expected LONG64 to be 64 bit");
 
 /**
  * Requested minimum OS scheduling interval in milliseconds.
- * This is a tradeoff between overhead due to many context switches if set too low and taking a long
- * time to wake threads when set too high.
+ * This is a tradeoff between scheduler overhead if set low and bad sleep granularity when set high.
  */
 static const u32 g_win32SchedulingInterval = 2;
 
@@ -358,14 +357,14 @@ void thread_cond_wait(const ThreadCondition condHandle, const ThreadMutex mutexH
 }
 
 void thread_cond_wait_timeout(
-    const ThreadCondition condHandle, const ThreadMutex mutexHandle, TimeDuration timeout) {
+    const ThreadCondition condHandle, const ThreadMutex mutexHandle, const TimeDuration timeout) {
   ThreadConditionData* condData  = (ThreadConditionData*)condHandle;
   ThreadMutexData*     mutexData = (ThreadMutexData*)mutexHandle;
 
-  DWORD milliseconds = (DWORD)(timeout / time_millisecond);
+  const DWORD milliseconds = (DWORD)(timeout / time_millisecond);
 
   const BOOL sleepRes = SleepConditionVariableCS(&condData->impl, &mutexData->impl, milliseconds);
-  if (UNLIKELY(!sleepRes)) {
+  if (UNLIKELY(!sleepRes && GetLastError() != ERROR_TIMEOUT)) {
     diag_crash_msg("SleepConditionVariableCS() failed");
   }
 }
