@@ -86,15 +86,19 @@ ecs_comp_define(RendLightRendererComp) {
   GeoMatrix   shadowTransMatrix, shadowProjMatrix;
 };
 
+typedef struct {
+  DynArray entries; // RendLightDebug[]
+} RendLightDebugStorage;
+
 ecs_comp_define(RendLightComp) {
-  DynArray entries; // RendLight[]
-  DynArray debug;   // RendLightDebug[]
+  DynArray              entries; // RendLight[]
+  RendLightDebugStorage debug;
 };
 
 static void ecs_destruct_light(void* data) {
   RendLightComp* comp = data;
   dynarray_destroy(&comp->entries);
-  dynarray_destroy(&comp->debug);
+  dynarray_destroy(&comp->debug.entries);
 }
 
 ecs_view_define(GlobalInitView) {
@@ -183,11 +187,13 @@ ecs_system_define(RendLightInitSys) {
   }
 }
 
-static void rend_light_debug_clear(RendLightComp* comp) { dynarray_clear(&comp->debug); }
+static void rend_light_debug_clear(RendLightDebugStorage* debug) {
+  dynarray_clear(&debug->entries);
+}
 
 static void rend_light_debug_push(
-    RendLightComp* comp, const RendLightDebugType type, const GeoVector frustum[8]) {
-  RendLightDebug* entry = dynarray_push_t(&comp->debug, RendLightDebug);
+    RendLightDebugStorage* debug, const RendLightDebugType type, const GeoVector frustum[8]) {
+  RendLightDebug* entry = dynarray_push_t(&debug->entries, RendLightDebug);
   entry->type           = type;
   mem_cpy(mem_var(entry->frustum), mem_create(frustum, sizeof(GeoVector) * 8));
 }
@@ -313,12 +319,12 @@ static GeoBox rend_light_shadow_discretize(GeoBox box, const f32 step) {
 }
 
 static GeoMatrix rend_light_compute_dir_shadow_proj(
-    RendLightComp*             comp,
     const SceneTerrainComp*    terrain,
     const GapWindowAspectComp* winAspect,
     const SceneCameraComp*     cam,
     const SceneTransformComp*  camTrans,
-    const GeoMatrix*           lightViewMatrix) {
+    const GeoMatrix*           lightViewMatrix,
+    RendLightDebugStorage*     debug) {
   // Compute the world-space camera frustum corners.
   GeoVector       frustum[8];
   const GeoVector winCamMin = geo_vector(0, 0), winCamMax = geo_vector(1, 1);
@@ -332,7 +338,9 @@ static GeoMatrix rend_light_compute_dir_shadow_proj(
     rend_clip_frustum_far_to_bounds(frustum, &worldBounds);
   }
 
-  rend_light_debug_push(comp, RendLightDebug_ShadowTargetFrustum, frustum);
+  if (debug) {
+    rend_light_debug_push(debug, RendLightDebug_ShadowTargetFrustum, frustum);
+  }
 
   // Compute the bounding box in light-space.
   GeoBox bounds = geo_box_inverted3();
@@ -358,22 +366,24 @@ ecs_system_define(RendLightRenderSys) {
     return; // Global dependencies not yet available.
   }
 
-  // Clear debug output from the previous frame.
-  for (EcsIterator* itr = ecs_view_itr(ecs_world_view_t(world, LightView)); ecs_view_walk(itr);) {
-    RendLightComp* light = ecs_view_write_t(itr, RendLightComp);
-    rend_light_debug_clear(light);
-  }
-
   RendLightRendererComp*        renderer = ecs_view_write_t(globalItr, RendLightRendererComp);
   const RendSettingsGlobalComp* settings = ecs_view_read_t(globalItr, RendSettingsGlobalComp);
   const SceneTerrainComp*       terrain  = ecs_view_read_t(globalItr, SceneTerrainComp);
 
-  const bool               debugLight = (settings->flags & RendGlobalFlags_DebugLight) != 0;
+  const bool debugLight         = (settings->flags & RendGlobalFlags_DebugLight) != 0;
+  const bool debugLightFreeze   = (settings->flags & RendGlobalFlags_DebugLightFreeze) != 0;
   const RendLightVariation var  = debugLight ? RendLightVariation_Debug : RendLightVariation_Normal;
   const SceneTags          tags = SceneTags_Light;
 
   renderer->hasShadow        = false;
   renderer->ambientIntensity = 0.0f;
+
+  // Clear debug output from the previous frame.
+  if (debugLight && !debugLightFreeze) {
+    for (EcsIterator* itr = ecs_view_itr(ecs_world_view_t(world, LightView)); ecs_view_walk(itr);) {
+      rend_light_debug_clear(&ecs_view_write_t(itr, RendLightComp)->debug);
+    }
+  }
 
   EcsIterator* camItr = ecs_view_first(ecs_world_view_t(world, CameraView));
   if (!camItr) {
@@ -390,7 +400,9 @@ ecs_system_define(RendLightRenderSys) {
   EcsIterator* objItr  = ecs_view_itr(objView);
 
   for (EcsIterator* itr = ecs_view_itr(ecs_world_view_t(world, LightView)); ecs_view_walk(itr);) {
-    RendLightComp* light = ecs_view_write_t(itr, RendLightComp);
+    RendLightComp*         light        = ecs_view_write_t(itr, RendLightComp);
+    RendLightDebugStorage* debugStorage = (debugLight && !debugLightFreeze) ? &light->debug : null;
+
     dynarray_for_t(&light->entries, RendLight, entry) {
       if (entry->type == RendLightType_Ambient) {
         renderer->ambientIntensity += entry->data_ambient.intensity;
@@ -438,7 +450,7 @@ ecs_system_define(RendLightRenderSys) {
           renderer->hasShadow         = true;
           renderer->shadowTransMatrix = transMat;
           renderer->shadowProjMatrix  = rend_light_compute_dir_shadow_proj(
-              light, terrain, winAspect, cam, camTrans, &viewMat);
+              terrain, winAspect, cam, camTrans, &viewMat, debugStorage);
 
           shadowViewProj = geo_matrix_mul(&renderer->shadowProjMatrix, &viewMat);
         } else {
@@ -531,10 +543,10 @@ RendLightComp* rend_light_create(EcsWorld* world, const EcsEntityId entity) {
       .debug   = dynarray_create_t(g_allocHeap, RendLightDebug, 0));
 }
 
-usize rend_light_debug_count(const RendLightComp* light) { return light->debug.size; }
+usize rend_light_debug_count(const RendLightComp* light) { return light->debug.entries.size; }
 
 const RendLightDebug* rend_light_debug_data(const RendLightComp* light) {
-  return dynarray_begin_t(&light->debug, RendLightDebug);
+  return dynarray_begin_t(&light->debug.entries, RendLightDebug);
 }
 
 void rend_light_directional(
