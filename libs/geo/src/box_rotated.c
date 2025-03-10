@@ -188,13 +188,13 @@ geo_box_rotated_from_capsule(const GeoVector bottom, const GeoVector top, const 
 
 void geo_box_rotated_corners3(const GeoBoxRotated* b, GeoVector corners[PARAM_ARRAY_SIZE(8)]) {
   corners[0] = geo_box_rotated_world_point(b, geo_vector(b->box.min.x, b->box.min.y, b->box.min.z));
-  corners[1] = geo_box_rotated_world_point(b, geo_vector(b->box.min.x, b->box.min.y, b->box.max.z));
-  corners[2] = geo_box_rotated_world_point(b, geo_vector(b->box.max.x, b->box.min.y, b->box.min.z));
-  corners[3] = geo_box_rotated_world_point(b, geo_vector(b->box.max.x, b->box.min.y, b->box.max.z));
-  corners[4] = geo_box_rotated_world_point(b, geo_vector(b->box.min.x, b->box.max.y, b->box.min.z));
+  corners[1] = geo_box_rotated_world_point(b, geo_vector(b->box.min.x, b->box.max.y, b->box.min.z));
+  corners[2] = geo_box_rotated_world_point(b, geo_vector(b->box.max.x, b->box.max.y, b->box.min.z));
+  corners[3] = geo_box_rotated_world_point(b, geo_vector(b->box.max.x, b->box.min.y, b->box.min.z));
+  corners[4] = geo_box_rotated_world_point(b, geo_vector(b->box.min.x, b->box.min.y, b->box.max.z));
   corners[5] = geo_box_rotated_world_point(b, geo_vector(b->box.min.x, b->box.max.y, b->box.max.z));
-  corners[6] = geo_box_rotated_world_point(b, geo_vector(b->box.max.x, b->box.max.y, b->box.min.z));
-  corners[7] = geo_box_rotated_world_point(b, geo_vector(b->box.max.x, b->box.max.y, b->box.max.z));
+  corners[6] = geo_box_rotated_world_point(b, geo_vector(b->box.max.x, b->box.max.y, b->box.max.z));
+  corners[7] = geo_box_rotated_world_point(b, geo_vector(b->box.max.x, b->box.min.y, b->box.max.z));
 }
 
 GeoBoxRotated geo_box_rotated_transform3(
