@@ -12,11 +12,11 @@
     }
   ],
   "samplers": [
-    { "texture": "external/terrain/terrain_3_splat.tga" },
-    { "texture": "external/tiling/sand_2_color_rough.tga", "wrap": "Repeat" },
-    { "texture": "external/tiling/sand_4_normal.tga", "wrap": "Repeat" },
-    { "texture": "external/tiling/dirt_2_color_rough.tga", "wrap": "Repeat" },
-    { "texture": "external/tiling/dirt_2_normal.tga", "wrap": "Repeat" }
+    { "texture": "external/terrain/terrain_3_splat.png" },
+    { "texture": "external/tiling/sand_2_color_rough.png", "wrap": "Repeat" },
+    { "texture": "external/tiling/sand_4_normal.png", "wrap": "Repeat" },
+    { "texture": "external/tiling/dirt_2_color_rough.png", "wrap": "Repeat" },
+    { "texture": "external/tiling/dirt_2_normal.png", "wrap": "Repeat" }
   ],
   "mesh": "meshes/scene/terrain_patch.procmesh"
 }

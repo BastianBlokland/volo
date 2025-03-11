@@ -10,8 +10,8 @@
     }
   ],
   "samplers": [
-    { "texture": "external/tent/tent_medical_2_color_rough.tga", "anisotropy": "x2" },
-    { "texture": "external/tent/tent_2_normal.tga", "anisotropy": "x2" }
+    { "texture": "external/tent/tent_medical_2_color_rough.png", "anisotropy": "x2" },
+    { "texture": "external/tent/tent_2_normal.png", "anisotropy": "x2" }
   ],
   "mesh": "external/tent/tent.gltf"
 }

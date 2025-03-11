@@ -10,8 +10,8 @@
     }
   ],
   "samplers": [
-    { "texture": "external/maynard/maynard_3_color_rough.tga", "anisotropy": "x2" },
-    { "texture": "external/maynard/maynard_3_nrm.tga", "anisotropy": "x2" }
+    { "texture": "external/maynard/maynard_3_color_rough.png", "anisotropy": "x2" },
+    { "texture": "external/maynard/maynard_3_nrm.png", "anisotropy": "x2" }
   ],
   "mesh": "external/maynard/maynard_3.gltf"
 }

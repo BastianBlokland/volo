@@ -10,8 +10,8 @@
     }
   ],
   "samplers": [
-    { "texture": "external/tires/tires_color_rough.tga", "anisotropy": "x2" },
-    { "texture": "external/tires/tires_normal.tga", "anisotropy": "x2" }
+    { "texture": "external/tires/tires_color_rough.png", "anisotropy": "x2" },
+    { "texture": "external/tires/tires_normal.png", "anisotropy": "x2" }
   ],
   "mesh": "external/tires/tires.gltf",
   "cull": "None"
