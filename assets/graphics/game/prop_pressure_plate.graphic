@@ -5,7 +5,8 @@
     { "program": "shaders/standard.frag" }
   ],
   "samplers": [
-    { "texture": "external/pressure_plate/pressure_plate_3_color_rough.png", "anisotropy": "x2" }
+    { "texture": "external/pressure_plate/pressure_plate_3_color.png", "anisotropy": "x2" },
+    { "texture": "external/pressure_plate/pressure_plate_3_rough.png", "anisotropy": "x2" }
   ],
   "mesh": "external/pressure_plate/pressure_plate.gltf"
 }

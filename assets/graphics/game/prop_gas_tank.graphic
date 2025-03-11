@@ -10,7 +10,8 @@
     }
   ],
   "samplers": [
-    { "texture": "external/gas_tank/gas_tank_2_color_rough.png", "anisotropy": "x2" },
+    { "texture": "external/gas_tank/gas_tank_2_color.png", "anisotropy": "x2" },
+    { "texture": "external/gas_tank/gas_tank_2_rough.png", "anisotropy": "x2" },
     { "texture": "external/gas_tank/gas_tank_2_normal.png", "anisotropy": "x2" }
   ],
   "mesh": "external/gas_tank/gas_tank.gltf"

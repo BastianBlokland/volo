@@ -10,7 +10,8 @@
     }
   ],
   "samplers": [
-    { "texture": "external/barrel_explosive/barrel_explosive_color_rough.png", "anisotropy": "x2" },
+    { "texture": "external/barrel_explosive/barrel_explosive_color.png", "anisotropy": "x2" },
+    { "texture": "external/barrel_explosive/barrel_explosive_rough.png", "anisotropy": "x2" },
     { "texture": "external/barrel_explosive/barrel_explosive_normal.png", "anisotropy": "x2" }
   ],
   "mesh": "external/barrel_explosive/barrel_explosive.gltf"

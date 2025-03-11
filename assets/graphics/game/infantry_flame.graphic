@@ -10,7 +10,8 @@
     }
   ],
   "samplers": [
-    { "texture": "external/swat/swat_flame_2_color_rough.png", "anisotropy": "x2" },
+    { "texture": "external/swat/swat_flame_2_color.png", "anisotropy": "x2" },
+    { "texture": "external/swat/swat_flame_2_rough.png", "anisotropy": "x2" },
     { "texture": "external/swat/swat_flame_2_normal.png", "anisotropy": "x2" }
   ],
   "mesh": "external/swat/swat_flame_1.gltf"

@@ -10,7 +10,8 @@
     }
   ],
   "samplers": [
-    { "texture": "external/barracks/barracks_2_color_rough.png", "anisotropy": "x2" },
+    { "texture": "external/barracks/barracks_2_color.png", "anisotropy": "x2" },
+    { "texture": "external/barracks/barracks_2_rough.png", "anisotropy": "x2" },
     { "texture": "external/barracks/barracks_2_normal.png", "anisotropy": "x2" }
   ],
   "mesh": "external/barracks/barracks_2.gltf"
