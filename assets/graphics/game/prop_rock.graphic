@@ -10,8 +10,8 @@
     }
   ],
   "samplers": [
-    { "texture": "external/rock/rock_2_color_rough.tga", "anisotropy": "x2" },
-    { "texture": "external/rock/rock_2_normal.tga", "anisotropy": "x2" }
+    { "texture": "external/rock/rock_2_color_rough.png", "anisotropy": "x2" },
+    { "texture": "external/rock/rock_2_normal.png", "anisotropy": "x2" }
   ],
   "mesh": "external/rock/rock.gltf"
 }

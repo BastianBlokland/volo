@@ -10,8 +10,8 @@
     }
   ],
   "samplers": [
-    { "texture": "external/water_tower/water_tower_2_color_rough.tga", "anisotropy": "x2" },
-    { "texture": "external/water_tower/water_tower_2_normal.tga", "anisotropy": "x2" }
+    { "texture": "external/water_tower/water_tower_2_color_rough.png", "anisotropy": "x2" },
+    { "texture": "external/water_tower/water_tower_2_normal.png", "anisotropy": "x2" }
   ],
   "mesh": "external/water_tower/water_tower.obj"
 }

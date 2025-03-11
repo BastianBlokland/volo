@@ -5,11 +5,11 @@
   "lossless": true,
   "sizeX": 16, "sizeY": 16,
   "textures": [
-    "external/skybox/teide_small_right.tga",
-    "external/skybox/teide_small_left.tga",
-    "external/skybox/teide_small_down.tga",
-    "external/skybox/teide_small_up.tga",
-    "external/skybox/teide_small_forward.tga",
-    "external/skybox/teide_small_back.tga"
+    "external/skybox/teide_small_right.png",
+    "external/skybox/teide_small_left.png",
+    "external/skybox/teide_small_down.png",
+    "external/skybox/teide_small_up.png",
+    "external/skybox/teide_small_forward.png",
+    "external/skybox/teide_small_back.png"
   ]
 }

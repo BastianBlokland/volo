@@ -10,8 +10,8 @@
     }
   ],
   "samplers": [
-    { "texture": "external/gate/gate_color_rough.tga", "anisotropy": "x2" },
-    { "texture": "external/gate/gate_normal.tga", "anisotropy": "x2" }
+    { "texture": "external/gate/gate_color_rough.png", "anisotropy": "x2" },
+    { "texture": "external/gate/gate_normal.png", "anisotropy": "x2" }
   ],
   "mesh": "external/gate/gate_1.gltf"
 }

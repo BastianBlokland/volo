@@ -12,10 +12,10 @@
     }
   ],
   "samplers": [
-    { "texture": "external/floor_light/floor_light_color_rough.tga", "anisotropy": "x2" },
-    { "texture": "external/floor_light/floor_light_normal_emissive.tga", "anisotropy": "x2" },
+    { "texture": "external/floor_light/floor_light_color_rough.png", "anisotropy": "x2" },
+    { "texture": "external/floor_light/floor_light_normal_emissive.png", "anisotropy": "x2" },
     { "texture": "textures/zero.proctex" },
-    { "texture": "external/floor_light/floor_light_mask.tga", "anisotropy": "x2" }
+    { "texture": "external/floor_light/floor_light_mask.png", "anisotropy": "x2" }
   ],
   "mesh": "external/floor_light/floor_light.gltf"
 }

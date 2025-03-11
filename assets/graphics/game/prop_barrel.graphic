@@ -10,8 +10,8 @@
     }
   ],
   "samplers": [
-    { "texture": "external/barrel/barrel_2_color_rough.tga", "anisotropy": "x2" },
-    { "texture": "external/barrel/barrel_2_normal.tga", "anisotropy": "x2" }
+    { "texture": "external/barrel/barrel_2_color_rough.png", "anisotropy": "x2" },
+    { "texture": "external/barrel/barrel_2_normal.png", "anisotropy": "x2" }
   ],
   "mesh": "external/barrel/barrel.gltf"
 }

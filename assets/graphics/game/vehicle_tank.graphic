@@ -9,7 +9,7 @@
     }
   ],
   "samplers": [
-    { "texture": "external/tank/tank_3_color_rough.tga", "anisotropy": "x2" }
+    { "texture": "external/tank/tank_3_color_rough.png", "anisotropy": "x2" }
   ],
   "mesh": "external/tank/tank_04.gltf"
 }

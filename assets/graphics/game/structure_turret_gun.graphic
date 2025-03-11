@@ -12,8 +12,8 @@
     }
   ],
   "samplers": [
-    { "texture": "external/turret/turret_5_color_rough.tga", "anisotropy": "x2" },
-    { "texture": "external/turret/turret_3_nrm.tga", "anisotropy": "x2" }
+    { "texture": "external/turret/turret_5_color_rough.png", "anisotropy": "x2" },
+    { "texture": "external/turret/turret_3_normal.png", "anisotropy": "x2" }
   ],
   "mesh": "external/turret/turret_big.gltf"
 }
