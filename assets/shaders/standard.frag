@@ -52,7 +52,7 @@ void main() {
   }
 
   // Output roughness.
-  geo.roughness = texture(u_texRough, in_texcoord).a;
+  geo.roughness = texture(u_texRough, in_texcoord).r;
 
   // Output world normal.
   if (s_normalMap) {
@@ -65,7 +65,7 @@ void main() {
   // Output emissive.
   geo.emissive = in_data.z;
   if (s_emissiveMap) {
-    geo.emissive *= texture(u_texNormal, in_texcoord).a;
+    geo.emissive *= texture(u_texEmissive, in_texcoord).r;
   }
 
   const GeometryEncoded encoded = geometry_encode(geo);
