@@ -17,7 +17,7 @@
 /**
  * Portable Network Graphics.
  * NOTE: Only 8/16 bit images are supported.
- * NOTE: Indexed and or interlaced images are not supported.
+ * NOTE: Interlaced images are not supported.
  * NOTE: Grayscale with alpha is not supported.
  *
  * Spec: https://www.w3.org/TR/png-3/
@@ -72,6 +72,7 @@ typedef enum {
   PngError_ChunkChecksumFailed,
   PngError_HeaderChunkMissing,
   PngError_EndChunkMissing,
+  PngError_InvalidIndexBitDepth,
   PngError_DataMissing,
   PngError_DataMalformed,
   PngError_DataUnexpectedSize,
@@ -97,6 +98,7 @@ static String png_error_str(const PngError err) {
       string_static("Png chunk checksum failed"),
       string_static("Png header chunk missing"),
       string_static("Png end chunk missing"),
+      string_static("Png invalid index bit-depth"),
       string_static("Png data missing"),
       string_static("Png data malformed"),
       string_static("Png unexpected data size"),
@@ -257,19 +259,20 @@ static u8 png_paeth_predictor(const u8 a, const u8 b, const u8 c) {
 }
 
 static void png_filter_decode(
-    const PngHeader*  header,
-    const PngType     type,
-    const PngChannels channels,
-    DynString*        data,
-    PngError*         err) {
+    const PngHeader* header,
+    const u32        sampleBytes,
+    const u32        scanlineBytes,
+    DynString*       data,
+    PngError*        err) {
 
   const Mem dataMem            = dynstring_view(data);
-  const u32 pixelBytes         = (u32)channels * (u32)type;
-  const u32 scanlineBytes      = pixelBytes * header->width;
   const u32 scanlineInputBytes = scanlineBytes + 1; // + 1 byte for filterType.
 
   /**
    * Inplace decode the filters for each scanline.
+   *
+   * NOTE: What the spec calls pixels are here called samples, reason is for indexed images they are
+   * not actually pixels but instead indices.
    */
   for (u32 y = 0; y != header->height; ++y) {
     Mem scanlineMem = mem_slice(dataMem, scanlineInputBytes * y, scanlineInputBytes);
@@ -283,9 +286,9 @@ static void png_filter_decode(
     case PngFilterType_None: // Recon(x) = Filt(x).
       break;
     case PngFilterType_Sub: // Recon(x) = Filt(x) + Recon(a).
-      for (u32 i = pixelBytes; i != scanlineBytes; ++i) {
-        // NOTE: Skip the first pixel as 'a' is always zero.
-        const u8 a = *mem_at_u8(scanlineMem, i - pixelBytes);
+      for (u32 i = sampleBytes; i != scanlineBytes; ++i) {
+        // NOTE: Skip the first sample as 'a' is always zero.
+        const u8 a = *mem_at_u8(scanlineMem, i - sampleBytes);
         *mem_at_u8(scanlineMem, i) += a;
       }
       break;
@@ -300,19 +303,19 @@ static void png_filter_decode(
       break;
     case PngFilterType_Average: // Recon(x) = Filt(x) + floor((Recon(a) + Recon(b)) / 2)
       if (y == 0) {
-        for (u32 i = pixelBytes; i != scanlineBytes; ++i) {
+        for (u32 i = sampleBytes; i != scanlineBytes; ++i) {
           // First scanline: 'b' is always zero.
-          const u8 a = *mem_at_u8(scanlineMem, i - pixelBytes);
+          const u8 a = *mem_at_u8(scanlineMem, i - sampleBytes);
           *mem_at_u8(scanlineMem, i) += a / 2;
         }
       } else /* y > 0 */ {
-        for (u32 i = 0; i != pixelBytes; ++i) {
-          // First pixel: 'a' is always zero.
+        for (u32 i = 0; i != sampleBytes; ++i) {
+          // First sample: 'a' is always zero.
           const u8 b = *mem_at_u8(dataMem, scanlineBytes * (y - 1) + i);
           *mem_at_u8(scanlineMem, i) += b / 2;
         }
-        for (u32 i = pixelBytes; i != scanlineBytes; ++i) {
-          const u32 a = *mem_at_u8(scanlineMem, i - pixelBytes);
+        for (u32 i = sampleBytes; i != scanlineBytes; ++i) {
+          const u32 a = *mem_at_u8(scanlineMem, i - sampleBytes);
           const u32 b = *mem_at_u8(dataMem, scanlineBytes * (y - 1) + i);
           *mem_at_u8(scanlineMem, i) += (a + b) / 2;
         }
@@ -322,20 +325,20 @@ static void png_filter_decode(
       if (y == 0) {
         // First scanline: 'b' and 'c' are always zero.
         // NOTE: Skip the first scanline as 'a' is always zero there as well.
-        for (u32 i = pixelBytes; i != scanlineBytes; ++i) {
-          const u8 a = *mem_at_u8(scanlineMem, i - pixelBytes);
+        for (u32 i = sampleBytes; i != scanlineBytes; ++i) {
+          const u8 a = *mem_at_u8(scanlineMem, i - sampleBytes);
           *mem_at_u8(scanlineMem, i) += png_paeth_predictor(a, 0, 0);
         }
       } else /* y > 0 */ {
-        for (u32 i = 0; i != pixelBytes; ++i) {
-          // First pixel: 'a' and 'c' are always zero.
+        for (u32 i = 0; i != sampleBytes; ++i) {
+          // First sample: 'a' and 'c' are always zero.
           const u8 b = *mem_at_u8(dataMem, scanlineBytes * (y - 1) + i);
           *mem_at_u8(scanlineMem, i) += png_paeth_predictor(0, b, 0);
         }
-        for (u32 i = pixelBytes; i != scanlineBytes; ++i) {
-          const u8 a = *mem_at_u8(scanlineMem, i - pixelBytes);
+        for (u32 i = sampleBytes; i != scanlineBytes; ++i) {
+          const u8 a = *mem_at_u8(scanlineMem, i - sampleBytes);
           const u8 b = *mem_at_u8(dataMem, scanlineBytes * (y - 1) + i);
-          const u8 c = *mem_at_u8(dataMem, scanlineBytes * (y - 1) + i - pixelBytes);
+          const u8 c = *mem_at_u8(dataMem, scanlineBytes * (y - 1) + i - sampleBytes);
           *mem_at_u8(scanlineMem, i) += png_paeth_predictor(a, b, c);
         }
       }
@@ -428,7 +431,7 @@ void asset_load_tex_png(
     const EcsEntityId         entity,
     AssetSource*              src) {
 
-  DynString pixelData = dynstring_create(g_allocHeap, 0);
+  DynString buffer = dynstring_create(g_allocHeap, 0);
 
   PngError  err = PngError_None;
   PngChunk  chunks[png_max_chunks];
@@ -452,15 +455,28 @@ void asset_load_tex_png(
     png_load_fail(world, entity, id, err);
     goto Ret;
   }
-  const PngType type = png_type(&header);
+  PngType     type;
+  PngChannels channels;
+  u32         indexBits;
+  if (header.colorType == 3 /* indexed color */) {
+    type      = PngType_u8;
+    channels  = PngChannels_RGB; // TODO: Support indexed colors with alpha.
+    indexBits = header.bitDepth;
+  } else {
+    type      = png_type(&header);
+    channels  = png_channels(&header);
+    indexBits = 0; // Non-indexed direct pixel values.
+  }
   if (UNLIKELY(!type)) {
     png_load_fail(world, entity, id, PngError_UnsupportedBitDepth);
     goto Ret;
   }
-  const PngChannels channels = png_channels(&header);
   if (UNLIKELY(!channels)) {
     png_load_fail(world, entity, id, PngError_UnsupportedColorType);
     goto Ret;
+  }
+  if (UNLIKELY((indexBits > 1) && (!bits_ispow2(indexBits) || indexBits > 8))) {
+    png_load_fail(world, entity, id, PngError_InvalidIndexBitDepth);
   }
   if (UNLIKELY(!header.width || !header.height)) {
     png_load_fail(world, entity, id, PngError_UnsupportedSize);
@@ -483,27 +499,43 @@ void asset_load_tex_png(
     goto Ret;
   }
 
-  const usize filterBytes = header.height * sizeof(u8);
-  const usize pixelBytes  = header.width * header.height * channels * type;
-  dynstring_reserve(&pixelData, pixelBytes + filterBytes);
+  /**
+   * NOTE: For indexed images a sample refers to an index into the palette for other images types it
+   * refers to an actual pixel.
+   */
+  const usize sampleBits          = indexBits ? indexBits : bytes_to_bits(channels * type);
+  const usize sampleBytes         = math_max(1, bits_to_bytes(sampleBits));
+  const usize sampleScanlineBytes = math_max(1, bits_to_bytes(header.width * sampleBits));
+  const usize sampleTotalBytes    = header.height * sampleScanlineBytes;
 
-  png_read_data(chunks, chunkCount, &pixelData, &err);
+  const usize filterTotalBytes = header.height * sizeof(u8);
+  const usize inputTotalBytes  = sampleTotalBytes + filterTotalBytes;
+  const usize pixelTotalBytes  = header.width * header.height * channels * type;
+
+  dynstring_reserve(&buffer, math_max(inputTotalBytes, pixelTotalBytes));
+
+  png_read_data(chunks, chunkCount, &buffer, &err);
   if (UNLIKELY(err)) {
     png_load_fail(world, entity, id, err);
     goto Ret;
   }
 
-  if (UNLIKELY(pixelData.size != pixelBytes + filterBytes)) {
+  if (UNLIKELY(buffer.size != inputTotalBytes)) {
     png_load_fail(world, entity, id, PngError_DataUnexpectedSize);
     goto Ret;
   }
 
-  png_filter_decode(&header, type, channels, &pixelData, &err);
+  png_filter_decode(&header, (u32)sampleBytes, (u32)sampleScanlineBytes, &buffer, &err);
   if (UNLIKELY(err)) {
     png_load_fail(world, entity, id, err);
     goto Ret;
   }
-  diag_assert(pixelData.size == pixelBytes);
+  diag_assert(buffer.size == sampleTotalBytes);
+
+  if (indexBits) {
+    // TODO: Decode palette.
+  }
+  diag_assert(buffer.size == pixelTotalBytes);
 
   AssetImportTextureFlags importFlags = AssetImportTextureFlags_Mips;
   if (png_is_linear(chunks, chunkCount)) {
@@ -520,7 +552,7 @@ void asset_load_tex_png(
   if (!asset_import_texture(
           importEnv,
           id,
-          dynstring_view(&pixelData),
+          dynstring_view(&buffer),
           header.width,
           header.height,
           channels,
@@ -537,6 +569,6 @@ void asset_load_tex_png(
   asset_cache(world, entity, g_assetTexMeta, mem_var(tex));
 
 Ret:
-  dynarray_destroy(&pixelData);
+  dynarray_destroy(&buffer);
   asset_repo_source_close(src);
 }
