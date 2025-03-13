@@ -355,6 +355,14 @@ static void png_filter_decode(
   dynstring_resize(data, scanlineBytes * header->height);
 }
 
+static void
+png_palette_decode(const PngChunk chunks[], const u32 count, DynString* data, PngError* err) {
+  (void)chunks;
+  (void)count;
+  (void)data;
+  (void)err;
+}
+
 static bool png_is_linear(const PngChunk chunks[], const u32 chunkCount) {
   /**
    * Most png images found in the wild are sRGB encoded (or atleast non-linear) often without any
@@ -533,7 +541,11 @@ void asset_load_tex_png(
   diag_assert(buffer.size == sampleTotalBytes);
 
   if (indexBits) {
-    // TODO: Decode palette.
+    png_palette_decode(chunks, chunkCount, &buffer, &err);
+    if (UNLIKELY(err)) {
+      png_load_fail(world, entity, id, err);
+      goto Ret;
+    }
   }
   diag_assert(buffer.size == pixelTotalBytes);
 
