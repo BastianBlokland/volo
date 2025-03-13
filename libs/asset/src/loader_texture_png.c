@@ -71,6 +71,8 @@ typedef enum {
   PngError_ChunkLimitExceeded,
   PngError_ChunkChecksumFailed,
   PngError_HeaderChunkMissing,
+  PngError_PaletteChunkMissing,
+  PngError_PaletteChunkInvalid,
   PngError_EndChunkMissing,
   PngError_InvalidIndexBitDepth,
   PngError_DataMissing,
@@ -97,6 +99,8 @@ static String png_error_str(const PngError err) {
       string_static("Png exceeds chunk limit"),
       string_static("Png chunk checksum failed"),
       string_static("Png header chunk missing"),
+      string_static("Png palette chunk missing"),
+      string_static("Png palette chunk invalid"),
       string_static("Png end chunk missing"),
       string_static("Png invalid index bit-depth"),
       string_static("Png data missing"),
@@ -356,11 +360,22 @@ static void png_filter_decode(
 }
 
 static void
-png_palette_decode(const PngChunk chunks[], const u32 count, DynString* data, PngError* err) {
-  (void)chunks;
-  (void)count;
+png_palette_decode(const PngChunk chunks[], const u32 chunkCount, DynString* data, PngError* err) {
+  const PngChunk* paletteChunk = png_chunk_find(chunks, chunkCount, string_lit("PLTE"));
+  if (UNLIKELY(!paletteChunk)) {
+    *err = PngError_PaletteChunkMissing;
+    return;
+  }
+  if (UNLIKELY(!bits_aligned(paletteChunk->data.size, 3))) {
+    *err = PngError_PaletteChunkInvalid;
+    return;
+  }
+  const u32 paletteEntries = paletteChunk->data.size / 3;
+  const u8* paletteData    = paletteChunk->data.ptr;
+
+  (void)paletteEntries;
+  (void)paletteData;
   (void)data;
-  (void)err;
 }
 
 static bool png_is_linear(const PngChunk chunks[], const u32 chunkCount) {
