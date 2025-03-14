@@ -374,7 +374,7 @@ static void png_palette_decode(
     *err = PngError_PaletteChunkInvalid;
     return;
   }
-  const u32 paletteEntries = paletteChunk->data.size / 3;
+  const u32 paletteEntries = (u32)paletteChunk->data.size / 3;
   const u8* paletteData    = paletteChunk->data.ptr;
 
   const u32 rowSize   = header->width * 3 /* rgb */;
@@ -562,9 +562,9 @@ void asset_load_tex_png(
    * NOTE: For indexed images a sample refers to an index into the palette for other images types it
    * refers to an actual pixel.
    */
-  const usize sampleBits          = indexBits ? indexBits : bytes_to_bits(channels * type);
-  const usize sampleBytes         = math_max(1, bits_to_bytes(sampleBits));
-  const usize sampleScanlineBytes = math_max(1, bits_to_bytes(header.width * sampleBits));
+  const u32   sampleBits          = indexBits ? indexBits : bytes_to_bits((u32)channels * type);
+  const u32   sampleBytes         = math_max(1, bits_to_bytes(sampleBits));
+  const u32   sampleScanlineBytes = math_max(1, bits_to_bytes(header.width * sampleBits));
   const usize sampleTotalBytes    = header.height * sampleScanlineBytes;
 
   const usize filterTotalBytes = header.height * sizeof(u8);
@@ -584,7 +584,7 @@ void asset_load_tex_png(
     goto Ret;
   }
 
-  png_filter_decode(&header, (u32)sampleBytes, (u32)sampleScanlineBytes, &buffer, &err);
+  png_filter_decode(&header, sampleBytes, sampleScanlineBytes, &buffer, &err);
   if (UNLIKELY(err)) {
     png_load_fail(world, entity, id, err);
     goto Ret;
