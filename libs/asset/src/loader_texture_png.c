@@ -359,8 +359,12 @@ static void png_filter_decode(
   dynstring_resize(data, scanlineBytes * header->height);
 }
 
-static void
-png_palette_decode(const PngChunk chunks[], const u32 chunkCount, DynString* data, PngError* err) {
+static void png_palette_decode(
+    const PngHeader* header,
+    const PngChunk   chunks[],
+    const u32        chunkCount,
+    DynString*       data,
+    PngError*        err) {
   const PngChunk* paletteChunk = png_chunk_find(chunks, chunkCount, string_lit("PLTE"));
   if (UNLIKELY(!paletteChunk)) {
     *err = PngError_PaletteChunkMissing;
@@ -373,9 +377,41 @@ png_palette_decode(const PngChunk chunks[], const u32 chunkCount, DynString* dat
   const u32 paletteEntries = paletteChunk->data.size / 3;
   const u8* paletteData    = paletteChunk->data.ptr;
 
-  (void)paletteEntries;
-  (void)paletteData;
-  (void)data;
+  const u32 rowSize   = header->width * 3 /* rgb */;
+  const Mem rowBuffer = alloc_alloc(g_allocScratch, rowSize, 1);
+
+  const usize scanlineBytes = math_max(1, bits_to_bytes(header->width * header->bitDepth));
+
+  u32 inputStep = 8 / header->bitDepth;
+  for (u32 y = 0; y != header->height; ++y) {
+    const u8* inputItr = mem_at_u8(dynstring_view(data), y * rowSize);
+    u8        inputByte;
+
+    u8* outputItr = mem_begin(rowBuffer);
+    for (u32 x = 0; x != header->width; ++x) {
+      // Read an input sample.
+      if (!(x % inputStep)) {
+        inputByte = *inputItr++;
+      }
+      const u8 index = inputByte >> (8 - header->bitDepth);
+      inputByte <<= header->bitDepth;
+
+      // Validate the index.
+      if (UNLIKELY(index >= paletteEntries)) {
+        *err = PngError_PaletteChunkInvalid;
+        return;
+      }
+
+      // Output the corresponding palette color.
+      *outputItr++ = paletteData[index * 3 + 0];
+      *outputItr++ = paletteData[index * 3 + 1];
+      *outputItr++ = paletteData[index * 3 + 2];
+    }
+
+    // Output the row.
+    dynarray_insert(data, y * rowSize, rowSize - scanlineBytes);
+    mem_cpy(mem_slice(dynstring_view(data), y * rowSize, rowSize), rowBuffer);
+  }
 }
 
 static bool png_is_linear(const PngChunk chunks[], const u32 chunkCount) {
@@ -556,7 +592,7 @@ void asset_load_tex_png(
   diag_assert(buffer.size == sampleTotalBytes);
 
   if (indexBits) {
-    png_palette_decode(chunks, chunkCount, &buffer, &err);
+    png_palette_decode(&header, chunks, chunkCount, &buffer, &err);
     if (UNLIKELY(err)) {
       png_load_fail(world, entity, id, err);
       goto Ret;
