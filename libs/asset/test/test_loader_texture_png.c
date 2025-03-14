@@ -85,10 +85,10 @@ static const struct {
                           "AA/wD///9XOw1XAAAADElEQVQI12NIYDAAAAFUAJEZxzSXAAAAAElFTkSuQmCC"),
         .pixels =
             {
-                {1.0f, 0.0f, 0.0f, 1.0f},
-                {0.0f, 1.0f, 0.0f, 1.0f},
                 {0.0f, 0.0f, 1.0f, 1.0f},
                 {1.0f, 1.0f, 1.0f, 1.0f},
+                {1.0f, 0.0f, 0.0f, 1.0f},
+                {0.0f, 1.0f, 0.0f, 1.0f},
             },
         .pixelCount = 4,
         .format     = AssetTextureFormat_u8_rgba,
