@@ -438,6 +438,9 @@ static void png_bit_expand(const PngHeader* header, const PngChannels channels, 
   case 2:
     scale = 0x55;
     break;
+  case 4:
+    scale = 0x11;
+    break;
   default:
     diag_assert_fail("Unsupported bit-depth");
   }
@@ -486,6 +489,7 @@ static PngType png_type(const PngHeader* header) {
   switch (header->bitDepth) {
   case 1:
   case 2:
+  case 4:
   case 8:
     // Bit depths less then 8 will be expanded to 8.
     return PngType_u8;
