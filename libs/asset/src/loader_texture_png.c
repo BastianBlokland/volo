@@ -365,6 +365,8 @@ static void png_palette_decode(
     const u32        chunkCount,
     DynString*       data,
     PngError*        err) {
+  diag_assert(header->bitDepth > 0 && header->bitDepth <= 8);
+
   const PngChunk* paletteChunk = png_chunk_find(chunks, chunkCount, string_lit("PLTE"));
   const PngChunk* transChunk   = png_chunk_find(chunks, chunkCount, string_lit("tRNS"));
   if (UNLIKELY(!paletteChunk)) {
@@ -421,6 +423,34 @@ static void png_palette_decode(
   }
 }
 
+static void png_bit_expand(const PngHeader* header, const PngChannels channels, DynString* data) {
+  diag_assert(header->bitDepth == 1); // Only expanding from 1 -> 8 bits is supported.
+
+  const u32 rowSize   = header->width * channels;
+  const Mem rowBuffer = alloc_alloc(g_allocScratch, rowSize, 1);
+
+  const usize scanlineBytes = math_max(1, bits_to_bytes(header->width * channels));
+
+  for (u32 y = 0; y != header->height; ++y) {
+    const u8* inputItr = mem_at_u8(dynstring_view(data), y * rowSize);
+    u8        inputByte;
+
+    u8* outputItr = mem_begin(rowBuffer);
+    for (u32 i = 0; i != rowSize; ++i) {
+      // Read an input sample and scale it to 8 bits.
+      if (!(i % 8)) {
+        inputByte = *inputItr++;
+      }
+      *outputItr++ = (inputByte >> 7) * 0xFF;
+      inputByte <<= 1;
+    }
+
+    // Output the row.
+    dynarray_insert(data, y * rowSize, rowSize - scanlineBytes);
+    mem_cpy(mem_slice(dynstring_view(data), y * rowSize, rowSize), rowBuffer);
+  }
+}
+
 static bool png_is_linear(const PngChunk chunks[], const u32 chunkCount) {
   /**
    * Most png images found in the wild are sRGB encoded (or atleast non-linear) often without any
@@ -442,6 +472,7 @@ static bool png_is_linear(const PngChunk chunks[], const u32 chunkCount) {
 
 static PngType png_type(const PngHeader* header) {
   switch (header->bitDepth) {
+  case 1: /* Will be expanded to 8 bits */
   case 8:
     return PngType_u8;
   case 16:
@@ -523,7 +554,7 @@ void asset_load_tex_png(
   }
   PngType     type;
   PngChannels channels;
-  u32         indexBits;
+  u32         sampleBits;
   if (header.colorType == 3 /* indexed color */) {
     type = PngType_u8;
     if (png_chunk_find(chunks, chunkCount, string_lit("tRNS"))) {
@@ -531,11 +562,14 @@ void asset_load_tex_png(
     } else {
       channels = PngChannels_RGB;
     }
-    indexBits = header.bitDepth;
+    sampleBits = header.bitDepth;
+    if (UNLIKELY((sampleBits > 1) && (!bits_ispow2(sampleBits) || sampleBits > 8))) {
+      png_load_fail(world, entity, id, PngError_InvalidIndexBitDepth);
+    }
   } else {
-    type      = png_type(&header);
-    channels  = png_channels(&header);
-    indexBits = 0; // Non-indexed direct pixel values.
+    type       = png_type(&header);
+    channels   = png_channels(&header);
+    sampleBits = header.bitDepth * channels;
   }
   if (UNLIKELY(!type)) {
     png_load_fail(world, entity, id, PngError_UnsupportedBitDepth);
@@ -544,9 +578,6 @@ void asset_load_tex_png(
   if (UNLIKELY(!channels)) {
     png_load_fail(world, entity, id, PngError_UnsupportedColorType);
     goto Ret;
-  }
-  if (UNLIKELY((indexBits > 1) && (!bits_ispow2(indexBits) || indexBits > 8))) {
-    png_load_fail(world, entity, id, PngError_InvalidIndexBitDepth);
   }
   if (UNLIKELY(!header.width || !header.height)) {
     png_load_fail(world, entity, id, PngError_UnsupportedSize);
@@ -573,7 +604,6 @@ void asset_load_tex_png(
    * NOTE: For indexed images a sample refers to an index into the palette for other images types it
    * refers to an actual pixel.
    */
-  const u32   sampleBits          = indexBits ? indexBits : bytes_to_bits((u32)channels * type);
   const u32   sampleBytes         = math_max(1, bits_to_bytes(sampleBits));
   const u32   sampleScanlineBytes = math_max(1, bits_to_bytes(header.width * sampleBits));
   const usize sampleTotalBytes    = header.height * sampleScanlineBytes;
@@ -602,12 +632,14 @@ void asset_load_tex_png(
   }
   diag_assert(buffer.size == sampleTotalBytes);
 
-  if (indexBits) {
+  if (header.colorType == 3 /* indexed color */) {
     png_palette_decode(&header, chunks, chunkCount, &buffer, &err);
     if (UNLIKELY(err)) {
       png_load_fail(world, entity, id, err);
       goto Ret;
     }
+  } else if (header.bitDepth < 8) {
+    png_bit_expand(&header, channels, &buffer);
   }
   diag_assert(buffer.size == pixelTotalBytes);
 
