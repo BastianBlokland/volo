@@ -366,6 +366,7 @@ static void png_palette_decode(
     DynString*       data,
     PngError*        err) {
   const PngChunk* paletteChunk = png_chunk_find(chunks, chunkCount, string_lit("PLTE"));
+  const PngChunk* transChunk   = png_chunk_find(chunks, chunkCount, string_lit("tRNS"));
   if (UNLIKELY(!paletteChunk)) {
     *err = PngError_PaletteChunkMissing;
     return;
@@ -377,7 +378,10 @@ static void png_palette_decode(
   const u32 paletteEntries = (u32)paletteChunk->data.size / 3;
   const u8* paletteData    = paletteChunk->data.ptr;
 
-  const u32 rowSize   = header->width * 3 /* rgb */;
+  const u32 transEntries = transChunk ? (u32)transChunk->data.size : 0;
+  const u8* transData    = transChunk ? transChunk->data.ptr : null;
+
+  const u32 rowSize   = header->width * (transChunk ? 4 /* rgba */ : 3 /* rgb */);
   const Mem rowBuffer = alloc_alloc(g_allocScratch, rowSize, 1);
 
   const usize scanlineBytes = math_max(1, bits_to_bytes(header->width * header->bitDepth));
@@ -406,6 +410,9 @@ static void png_palette_decode(
       *outputItr++ = paletteData[index * 3 + 0];
       *outputItr++ = paletteData[index * 3 + 1];
       *outputItr++ = paletteData[index * 3 + 2];
+      if (transChunk) {
+        *outputItr++ = index >= transEntries ? 255 : transData[index];
+      }
     }
 
     // Output the row.
@@ -518,8 +525,12 @@ void asset_load_tex_png(
   PngChannels channels;
   u32         indexBits;
   if (header.colorType == 3 /* indexed color */) {
-    type      = PngType_u8;
-    channels  = PngChannels_RGB; // TODO: Support indexed colors with alpha.
+    type = PngType_u8;
+    if (png_chunk_find(chunks, chunkCount, string_lit("tRNS"))) {
+      channels = PngChannels_RGBA;
+    } else {
+      channels = PngChannels_RGB;
+    }
     indexBits = header.bitDepth;
   } else {
     type      = png_type(&header);
