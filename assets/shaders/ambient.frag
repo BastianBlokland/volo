@@ -1,5 +1,6 @@
 #include "binding.glsl"
 #include "global.glsl"
+#include "hash.glsl"
 #include "pbr.glsl"
 
 struct AmbientData {
@@ -126,8 +127,8 @@ void main() {
       out_color              = linearDepth.rrr / debugMaxDist;
     } break;
     case c_modeDebugTags:
-      out_color = color_from_hsv(geo.tags / 255.0, 1, 1);
-      break;
+      out_color = color_from_hsv(hash_u32(geo.tags) / 4294967295.0, 1, 1);
+     break;
     case c_modeDebugAmbientOcclusion:
       out_color = ambientOcclusion.rrr;
       break;
