@@ -21,7 +21,7 @@
  *
  * TODO: Make this configurable from content.
  */
-#define rend_instance_alpha_tex_index 2
+#define rend_instance_alpha_tex_index 4
 
 // clang-format off
 

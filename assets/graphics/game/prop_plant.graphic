@@ -11,8 +11,10 @@
     }
   ],
   "samplers": [
-    { "texture": "external/plant_fern/plant_fern_color_rough.png", "anisotropy": "x2" },
+    { "texture": "external/plant_fern/plant_fern_color.png", "anisotropy": "x2" },
+    { "texture": "external/plant_fern/plant_fern_rough.png", "anisotropy": "x2" },
     { "texture": "external/plant_fern/plant_fern_normal.png", "anisotropy": "x2" },
+    { "texture": "textures/zero.proctex" },
     { "texture": "external/plant_fern/plant_fern_alpha.png", "anisotropy": "x2" }
   ],
   "mesh": "external/plant_fern/plant_fern.gltf"

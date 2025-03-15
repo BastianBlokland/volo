@@ -10,7 +10,8 @@
     }
   ],
   "samplers": [
-    { "texture": "external/tiling/metal_panel_color_rough.png", "anisotropy": "x2" },
+    { "texture": "external/tiling/metal_panel_color.png", "anisotropy": "x2" },
+    { "texture": "external/tiling/metal_panel_rough.png", "anisotropy": "x2" },
     { "texture": "external/tiling/metal_panel_normal.png", "anisotropy": "x2" }
   ],
   "mesh": "meshes/game/floor_panel.procmesh"

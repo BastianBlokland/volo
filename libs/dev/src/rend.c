@@ -161,8 +161,8 @@ static const String g_resTypeNames[] = {
     string_static("Graphic"),
     string_static("Shader"),
     string_static("Mesh"),
-    string_static("Texture"),
-    string_static("TextureCube"),
+    string_static("Tex"),
+    string_static("TexCube"),
 };
 ASSERT(array_elems(g_resTypeNames) == DevRendResType_Count, "Incorrect number of names");
 
@@ -883,11 +883,11 @@ static void rend_resource_tab_draw(
   ui_layout_container_push(canvas, UiClip_None, UiLayer_Normal);
 
   UiTable table = ui_table(.spacing = ui_vector(10, 5));
-  ui_table_add_column(&table, UiTableColumn_Fixed, 270);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 115);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 90);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 325);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 80);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 80);
   ui_table_add_column(&table, UiTableColumn_Fixed, 95);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 90);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 80);
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
   ui_table_draw_header(
@@ -898,7 +898,7 @@ static void rend_resource_tab_draw(
           {string_lit("Type"), string_lit("Type of the resource.")},
           {string_lit("Unload"), string_lit("Tick count until this resource will be unloaded.")},
           {string_lit("Size"), string_lit("Data size of the resource.")},
-          {string_lit("Persistent"), string_lit("Is the resource persistent.")},
+          {string_lit("Persist"), string_lit("Is the resource persistent.")},
           {string_lit("Actions"), string_empty},
       });
 

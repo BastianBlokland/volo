@@ -12,10 +12,12 @@ bind_spec(1) const bool s_alphaMap    = false;
 bind_spec(2) const bool s_emissiveMap = false;
 bind_spec(3) const bool s_maskMap     = false;
 
-bind_graphic_img(0) uniform sampler2D u_texColorRough;
-bind_graphic_img(1) uniform sampler2D u_texNormalEmissive;
-bind_graphic_img(2) uniform sampler2D u_texAlpha;
-bind_graphic_img(3) uniform sampler2D u_texMask;
+bind_graphic_img(0) uniform sampler2D u_texColor;
+bind_graphic_img(1) uniform sampler2D u_texRough;
+bind_graphic_img(2) uniform sampler2D u_texNormal;
+bind_graphic_img(3) uniform sampler2D u_texEmissive;
+bind_graphic_img(4) uniform sampler2D u_texAlpha;
+bind_graphic_img(5) uniform sampler2D u_texMask;
 
 bind_internal(0) in f32v3 in_worldNormal;  // NOTE: non-normalized
 bind_internal(1) in f32v4 in_worldTangent; // NOTE: non-normalized
@@ -38,28 +40,32 @@ void main() {
   }
 
   Geometry geo;
-  geo.tags     = floatBitsToUint(in_data.x);
-  geo.emissive = in_data.z;
+  geo.tags = floatBitsToUint(in_data.x);
 
-  // Output color and roughness.
-  const f32v4 colorRough = texture(u_texColorRough, in_texcoord);
+  // Output color.
+  geo.color = texture(u_texColor, in_texcoord).rgb;
   if (s_maskMap) {
     const f32 mask = texture(u_texMask, in_texcoord).r;
-    geo.color      = colorRough.rgb * mix(f32v3(1, 1, 1), color.rgb, mask);
+    geo.color      = geo.color * mix(f32v3(1, 1, 1), color.rgb, mask);
   } else {
-    geo.color = colorRough.rgb * color.rgb;
+    geo.color = geo.color * color.rgb;
   }
-  geo.roughness = colorRough.a;
 
-  // Output world normal (and optionally sample the emissive-map).
+  // Output roughness.
+  geo.roughness = texture(u_texRough, in_texcoord).r;
+
+  // Output world normal.
   if (s_normalMap) {
-    const f32v4 normalEmissiveSample = texture(u_texNormalEmissive, in_texcoord);
-    if (s_emissiveMap) {
-      geo.emissive *= normalEmissiveSample.a;
-    }
-    geo.normal = texture_normal(normalEmissiveSample.xyz, in_worldNormal, in_worldTangent);
+    const f32v3 normalSample = texture(u_texNormal, in_texcoord).xyz;
+    geo.normal = texture_normal(normalSample, in_worldNormal, in_worldTangent);
   } else {
     geo.normal = in_worldNormal;
+  }
+
+  // Output emissive.
+  geo.emissive = in_data.z;
+  if (s_emissiveMap) {
+    geo.emissive *= texture(u_texEmissive, in_texcoord).r;
   }
 
   const GeometryEncoded encoded = geometry_encode(geo);

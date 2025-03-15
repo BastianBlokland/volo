@@ -55,6 +55,7 @@ static const u32 g_rendSupportedGraphicBindings[rvk_desc_bindings_max] = {
     rend_image_sampler_mask,
     rend_image_sampler_mask,
     rend_image_sampler_mask,
+    rend_image_sampler_mask,
 };
 
 static const u32 g_rendSupportedInstanceBindings[rvk_desc_bindings_max] = {

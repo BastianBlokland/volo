@@ -11,8 +11,10 @@
     }
   ],
   "samplers": [
-    { "texture": "external/tree_acacia/tree_acacia_3_color_rough.png", "wrap": "Repeat", "anisotropy": "x2" },
+    { "texture": "external/tree_acacia/tree_acacia_3_color.png", "wrap": "Repeat", "anisotropy": "x2" },
+    { "texture": "external/tree_acacia/tree_acacia_3_rough.png", "wrap": "Repeat", "anisotropy": "x2" },
     { "texture": "external/tree_acacia/tree_acacia_2_normal.png", "wrap": "Repeat", "anisotropy": "x2" },
+    { "texture": "textures/zero.proctex" },
     { "texture": "external/tree_acacia/tree_acacia_2_alpha.png", "anisotropy": "x2" }
   ],
   "mesh": "external/tree_acacia/tree_acacia.gltf"

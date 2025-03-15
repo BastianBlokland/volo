@@ -11,8 +11,10 @@
     }
   ],
   "samplers": [
-    { "texture": "external/headquarter/headquarter_color_rough.png", "anisotropy": "x2" },
-    { "texture": "external/headquarter/headquarter_normal_emissive.png", "anisotropy": "x2" }
+    { "texture": "external/headquarter/headquarter_color.png", "anisotropy": "x2" },
+    { "texture": "external/headquarter/headquarter_rough.png", "anisotropy": "x2" },
+    { "texture": "external/headquarter/headquarter_normal.png", "anisotropy": "x2" },
+    { "texture": "external/headquarter/headquarter_emissive.png", "anisotropy": "x2" }
   ],
   "mesh": "external/headquarter/headquarter.glb"
 }

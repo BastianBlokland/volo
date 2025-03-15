@@ -267,9 +267,11 @@ static RvkDescMeta rvk_global_desc_meta(void) {
   RvkDescMeta meta               = {0};
   u16         globalBindingCount = 0;
   for (u16 globalDataIdx = 0; globalDataIdx != rvk_pass_global_data_max; ++globalDataIdx) {
+    diag_assert(globalBindingCount < rvk_desc_bindings_max);
     meta.bindings[globalBindingCount++] = RvkDescKind_UniformBuffer;
   }
   for (u16 globalImgIdx = 0; globalImgIdx != rvk_pass_global_image_max; ++globalImgIdx) {
+    diag_assert(globalBindingCount < rvk_desc_bindings_max);
     meta.bindings[globalBindingCount++] = RvkDescKind_CombinedImageSampler2D;
   }
   return meta;

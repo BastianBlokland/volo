@@ -11,8 +11,10 @@
     }
   ],
   "samplers": [
-    { "texture": "external/alarm/alarm_color_rough.png", "anisotropy": "x2" },
-    { "texture": "external/alarm/alarm_normal_emissive.png", "anisotropy": "x2" }
+    { "texture": "external/alarm/alarm_color.png", "anisotropy": "x2" },
+    { "texture": "external/alarm/alarm_rough.png", "anisotropy": "x2" },
+    { "texture": "external/alarm/alarm_normal.png", "anisotropy": "x2" },
+    { "texture": "external/alarm/alarm_emissive.png", "anisotropy": "x2" }
   ],
   "mesh": "external/alarm/alarm.gltf"
 }

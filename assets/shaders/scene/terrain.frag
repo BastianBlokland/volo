@@ -10,11 +10,13 @@ bind_spec(2) const f32 s_splat2UvScale         = 50;
 
 bind_draw_img(0) uniform sampler2D u_texHeight;
 
-bind_graphic_img(1) uniform sampler2D u_texSplat;
-bind_graphic_img(2) uniform sampler2D u_tex1ColorRough;
+bind_graphic_img(0) uniform sampler2D u_texSplat;
+bind_graphic_img(1) uniform sampler2D u_tex1Color;
+bind_graphic_img(2) uniform sampler2D u_tex1Rough;
 bind_graphic_img(3) uniform sampler2D u_tex1Normal;
-bind_graphic_img(4) uniform sampler2D u_tex2ColorRough;
-bind_graphic_img(5) uniform sampler2D u_tex2Normal;
+bind_graphic_img(4) uniform sampler2D u_tex2Color;
+bind_graphic_img(5) uniform sampler2D u_tex2Rough;
+bind_graphic_img(6) uniform sampler2D u_tex2Normal;
 
 bind_internal(0) in flat f32 in_size;
 bind_internal(1) in flat f32 in_heightScale;
@@ -52,14 +54,15 @@ void main() {
   geo.tags     = 1 << tag_terrain_bit;
   geo.emissive = 0;
 
-  // Sample the color (and roughness) based on the splat-map.
-  f32v4 splatColRough = f32v4(0);
-  splatColRough += splat.r * texture_multi(u_tex1ColorRough, in_texcoord * s_splat1UvScale);
-  splatColRough += splat.g * texture_multi(u_tex2ColorRough, in_texcoord * s_splat2UvScale);
+  // Sample the color based on the splat-map.
+  geo.color = f32v3(0);
+  geo.color += splat.r * texture_multi(u_tex1Color, in_texcoord * s_splat1UvScale).rgb;
+  geo.color += splat.g * texture_multi(u_tex2Color, in_texcoord * s_splat2UvScale).rgb;
 
-  // Output color and roughness.
-  geo.color     = splatColRough.rgb;
-  geo.roughness = splatColRough.a;
+  // Sample the roughness based on the splat-map.
+  geo.roughness = 0;
+  geo.roughness += splat.r * texture_multi(u_tex1Rough, in_texcoord * s_splat1UvScale).a;
+  geo.roughness += splat.g * texture_multi(u_tex2Rough, in_texcoord * s_splat2UvScale).a;
 
   // Sample the detail-normal based on the splat-map.
   f32v3 splatNormRaw = f32v3(0, 0, 0);

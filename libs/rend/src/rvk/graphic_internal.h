@@ -14,7 +14,7 @@ enum {
 };
 
 #define rvk_graphic_shaders_max 2
-#define rvk_graphic_samplers_max 6
+#define rvk_graphic_samplers_max 7
 
 typedef enum {
   RvkGraphicFlags_MayDiscard         = 1 << 0, // Graphic might discard a fragment.

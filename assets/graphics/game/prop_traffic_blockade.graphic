@@ -10,7 +10,8 @@
     }
   ],
   "samplers": [
-    { "texture": "external/traffic_signs/traffic_signs_2_color_rough.png", "anisotropy": "x2" },
+    { "texture": "external/traffic_signs/traffic_signs_2_color.png", "anisotropy": "x2" },
+    { "texture": "external/traffic_signs/traffic_signs_2_rough.png", "anisotropy": "x2" },
     { "texture": "external/traffic_signs/traffic_signs_2_normal.png", "anisotropy": "x2" }
   ],
   "mesh": "external/traffic_signs/traffic_blockade.gltf",

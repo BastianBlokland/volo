@@ -10,7 +10,8 @@
     }
   ],
   "samplers": [
-    { "texture": "external/car_wreck/car_wreck_3_color_rough.png", "anisotropy": "x2" },
+    { "texture": "external/car_wreck/car_wreck_3_color.png", "anisotropy": "x2" },
+    { "texture": "external/car_wreck/car_wreck_3_rough.png", "anisotropy": "x2" },
     { "texture": "external/car_wreck/car_wreck_2_normal.png", "anisotropy": "x2" }
   ],
   "mesh": "external/car_wreck/car_wreck.gltf"
