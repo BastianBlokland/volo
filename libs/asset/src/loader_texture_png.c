@@ -388,7 +388,7 @@ static void png_palette_decode(
 
   const usize scanlineBytes = math_max(1, bits_to_bytes(header->width * header->bitDepth));
 
-  u32 inputStep = 8 / header->bitDepth;
+  const u32 inputStep = 8 / header->bitDepth;
   for (u32 y = 0; y != header->height; ++y) {
     const u8* inputItr = mem_at_u8(dynstring_view(data), y * rowSize);
     u8        inputByte;
@@ -424,13 +424,25 @@ static void png_palette_decode(
 }
 
 static void png_bit_expand(const PngHeader* header, const PngChannels channels, DynString* data) {
-  diag_assert(header->bitDepth == 1); // Only expanding from 1 -> 8 bits is supported.
-
   const u32 rowSize   = header->width * channels;
   const Mem rowBuffer = alloc_alloc(g_allocScratch, rowSize, 1);
 
-  const usize scanlineBytes = math_max(1, bits_to_bytes(header->width * channels));
+  const usize scanlineBytes =
+      math_max(1, bits_to_bytes(header->width * header->bitDepth * channels));
 
+  u8 scale;
+  switch (header->bitDepth) {
+  case 1:
+    scale = 0xFF;
+    break;
+  case 2:
+    scale = 0x55;
+    break;
+  default:
+    diag_assert_fail("Unsupported bit-depth");
+  }
+
+  const u32 inputStep = 8 / header->bitDepth;
   for (u32 y = 0; y != header->height; ++y) {
     const u8* inputItr = mem_at_u8(dynstring_view(data), y * rowSize);
     u8        inputByte;
@@ -438,11 +450,11 @@ static void png_bit_expand(const PngHeader* header, const PngChannels channels, 
     u8* outputItr = mem_begin(rowBuffer);
     for (u32 i = 0; i != rowSize; ++i) {
       // Read an input sample and scale it to 8 bits.
-      if (!(i % 8)) {
+      if (!(i % inputStep)) {
         inputByte = *inputItr++;
       }
-      *outputItr++ = (inputByte >> 7) * 0xFF;
-      inputByte <<= 1;
+      *outputItr++ = (inputByte >> (8 - header->bitDepth)) * scale;
+      inputByte <<= header->bitDepth;
     }
 
     // Output the row.
@@ -472,8 +484,10 @@ static bool png_is_linear(const PngChunk chunks[], const u32 chunkCount) {
 
 static PngType png_type(const PngHeader* header) {
   switch (header->bitDepth) {
-  case 1: /* Will be expanded to 8 bits */
+  case 1:
+  case 2:
   case 8:
+    // Bit depths less then 8 will be expanded to 8.
     return PngType_u8;
   case 16:
     return PngType_u16;

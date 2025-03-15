@@ -124,6 +124,22 @@ static const struct {
         .pixelCount = 4,
         .format     = AssetTextureFormat_u8_r,
     },
+    {
+        .id         = string_static("2x2_r_2b.png"), /* NOTE: Generated using imagemagick */
+        .base64Data = string_static(
+            "iVBORw0KGgoAAAANSUhEUgAAAAIAAAACAgAAAAAdbUpZAAAAIGNIUk0AAHomAACAhAAA+gAAAIDo"
+            "AAB1MAAA6mAAADqYAAAXcJy6UTwAAAACYktHRAADM4RyiAAAAAd0SU1FB+kDDwsxGDs4+mkAAAAM"
+            "SURBVAjXYzBguAAAAWQBASQ6tloAAAAASUVORK5CYII="),
+        .pixels =
+            {
+                {1.0f, 0.0f, 0.0f, 1.0f},
+                {0.33f, 0.0f, 0.0f, 1.0f},
+                {0.0f, 0.0f, 0.0f, 1.0f},
+                {1.0f, 0.0f, 0.0f, 1.0f},
+            },
+        .pixelCount = 4,
+        .format     = AssetTextureFormat_u8_r,
+    },
 
 };
 
