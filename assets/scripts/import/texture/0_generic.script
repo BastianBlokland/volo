@@ -13,7 +13,7 @@ if (asset_id_match("*_lossless*")) {
 if (asset_id_match("*_linear*")) {
   texture_flag("Linear", true)
 }
-if (asset_id_match("*_emissive*")) {
+if (asset_id_match("*_emissive*") && texture_channels() == 1) {
   texture_flag("BroadcastR", true) // Broadcast the R component to RGBA.
 }
 
