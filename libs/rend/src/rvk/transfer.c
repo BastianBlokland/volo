@@ -341,8 +341,8 @@ MAYBE_UNUSED static u32 rvk_transfer_image_src_size(const RvkImage* img, const u
   return size;
 }
 
-RvkTransferId rvk_transfer_image(
-    RvkTransferer* trans, RvkImage* dest, const Mem data, const u32 mips, const bool genMips) {
+RvkTransferId
+rvk_transfer_image(RvkTransferer* trans, RvkImage* dest, const Mem data, const u32 mips) {
   diag_assert(mips >= 1);
   diag_assert(data.size == rvk_transfer_image_src_size(dest, mips));
 
@@ -402,9 +402,9 @@ RvkTransferId rvk_transfer_image(
         trans->dev->graphicsQueueIndex);
   }
 
-  if (genMips) {
+  if (dest->flags & RvkImageFlags_GenerateMips) {
     diag_assert(!vkFormatCompressed4x4(dest->vkFormat));
-    diag_assert(mips == 1);
+    diag_assert(mips == 1); // Can't both generate mips and provide source mips.
 
     rvk_image_generate_mipmaps(trans->dev, dest, buffer->vkCmdBufferGraphics);
   }

@@ -6,6 +6,8 @@
  */
 
 typedef enum eRvkDescKind          RvkDescKind;
+typedef enum eRvkImageCapability   RvkImageCapability;
+typedef enum eRvkImageFlags        RvkImageFlags;
 typedef enum eRvkImagePhase        RvkImagePhase;
 typedef enum eRvkJobPhase          RvkJobPhase;
 typedef enum eRvkStat              RvkStat;

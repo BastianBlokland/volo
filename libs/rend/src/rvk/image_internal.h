@@ -38,8 +38,14 @@ typedef enum eRvkImageCapability {
   RvkImageCapability_Present         = 1 << 6,
 } RvkImageCapability;
 
+typedef enum eRvkImageFlags {
+  RvkImageFlags_None         = 0,
+  RvkImageFlags_GenerateMips = 1 << 0,
+} RvkImageFlags;
+
 typedef struct sRvkImage {
   RvkImageType       type : 8;
+  RvkImageFlags      flags : 8;
   RvkImagePhase      phase : 8;
   RvkImageCapability caps : 8;
   u8                 layers;
@@ -54,8 +60,8 @@ typedef struct sRvkImage {
 
 // clang-format off
 
-RvkImage rvk_image_create_source_color(RvkDevice*, VkFormat, RvkSize, u8 layers, u8 mipLevels, bool mipGpuGen);
-RvkImage rvk_image_create_source_color_cube(RvkDevice*, VkFormat, RvkSize, u8 mipLevels, bool mipGpuGen);
+RvkImage rvk_image_create_source_color(RvkDevice*, VkFormat, RvkSize, u8 layers, u8 mipLevels, RvkImageFlags);
+RvkImage rvk_image_create_source_color_cube(RvkDevice*, VkFormat, RvkSize, u8 mipLevels, RvkImageFlags);
 RvkImage rvk_image_create_attach_color(RvkDevice*, VkFormat, RvkSize, RvkImageCapability extraCaps);
 RvkImage rvk_image_create_attach_depth(RvkDevice*, VkFormat, RvkSize, RvkImageCapability extraCaps);
 RvkImage rvk_image_create_swapchain(RvkDevice*, VkImage, VkFormat, RvkSize);

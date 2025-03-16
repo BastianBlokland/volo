@@ -317,7 +317,8 @@ static RvkImage rvk_image_create_backed(
     const VkFormat           vkFormat,
     const RvkSize            size,
     const u8                 layers,
-    const u8                 mipLevels) {
+    const u8                 mipLevels,
+    const RvkImageFlags      flags) {
   diag_assert_msg(layers, "Image needs at least 1 layer");
   diag_assert_msg(mipLevels, "Image needs at least 1 mipmap");
 
@@ -328,6 +329,9 @@ static RvkImage rvk_image_create_backed(
   }
   if (UNLIKELY(layers > dev->vkProperties.limits.maxImageArrayLayers)) {
     diag_crash_msg("Image layer count {} unsupported", fmt_int(layers));
+  }
+  if (UNLIKELY((flags & RvkImageFlags_GenerateMips) && vkFormatCompressed4x4(vkFormat))) {
+    diag_crash_msg("Cannot generate mips for compressed images");
   }
 
   const VkImageAspectFlags vkAspect = rvk_image_vkaspect(type);
@@ -346,6 +350,7 @@ static RvkImage rvk_image_create_backed(
 
   return (RvkImage){
       .type        = type,
+      .flags       = flags,
       .phase       = RvkImagePhase_Undefined,
       .caps        = caps,
       .vkFormat    = vkFormat,
@@ -359,33 +364,33 @@ static RvkImage rvk_image_create_backed(
 }
 
 RvkImage rvk_image_create_source_color(
-    RvkDevice*     dev,
-    const VkFormat vkFormat,
-    const RvkSize  size,
-    const u8       layers,
-    const u8       mipLevels,
-    const bool     mipGpuGen) {
+    RvkDevice*          dev,
+    const VkFormat      vkFormat,
+    const RvkSize       size,
+    const u8            layers,
+    const u8            mipLevels,
+    const RvkImageFlags flags) {
   RvkImageCapability caps = RvkImageCapability_Sampled | RvkImageCapability_TransferDest;
-  if (mipGpuGen && mipLevels > 1) {
+  if ((flags & RvkImageFlags_GenerateMips) && mipLevels > 1) {
     caps |= RvkImageCapability_TransferSource | RvkImageCapability_BlitDest;
   }
   return rvk_image_create_backed(
-      dev, RvkImageType_ColorSource, caps, vkFormat, size, layers, mipLevels);
+      dev, RvkImageType_ColorSource, caps, vkFormat, size, layers, mipLevels, flags);
 }
 
 RvkImage rvk_image_create_source_color_cube(
-    RvkDevice*     dev,
-    const VkFormat vkFormat,
-    const RvkSize  size,
-    const u8       mipLevels,
-    const bool     mipGpuGen) {
+    RvkDevice*          dev,
+    const VkFormat      vkFormat,
+    const RvkSize       size,
+    const u8            mipLevels,
+    const RvkImageFlags flags) {
   RvkImageCapability caps = RvkImageCapability_Sampled | RvkImageCapability_TransferDest;
-  if (mipGpuGen && mipLevels > 1) {
+  if ((flags & RvkImageFlags_GenerateMips) && mipLevels > 1) {
     caps |= RvkImageCapability_TransferSource | RvkImageCapability_BlitDest;
   }
   const u8 layers = 6;
   return rvk_image_create_backed(
-      dev, RvkImageType_ColorSourceCube, caps, vkFormat, size, layers, mipLevels);
+      dev, RvkImageType_ColorSourceCube, caps, vkFormat, size, layers, mipLevels, flags);
 }
 
 RvkImage rvk_image_create_attach_color(
@@ -398,8 +403,9 @@ RvkImage rvk_image_create_attach_color(
   const RvkImageCapability caps      = RvkImageCapability_AttachmentColor | extraCaps;
   const u8                 layers    = 1;
   const u8                 mipLevels = 1;
+  const RvkImageFlags      flags     = RvkImageFlags_None;
   return rvk_image_create_backed(
-      dev, RvkImageType_ColorAttachment, caps, vkFormat, size, layers, mipLevels);
+      dev, RvkImageType_ColorAttachment, caps, vkFormat, size, layers, mipLevels, flags);
 }
 
 RvkImage rvk_image_create_attach_depth(
@@ -413,8 +419,9 @@ RvkImage rvk_image_create_attach_depth(
   const RvkImageCapability caps      = RvkImageCapability_AttachmentDepth | extraCaps;
   const u8                 layers    = 1;
   const u8                 mipLevels = 1;
+  const RvkImageFlags      flags     = RvkImageFlags_None;
   return rvk_image_create_backed(
-      dev, RvkImageType_DepthAttachment, caps, vkFormat, size, layers, mipLevels);
+      dev, RvkImageType_DepthAttachment, caps, vkFormat, size, layers, mipLevels, flags);
 }
 
 RvkImage

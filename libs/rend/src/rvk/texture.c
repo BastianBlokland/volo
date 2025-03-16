@@ -56,24 +56,23 @@ RvkTexture* rvk_texture_create(RvkDevice* dev, const AssetTextureComp* asset, St
   const bool     compressed = vkFormatCompressed4x4(vkFormat);
   (void)compressed;
 
-  bool mipGenGpu = false;
+  RvkImageFlags imageFlags = RvkImageFlags_None;
   if (asset->mipsData != asset->mipsMax) {
     diag_assert(asset->mipsData == 1); // Cannot both have source mips and generate mips.
     diag_assert(!compressed);          // Cannot generate mips for compressed textures on the gpu.
-    mipGenGpu = true;
+    imageFlags |= RvkImageFlags_GenerateMips;
   }
 
   if (asset->flags & AssetTextureFlags_CubeMap) {
     diag_assert_msg(layers == 6, "CubeMap needs 6 layers");
-    tex->image = rvk_image_create_source_color_cube(dev, vkFormat, size, mipLevels, mipGenGpu);
+    tex->image = rvk_image_create_source_color_cube(dev, vkFormat, size, mipLevels, imageFlags);
   } else {
-    tex->image = rvk_image_create_source_color(dev, vkFormat, size, layers, mipLevels, mipGenGpu);
+    tex->image = rvk_image_create_source_color(dev, vkFormat, size, layers, mipLevels, imageFlags);
   }
 
   const Mem transferData = asset_texture_data(asset);
   const u32 transferMips = asset->mipsData;
-  tex->pixelTransfer =
-      rvk_transfer_image(dev->transferer, &tex->image, transferData, transferMips, mipGenGpu);
+  tex->pixelTransfer = rvk_transfer_image(dev->transferer, &tex->image, transferData, transferMips);
 
   rvk_debug_name_img(dev, tex->image.vkImage, "{}", fmt_text(dbgName));
   rvk_debug_name_img_view(dev, tex->image.vkImageView, "{}", fmt_text(dbgName));

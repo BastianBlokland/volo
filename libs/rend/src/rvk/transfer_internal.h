@@ -20,7 +20,7 @@ RvkTransferer* rvk_transferer_create(RvkDevice*);
 void           rvk_transferer_destroy(RvkTransferer*);
 
 RvkTransferId rvk_transfer_buffer(RvkTransferer*, RvkBuffer* dest, Mem data);
-RvkTransferId rvk_transfer_image(RvkTransferer*, RvkImage* dest, Mem data, u32 mips, bool genMips);
+RvkTransferId rvk_transfer_image(RvkTransferer*, RvkImage* dest, Mem data, u32 mips);
 
 RvkTransferStatus rvk_transfer_poll(const RvkTransferer*, RvkTransferId);
 void              rvk_transfer_flush(RvkTransferer*); // Executes a queueSubmit.
