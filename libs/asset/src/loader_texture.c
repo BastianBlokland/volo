@@ -689,6 +689,7 @@ void asset_data_init_tex(void) {
   data_reg_const_t(g_dataReg, AssetTextureFlags, CubeMap);
   data_reg_const_t(g_dataReg, AssetTextureFlags, Alpha);
   data_reg_const_t(g_dataReg, AssetTextureFlags, Lossless);
+  data_reg_const_t(g_dataReg, AssetTextureFlags, BroadcastR);
 
   data_reg_struct_t(g_dataReg, AssetTextureComp);
   data_reg_field_t(g_dataReg, AssetTextureComp, format, t_AssetTextureFormat);

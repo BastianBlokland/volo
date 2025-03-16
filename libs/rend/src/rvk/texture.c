@@ -57,6 +57,9 @@ RvkTexture* rvk_texture_create(RvkDevice* dev, const AssetTextureComp* asset, St
   (void)compressed;
 
   RvkImageFlags imageFlags = RvkImageFlags_None;
+  if (asset->flags & AssetTextureFlags_BroadcastR) {
+    imageFlags |= RvkImageFlags_BroadcastR;
+  }
   if (asset->mipsData != asset->mipsMax) {
     diag_assert(asset->mipsData == 1); // Cannot both have source mips and generate mips.
     diag_assert(!compressed);          // Cannot generate mips for compressed textures on the gpu.
