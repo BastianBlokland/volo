@@ -292,9 +292,10 @@ static VkImageView rvk_vkimageview_create(
     const VkFormat           vkFormat,
     const VkImageAspectFlags vkAspect,
     const u8                 layers,
-    const u8                 mipLevels) {
+    const u8                 mipLevels,
+    const RvkImageFlags      flags) {
 
-  const VkImageViewCreateInfo createInfo = {
+  VkImageViewCreateInfo createInfo = {
       .sType                           = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
       .image                           = vkImage,
       .viewType                        = rvk_image_viewtype(type, layers),
@@ -305,6 +306,11 @@ static VkImageView rvk_vkimageview_create(
       .subresourceRange.baseArrayLayer = 0,
       .subresourceRange.layerCount     = layers,
   };
+  if (flags & RvkImageFlags_BroadcastR) {
+    createInfo.components.g = VK_COMPONENT_SWIZZLE_R;
+    createInfo.components.b = VK_COMPONENT_SWIZZLE_R;
+    createInfo.components.a = VK_COMPONENT_SWIZZLE_R;
+  }
   VkImageView result;
   rvk_call_checked(dev, createImageView, dev->vkDev, &createInfo, &dev->vkAlloc, &result);
   return result;
@@ -346,7 +352,7 @@ static RvkImage rvk_image_create_backed(
   rvk_mem_bind_image(mem, vkImage);
 
   const VkImageView vkView =
-      rvk_vkimageview_create(dev, type, vkImage, vkFormat, vkAspect, layers, mipLevels);
+      rvk_vkimageview_create(dev, type, vkImage, vkFormat, vkAspect, layers, mipLevels, flags);
 
   return (RvkImage){
       .type        = type,

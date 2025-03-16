@@ -41,6 +41,7 @@ typedef enum eRvkImageCapability {
 typedef enum eRvkImageFlags {
   RvkImageFlags_None         = 0,
   RvkImageFlags_GenerateMips = 1 << 0,
+  RvkImageFlags_BroadcastR   = 1 << 1, // Broadcast the r channel to rgba.
 } RvkImageFlags;
 
 typedef struct sRvkImage {
