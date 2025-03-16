@@ -24,6 +24,7 @@ static void import_init_enum_flags(void) {
   ENUM_PUSH(&g_importTextureFlags, Lossless);
   ENUM_PUSH(&g_importTextureFlags, Linear);
   ENUM_PUSH(&g_importTextureFlags, Mips);
+  ENUM_PUSH(&g_importTextureFlags, BroadcastR);
 
 #undef ENUM_PUSH
 }
@@ -582,6 +583,9 @@ bool asset_import_texture(
   }
   if (ctx.flags & AssetImportTextureFlags_Lossless) {
     outFlags |= AssetTextureFlags_Lossless;
+  }
+  if (ctx.flags & AssetImportTextureFlags_BroadcastR) {
+    outFlags |= AssetTextureFlags_BroadcastR;
   }
 
   if (outFlags & AssetTextureFlags_Srgb && ctx.channels < 3) {
