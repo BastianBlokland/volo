@@ -442,12 +442,13 @@ rvk_image_create_swapchain(RvkDevice* dev, VkImage vkImage, VkFormat vkFormat, c
   capabilities |= RvkImageCapability_TransferDest;
   capabilities |= RvkImageCapability_BlitDest;
 
-  const u8 layers    = 1;
-  const u8 mipLevels = 1;
+  const u8            layers    = 1;
+  const u8            mipLevels = 1;
+  const RvkImageFlags flags     = RvkImageFlags_None;
 
   const VkImageAspectFlags vkAspect = rvk_image_vkaspect(RvkImageType_Swapchain);
   const VkImageView        vkView   = rvk_vkimageview_create(
-      dev, RvkImageType_Swapchain, vkImage, vkFormat, vkAspect, layers, mipLevels);
+      dev, RvkImageType_Swapchain, vkImage, vkFormat, vkAspect, layers, mipLevels, flags);
 
   return (RvkImage){
       .type        = RvkImageType_Swapchain,
