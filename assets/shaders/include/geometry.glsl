@@ -11,7 +11,7 @@
  * Textures:
  * - Data0: (srgb rgba32):   rgb: color, a: unused.
  * - Data1: (linear rgba32): rg: normal, b: roughness, a: tags.
- * - Data2: (srgb rgba32):   rgb: emissive, a: unused.
+ * - Data2: (linear rgb16):  rgb: emissive.
  */
 
 struct Geometry {
@@ -23,7 +23,8 @@ struct Geometry {
 };
 
 struct GeometryEncoded {
-  f32v4 data0, data1, data2;
+  f32v4 data0, data1;
+  f32v3 data2;
 };
 
 GeometryEncoded geometry_encode(const Geometry geo) {

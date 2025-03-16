@@ -81,7 +81,7 @@ void main() {
   GeometryEncoded geoEncoded;
   geoEncoded.data0 = texture(u_texGeoData0, in_texcoord);
   geoEncoded.data1 = texture(u_texGeoData1, in_texcoord);
-  geoEncoded.data2 = texture(u_texGeoData2, in_texcoord);
+  geoEncoded.data2 = texture(u_texGeoData2, in_texcoord).rgb;
 
   const Geometry geo = geometry_decode(geoEncoded);
 

@@ -33,7 +33,7 @@ static const RvkPassConfig g_passConfig[AssetGraphicPass_Count] = {
     .attachColorLoad[1]   = RvkPassLoad_DontCare,
 
     // Attachment color 2: emissive (rgb).
-    .attachColorFormat[2] = RvkPassFormat_Color4Srgb,
+    .attachColorFormat[2] = RvkPassFormat_Color3LowPrecision,
     .attachColorLoad[2]   = RvkPassLoad_DontCare,
   },
 
