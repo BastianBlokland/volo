@@ -24,6 +24,7 @@ static void import_init_enum_flags(void) {
   ENUM_PUSH(&g_importTextureFlags, Lossless);
   ENUM_PUSH(&g_importTextureFlags, Linear);
   ENUM_PUSH(&g_importTextureFlags, Mips);
+  ENUM_PUSH(&g_importTextureFlags, BroadcastR);
 
 #undef ENUM_PUSH
 }
@@ -360,7 +361,7 @@ void asset_data_init_import_texture(void) {
   script_binder_filter_set(binder, string_lit("import/texture/*.script"));
 
   // clang-format off
-  static const String g_flagsDoc     = string_static("Supported flags:\n\n-`Lossless`\n\n-`Linear`\n\n-`Mips`");
+  static const String g_flagsDoc     = string_static("Supported flags:\n\n-`Lossless`\n\n-`Linear`\n\n-`Mips`\n\n-`BroadcastR`");
   static const String g_pixelTypeDoc = string_static("Supported types:\n\n-`u8`\n\n-`u16`\n\n-`f32`");
   {
     const String       name   = string_lit("pow2_test");
@@ -582,6 +583,9 @@ bool asset_import_texture(
   }
   if (ctx.flags & AssetImportTextureFlags_Lossless) {
     outFlags |= AssetTextureFlags_Lossless;
+  }
+  if (ctx.flags & AssetImportTextureFlags_BroadcastR) {
+    outFlags |= AssetTextureFlags_BroadcastR;
   }
 
   if (outFlags & AssetTextureFlags_Srgb && ctx.channels < 3) {

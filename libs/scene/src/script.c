@@ -1184,7 +1184,7 @@ static ScriptVal eval_renderable_spawn(EvalContext* ctx, ScriptBinderCall* call)
   const GeoQuat     rot               = script_arg_opt_quat(call, 2, geo_quat_ident);
   const f32         scale             = (f32)script_arg_opt_num_range(call, 3, 0.0001, 10000, 1.0);
   const GeoColor    color             = script_arg_opt_color(call, 4, geo_color_white);
-  const f32         emissive          = (f32)script_arg_opt_num_range(call, 5, 0.0, 1.0, 0.0);
+  const GeoColor    emissive          = script_arg_opt_color(call, 5, geo_color_black);
   const bool        requireVisibility = script_arg_opt_bool(call, 6, false);
 
   const EcsEntityId result = ecs_world_entity_create(ctx->world);
@@ -1220,7 +1220,7 @@ static ScriptVal eval_renderable_param(EvalContext* ctx, ScriptBinderCall* call)
       case 1 /* Alpha */:
         return script_num(r->color.a);
       case 2 /* Emissive */:
-        return script_num(r->emissive);
+        return script_color(r->emissive);
       }
     }
     return script_null();
@@ -1236,10 +1236,10 @@ static ScriptVal eval_renderable_param(EvalContext* ctx, ScriptBinderCall* call)
   update.param  = param;
   switch (param) {
   case SceneActionRenderableParam_Color:
+  case SceneActionRenderableParam_Emissive:
     update.value_color = script_arg_color(call, 2);
     break;
   case SceneActionRenderableParam_Alpha:
-  case SceneActionRenderableParam_Emissive:
     update.value_num = (f32)script_arg_num_range(call, 2, 0.0, 1.0);
     break;
   }

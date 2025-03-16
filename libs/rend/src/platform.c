@@ -24,13 +24,17 @@ static const RvkPassConfig g_passConfig[AssetGraphicPass_Count] = {
     .attachDepth     = RvkPassDepth_Stored,
     .attachDepthLoad = RvkPassLoad_Clear,
 
-    // Attachment color 0: color (rgb) and emissive (a).
+    // Attachment color 0: color (rgb).
     .attachColorFormat[0] = RvkPassFormat_Color4Srgb,
     .attachColorLoad[0]   = RvkPassLoad_DontCare,
 
     // Attachment color 1: normal (rg), roughness (b) and tags (a).
     .attachColorFormat[1] = RvkPassFormat_Color4Linear,
     .attachColorLoad[1]   = RvkPassLoad_DontCare,
+
+    // Attachment color 2: emissive (rgb).
+    .attachColorFormat[2] = RvkPassFormat_Color3LowPrecision,
+    .attachColorLoad[2]   = RvkPassLoad_DontCare,
   },
 
   REND_DEFINE_PASS(Decal)

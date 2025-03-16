@@ -689,6 +689,7 @@ void asset_data_init_tex(void) {
   data_reg_const_t(g_dataReg, AssetTextureFlags, CubeMap);
   data_reg_const_t(g_dataReg, AssetTextureFlags, Alpha);
   data_reg_const_t(g_dataReg, AssetTextureFlags, Lossless);
+  data_reg_const_t(g_dataReg, AssetTextureFlags, BroadcastR);
 
   data_reg_struct_t(g_dataReg, AssetTextureComp);
   data_reg_field_t(g_dataReg, AssetTextureComp, format, t_AssetTextureFormat);
@@ -766,7 +767,7 @@ GeoColor asset_texture_at(const AssetTextureComp* t, const u32 layer, const usiz
     res.g = 0.0f;
     res.b = 0.0f;
     res.a = 1.0f;
-    return res;
+    goto Ret;
   case AssetTextureFormat_u8_rgba:
     if (t->flags & AssetTextureFlags_Srgb) {
       res.r = g_textureSrgbToFloat[((const u8*)pixelsMip0)[index * 4 + 0]];
@@ -779,31 +780,31 @@ GeoColor asset_texture_at(const AssetTextureComp* t, const u32 layer, const usiz
       res.b = ((const u8*)pixelsMip0)[index * 4 + 2] * g_u8MaxInv;
       res.a = ((const u8*)pixelsMip0)[index * 4 + 3] * g_u8MaxInv;
     }
-    return res;
+    goto Ret;
   case AssetTextureFormat_u16_r:
     res.r = ((const u16*)pixelsMip0)[index] * g_u16MaxInv;
     res.g = 0.0f;
     res.b = 0.0f;
     res.a = 1.0f;
-    return res;
+    goto Ret;
   case AssetTextureFormat_u16_rgba:
     res.r = ((const u16*)pixelsMip0)[index * 4 + 0] * g_u16MaxInv;
     res.g = ((const u16*)pixelsMip0)[index * 4 + 1] * g_u16MaxInv;
     res.b = ((const u16*)pixelsMip0)[index * 4 + 2] * g_u16MaxInv;
     res.a = ((const u16*)pixelsMip0)[index * 4 + 3] * g_u16MaxInv;
-    return res;
+    goto Ret;
   case AssetTextureFormat_f32_r:
     res.r = ((const f32*)pixelsMip0)[index];
     res.g = 0.0f;
     res.b = 0.0f;
     res.a = 1.0f;
-    return res;
+    goto Ret;
   case AssetTextureFormat_f32_rgba:
     res.r = ((const f32*)pixelsMip0)[index * 4 + 0];
     res.g = ((const f32*)pixelsMip0)[index * 4 + 1];
     res.b = ((const f32*)pixelsMip0)[index * 4 + 2];
     res.a = ((const f32*)pixelsMip0)[index * 4 + 3];
-    return res;
+    goto Ret;
   case AssetTextureFormat_Bc1:
   case AssetTextureFormat_Bc3:
   case AssetTextureFormat_Bc4: {
@@ -837,12 +838,20 @@ GeoColor asset_texture_at(const AssetTextureComp* t, const u32 layer, const usiz
       res.b = blockBc0.colors[indexInBlock].b * g_u8MaxInv;
       res.a = blockBc0.colors[indexInBlock].a * g_u8MaxInv;
     }
-    return res;
+    goto Ret;
   }
   case AssetTextureFormat_Count:
     break;
   }
   UNREACHABLE
+
+Ret:
+  if (t->flags & AssetTextureFlags_BroadcastR) {
+    res.g = res.r;
+    res.b = res.r;
+    res.a = res.r;
+  }
+  return res;
 }
 
 GeoColor

@@ -172,7 +172,7 @@
     },
     {
       "name": "texture_flag",
-      "doc": "Query or change a texture import flag.\n\nSupported flags:\n\n-`Lossless`\n\n-`Linear`\n\n-`Mips`",
+      "doc": "Query or change a texture import flag.\n\nSupported flags:\n\n-`Lossless`\n\n-`Linear`\n\n-`Mips`\n\n-`BroadcastR`",
       "sig": {
         "ret": [ "null", "bool" ],
         "args": [

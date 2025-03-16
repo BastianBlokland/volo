@@ -281,7 +281,7 @@ action_update_renderable_param(ActionContext* ctx, const SceneActionUpdateRender
       rendComp->color.a = a->value_num;
       break;
     case SceneActionRenderableParam_Emissive:
-      rendComp->emissive = a->value_num;
+      rendComp->emissive = a->value_color;
       break;
     }
   }

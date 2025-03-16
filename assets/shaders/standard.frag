@@ -26,6 +26,7 @@ bind_internal(3) in flat f32v4 in_data; // x tag bits, y color, z emissive
 
 bind_internal(0) out f32v4 out_data0;
 bind_internal(1) out f32v4 out_data1;
+bind_internal(2) out f32v3 out_data2;
 
 void main() {
   f32v4 color = instance_color(in_data);
@@ -57,18 +58,21 @@ void main() {
   // Output world normal.
   if (s_normalMap) {
     const f32v3 normalSample = texture(u_texNormal, in_texcoord).xyz;
-    geo.normal = texture_normal(normalSample, in_worldNormal, in_worldTangent);
+    geo.normal               = texture_normal(normalSample, in_worldNormal, in_worldTangent);
   } else {
     geo.normal = in_worldNormal;
   }
 
   // Output emissive.
-  geo.emissive = in_data.z;
+  const f32v4 emissive = instance_emissive(in_data);
   if (s_emissiveMap) {
-    geo.emissive *= texture(u_texEmissive, in_texcoord).r;
+    geo.emissive = emissive.rgb * texture(u_texEmissive, in_texcoord).rgb * emissive.a;
+  } else {
+    geo.emissive = emissive.rgb * emissive.a;
   }
 
   const GeometryEncoded encoded = geometry_encode(geo);
   out_data0                     = encoded.data0;
   out_data1                     = encoded.data1;
+  out_data2                     = encoded.data2;
 }

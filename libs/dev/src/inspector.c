@@ -1058,7 +1058,7 @@ static void inspector_panel_draw_renderable(InspectorContext* ctx, UiTable* tabl
     inspector_panel_next(ctx, table);
     ui_label(ctx->canvas, string_lit("Emissive"));
     ui_table_next_column(ctx->canvas, table);
-    ui_slider(ctx->canvas, &renderable->emissive, .flags = flags);
+    dev_widget_color(ctx->canvas, &renderable->emissive, flags);
   }
 }
 

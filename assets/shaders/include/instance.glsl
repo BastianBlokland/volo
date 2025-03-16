@@ -41,4 +41,11 @@ f32v4 instance_color(const f32v4 instanceData) {
   return color_from_u32(floatBitsToUint(instanceData.y));
 }
 
+/**
+ * Retrieve the instance emissive.
+ */
+f32v4 instance_emissive(const f32v4 instanceData) {
+  return color_from_u32(floatBitsToUint(instanceData.z));
+}
+
 #endif // INCLUDE_INSTANCE

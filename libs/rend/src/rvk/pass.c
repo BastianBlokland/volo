@@ -90,6 +90,8 @@ static VkFormat rvk_attach_color_format(const RvkPass* pass, const u32 index) {
     return VK_FORMAT_R8G8B8A8_UNORM;
   case RvkPassFormat_Color4Srgb:
     return VK_FORMAT_R8G8B8A8_SRGB;
+  case RvkPassFormat_Color3LowPrecision:
+    return VK_FORMAT_R5G6B5_UNORM_PACK16;
   case RvkPassFormat_Color2SignedFloat:
     return VK_FORMAT_R16G16_SFLOAT;
   case RvkPassFormat_Color3Float:

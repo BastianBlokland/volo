@@ -650,6 +650,7 @@ static bool rend_canvas_paint_3d(
   RvkPass*      geoPass  = platform->passes[AssetGraphicPass_Geometry];
   RvkImage*     geoData0 = rend_builder_attach_acquire_color(b, geoPass, 0, geoSize);
   RvkImage*     geoData1 = rend_builder_attach_acquire_color(b, geoPass, 1, geoSize);
+  RvkImage*     geoData2 = rend_builder_attach_acquire_color(b, geoPass, 2, geoSize);
   RvkImage*     geoDepth = rend_builder_attach_acquire_depth(b, geoPass, geoSize);
   SceneTags     geoTagMask;
   {
@@ -658,6 +659,7 @@ static bool rend_canvas_paint_3d(
     RendPaintContext ctx = painter_context(b, set, time, mainView);
     rend_builder_attach_color(b, geoData0, 0);
     rend_builder_attach_color(b, geoData1, 1);
+    rend_builder_attach_color(b, geoData2, 2);
     rend_builder_attach_depth(b, geoDepth);
     painter_set_global_data(&ctx, &camMat, &projMat, geoSize, time, RendViewType_Main);
     geoTagMask = painter_push_objects_simple(&ctx, objView, resView, AssetGraphicPass_Geometry);
@@ -805,9 +807,10 @@ static bool rend_canvas_paint_3d(
     }
     rend_builder_global_image(b, geoData0, 0);
     rend_builder_global_image(b, geoData1, 1);
-    rend_builder_global_image(b, geoDepthRead, 2);
-    rend_builder_global_image(b, aoBuffer, 3);
-    rend_builder_global_shadow(b, shadDepth, 4);
+    rend_builder_global_image(b, geoData2, 2);
+    rend_builder_global_image(b, geoDepthRead, 3);
+    rend_builder_global_image(b, aoBuffer, 4);
+    rend_builder_global_shadow(b, shadDepth, 5);
     rend_builder_attach_color(b, fwdColor, 0);
     rend_builder_attach_depth(b, geoDepth);
     painter_set_global_data(&ctx, &camMat, &projMat, geoSize, time, RendViewType_Main);
@@ -839,6 +842,7 @@ static bool rend_canvas_paint_3d(
 
   rend_builder_attach_release(b, geoData0);
   rend_builder_attach_release(b, geoData1);
+  rend_builder_attach_release(b, geoData2);
   rend_builder_attach_release(b, geoDepthRead);
   rend_builder_attach_release(b, aoBuffer);
 

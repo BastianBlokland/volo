@@ -39,6 +39,8 @@ static const u32 g_rendSupportedGlobalBindings[rvk_desc_bindings_max] = {
     rend_image_sampler_2d_mask,
     rend_image_sampler_2d_mask,
     rend_image_sampler_2d_mask,
+    rend_image_sampler_2d_mask,
+    rend_image_sampler_2d_mask,
 };
 
 static const u32 g_rendSupportedDrawBindings[rvk_desc_bindings_max] = {
@@ -544,6 +546,7 @@ static AssetShaderType rvk_graphic_pass_shader_output(const RvkPassFormat passFo
   case RvkPassFormat_Color2Linear:
   case RvkPassFormat_Color2SignedFloat:
     return AssetShaderType_f32v2;
+  case RvkPassFormat_Color3LowPrecision:
   case RvkPassFormat_Color3Float:
     return AssetShaderType_f32v3;
   case RvkPassFormat_Color4Linear:

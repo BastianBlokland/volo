@@ -7,9 +7,9 @@
 #include "types_internal.h"
 #include "uniform_internal.h"
 
-#define rvk_pass_attach_color_max 2
+#define rvk_pass_attach_color_max 3
 #define rvk_pass_global_data_max 1
-#define rvk_pass_global_image_max 5
+#define rvk_pass_global_image_max 7
 #define rvk_pass_draw_image_max 16
 
 typedef u8 RvkPassHandle;
@@ -31,13 +31,14 @@ typedef enum {
 
 typedef enum {
   RvkPassFormat_None = 0,
-  RvkPassFormat_Color1Linear,      // R    (unorm)  sdr linear.
-  RvkPassFormat_Color2Linear,      // RG   (unorm)  sdr linear.
-  RvkPassFormat_Color4Linear,      // RGBA (unorm)  sdr linear.
-  RvkPassFormat_Color4Srgb,        // RGBA (unorm)  sdr srgb.
-  RvkPassFormat_Color2SignedFloat, // RG   (sfloat) hdr.
-  RvkPassFormat_Color3Float,       // RGB  (ufloat) hdr.
-  RvkPassFormat_Swapchain,         // BGRA (unorm)  sdr srgb.
+  RvkPassFormat_Color1Linear,       // R    (unorm)  sdr linear.
+  RvkPassFormat_Color2Linear,       // RG   (unorm)  sdr linear.
+  RvkPassFormat_Color4Linear,       // RGBA (unorm)  sdr linear.
+  RvkPassFormat_Color4Srgb,         // RGBA (unorm)  sdr srgb.
+  RvkPassFormat_Color3LowPrecision, // RGB  (unorm)  sdr low precision.
+  RvkPassFormat_Color2SignedFloat,  // RG   (sfloat) hdr.
+  RvkPassFormat_Color3Float,        // RGB  (ufloat) hdr.
+  RvkPassFormat_Swapchain,          // BGRA (unorm)  sdr srgb.
 } RvkPassFormat;
 
 typedef struct sRvkPassConfig {

@@ -8,21 +8,21 @@
  * - "cfgTrigger": Entity to ask if we are triggered (will be asked for a 'triggered' property).
  */
 
-var fixture         = self()
-var fixtureEmissive = 0.25
-var lightRadius     = 5
-var lightIntensity  = 3.5
-var lightOffset     = vec3(0.25, 0.5, 0)
+var fixture           = self()
+var lightRadius       = 5
+var lightIntensity    = 3.5
+var emissiveIntensity = 0.5
+var lightOffset       = vec3(0.25, 0.5, 0)
 
 if ($cfgTrigger) {
   ask(fixture, $cfgTrigger, "triggered")
 }
 var activeColor = $triggered ? $cfgColorTrigger : $cfgColor
 
-var radiance    = (activeColor ?? black) * lightIntensity
-var radianceRgb = color(color_r(radiance), color_g(radiance), color_b(radiance), 0.0)
+var radiance = (activeColor ?? black) * lightIntensity
+var emissive = (activeColor ?? black) * emissiveIntensity
 
-renderable_param(fixture, "Emissive", magnitude(radianceRgb) > 0.01 ? fixtureEmissive : 0.0)
+renderable_param(fixture, "Emissive", emissive)
 renderable_param(fixture, "Color", activeColor ?? white)
 
 if ($light) {
