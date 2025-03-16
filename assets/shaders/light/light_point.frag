@@ -6,7 +6,7 @@
 bind_global_data(0) readonly uniform Global { GlobalData u_global; };
 bind_global_img(0) uniform sampler2D u_texGeoData0;
 bind_global_img(1) uniform sampler2D u_texGeoData1;
-bind_global_img(2) uniform sampler2D u_texGeoDepth;
+bind_global_img(3) uniform sampler2D u_texGeoDepth;
 
 bind_internal(0) in flat f32v3 in_position;
 bind_internal(1) in flat f32v4 in_radianceAndRadiusInv;
@@ -16,7 +16,7 @@ bind_internal(0) out f32v3 out_color;
 void main() {
   const f32v2 texcoord = in_fragCoord.xy / u_global.resolution.xy;
 
-  GeometryEncoded geoEncoded;
+  GeometryEncoded geoEncoded; // NOTE: We are not decoding data2.
   geoEncoded.data0 = texture(u_texGeoData0, texcoord);
   geoEncoded.data1 = texture(u_texGeoData1, texcoord);
 

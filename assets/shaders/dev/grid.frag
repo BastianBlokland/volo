@@ -7,7 +7,7 @@ const f32 c_behindAlphaMul  = 0.5;
 
 bind_global_data(0) readonly uniform Global { GlobalData u_global; };
 bind_global_img(1) uniform sampler2D u_texGeoData1;
-bind_global_img(2) uniform sampler2D u_texGeoDepth;
+bind_global_img(3) uniform sampler2D u_texGeoDepth;
 
 bind_internal(0) in flat f32v4 in_color;
 

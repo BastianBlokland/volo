@@ -26,6 +26,7 @@ bind_internal(3) in flat f32v4 in_data; // x tag bits, y color, z emissive
 
 bind_internal(0) out f32v4 out_data0;
 bind_internal(1) out f32v4 out_data1;
+bind_internal(2) out f32v4 out_data2;
 
 void main() {
   f32v4 color = instance_color(in_data);
@@ -63,12 +64,14 @@ void main() {
   }
 
   // Output emissive.
-  geo.emissive = in_data.z;
   if (s_emissiveMap) {
-    geo.emissive *= texture(u_texEmissive, in_texcoord).r;
+    geo.emissive = geo.color * in_data.z * texture(u_texEmissive, in_texcoord).r;
+  } else {
+    geo.emissive = geo.color * in_data.z;
   }
 
   const GeometryEncoded encoded = geometry_encode(geo);
   out_data0                     = encoded.data0;
   out_data1                     = encoded.data1;
+  out_data2                     = encoded.data2;
 }

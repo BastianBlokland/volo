@@ -38,8 +38,8 @@ const f32v2 c_poissonDisk[c_poissonDiskSampleCount] = {
 bind_global_data(0) readonly uniform Global { GlobalData u_global; };
 bind_global_img(0) uniform sampler2D u_texGeoData0;
 bind_global_img(1) uniform sampler2D u_texGeoData1;
-bind_global_img(2) uniform sampler2D u_texGeoDepth;
-bind_global_img(4) uniform sampler2DShadow u_texShadow;
+bind_global_img(3) uniform sampler2D u_texGeoDepth;
+bind_global_img(5) uniform sampler2DShadow u_texShadow;
 
 bind_graphic_img(0) uniform sampler2D u_texCoverageMask;
 
@@ -92,7 +92,7 @@ f32 shadow_frac(const f32v3 worldPos) {
 }
 
 void main() {
-  GeometryEncoded geoEncoded;
+  GeometryEncoded geoEncoded; // NOTE: We are not decoding data2.
   geoEncoded.data0 = texture(u_texGeoData0, in_texcoord);
   geoEncoded.data1 = texture(u_texGeoData1, in_texcoord);
 

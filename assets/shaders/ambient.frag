@@ -9,7 +9,7 @@ struct AmbientData {
 
 bind_spec(0) const bool s_debug                = false;
 bind_spec(1) const f32 s_specIrradianceMips    = 5.0;
-bind_spec(2) const f32 s_emissiveMaxBrightness = 500.0;
+bind_spec(2) const f32 s_emissiveMaxBrightness = 250.0;
 
 const u32 c_modeSolid                   = 0;
 const u32 c_modeDiffuseIrradiance       = 1;
@@ -32,8 +32,9 @@ bind_global_data(0) readonly uniform Global { GlobalData u_global; };
 
 bind_global_img(0) uniform sampler2D u_texGeoData0;
 bind_global_img(1) uniform sampler2D u_texGeoData1;
-bind_global_img(2) uniform sampler2D u_texGeoDepth;
-bind_global_img(3) uniform sampler2D u_texAmbientOcclusion;
+bind_global_img(2) uniform sampler2D u_texGeoData2;
+bind_global_img(3) uniform sampler2D u_texGeoDepth;
+bind_global_img(4) uniform sampler2D u_texAmbientOcclusion;
 
 bind_graphic_img(0) uniform samplerCube u_texDiffIrradiance;
 bind_graphic_img(1) uniform samplerCube u_texSpecIrradiance;
@@ -80,6 +81,7 @@ void main() {
   GeometryEncoded geoEncoded;
   geoEncoded.data0 = texture(u_texGeoData0, in_texcoord);
   geoEncoded.data1 = texture(u_texGeoData1, in_texcoord);
+  geoEncoded.data2 = texture(u_texGeoData2, in_texcoord);
 
   const Geometry geo = geometry_decode(geoEncoded);
 
@@ -116,7 +118,7 @@ void main() {
       out_color = geo.roughness.rrr;
       break;
     case c_modeDebugEmissive:
-      out_color = geo.emissive.rrr;
+      out_color = geo.emissive;
       break;
     case c_modeDebugNormal:
       out_color = normal_tex_encode(geo.normal);
@@ -167,7 +169,7 @@ void main() {
     }
 
     // Emissive.
-    out_color += surf.color * geo.emissive * s_emissiveMaxBrightness;
+    out_color += geo.emissive * s_emissiveMaxBrightness;
 
     // Additional effects.
     if (tag_is_set(geo.tags, tag_damaged_bit)) {
