@@ -262,6 +262,9 @@ void rend_builder_global_image_frozen(RendBuilder* b, const RvkImage* img, const
 void rend_builder_global_shadow(RendBuilder* b, RvkImage* img, const u16 imageIndex) {
   diag_assert_msg(b->pass, "RendBuilder: Pass not active");
   diag_assert_msg(
+      imageIndex < array_elems(b->passSetup.globalImages),
+      "RendBuilder: Pass global image out of bounds");
+  diag_assert_msg(
       !b->passSetup.globalImages[imageIndex],
       "RendBuilder: Pass global image {} already staged",
       fmt_int(imageIndex));

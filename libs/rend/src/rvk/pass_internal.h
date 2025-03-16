@@ -7,9 +7,9 @@
 #include "types_internal.h"
 #include "uniform_internal.h"
 
-#define rvk_pass_attach_color_max 2
+#define rvk_pass_attach_color_max 3
 #define rvk_pass_global_data_max 1
-#define rvk_pass_global_image_max 5
+#define rvk_pass_global_image_max 7
 #define rvk_pass_draw_image_max 16
 
 typedef u8 RvkPassHandle;
