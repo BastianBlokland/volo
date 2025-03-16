@@ -9,7 +9,7 @@ struct AmbientData {
 
 bind_spec(0) const bool s_debug                = false;
 bind_spec(1) const f32 s_specIrradianceMips    = 5.0;
-bind_spec(2) const f32 s_emissiveMaxBrightness = 250.0;
+bind_spec(2) const f32 s_emissiveMaxBrightness = 100.0;
 
 const u32 c_modeSolid                   = 0;
 const u32 c_modeDiffuseIrradiance       = 1;
@@ -130,7 +130,7 @@ void main() {
     } break;
     case c_modeDebugTags:
       out_color = color_from_hsv(hash_u32(geo.tags) / 4294967295.0, 1, 1);
-     break;
+      break;
     case c_modeDebugAmbientOcclusion:
       out_color = ambientOcclusion.rrr;
       break;

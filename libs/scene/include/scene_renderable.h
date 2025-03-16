@@ -15,7 +15,7 @@
  */
 ecs_comp_extern_public(SceneRenderableComp) {
   EcsEntityId graphic;
-  f32         emissive; // Normalized.
+  GeoColor    emissive; // Normalized.
   GeoColor    color;    // Normalized.
 };
 

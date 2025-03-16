@@ -64,10 +64,11 @@ void main() {
   }
 
   // Output emissive.
+  const f32v4 emissive = instance_emissive(in_data);
   if (s_emissiveMap) {
-    geo.emissive = geo.color * in_data.z * texture(u_texEmissive, in_texcoord).r;
+    geo.emissive = emissive.rgb * texture(u_texEmissive, in_texcoord).rgb * emissive.a;
   } else {
-    geo.emissive = geo.color * in_data.z;
+    geo.emissive = emissive.rgb * emissive.a;
   }
 
   const GeometryEncoded encoded = geometry_encode(geo);

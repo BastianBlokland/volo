@@ -38,8 +38,8 @@ typedef struct {
   GeoVector posAndScale; // xyz: position, w: scale.
   GeoQuat   rot;
   u32       tags;
-  u32       color; // u8 r, u8 g, u8 b, u8 a
-  f32       emissive;
+  u32       color;    // u8 r, u8 g, u8 b, u8 a
+  u32       emissive; // u8 r, u8 g, u8 b, u8 a
   u32       padding[1];
 } RendInstanceData;
 
@@ -59,8 +59,8 @@ typedef struct {
   GeoVector  posAndScale; // xyz: position, w: scale.
   GeoQuat    rot;
   u32        tags;
-  u32        color; // u8 r, u8 g, u8 b, u8 a
-  f32        emissive;
+  u32        color;    // u8 r, u8 g, u8 b, u8 a
+  u32        emissive; // u8 r, u8 g, u8 b, u8 a
   u32        padding[1];
   RendMat3x4 jointDelta[scene_skeleton_joints_max];
 } RendInstanceSkinnedData;
@@ -220,7 +220,7 @@ ecs_system_define(RendInstanceFillObjSys) {
     data->rot              = rotation;
     data->tags             = (u32)tags;
     data->color            = rend_color_pack(renderable->color);
-    data->emissive         = renderable->emissive;
+    data->emissive         = rend_color_pack(renderable->emissive);
   }
 }
 
@@ -319,7 +319,7 @@ ecs_system_define(RendInstanceSkinnedFillObjSys) {
     data->rot         = rotation;
     data->tags        = (u32)tags;
     data->color       = rend_color_pack(renderable->color);
-    data->emissive    = renderable->emissive;
+    data->emissive    = rend_color_pack(renderable->emissive);
     for (u32 i = 0; i != skeletonComp->jointCount; ++i) {
       data->jointDelta[i] = rend_transpose_to_3x4(&jointDeltas[i]);
     }

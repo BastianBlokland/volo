@@ -423,7 +423,7 @@ static void setup_renderable(PrefabSetupContext* ctx, const AssetPrefabTraitRend
       ctx->entity,
       SceneRenderableComp,
       .graphic  = t->graphic.entity,
-      .emissive = t->emissive,
+      .emissive = geo_color(1, 1, 1, t->emissive),
       .color    = color);
 }
 

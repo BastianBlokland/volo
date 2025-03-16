@@ -301,7 +301,7 @@
           },
           {
             "name": "emissive",
-            "mask": [ "null", "num" ]
+            "mask": [ "null", "color" ]
           },
           {
             "name": "requireVisibility",
