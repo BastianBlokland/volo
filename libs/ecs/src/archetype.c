@@ -33,19 +33,20 @@ static u32 ecs_archetype_entities_per_chunk(const EcsDef* def, BitSet mask) {
    * to be between the arrays to satisfy the component alignments.
    */
   usize entityDataSize = sizeof(EcsEntityId);
+  usize align          = alignof(EcsEntityId);
   usize padding        = 0;
   bitset_for(mask, compId) {
     const usize compSize  = ecs_def_comp_size(def, (EcsCompId)compId);
     const usize compAlign = ecs_def_comp_align(def, (EcsCompId)compId);
-    padding += bits_padding(entityDataSize + padding, compAlign);
+    padding += bits_padding(align, compAlign);
     entityDataSize += compSize;
+    align = compAlign;
   }
   return (u32)((ecs_archetype_chunk_size - padding) / entityDataSize);
 }
 
 static void* ecs_archetype_chunk_create(void) {
-  const usize align = 512; // Note: In practice the page allocator will align to the page size.
-  return alloc_alloc(g_allocHeap, ecs_archetype_chunk_size, align).ptr;
+  return alloc_alloc(g_allocHeap, ecs_archetype_chunk_size, alignof(EcsEntityId)).ptr;
 }
 
 static void ecs_archetype_chunk_destroy(void* chunk) {
@@ -153,6 +154,7 @@ EcsArchetype ecs_archetype_create(const EcsDef* def, BitSet mask) {
     offset += compSize * entitiesPerChunk;
     ++compIdx;
   }
+  diag_assert(offset <= ecs_archetype_chunk_size);
 
   return (EcsArchetype){
       .mask                = alloc_dup(g_allocHeap, mask, ecs_comp_mask_align),
