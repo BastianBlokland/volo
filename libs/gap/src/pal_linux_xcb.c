@@ -252,6 +252,13 @@ typedef struct sXkbKeyMap  XkbKeyMap;
 typedef struct sXkbState   XkbState;
 typedef u32                XkbKeycode;
 
+typedef struct {
+  u8           responseType, xkbType;
+  u16          sequence;
+  XcbTimestamp time;
+  u8           deviceId;
+} XkbEventAny;
+
 typedef u32 XRandrCrtc;
 typedef u32 XRandrMode;
 typedef u32 XRandrOutput;
@@ -348,6 +355,7 @@ typedef struct {
   const XcbExtensionData* (SYS_DECL* get_extension_data)(XcbConnection*, XcbExtension*);
   const XcbSetup*         (SYS_DECL* get_setup)(XcbConnection*);
   int                     (SYS_DECL* connection_has_error)(XcbConnection*);
+  XcbGenericError*        (SYS_DECL* request_check)(XcbConnection*, XcbCookie);
   int                     (SYS_DECL* flush)(XcbConnection*);
   int                     (SYS_DECL* get_file_descriptor)(XcbConnection*);
   u32                     (SYS_DECL* generate_id)(XcbConnection*);
@@ -394,6 +402,7 @@ typedef struct {
   u8          firstEvent, firstError;
 
   // clang-format off
+  XcbCookie   (SYS_DECL* select_events_checked)(XcbConnection*, u16 deviceSpec, u16 affectWhich, u16 clear, u16 selectAll, u16 affectMap, u16 map, const void* details);
   const char* (SYS_DECL* keymap_layout_get_name)(XkbKeyMap*, u32 index);
   i32         (SYS_DECL* get_core_keyboard_device_id)(XcbConnection*);
   i32         (SYS_DECL* state_key_get_utf8)(XkbState*, XkbKeycode, char* buffer, usize size);
@@ -791,6 +800,7 @@ static void pal_init_xcb(GapPal* pal, Xcb* out) {
   XCB_LOAD_SYM(configure_window);
   XCB_LOAD_SYM(connect);
   XCB_LOAD_SYM(connection_has_error);
+  XCB_LOAD_SYM(request_check);
   XCB_LOAD_SYM(convert_selection);
   XCB_LOAD_SYM(create_gc);
   XCB_LOAD_SYM(create_pixmap);
@@ -936,6 +946,7 @@ static bool pal_init_xkb(GapPal* pal, XkbCommon* out) {
     }                                                                                              \
   } while (false)
 
+  XKB_LOAD_SYM(xcb_xkb, select_events_checked);
   XKB_LOAD_SYM(xcb_xkb, per_client_flags_unchecked);
   XKB_LOAD_SYM(xkb_x11, get_core_keyboard_device_id);
   XKB_LOAD_SYM(xkb_x11, keymap_new_from_device);
@@ -961,6 +972,18 @@ static bool pal_init_xkb(GapPal* pal, XkbCommon* out) {
 
   if (UNLIKELY(!setupRes)) {
     log_w("Failed to initialize Xkb", log_param("error", fmt_int(err->errorCode)));
+    free(err);
+    return false;
+  }
+
+  const u16       deviceSpec = 256 /* XCB_XKB_ID_USE_CORE_KBD */;
+  const u16       eventTypes = 4 /* XCB_XKB_EVENT_TYPE_STATE_NOTIFY */;
+  const XcbCookie selectEventsCookie =
+      out->select_events_checked(pal->xcb.con, deviceSpec, eventTypes, 0, eventTypes, 0, 0, null);
+  err = pal->xcb.request_check(pal->xcb.con, selectEventsCookie);
+  if (UNLIKELY(err)) {
+    log_w("Failed to select Xkb events", log_param("error", fmt_int(err->errorCode)));
+    free(err);
     return false;
   }
 
@@ -1693,7 +1716,8 @@ void gap_pal_update(GapPal* pal) {
 
   // Handle all xcb events in the buffer.
   for (XcbGenericEvent* evt; (evt = pal->xcb.poll_for_event(pal->xcb.con)); free(evt)) {
-    switch (evt->responseType & ~0x80) {
+    const u32 eventId = evt->responseType & ~0x80;
+    switch (eventId) {
 
     case 0: {
       const XcbGenericError* errMsg = (const void*)evt;
@@ -1864,8 +1888,8 @@ void gap_pal_update(GapPal* pal) {
       }
     } break;
     default:
-      if (pal->extensions & GapPalXcbExtFlags_Randr) {
-        switch (evt->responseType - pal->xrandr.firstEvent) {
+      if (pal->extensions & GapPalXcbExtFlags_Randr && eventId >= pal->xrandr.firstEvent) {
+        switch (eventId - pal->xrandr.firstEvent) {
         case 0 /* XCB_RANDR_SCREEN_CHANGE_NOTIFY */: {
           const XRandrScreenChangeEvent* screenChangeMsg = (const void*)evt;
 
@@ -1883,6 +1907,16 @@ void gap_pal_update(GapPal* pal) {
             }
           }
         } break;
+        }
+      }
+      if (pal->extensions & GapPalXcbExtFlags_Xkb && eventId == pal->xkb.firstEvent) {
+        const XkbEventAny* xkbEvent = (const void*)evt;
+        if (xkbEvent->deviceId == pal->xkb.deviceId) {
+          switch (xkbEvent->xkbType) {
+          case 2 /* XCB_XKB_STATE_NOTIFY */: {
+            log_i("Xkb state update");
+          } break;
+          }
         }
       }
     }
