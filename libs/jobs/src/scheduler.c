@@ -2,6 +2,7 @@
 #include "core_diag.h"
 #include "core_dynarray.h"
 #include "core_thread.h"
+#include "core_time.h"
 #include "jobs_scheduler.h"
 #include "trace_tracer.h"
 
@@ -15,6 +16,7 @@ static i64             g_jobIdCounter;
 static ThreadMutex     g_jobMutex;
 static ThreadCondition g_jobCondition;
 static DynArray        g_runningJobs; // Job*[]. Only access while holding 'g_jobMutex'.
+static i32             g_sleepingHelpers;
 
 static bool jobs_scheduler_is_finished_locked(const JobId job) {
   dynarray_for_t(&g_runningJobs, JobPtr, jobData) {
@@ -84,18 +86,58 @@ void jobs_scheduler_wait(const JobId job) {
 void jobs_scheduler_wait_help(const JobId job) {
   diag_assert_msg(g_jobsIsWorker, "Only job-workers can help out");
 
-  while (true) {
+  static const u32 g_maxYields = 100;
+
+  for (u32 yieldsRem = g_maxYields;;) {
     // Execute all currently available tasks.
-    while (executor_help())
-      ;
+    while (executor_help()) {
+      yieldsRem = g_maxYields;
+    }
 
     if (jobs_scheduler_is_finished(job)) {
       return; // The given job is finished.
     }
 
     // No tasks more available but the job is not finished; yield our time-slice.
-    // TODO: Consider putting the thread to sleep if it couldn't help out in a while.
-    thread_yield();
+    if (LIKELY(yieldsRem--)) {
+      thread_yield();
+      continue;
+    }
+
+    if (jobs_is_working()) {
+      /**
+       * When nesting jobs (calling jobs_scheduler_wait_help() inside a job task) we should not
+       * sleep the thread as doing so could starve the job-system and lead to a deadlock.
+       */
+      yieldsRem = g_maxYields;
+      continue;
+    }
+
+    // No work has been available for a while; sleep the thread.
+    thread_mutex_lock(g_jobMutex);
+    thread_atomic_add_i32(&g_sleepingHelpers, 1);
+
+    if (!jobs_scheduler_is_finished_locked(job)) {
+      trace_begin("job_sleep", TraceColor_Gray);
+      thread_cond_wait(g_jobCondition, g_jobMutex);
+      trace_end();
+    }
+    const bool finished = jobs_scheduler_is_finished_locked(job);
+
+    thread_atomic_sub_i32(&g_sleepingHelpers, 1);
+    thread_mutex_unlock(g_jobMutex);
+    if (finished) {
+      return;
+    }
+    yieldsRem = g_maxYields;
+  }
+}
+
+void jobs_scheduler_wake_helpers(void) {
+  if (thread_atomic_load_i32(&g_sleepingHelpers)) {
+    thread_mutex_lock(g_jobMutex);
+    thread_cond_broadcast(g_jobCondition);
+    thread_mutex_unlock(g_jobMutex);
   }
 }
 

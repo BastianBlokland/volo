@@ -381,8 +381,13 @@ void thread_cond_wait_timeout(
   ts.tv_sec += seconds;
   ts.tv_nsec += nanoSeconds;
 
+  if (ts.tv_nsec >= (time_second / time_nanosecond)) {
+    ts.tv_nsec = 0;
+    ++ts.tv_sec;
+  }
+
   res = pthread_cond_clockwait(&condData->impl, &mutexData->impl, CLOCK_MONOTONIC, &ts);
-  if (UNLIKELY(res != 0)) {
+  if (UNLIKELY(res != 0 && res != ETIMEDOUT)) {
     diag_crash_msg("pthread_cond_clockwait() failed: {}", fmt_int(res));
   }
 }

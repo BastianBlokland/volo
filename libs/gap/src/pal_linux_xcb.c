@@ -242,15 +242,37 @@ typedef struct {
   int                rem, index;
 } XcbPictFormatInfoItr;
 
-typedef enum {
-  XkbKeyDirection_Up,
-  XkbKeyDirection_Down,
-} XkbKeyDirection;
-
 typedef struct sXkbContext XkbContext;
 typedef struct sXkbKeyMap  XkbKeyMap;
 typedef struct sXkbState   XkbState;
 typedef u32                XkbKeycode;
+typedef u32                XkbStateComponent;
+typedef u32                XkbModMask;
+typedef u32                XkbLayoutIndex;
+
+typedef struct {
+  u8           responseType, xkbType;
+  u16          sequence;
+  XcbTimestamp time;
+  u8           deviceId;
+} XkbEventAny;
+
+typedef struct {
+  u8           responseType, xkbType;
+  u16          sequence;
+  XcbTimestamp time;
+  u8           deviceId;
+  u8           mods, baseMods, latchedMods, lockedMods;
+  u8           group, baseGroup, latchedGroup, lockedGroup;
+  u8           compatState;
+  u8           grabMods, compatGrabMods;
+  u8           lookupMods, compatLookupMods;
+  u16          ptrBtnState;
+  u16          changed;
+  XkbKeycode   keycode;
+  u8           eventType;
+  u8           requestMajor, requestMinor;
+} XkbEventStateNotify;
 
 typedef u32 XRandrCrtc;
 typedef u32 XRandrMode;
@@ -348,6 +370,7 @@ typedef struct {
   const XcbExtensionData* (SYS_DECL* get_extension_data)(XcbConnection*, XcbExtension*);
   const XcbSetup*         (SYS_DECL* get_setup)(XcbConnection*);
   int                     (SYS_DECL* connection_has_error)(XcbConnection*);
+  XcbGenericError*        (SYS_DECL* request_check)(XcbConnection*, XcbCookie);
   int                     (SYS_DECL* flush)(XcbConnection*);
   int                     (SYS_DECL* get_file_descriptor)(XcbConnection*);
   u32                     (SYS_DECL* generate_id)(XcbConnection*);
@@ -394,19 +417,20 @@ typedef struct {
   u8          firstEvent, firstError;
 
   // clang-format off
-  const char* (SYS_DECL* keymap_layout_get_name)(XkbKeyMap*, u32 index);
-  i32         (SYS_DECL* get_core_keyboard_device_id)(XcbConnection*);
-  i32         (SYS_DECL* state_key_get_utf8)(XkbState*, XkbKeycode, char* buffer, usize size);
-  i32         (SYS_DECL* state_update_key)(XkbState*, XkbKeycode, XkbKeyDirection);
-  int         (SYS_DECL* setup_xkb_extension)(XcbConnection*, u16 xkbMajor, u16 xkbMinor, i32 flags, u16* xkbMajorOut, u16* xkbMinorOut, u8* baseEventOut, u8* baseErrorOut);
-  u32         (SYS_DECL* keymap_num_layouts)(XkbKeyMap*);
-  void        (SYS_DECL* context_unref)(XkbContext*);
-  void        (SYS_DECL* keymap_unref)(XkbKeyMap*);
-  void        (SYS_DECL* state_unref)(XkbState*);
-  XcbCookie   (SYS_DECL* per_client_flags_unchecked)(XcbConnection*, u16 deviceSpec, u32 change, u32 value, u32 ctrlsToChange, u32 autoCtrls, u32 autoCtrlsValues);
-  XkbContext* (SYS_DECL* context_new)(i32 flags);
-  XkbKeyMap*  (SYS_DECL* keymap_new_from_device)(XkbContext*, XcbConnection*, i32 deviceId, i32 flags);
-  XkbState*   (SYS_DECL* state_new_from_device)(XkbKeyMap*, XcbConnection*, i32 deviceId);
+  XcbCookie         (SYS_DECL* select_events_checked)(XcbConnection*, u16 deviceSpec, u16 affectWhich, u16 clear, u16 selectAll, u16 affectMap, u16 map, const void* details);
+  const char*       (SYS_DECL* keymap_layout_get_name)(XkbKeyMap*, u32 index);
+  i32               (SYS_DECL* get_core_keyboard_device_id)(XcbConnection*);
+  i32               (SYS_DECL* state_key_get_utf8)(XkbState*, XkbKeycode, char* buffer, usize size);
+  XkbStateComponent (SYS_DECL* state_update_mask)(XkbState*, XkbModMask depressed, XkbModMask latched, XkbModMask locked, XkbLayoutIndex depressedLayout, XkbLayoutIndex latchedLayout, XkbLayoutIndex lockedLayout);
+  int               (SYS_DECL* setup_xkb_extension)(XcbConnection*, u16 xkbMajor, u16 xkbMinor, i32 flags, u16* xkbMajorOut, u16* xkbMinorOut, u8* baseEventOut, u8* baseErrorOut);
+  u32               (SYS_DECL* keymap_num_layouts)(XkbKeyMap*);
+  void              (SYS_DECL* context_unref)(XkbContext*);
+  void              (SYS_DECL* keymap_unref)(XkbKeyMap*);
+  void              (SYS_DECL* state_unref)(XkbState*);
+  XcbCookie         (SYS_DECL* per_client_flags_unchecked)(XcbConnection*, u16 deviceSpec, u32 change, u32 value, u32 ctrlsToChange, u32 autoCtrls, u32 autoCtrlsValues);
+  XkbContext*       (SYS_DECL* context_new)(i32 flags);
+  XkbKeyMap*        (SYS_DECL* keymap_new_from_device)(XkbContext*, XcbConnection*, i32 deviceId, i32 flags);
+  XkbState*         (SYS_DECL* state_new_from_device)(XkbKeyMap*, XcbConnection*, i32 deviceId);
   // clang-format on
 } XkbCommon;
 
@@ -791,6 +815,7 @@ static void pal_init_xcb(GapPal* pal, Xcb* out) {
   XCB_LOAD_SYM(configure_window);
   XCB_LOAD_SYM(connect);
   XCB_LOAD_SYM(connection_has_error);
+  XCB_LOAD_SYM(request_check);
   XCB_LOAD_SYM(convert_selection);
   XCB_LOAD_SYM(create_gc);
   XCB_LOAD_SYM(create_pixmap);
@@ -936,6 +961,7 @@ static bool pal_init_xkb(GapPal* pal, XkbCommon* out) {
     }                                                                                              \
   } while (false)
 
+  XKB_LOAD_SYM(xcb_xkb, select_events_checked);
   XKB_LOAD_SYM(xcb_xkb, per_client_flags_unchecked);
   XKB_LOAD_SYM(xkb_x11, get_core_keyboard_device_id);
   XKB_LOAD_SYM(xkb_x11, keymap_new_from_device);
@@ -948,7 +974,7 @@ static bool pal_init_xkb(GapPal* pal, XkbCommon* out) {
   XKB_LOAD_SYM(xkb, keymap_unref);
   XKB_LOAD_SYM(xkb, state_key_get_utf8);
   XKB_LOAD_SYM(xkb, state_unref);
-  XKB_LOAD_SYM(xkb, state_update_key);
+  XKB_LOAD_SYM(xkb, state_update_mask);
 
 #undef XKB_LOAD_SYM
 
@@ -961,6 +987,18 @@ static bool pal_init_xkb(GapPal* pal, XkbCommon* out) {
 
   if (UNLIKELY(!setupRes)) {
     log_w("Failed to initialize Xkb", log_param("error", fmt_int(err->errorCode)));
+    free(err);
+    return false;
+  }
+
+  const u16       deviceSpec = 256 /* XCB_XKB_ID_USE_CORE_KBD */;
+  const u16       eventTypes = 4 /* XCB_XKB_EVENT_TYPE_STATE_NOTIFY */;
+  const XcbCookie selectEventsCookie =
+      out->select_events_checked(pal->xcb.con, deviceSpec, eventTypes, 0, eventTypes, 0, 0, null);
+  err = pal->xcb.request_check(pal->xcb.con, selectEventsCookie);
+  if (UNLIKELY(err)) {
+    log_w("Failed to select Xkb events", log_param("error", fmt_int(err->errorCode)));
+    free(err);
     return false;
   }
 
@@ -1693,7 +1731,8 @@ void gap_pal_update(GapPal* pal) {
 
   // Handle all xcb events in the buffer.
   for (XcbGenericEvent* evt; (evt = pal->xcb.poll_for_event(pal->xcb.con)); free(evt)) {
-    switch (evt->responseType & ~0x80) {
+    const u32 eventId = evt->responseType & ~0x80;
+    switch (eventId) {
 
     case 0: {
       const XcbGenericError* errMsg = (const void*)evt;
@@ -1833,18 +1872,12 @@ void gap_pal_update(GapPal* pal) {
     case 2 /* XCB_KEY_PRESS */: {
       const XcbKeyEvent* pressMsg = (const void*)evt;
       pal_event_press(pal, pressMsg->event, pal_xcb_translate_key(pressMsg->detail));
-      if (pal->extensions & GapPalXcbExtFlags_Xkb) {
-        pal->xkb.state_update_key(pal->xkb.state, pressMsg->detail, XkbKeyDirection_Down);
-      }
       pal_event_text(pal, pressMsg->event, pressMsg->detail);
     } break;
 
     case 3 /* XCB_KEY_RELEASE */: {
       const XcbKeyEvent* releaseMsg = (const void*)evt;
       pal_event_release(pal, releaseMsg->event, pal_xcb_translate_key(releaseMsg->detail));
-      if (pal->extensions & GapPalXcbExtFlags_Xkb) {
-        pal->xkb.state_update_key(pal->xkb.state, releaseMsg->detail, XkbKeyDirection_Up);
-      }
     } break;
 
     case 29 /* XCB_SELECTION_CLEAR */: {
@@ -1864,8 +1897,8 @@ void gap_pal_update(GapPal* pal) {
       }
     } break;
     default:
-      if (pal->extensions & GapPalXcbExtFlags_Randr) {
-        switch (evt->responseType - pal->xrandr.firstEvent) {
+      if (pal->extensions & GapPalXcbExtFlags_Randr && eventId >= pal->xrandr.firstEvent) {
+        switch (eventId - pal->xrandr.firstEvent) {
         case 0 /* XCB_RANDR_SCREEN_CHANGE_NOTIFY */: {
           const XRandrScreenChangeEvent* screenChangeMsg = (const void*)evt;
 
@@ -1883,6 +1916,24 @@ void gap_pal_update(GapPal* pal) {
             }
           }
         } break;
+        }
+      }
+      if (pal->extensions & GapPalXcbExtFlags_Xkb && eventId == pal->xkb.firstEvent) {
+        const XkbEventAny* xkbEvent = (const void*)evt;
+        if (xkbEvent->deviceId == pal->xkb.deviceId) {
+          switch (xkbEvent->xkbType) {
+          case 2 /* XCB_XKB_STATE_NOTIFY */: {
+            const XkbEventStateNotify* stateNotify = (const void*)evt;
+            pal->xkb.state_update_mask(
+                pal->xkb.state,
+                stateNotify->baseMods,
+                stateNotify->latchedMods,
+                stateNotify->lockedMods,
+                stateNotify->baseGroup,
+                stateNotify->latchedGroup,
+                stateNotify->lockedGroup);
+          } break;
+          }
         }
       }
     }
