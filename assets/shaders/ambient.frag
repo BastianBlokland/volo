@@ -30,11 +30,12 @@ const u32 c_flagsAmbientOcclusionBlur = 1 << 1;
 
 bind_global_data(0) readonly uniform Global { GlobalData u_global; };
 
-bind_global_img(0) uniform sampler2D u_texGeoData0;
-bind_global_img(1) uniform sampler2D u_texGeoData1;
-bind_global_img(2) uniform sampler2D u_texGeoData2;
-bind_global_img(3) uniform sampler2D u_texGeoDepth;
-bind_global_img(4) uniform sampler2D u_texAmbientOcclusion;
+bind_global_img(0) uniform sampler2D u_texGeoBase;
+bind_global_img(1) uniform sampler2D u_texGeoNormal;
+bind_global_img(2) uniform sampler2D u_texGeoAttribute;
+bind_global_img(3) uniform sampler2D u_texGeoEmissive;
+bind_global_img(4) uniform sampler2D u_texGeoDepth;
+bind_global_img(5) uniform sampler2D u_texAmbientOcclusion;
 
 bind_graphic_img(0) uniform samplerCube u_texDiffIrradiance;
 bind_graphic_img(1) uniform samplerCube u_texSpecIrradiance;
@@ -78,12 +79,10 @@ f32v3 ambient_spec_irradiance(
 }
 
 void main() {
-  GeometryEncoded geoEncoded;
-  geoEncoded.data0 = texture(u_texGeoData0, in_texcoord);
-  geoEncoded.data1 = texture(u_texGeoData1, in_texcoord);
-  geoEncoded.data2 = texture(u_texGeoData2, in_texcoord).rgb;
-
-  const Geometry geo = geometry_decode(geoEncoded);
+  const GeoBase      geoBase     = geo_base_decode(texture(u_texGeoBase, in_texcoord));
+  const GeoAttribute geoAttr     = geo_attr_decode(texture(u_texGeoAttribute, in_texcoord).rg);
+  const f32v3        geoNormal   = geo_normal_decode(texture(u_texGeoNormal, in_texcoord).rg);
+  const f32v3        geoEmissive = texture(u_texGeoEmissive, in_texcoord).rgb;
 
   const f32   depth    = texture(u_texGeoDepth, in_texcoord).r;
   const f32v3 clipPos  = f32v3(in_texcoord * 2.0 - 1.0, depth);
@@ -91,9 +90,9 @@ void main() {
 
   PbrSurface surf;
   surf.position  = worldPos;
-  surf.color     = geo.color;
-  surf.normal    = geo.normal;
-  surf.roughness = geo.roughness;
+  surf.color     = geoBase.color;
+  surf.normal    = geoNormal;
+  surf.roughness = geoAttr.roughness;
 
   const f32v3 viewDir      = normalize(u_global.camPosition.xyz - worldPos);
   const f32   ambientLight = u_draw.packed.x;
@@ -112,16 +111,16 @@ void main() {
   if (s_debug) {
     switch (mode) {
     case c_modeDebugColor:
-      out_color = geo.color;
+      out_color = geoBase.color;
       break;
     case c_modeDebugRoughness:
-      out_color = geo.roughness.rrr;
+      out_color = geoAttr.roughness.rrr;
       break;
     case c_modeDebugEmissive:
-      out_color = geo.emissive;
+      out_color = geoEmissive;
       break;
     case c_modeDebugNormal:
-      out_color = normal_tex_encode(geo.normal);
+      out_color = normal_tex_encode(geoNormal);
       break;
     case c_modeDebugDepth: {
       const f32 debugMaxDist = 100.0;
@@ -129,7 +128,7 @@ void main() {
       out_color              = linearDepth.rrr / debugMaxDist;
     } break;
     case c_modeDebugTags:
-      out_color = color_from_hsv(hash_u32(geo.tags) / 4294967295.0, 1, 1);
+      out_color = color_from_hsv(hash_u32(geoBase.tags) / 4294967295.0, 1, 1);
       break;
     case c_modeDebugAmbientOcclusion:
       out_color = ambientOcclusion.rrr;
@@ -169,10 +168,10 @@ void main() {
     }
 
     // Emissive.
-    out_color += geo.emissive * s_emissiveMaxBrightness;
+    out_color += geoEmissive * s_emissiveMaxBrightness;
 
     // Additional effects.
-    if (tag_is_set(geo.tags, tag_damaged_bit)) {
+    if (tag_is_set(geoBase.tags, tag_damaged_bit)) {
       out_color = mix(out_color, f32v3(0.8, 0.1, 0.1), abs(dot(surf.normal, viewDir)));
     }
   }

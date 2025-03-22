@@ -11,7 +11,7 @@ struct AoData {
 };
 
 bind_global_data(0) readonly uniform Global { GlobalData u_global; };
-bind_global_img(0) uniform sampler2D u_texGeoData1;
+bind_global_img(0) uniform sampler2D u_texGeoNormal;
 bind_global_img(1) uniform sampler2D u_texGeoDepth;
 bind_draw_data(0) readonly uniform Draw { AoData u_draw; };
 
@@ -41,8 +41,7 @@ f32m3 kernel_rotation_matrix(const f32v3 surfaceNormal, const f32v3 randomNormal
 }
 
 void main() {
-  const f32v4 geoData1    = texture(u_texGeoData1, in_texcoord);
-  const f32v3 worldNormal = geometry_decode_normal(geoData1);
+  const f32v3 worldNormal = geo_normal_decode(texture(u_texGeoNormal, in_texcoord).rg);
   const f32v3 viewNormal  = world_to_view_dir(u_global, worldNormal);
 
   const f32   depth   = texture(u_texGeoDepth, in_texcoord).r;

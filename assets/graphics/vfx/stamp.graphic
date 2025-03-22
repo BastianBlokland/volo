@@ -9,8 +9,7 @@
     { "texture": "textures/vfx/stamp_normal.atlas", "anisotropy": "None", "mipBlending": true }
   ],
   "mesh": "meshes/vfx/stamp_box.procmesh",
-  "blend": "AlphaConstant",
-  "blendConstant": 0,
+  "blend": "Alpha",
   "blendAux": "Alpha",
   "depth": "LessNoWrite"
 }

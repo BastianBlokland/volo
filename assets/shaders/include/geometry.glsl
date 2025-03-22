@@ -9,44 +9,43 @@
  * Geometry Buffer.
  *
  * Textures:
- * - Data0: (srgb rgba32):   rgb: color, a: unused.
- * - Data1: (linear rgba32): rg: normal, b: roughness, a: tags.
- * - Data2: (linear rgb16):  rgb: emissive.
+ * - GeoBase:      (srgb rgba32):  [r] color     [g] color     [b] color    [a] tags
+ * - GeoNormal:    (linear rg16):  [r] normal    [g] normal
+ * - GeoAttribute: (linear rg16):  [r] roughness [g] unused
+ * - GeoEmissive:  (linear rgb16): [r] emissive  [g] emissive  [b] emissive
  */
 
-struct Geometry {
+struct GeoBase {
   f32v3 color;
-  f32v3 normal;
-  f32v3 emissive;
   u32   tags;
-  f32   roughness;
 };
 
-struct GeometryEncoded {
-  f32v4 data0, data1;
-  f32v3 data2;
+struct GeoAttribute {
+  f32 roughness;
 };
 
-GeometryEncoded geometry_encode(const Geometry geo) {
-  GeometryEncoded encoded;
-  encoded.data0.rgb = geo.color;
-  encoded.data1.rg  = math_normal_encode(geo.normal);
-  encoded.data1.b   = geo.roughness;
-  encoded.data1.a   = tags_tex_encode(geo.tags); // NOTE: Only the first 8 tags are preserved.
-  encoded.data2.rgb = geo.emissive;
-  return encoded;
+f32v4 geo_base_encode(const GeoBase base) {
+  // NOTE: Only the first 8 tags are preserved.
+  return f32v4(base.color, tags_tex_encode(base.tags));
 }
 
-Geometry geometry_decode(const GeometryEncoded encoded) {
-  Geometry geo;
-  geo.color     = encoded.data0.rgb;
-  geo.normal    = math_normal_decode(encoded.data1.rg);
-  geo.roughness = encoded.data1.b;
-  geo.tags      = tags_tex_decode(encoded.data1.a);
-  geo.emissive  = encoded.data2.rgb;
-  return geo;
+GeoBase geo_base_decode(const f32v4 data) {
+  GeoBase base;
+  base.color = data.rgb;
+  base.tags  = tags_tex_decode(data.a);
+  return base;
 }
 
-f32v3 geometry_decode_normal(const f32v4 geoData1) { return math_normal_decode(geoData1.rg); }
+f32v2 geo_normal_encode(const f32v3 normal) { return math_normal_encode(normal); }
+
+f32v3 geo_normal_decode(const f32v2 data) { return math_normal_decode(data); }
+
+f32v2 geo_attr_encode(const GeoAttribute attr) { return f32v2(attr.roughness, 0); }
+
+GeoAttribute geo_attr_decode(const f32v2 data) {
+  GeoAttribute base;
+  base.roughness = data.r;
+  return base;
+}
 
 #endif // INCLUDE_GEOMETRY

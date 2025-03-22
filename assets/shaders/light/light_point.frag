@@ -4,9 +4,10 @@
 #include "texture.glsl"
 
 bind_global_data(0) readonly uniform Global { GlobalData u_global; };
-bind_global_img(0) uniform sampler2D u_texGeoData0;
-bind_global_img(1) uniform sampler2D u_texGeoData1;
-bind_global_img(3) uniform sampler2D u_texGeoDepth;
+bind_global_img(0) uniform sampler2D u_texGeoBase;
+bind_global_img(1) uniform sampler2D u_texGeoNormal;
+bind_global_img(2) uniform sampler2D u_texGeoAttribute;
+bind_global_img(4) uniform sampler2D u_texGeoDepth;
 
 bind_internal(0) in flat f32v3 in_position;
 bind_internal(1) in flat f32v4 in_radianceAndRadiusInv;
@@ -16,11 +17,9 @@ bind_internal(0) out f32v3 out_color;
 void main() {
   const f32v2 texcoord = in_fragCoord.xy / u_global.resolution.xy;
 
-  GeometryEncoded geoEncoded; // NOTE: We are not decoding data2.
-  geoEncoded.data0 = texture(u_texGeoData0, texcoord);
-  geoEncoded.data1 = texture(u_texGeoData1, texcoord);
-
-  const Geometry geo = geometry_decode(geoEncoded);
+  const GeoBase      geoBase   = geo_base_decode(texture(u_texGeoBase, texcoord));
+  const GeoAttribute geoAttr   = geo_attr_decode(texture(u_texGeoAttribute, texcoord).rg);
+  const f32v3        geoNormal = geo_normal_decode(texture(u_texGeoNormal, texcoord).rg);
 
   const f32   depth    = texture(u_texGeoDepth, texcoord).r;
   const f32v3 clipPos  = f32v3(texcoord * 2.0 - 1.0, depth);
@@ -32,9 +31,9 @@ void main() {
 
   PbrSurface surf;
   surf.position  = worldPos;
-  surf.color     = geo.color;
-  surf.normal    = geo.normal;
-  surf.roughness = geo.roughness;
+  surf.color     = geoBase.color;
+  surf.normal    = geoNormal;
+  surf.roughness = geoAttr.roughness;
 
   out_color = pbr_light_point(radiance, radiusInv, in_position, viewDir, surf);
 }
