@@ -675,12 +675,14 @@ static bool rend_canvas_paint_3d(
   if (set->flags & RendFlags_Decals) {
     rend_builder_pass_push(b, platform->passes[AssetGraphicPass_Decal]);
 
-    // Copy the gbufer data1 image to be able to read the gbuffer normal and tags.
+    // Copy the gbufer data0 and data1 images to be able to read the gbuffer tags and normals.
+    RvkImage* geoData0Cpy = rend_builder_attach_acquire_copy(b, geoData0);
     RvkImage* geoData1Cpy = rend_builder_attach_acquire_copy(b, geoData1);
 
     RendPaintContext ctx = painter_context(b, set, time, mainView);
-    rend_builder_global_image(b, geoData1Cpy, 0);
-    rend_builder_global_image(b, geoDepthRead, 1);
+    rend_builder_global_image(b, geoData0Cpy, 0);
+    rend_builder_global_image(b, geoData1Cpy, 1);
+    rend_builder_global_image(b, geoDepthRead, 2);
     rend_builder_attach_color(b, geoData0, 0);
     rend_builder_attach_color(b, geoData1, 1);
     rend_builder_attach_depth(b, geoDepth);
@@ -688,6 +690,7 @@ static bool rend_canvas_paint_3d(
     painter_push_objects_simple(&ctx, objView, resView, AssetGraphicPass_Decal);
 
     rend_builder_pass_flush(b);
+    rend_builder_attach_release(b, geoData0Cpy);
     rend_builder_attach_release(b, geoData1Cpy);
   }
 

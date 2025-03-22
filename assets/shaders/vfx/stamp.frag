@@ -19,8 +19,9 @@ bind_global_data(0) readonly uniform Global { GlobalData u_global; };
 bind_graphic_img(0) uniform sampler2D u_atlasColor;
 bind_graphic_img(1) uniform sampler2D u_atlasNormal;
 
-bind_global_img(0) uniform sampler2D u_texGeoData1;
-bind_global_img(1) uniform sampler2D u_texGeoDepth;
+bind_global_img(0) uniform sampler2D u_texGeoData0;
+bind_global_img(1) uniform sampler2D u_texGeoData1;
+bind_global_img(2) uniform sampler2D u_texGeoDepth;
 
 bind_internal(0) in flat f32v3 in_position;        // World-space.
 bind_internal(1) in flat f32v4 in_rotation;        // World-space.
@@ -36,9 +37,9 @@ bind_internal(10) in flat f32v4 in_warpP01;     // bottom left and bottom right.
 bind_internal(11) in flat f32v4 in_warpP23;     // top left and top right.
 
 /**
- * Geometry Data0: color (rgb), emissive (a).
- * Geometry Data1: normal (rg), roughness (b) and tags (a).
- * Alpha blended, w is used to control the blending, outputting emissive / tags is not supported.
+ * Geometry Data0: color (rgb), tags (a).
+ * Geometry Data1: normal (rg), roughness (b).
+ * Alpha blended, w is used to control the blending, outputting tags is not supported.
  *
  * NOTE: Normals can only be blended (without discontinuities) if the source and destination both
  * have a positive y value or both a negative value. Reason for this is that we use a octahedron
@@ -132,9 +133,10 @@ f32v3 fade_normal(const f32v3 geoNormal, const f32v3 depthNormal) {
 
 void main() {
   const f32v2 texcoord = in_fragCoord.xy / u_global.resolution.xy;
+  const f32v4 geoData0 = texture(u_texGeoData0, texcoord);
   const f32v4 geoData1 = texture(u_texGeoData1, texcoord);
   const f32   depth    = texture(u_texGeoDepth, texcoord).r;
-  const u32   tags     = tags_tex_decode(geoData1.w);
+  const u32   tags     = tags_tex_decode(geoData0.w);
 
   const f32v3 clipPos  = f32v3(texcoord * 2.0 - 1.0, depth);
   const f32v3 worldPos = clip_to_world_pos(u_global, clipPos);
