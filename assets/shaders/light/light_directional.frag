@@ -93,12 +93,9 @@ f32 shadow_frac(const f32v3 worldPos) {
 }
 
 void main() {
-  GeometryEncoded geoEncoded; // NOTE: We are not decoding emissive.
-  geoEncoded.base   = texture(u_texGeoBase, in_texcoord);
-  geoEncoded.normal = texture(u_texGeoNormal, in_texcoord).rg;
-  geoEncoded.attr   = texture(u_texGeoAttribute, in_texcoord).rg;
-
-  const Geometry geo = geometry_decode(geoEncoded);
+  const GeoBase      geoBase   = geo_base_decode(texture(u_texGeoBase, in_texcoord));
+  const GeoAttribute geoAttr   = geo_attr_decode(texture(u_texGeoAttribute, in_texcoord).rg);
+  const f32v3        geoNormal = geo_normal_decode(texture(u_texGeoNormal, in_texcoord).rg);
 
   const f32   depth    = texture(u_texGeoDepth, in_texcoord).r;
   const f32v3 clipPos  = f32v3(in_texcoord * 2.0 - 1.0, depth);
@@ -119,9 +116,9 @@ void main() {
 
   PbrSurface surf;
   surf.position  = worldPos;
-  surf.color     = geo.color;
-  surf.normal    = geo.normal;
-  surf.roughness = geo.roughness;
+  surf.color     = geoBase.color;
+  surf.normal    = geoNormal;
+  surf.roughness = geoAttr.roughness;
 
   out_color = pbr_light_dir(effectiveRadiance, in_direction, viewDir, surf);
 }

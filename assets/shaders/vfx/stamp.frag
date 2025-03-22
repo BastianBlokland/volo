@@ -136,7 +136,7 @@ f32v3 fade_normal(const f32v3 geoNormal, const f32v3 depthNormal) {
 void main() {
   const f32v2 texcoord  = in_fragCoord.xy / u_global.resolution.xy;
   const f32v4 geoBase   = texture(u_texGeoBase, texcoord);
-  const f32v3 geoNormal = geometry_decode_normal(texture(u_texGeoNormal, texcoord));
+  const f32v3 geoNormal = geo_normal_decode(texture(u_texGeoNormal, texcoord).rg);
   const f32   depth     = texture(u_texGeoDepth, texcoord).r;
   const u32   tags      = tags_tex_decode(geoBase.w);
 

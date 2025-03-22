@@ -52,19 +52,20 @@ f32v4 texture_multi(const sampler2D s, const f32v2 texcoord) {
 void main() {
   const f32v4 splat = texture(u_texSplat, in_texcoord);
 
-  Geometry geo;
-  geo.tags     = 1 << tag_terrain_bit;
-  geo.emissive = f32v3(0);
+  // Output base.
+  GeoBase base;
+  base.tags  = 1 << tag_terrain_bit;
+  base.color = f32v3(0);
+  base.color += splat.r * texture_multi(u_tex1Color, in_texcoord * s_splat1UvScale).rgb;
+  base.color += splat.g * texture_multi(u_tex2Color, in_texcoord * s_splat2UvScale).rgb;
+  out_base = geo_base_encode(base);
 
-  // Sample the color based on the splat-map.
-  geo.color = f32v3(0);
-  geo.color += splat.r * texture_multi(u_tex1Color, in_texcoord * s_splat1UvScale).rgb;
-  geo.color += splat.g * texture_multi(u_tex2Color, in_texcoord * s_splat2UvScale).rgb;
-
-  // Sample the roughness based on the splat-map.
-  geo.roughness = 0;
-  geo.roughness += splat.r * texture_multi(u_tex1Rough, in_texcoord * s_splat1UvScale).a;
-  geo.roughness += splat.g * texture_multi(u_tex2Rough, in_texcoord * s_splat2UvScale).a;
+  // Output attributes.
+  GeoAttribute attr;
+  attr.roughness = 0;
+  attr.roughness += splat.r * texture_multi(u_tex1Rough, in_texcoord * s_splat1UvScale).r;
+  attr.roughness += splat.g * texture_multi(u_tex2Rough, in_texcoord * s_splat2UvScale).r;
+  out_attribute = geo_attr_encode(attr);
 
   // Sample the detail-normal based on the splat-map.
   f32v3 splatNormRaw = f32v3(0, 0, 0);
@@ -75,12 +76,10 @@ void main() {
   // Compute the world-normal based on the normal map and the sampled detail normals.
   const f32v3 baseNormal = heightmap_normal(in_texcoord, in_size, in_heightScale);
 
-  // Output world normal.
-  geo.normal = math_perturb_normal(splatNorm, baseNormal, in_worldPos, in_texcoord);
+  // Output normal.
+  f32v3 normal = math_perturb_normal(splatNorm, baseNormal, in_worldPos, in_texcoord);
+  out_normal   = geo_normal_encode(normal);
 
-  const GeometryEncoded encoded = geometry_encode(geo);
-  out_base                      = encoded.base;
-  out_normal                    = encoded.normal;
-  out_attribute                 = encoded.attr;
-  out_emissive                  = encoded.emissive;
+  // Output emissive.
+  out_emissive = f32v3(0);
 }

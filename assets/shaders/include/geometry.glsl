@@ -15,41 +15,37 @@
  * - GeoEmissive:  (linear rgb16): [r] emissive  [g] emissive  [b] emissive
  */
 
-struct Geometry {
+struct GeoBase {
   f32v3 color;
-  f32v3 normal;
-  f32v3 emissive;
   u32   tags;
-  f32   roughness;
 };
 
-struct GeometryEncoded {
-  f32v4 base;
-  f32v2 normal;
-  f32v2 attr;
-  f32v3 emissive;
+struct GeoAttribute {
+  f32 roughness;
 };
 
-GeometryEncoded geometry_encode(const Geometry geo) {
-  GeometryEncoded encoded;
-  encoded.base.rgb     = geo.color;
-  encoded.base.a       = tags_tex_encode(geo.tags); // NOTE: Only the first 8 tags are preserved.
-  encoded.normal.rg    = math_normal_encode(geo.normal);
-  encoded.attr.r       = geo.roughness;
-  encoded.emissive.rgb = geo.emissive;
-  return encoded;
+f32v4 geo_base_encode(const GeoBase base) {
+  // NOTE: Only the first 8 tags are preserved.
+  return f32v4(base.color, tags_tex_encode(base.tags));
 }
 
-Geometry geometry_decode(const GeometryEncoded encoded) {
-  Geometry geo;
-  geo.color     = encoded.base.rgb;
-  geo.tags      = tags_tex_decode(encoded.base.a);
-  geo.normal    = math_normal_decode(encoded.normal.rg);
-  geo.roughness = encoded.attr.r;
-  geo.emissive  = encoded.emissive.rgb;
-  return geo;
+GeoBase geo_base_decode(const f32v4 data) {
+  GeoBase base;
+  base.color = data.rgb;
+  base.tags  = tags_tex_decode(data.a);
+  return base;
 }
 
-f32v3 geometry_decode_normal(const f32v4 geoNormal) { return math_normal_decode(geoNormal.rg); }
+f32v2 geo_normal_encode(const f32v3 normal) { return math_normal_encode(normal); }
+
+f32v3 geo_normal_decode(const f32v2 data) { return math_normal_decode(data); }
+
+f32v2 geo_attr_encode(const GeoAttribute attr) { return f32v2(attr.roughness, 0); }
+
+GeoAttribute geo_attr_decode(const f32v2 data) {
+  GeoAttribute base;
+  base.roughness = data.r;
+  return base;
+}
 
 #endif // INCLUDE_GEOMETRY
