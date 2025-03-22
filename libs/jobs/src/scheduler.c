@@ -110,7 +110,11 @@ void jobs_scheduler_wait_help(const JobId job) {
         thread_cond_wait_timeout(g_jobCondition, g_jobMutex, g_maxSleep);
         trace_end();
       }
+      const bool finished = jobs_scheduler_is_finished_locked(job);
       thread_mutex_unlock(g_jobMutex);
+      if (finished) {
+        return;
+      }
       yieldsRem = g_maxYields;
     }
   }
