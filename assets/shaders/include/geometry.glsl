@@ -9,9 +9,10 @@
  * Geometry Buffer.
  *
  * Textures:
- * - Data0: (srgb rgba32):   rgb: color, a: tags.
- * - Data1: (linear rgba32): rg: normal, b: roughness, a: unused.
- * - Data2: (linear rgb16):  rgb: emissive.
+ * - Data0: (srgb rgba32): rgb: color, a: tags.
+ * - Data1: (linear rg16): rg: normal;
+ * - Data2: (linear rg16): r: roughness, g: unused
+ * - Data3: (linear rgb16):  rgb: emissive.
  */
 
 struct Geometry {
@@ -23,8 +24,10 @@ struct Geometry {
 };
 
 struct GeometryEncoded {
-  f32v4 data0, data1;
-  f32v3 data2;
+  f32v4 data0;
+  f32v2 data1;
+  f32v2 data2;
+  f32v3 data3;
 };
 
 GeometryEncoded geometry_encode(const Geometry geo) {
@@ -32,8 +35,8 @@ GeometryEncoded geometry_encode(const Geometry geo) {
   encoded.data0.rgb = geo.color;
   encoded.data0.a   = tags_tex_encode(geo.tags); // NOTE: Only the first 8 tags are preserved.
   encoded.data1.rg  = math_normal_encode(geo.normal);
-  encoded.data1.b   = geo.roughness;
-  encoded.data2.rgb = geo.emissive;
+  encoded.data2.r   = geo.roughness;
+  encoded.data3.rgb = geo.emissive;
   return encoded;
 }
 
@@ -42,8 +45,8 @@ Geometry geometry_decode(const GeometryEncoded encoded) {
   geo.color     = encoded.data0.rgb;
   geo.tags      = tags_tex_decode(encoded.data0.a);
   geo.normal    = math_normal_decode(encoded.data1.rg);
-  geo.roughness = encoded.data1.b;
-  geo.emissive  = encoded.data2.rgb;
+  geo.roughness = encoded.data2.r;
+  geo.emissive  = encoded.data3.rgb;
   return geo;
 }
 

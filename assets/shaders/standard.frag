@@ -25,8 +25,9 @@ bind_internal(2) in f32v2 in_texcoord;
 bind_internal(3) in flat f32v4 in_data; // x tag bits, y color, z emissive
 
 bind_internal(0) out f32v4 out_data0;
-bind_internal(1) out f32v4 out_data1;
-bind_internal(2) out f32v3 out_data2;
+bind_internal(1) out f32v2 out_data1;
+bind_internal(2) out f32v2 out_data2;
+bind_internal(3) out f32v3 out_data3;
 
 void main() {
   f32v4 color = instance_color(in_data);
@@ -75,4 +76,5 @@ void main() {
   out_data0                     = encoded.data0;
   out_data1                     = encoded.data1;
   out_data2                     = encoded.data2;
+  out_data3                     = encoded.data3;
 }

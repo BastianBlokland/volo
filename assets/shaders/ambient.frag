@@ -33,8 +33,9 @@ bind_global_data(0) readonly uniform Global { GlobalData u_global; };
 bind_global_img(0) uniform sampler2D u_texGeoData0;
 bind_global_img(1) uniform sampler2D u_texGeoData1;
 bind_global_img(2) uniform sampler2D u_texGeoData2;
-bind_global_img(3) uniform sampler2D u_texGeoDepth;
-bind_global_img(4) uniform sampler2D u_texAmbientOcclusion;
+bind_global_img(3) uniform sampler2D u_texGeoData3;
+bind_global_img(4) uniform sampler2D u_texGeoDepth;
+bind_global_img(5) uniform sampler2D u_texAmbientOcclusion;
 
 bind_graphic_img(0) uniform samplerCube u_texDiffIrradiance;
 bind_graphic_img(1) uniform samplerCube u_texSpecIrradiance;
@@ -80,8 +81,9 @@ f32v3 ambient_spec_irradiance(
 void main() {
   GeometryEncoded geoEncoded;
   geoEncoded.data0 = texture(u_texGeoData0, in_texcoord);
-  geoEncoded.data1 = texture(u_texGeoData1, in_texcoord);
-  geoEncoded.data2 = texture(u_texGeoData2, in_texcoord).rgb;
+  geoEncoded.data1 = texture(u_texGeoData1, in_texcoord).rg;
+  geoEncoded.data2 = texture(u_texGeoData2, in_texcoord).rg;
+  geoEncoded.data3 = texture(u_texGeoData3, in_texcoord).rgb;
 
   const Geometry geo = geometry_decode(geoEncoded);
 

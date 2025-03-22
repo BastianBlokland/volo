@@ -24,8 +24,9 @@ bind_internal(2) in f32v2 in_texcoord;
 bind_internal(3) in f32v3 in_worldPos;
 
 bind_internal(0) out f32v4 out_data0;
-bind_internal(1) out f32v4 out_data1;
-bind_internal(2) out f32v3 out_data2;
+bind_internal(1) out f32v2 out_data1;
+bind_internal(2) out f32v2 out_data2;
+bind_internal(3) out f32v3 out_data3;
 
 /**
  * Calculate the normal by taking samples around this location and normalizing the deltas.
@@ -81,4 +82,5 @@ void main() {
   out_data0                     = encoded.data0;
   out_data1                     = encoded.data1;
   out_data2                     = encoded.data2;
+  out_data3                     = encoded.data3;
 }
