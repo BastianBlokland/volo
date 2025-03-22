@@ -7,7 +7,7 @@ const f32 c_behindAlphaMul  = 0.15;
 const f32 c_edgeSharpness   = 6.0;
 
 bind_global_data(0) readonly uniform Global { GlobalData u_global; };
-bind_global_img(0) uniform sampler2D u_texGeoData0;
+bind_global_img(0) uniform sampler2D u_texGeoBase;
 bind_global_img(4) uniform sampler2D u_texGeoDepth;
 
 bind_internal(0) in flat f32v4 in_color;
@@ -22,7 +22,7 @@ f32 edge_blend_alpha(const f32 radiusFrac) {
 void main() {
   const f32v2 texcoord         = in_fragCoord.xy / u_global.resolution.xy;
   const f32v2 clipXY           = texcoord * 2.0 - 1.0;
-  const u32   sceneTags        = tags_tex_decode(texture(u_texGeoData0, texcoord).w);
+  const u32   sceneTags        = tags_tex_decode(texture(u_texGeoBase, texcoord).w);
   const f32   sceneDepth       = texture(u_texGeoDepth, texcoord).r;
   const f32   sceneLinearDepth = clip_to_view_depth(u_global, f32v3(clipXY, sceneDepth));
   const f32   fragLinearDepth  = clip_to_view_depth(u_global, f32v3(clipXY, in_fragCoord.z));

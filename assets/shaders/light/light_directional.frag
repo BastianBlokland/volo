@@ -36,9 +36,9 @@ const f32v2 c_poissonDisk[c_poissonDiskSampleCount] = {
 };
 
 bind_global_data(0) readonly uniform Global { GlobalData u_global; };
-bind_global_img(0) uniform sampler2D u_texGeoData0;
-bind_global_img(1) uniform sampler2D u_texGeoData1;
-bind_global_img(2) uniform sampler2D u_texGeoData2;
+bind_global_img(0) uniform sampler2D u_texGeoBase;
+bind_global_img(1) uniform sampler2D u_texGeoNormal;
+bind_global_img(2) uniform sampler2D u_texGeoAttribute;
 bind_global_img(4) uniform sampler2D u_texGeoDepth;
 bind_global_img(6) uniform sampler2DShadow u_texShadow;
 
@@ -93,10 +93,10 @@ f32 shadow_frac(const f32v3 worldPos) {
 }
 
 void main() {
-  GeometryEncoded geoEncoded; // NOTE: We are not decoding data3.
-  geoEncoded.data0 = texture(u_texGeoData0, in_texcoord);
-  geoEncoded.data1 = texture(u_texGeoData1, in_texcoord).rg;
-  geoEncoded.data2 = texture(u_texGeoData2, in_texcoord).rg;
+  GeometryEncoded geoEncoded; // NOTE: We are not decoding emissive.
+  geoEncoded.base   = texture(u_texGeoBase, in_texcoord);
+  geoEncoded.normal = texture(u_texGeoNormal, in_texcoord).rg;
+  geoEncoded.attr   = texture(u_texGeoAttribute, in_texcoord).rg;
 
   const Geometry geo = geometry_decode(geoEncoded);
 

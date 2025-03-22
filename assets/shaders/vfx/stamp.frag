@@ -19,8 +19,8 @@ bind_global_data(0) readonly uniform Global { GlobalData u_global; };
 bind_graphic_img(0) uniform sampler2D u_atlasColor;
 bind_graphic_img(1) uniform sampler2D u_atlasNormal;
 
-bind_global_img(0) uniform sampler2D u_texGeoData0;
-bind_global_img(1) uniform sampler2D u_texGeoData1;
+bind_global_img(0) uniform sampler2D u_texGeoBase;
+bind_global_img(1) uniform sampler2D u_texGeoNormal;
 bind_global_img(2) uniform sampler2D u_texGeoDepth;
 
 bind_internal(0) in flat f32v3 in_position;        // World-space.
@@ -37,18 +37,18 @@ bind_internal(10) in flat f32v4 in_warpP01;     // bottom left and bottom right.
 bind_internal(11) in flat f32v4 in_warpP23;     // top left and top right.
 
 /**
- * Geometry Data0: [r] color     [g] color     [b] color    [a] tags
- * Geometry Data1: [r] normal    [g] normal
- * Geometry Data2: [r] roughness [g] unused
+ * Geometry Base:      [r] color     [g] color     [b] color    [a] tags
+ * Geometry Normal:    [r] normal    [g] normal
+ * Geometry Attribute: [r] roughness [g] unused
  * Alpha blended, w is used to control the blending hence outputting tags is not supported.
  *
  * NOTE: Normals can only be blended (without discontinuities) if the source and destination both
  * have a positive y value or both a negative value. Reason for this is that we use a octahedron
  * normal encoding.
  */
-bind_internal(0) out f32v4 out_data0;
-bind_internal(1) out f32v4 out_data1;
-bind_internal(2) out f32v4 out_data2;
+bind_internal(0) out f32v4 out_base;
+bind_internal(1) out f32v4 out_normal;
+bind_internal(2) out f32v4 out_attribute;
 
 f32v4 atlas_sample(const sampler2D atlas, const f32v3 atlasMeta, const f32v2 atlasCoord) {
   // NOTE: Flip the Y component as we are using the bottom as the texture origin.
@@ -134,11 +134,11 @@ f32v3 fade_normal(const f32v3 geoNormal, const f32v3 depthNormal) {
 }
 
 void main() {
-  const f32v2 texcoord = in_fragCoord.xy / u_global.resolution.xy;
-  const f32v4 geoData0 = texture(u_texGeoData0, texcoord);
-  const f32v4 geoData1 = texture(u_texGeoData1, texcoord);
-  const f32   depth    = texture(u_texGeoDepth, texcoord).r;
-  const u32   tags     = tags_tex_decode(geoData0.w);
+  const f32v2 texcoord  = in_fragCoord.xy / u_global.resolution.xy;
+  const f32v4 geoBase   = texture(u_texGeoBase, texcoord);
+  const f32v3 geoNormal = geometry_decode_normal(texture(u_texGeoNormal, texcoord));
+  const f32   depth     = texture(u_texGeoDepth, texcoord).r;
+  const u32   tags      = tags_tex_decode(geoBase.w);
 
   const f32v3 clipPos  = f32v3(texcoord * 2.0 - 1.0, depth);
   const f32v3 worldPos = clip_to_world_pos(u_global, clipPos);
@@ -153,7 +153,6 @@ void main() {
   }
   const f32v2 stampCoord = stamp_texcoord(stampPos);
 
-  const f32v3 geoNormal   = geometry_decode_normal(geoData1);
   const f32v3 stampNormal = quat_rotate(in_rotation, f32v3(0, 0, 1));
   const f32v3 depthNormal = flat_normal_from_position(worldPos);
 
@@ -179,10 +178,10 @@ void main() {
 
   // Output the result into the gbuffer.
   if ((in_flags & c_flagOutputColor) != 0) {
-    out_data0 = f32v4(color.rgb, alpha);
+    out_base = f32v4(color.rgb, alpha);
   } else {
-    out_data0 = f32v4(0);
+    out_base = f32v4(0);
   }
-  out_data1 = f32v4(math_normal_encode(normal), 0, alpha);
-  out_data2 = f32v4(in_roughness, 0, 0, alpha);
+  out_normal    = f32v4(math_normal_encode(normal), 0, alpha);
+  out_attribute = f32v4(in_roughness, 0, 0, alpha);
 }

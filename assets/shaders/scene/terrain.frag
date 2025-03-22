@@ -23,10 +23,10 @@ bind_internal(1) in flat f32 in_heightScale;
 bind_internal(2) in f32v2 in_texcoord;
 bind_internal(3) in f32v3 in_worldPos;
 
-bind_internal(0) out f32v4 out_data0;
-bind_internal(1) out f32v2 out_data1;
-bind_internal(2) out f32v2 out_data2;
-bind_internal(3) out f32v3 out_data3;
+bind_internal(0) out f32v4 out_base;
+bind_internal(1) out f32v2 out_normal;
+bind_internal(2) out f32v2 out_attribute;
+bind_internal(3) out f32v3 out_emissive;
 
 /**
  * Calculate the normal by taking samples around this location and normalizing the deltas.
@@ -79,8 +79,8 @@ void main() {
   geo.normal = math_perturb_normal(splatNorm, baseNormal, in_worldPos, in_texcoord);
 
   const GeometryEncoded encoded = geometry_encode(geo);
-  out_data0                     = encoded.data0;
-  out_data1                     = encoded.data1;
-  out_data2                     = encoded.data2;
-  out_data3                     = encoded.data3;
+  out_base                      = encoded.base;
+  out_normal                    = encoded.normal;
+  out_attribute                 = encoded.attr;
+  out_emissive                  = encoded.emissive;
 }

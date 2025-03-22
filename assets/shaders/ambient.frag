@@ -30,10 +30,10 @@ const u32 c_flagsAmbientOcclusionBlur = 1 << 1;
 
 bind_global_data(0) readonly uniform Global { GlobalData u_global; };
 
-bind_global_img(0) uniform sampler2D u_texGeoData0;
-bind_global_img(1) uniform sampler2D u_texGeoData1;
-bind_global_img(2) uniform sampler2D u_texGeoData2;
-bind_global_img(3) uniform sampler2D u_texGeoData3;
+bind_global_img(0) uniform sampler2D u_texGeoBase;
+bind_global_img(1) uniform sampler2D u_texGeoNormal;
+bind_global_img(2) uniform sampler2D u_texGeoAttribute;
+bind_global_img(3) uniform sampler2D u_texGeoEmissive;
 bind_global_img(4) uniform sampler2D u_texGeoDepth;
 bind_global_img(5) uniform sampler2D u_texAmbientOcclusion;
 
@@ -80,10 +80,10 @@ f32v3 ambient_spec_irradiance(
 
 void main() {
   GeometryEncoded geoEncoded;
-  geoEncoded.data0 = texture(u_texGeoData0, in_texcoord);
-  geoEncoded.data1 = texture(u_texGeoData1, in_texcoord).rg;
-  geoEncoded.data2 = texture(u_texGeoData2, in_texcoord).rg;
-  geoEncoded.data3 = texture(u_texGeoData3, in_texcoord).rgb;
+  geoEncoded.base     = texture(u_texGeoBase, in_texcoord);
+  geoEncoded.normal   = texture(u_texGeoNormal, in_texcoord).rg;
+  geoEncoded.attr     = texture(u_texGeoAttribute, in_texcoord).rg;
+  geoEncoded.emissive = texture(u_texGeoEmissive, in_texcoord).rgb;
 
   const Geometry geo = geometry_decode(geoEncoded);
 
