@@ -104,6 +104,15 @@ void jobs_scheduler_wait_help(const JobId job) {
       continue;
     }
 
+    if (jobs_is_working()) {
+      /**
+       * When nesting jobs (calling jobs_scheduler_wait_help() inside a job task) we should not
+       * sleep the thread as doing so could starve the job-system and lead to a deadlock.
+       */
+      yieldsRem = g_maxYields;
+      continue;
+    }
+
     // No work has been available for a while; sleep the thread.
     thread_mutex_lock(g_jobMutex);
     thread_atomic_add_i32(&g_sleepingHelpers, 1);
