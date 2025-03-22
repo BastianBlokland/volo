@@ -16,6 +16,7 @@ static i64             g_jobIdCounter;
 static ThreadMutex     g_jobMutex;
 static ThreadCondition g_jobCondition;
 static DynArray        g_runningJobs; // Job*[]. Only access while holding 'g_jobMutex'.
+static i32             g_sleepingHelpers;
 
 static bool jobs_scheduler_is_finished_locked(const JobId job) {
   dynarray_for_t(&g_runningJobs, JobPtr, jobData) {
@@ -107,12 +108,16 @@ void jobs_scheduler_wait_help(const JobId job) {
     // No work has been available for a while; sleep the thread.
     // TODO: Consider a mechanism to wake earlier when more work becomes available.
     thread_mutex_lock(g_jobMutex);
+    thread_atomic_add_i32(&g_sleepingHelpers, 1);
+
     if (!jobs_scheduler_is_finished_locked(job)) {
       trace_begin("job_sleep", TraceColor_Gray);
       thread_cond_wait_timeout(g_jobCondition, g_jobMutex, g_maxSleep);
       trace_end();
     }
     const bool finished = jobs_scheduler_is_finished_locked(job);
+
+    thread_atomic_sub_i32(&g_sleepingHelpers, 1);
     thread_mutex_unlock(g_jobMutex);
     if (finished) {
       return;
