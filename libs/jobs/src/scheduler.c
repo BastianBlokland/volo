@@ -86,8 +86,7 @@ void jobs_scheduler_wait(const JobId job) {
 void jobs_scheduler_wait_help(const JobId job) {
   diag_assert_msg(g_jobsIsWorker, "Only job-workers can help out");
 
-  static const u32          g_maxYields = 1000;
-  static const TimeDuration g_maxSleep  = time_milliseconds(4);
+  static const u32 g_maxYields = 100;
 
   for (u32 yieldsRem = g_maxYields;;) {
     // Execute all currently available tasks.
@@ -106,13 +105,12 @@ void jobs_scheduler_wait_help(const JobId job) {
     }
 
     // No work has been available for a while; sleep the thread.
-    // TODO: Consider a mechanism to wake earlier when more work becomes available.
     thread_mutex_lock(g_jobMutex);
     thread_atomic_add_i32(&g_sleepingHelpers, 1);
 
     if (!jobs_scheduler_is_finished_locked(job)) {
       trace_begin("job_sleep", TraceColor_Gray);
-      thread_cond_wait_timeout(g_jobCondition, g_jobMutex, g_maxSleep);
+      thread_cond_wait(g_jobCondition, g_jobMutex);
       trace_end();
     }
     const bool finished = jobs_scheduler_is_finished_locked(job);
@@ -123,6 +121,14 @@ void jobs_scheduler_wait_help(const JobId job) {
       return;
     }
     yieldsRem = g_maxYields;
+  }
+}
+
+void jobs_scheduler_wake_helpers(void) {
+  if (thread_atomic_load_i32(&g_sleepingHelpers)) {
+    thread_mutex_lock(g_jobMutex);
+    thread_cond_broadcast(g_jobCondition);
+    thread_mutex_unlock(g_jobMutex);
   }
 }
 

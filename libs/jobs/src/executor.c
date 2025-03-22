@@ -190,11 +190,17 @@ static void executor_perform_work(const JobWorkerId wId, const WorkItem item) {
     }
     const bool requireAffinityWorker = tasksPushedAffinity && wId != g_affinityWorker;
     const bool needHelp              = tasksPushed > 1 || requireAffinityWorker;
-    if (needHelp && thread_atomic_load_i32(&g_sleepingWorkers)) {
-      if (tasksPushed > 2 || requireAffinityWorker) {
-        executor_wake_worker_all();
-      } else {
-        executor_wake_worker_single();
+    if (needHelp) {
+      if (thread_atomic_load_i32(&g_sleepingWorkers)) {
+        if (tasksPushed > 2 || requireAffinityWorker) {
+          executor_wake_worker_all();
+        } else {
+          executor_wake_worker_single();
+        }
+      }
+      if (tasksPushed >= g_jobsWorkerCount) {
+        // Allot of work is available; wake the helpers (main-thread) if they are sleeping.
+        jobs_scheduler_wake_helpers();
       }
     }
   } else {
