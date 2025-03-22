@@ -2,6 +2,7 @@
 #include "core_diag.h"
 #include "core_dynarray.h"
 #include "core_thread.h"
+#include "core_time.h"
 #include "jobs_scheduler.h"
 #include "trace_tracer.h"
 
@@ -84,18 +85,34 @@ void jobs_scheduler_wait(const JobId job) {
 void jobs_scheduler_wait_help(const JobId job) {
   diag_assert_msg(g_jobsIsWorker, "Only job-workers can help out");
 
-  while (true) {
+  static const u32          g_maxYields = 1000;
+  static const TimeDuration g_maxSleep  = time_milliseconds(4);
+
+  for (u32 yieldsRem = g_maxYields;;) {
     // Execute all currently available tasks.
-    while (executor_help())
-      ;
+    while (executor_help()) {
+      yieldsRem = g_maxYields;
+    }
 
     if (jobs_scheduler_is_finished(job)) {
       return; // The given job is finished.
     }
 
     // No tasks more available but the job is not finished; yield our time-slice.
-    // TODO: Consider putting the thread to sleep if it couldn't help out in a while.
-    thread_yield();
+    if (LIKELY(yieldsRem--)) {
+      thread_yield();
+    } else {
+      // No work has been available for a while; sleep the thread.
+      // TODO: Consider a mechanism to wake earlier when more work becomes available.
+      thread_mutex_lock(g_jobMutex);
+      if (!jobs_scheduler_is_finished_locked(job)) {
+        trace_begin("job_sleep", TraceColor_Gray);
+        thread_cond_wait_timeout(g_jobCondition, g_jobMutex, g_maxSleep);
+        trace_end();
+      }
+      thread_mutex_unlock(g_jobMutex);
+      yieldsRem = g_maxYields;
+    }
   }
 }
 
