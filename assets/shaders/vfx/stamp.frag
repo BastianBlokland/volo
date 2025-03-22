@@ -37,9 +37,9 @@ bind_internal(10) in flat f32v4 in_warpP01;     // bottom left and bottom right.
 bind_internal(11) in flat f32v4 in_warpP23;     // top left and top right.
 
 /**
- * Geometry Data0: color (rgb), tags (a).
- * Geometry Data1: normal (rg).
- * Geometry Data2: roughness (r).
+ * Geometry Data0: [r] color     [g] color     [b] color    [a] tags
+ * Geometry Data1: [r] normal    [g] normal
+ * Geometry Data2: [r] roughness [g] unused
  * Alpha blended, w is used to control the blending hence outputting tags is not supported.
  *
  * NOTE: Normals can only be blended (without discontinuities) if the source and destination both

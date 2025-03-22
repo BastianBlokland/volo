@@ -24,19 +24,19 @@ static const RvkPassConfig g_passConfig[AssetGraphicPass_Count] = {
     .attachDepth     = RvkPassDepth_Stored,
     .attachDepthLoad = RvkPassLoad_Clear,
 
-    // Attachment color 0: color (rgb), tags (a).
+    // Attachment color 0: [r] color     [g] color     [b] color    [a] tags
     .attachColorFormat[0] = RvkPassFormat_Color4Srgb,
     .attachColorLoad[0]   = RvkPassLoad_DontCare,
 
-    // Attachment color 1: normal (rg).
+    // Attachment color 1: [r] normal    [g] normal
     .attachColorFormat[1] = RvkPassFormat_Color2Linear,
     .attachColorLoad[1]   = RvkPassLoad_DontCare,
 
-    // Attachment color 2: roughness (r), unused (g)
+    // Attachment color 2: [r] roughness [g] unused
     .attachColorFormat[2] = RvkPassFormat_Color2Linear,
     .attachColorLoad[2]   = RvkPassLoad_DontCare,
 
-    // Attachment color 3: emissive (rgb).
+    // Attachment color 3: [r] emissive  [g] emissive  [b] emissive
     .attachColorFormat[3] = RvkPassFormat_Color3LowPrecision,
     .attachColorLoad[3]   = RvkPassLoad_DontCare,
   },
@@ -46,27 +46,27 @@ static const RvkPassConfig g_passConfig[AssetGraphicPass_Count] = {
     .attachDepth     = RvkPassDepth_Stored,
     .attachDepthLoad = RvkPassLoad_Preserve,
 
-    // Attachment color 0: color (rgb) and tags (a).
+    // Attachment color 0: [r] color     [g] color     [b] color    [a] tags
     .attachColorFormat[0] = RvkPassFormat_Color4Srgb,
     .attachColorLoad[0]   = RvkPassLoad_Preserve,
 
-    // Attachment color 1: normal (rg).
+    // Attachment color 1: [r] normal    [g] normal
     .attachColorFormat[1] = RvkPassFormat_Color2Linear,
     .attachColorLoad[1]   = RvkPassLoad_Preserve,
 
-    // Attachment color 2: roughness (r), unused (g)
+    // Attachment color 2: [r] roughness [g] unused
     .attachColorFormat[2] = RvkPassFormat_Color2Linear,
     .attachColorLoad[2]   = RvkPassLoad_Preserve,
   },
 
   REND_DEFINE_PASS(Fog)
-    // Attachment color 0: vision (r).
+    // Attachment color 0: [r] vision
     .attachColorFormat[0] = RvkPassFormat_Color1Linear,
     .attachColorLoad[0]   = RvkPassLoad_Clear,
   },
 
   REND_DEFINE_PASS(FogBlur)
-    // Attachment color 0: vision (r).
+    // Attachment color 0: [r] vision.
     .attachColorFormat[0] = RvkPassFormat_Color1Linear,
     .attachColorLoad[0]   = RvkPassLoad_PreserveDontCheck,
   },
@@ -78,7 +78,7 @@ static const RvkPassConfig g_passConfig[AssetGraphicPass_Count] = {
   },
 
   REND_DEFINE_PASS(AmbientOcclusion)
-    // Attachment color 0: occlusion (r).
+    // Attachment color 0: [r] occlusion
     .attachColorFormat[0] = RvkPassFormat_Color1Linear,
     .attachColorLoad[0]   = RvkPassLoad_DontCare,
   },
@@ -88,7 +88,7 @@ static const RvkPassConfig g_passConfig[AssetGraphicPass_Count] = {
     .attachDepth     = RvkPassDepth_Stored, // Stored as Distortion still needs the depth.
     .attachDepthLoad = RvkPassLoad_Preserve,
 
-    // Attachment color 0: color (rgb).
+    // Attachment color 0: [r] color [g] color [b] color
     .attachColorFormat[0] = RvkPassFormat_Color3Float,
     .attachColorLoad[0]   = RvkPassLoad_DontCare,
   },
@@ -98,19 +98,19 @@ static const RvkPassConfig g_passConfig[AssetGraphicPass_Count] = {
     .attachDepth     = RvkPassDepth_Transient,
     .attachDepthLoad = RvkPassLoad_Preserve,
 
-    // Attachment color 0: distortion-offset(rg).
+    // Attachment color 0: [r] distortion-offset [g] distortion-offset
     .attachColorFormat[0] = RvkPassFormat_Color2SignedFloat,
     .attachColorLoad[0]   = RvkPassLoad_Clear,
   },
 
   REND_DEFINE_PASS(Bloom)
-    // Attachment color 0: bloom (rgb).
+    // Attachment color 0: [r] bloom [g] bloom [b] bloom
     .attachColorFormat[0] = RvkPassFormat_Color3Float,
     .attachColorLoad[0]   = RvkPassLoad_PreserveDontCheck,
   },
 
   REND_DEFINE_PASS(Post)
-    // Attachment color 0: color (rgba).
+    // Attachment color 0: [r] color [g] color [b] color [a] unused
     .attachColorFormat[0] = RvkPassFormat_Swapchain,
     .attachColorLoad[0]   = RvkPassLoad_DontCare,
   },

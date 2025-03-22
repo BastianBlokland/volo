@@ -9,10 +9,10 @@
  * Geometry Buffer.
  *
  * Textures:
- * - Data0: (srgb rgba32): rgb: color, a: tags.
- * - Data1: (linear rg16): rg: normal;
- * - Data2: (linear rg16): r: roughness, g: unused
- * - Data3: (linear rgb16):  rgb: emissive.
+ * - Data0: (srgb rgba32):  [r] color     [g] color     [b] color    [a] tags
+ * - Data1: (linear rg16):  [r] normal    [g] normal
+ * - Data2: (linear rg16):  [r] roughness [g] unused
+ * - Data3: (linear rgb16): [r] emissive  [g] emissive  [b] emissive
  */
 
 struct Geometry {
