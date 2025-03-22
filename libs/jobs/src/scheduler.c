@@ -101,22 +101,23 @@ void jobs_scheduler_wait_help(const JobId job) {
     // No tasks more available but the job is not finished; yield our time-slice.
     if (LIKELY(yieldsRem--)) {
       thread_yield();
-    } else {
-      // No work has been available for a while; sleep the thread.
-      // TODO: Consider a mechanism to wake earlier when more work becomes available.
-      thread_mutex_lock(g_jobMutex);
-      if (!jobs_scheduler_is_finished_locked(job)) {
-        trace_begin("job_sleep", TraceColor_Gray);
-        thread_cond_wait_timeout(g_jobCondition, g_jobMutex, g_maxSleep);
-        trace_end();
-      }
-      const bool finished = jobs_scheduler_is_finished_locked(job);
-      thread_mutex_unlock(g_jobMutex);
-      if (finished) {
-        return;
-      }
-      yieldsRem = g_maxYields;
+      continue;
     }
+
+    // No work has been available for a while; sleep the thread.
+    // TODO: Consider a mechanism to wake earlier when more work becomes available.
+    thread_mutex_lock(g_jobMutex);
+    if (!jobs_scheduler_is_finished_locked(job)) {
+      trace_begin("job_sleep", TraceColor_Gray);
+      thread_cond_wait_timeout(g_jobCondition, g_jobMutex, g_maxSleep);
+      trace_end();
+    }
+    const bool finished = jobs_scheduler_is_finished_locked(job);
+    thread_mutex_unlock(g_jobMutex);
+    if (finished) {
+      return;
+    }
+    yieldsRem = g_maxYields;
   }
 }
 
