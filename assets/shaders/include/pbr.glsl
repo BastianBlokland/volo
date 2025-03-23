@@ -73,7 +73,7 @@ f32v3 pbr_fresnel_schlick_atten(const f32 cosTheta, const f32v3 reflectance, con
 f32v3 pbr_reflectance(const f32v3 color, const f32 metalness) {
   /**
    * Calculate reflectance at normal incidence; if dia-electric (like plastic) use uniform
-   * reflectance of of 0.04 and if it's a metal, use the albedo color (metallic workflow).
+   * reflectance of 0.04 and if it's a metal, use the albedo color (metallic workflow).
    */
   return mix(f32v3(0.04), color, metalness);
 }
