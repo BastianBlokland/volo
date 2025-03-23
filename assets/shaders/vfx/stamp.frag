@@ -40,6 +40,7 @@ bind_internal(11) in flat f32v4 in_warpP23;     // top left and top right.
  * Geometry Base:      [r] color     [g] color     [b] color    [a] tags
  * Geometry Normal:    [r] normal    [g] normal
  * Geometry Attribute: [r] roughness [g] unused
+ * Geometry Emissive:  [r] emissive  [g] emissive  [b] emissive
  * Alpha blended, w is used to control the blending hence outputting tags is not supported.
  *
  * NOTE: Normals can only be blended (without discontinuities) if the source and destination both
@@ -49,6 +50,7 @@ bind_internal(11) in flat f32v4 in_warpP23;     // top left and top right.
 bind_internal(0) out f32v4 out_base;
 bind_internal(1) out f32v4 out_normal;
 bind_internal(2) out f32v4 out_attribute;
+bind_internal(3) out f32v4 out_emissive;
 
 f32v4 atlas_sample(const sampler2D atlas, const f32v3 atlasMeta, const f32v2 atlasCoord) {
   // NOTE: Flip the Y component as we are using the bottom as the texture origin.
@@ -184,4 +186,5 @@ void main() {
   }
   out_normal    = f32v4(math_normal_encode(normal), 0, alpha);
   out_attribute = f32v4(in_roughness, 0, 0, alpha);
+  out_emissive  = f32v4(0);
 }
