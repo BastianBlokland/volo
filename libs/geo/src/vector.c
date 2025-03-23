@@ -307,6 +307,24 @@ GeoVector geo_vector_clamp_comps(const GeoVector v, const GeoVector min, const G
 #endif
 }
 
+GeoVector geo_vector_clamp01(const GeoVector v) {
+#ifdef VOLO_SIMD
+  SimdVec vec = simd_vec_load(v.comps);
+  vec         = simd_vec_max(vec, simd_vec_zero());
+  vec         = simd_vec_min(vec, simd_vec_broadcast(1.0f));
+  GeoVector res;
+  simd_vec_store(vec, res.comps);
+  return res;
+#else
+  return (GeoVector){
+      .x = math_clamp_f32(v.x, 0.0f, 1.0f),
+      .y = math_clamp_f32(v.y, 0.0f, 1.0f),
+      .z = math_clamp_f32(v.z, 0.0f, 1.0f),
+      .w = math_clamp_f32(v.w, 0.0f, 1.0f),
+  };
+#endif
+}
+
 GeoVector geo_vector_round_nearest(const GeoVector v) {
 #ifdef VOLO_SIMD
   GeoVector res;
