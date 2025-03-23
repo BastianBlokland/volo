@@ -472,12 +472,13 @@ ecs_system_define(VfxDecalSingleUpdateSys) {
   if (!globalItr) {
     return;
   }
-  const SceneTimeComp*       timeComp     = ecs_view_read_t(globalItr, SceneTimeComp);
-  const SceneTerrainComp*    terrainComp  = ecs_view_read_t(globalItr, SceneTerrainComp);
-  const VfxAtlasManagerComp* atlasManager = ecs_view_read_t(globalItr, VfxAtlasManagerComp);
-  const AssetAtlasComp*      atlasColor   = vfx_atlas(world, atlasManager, VfxAtlasType_StampColor);
-  const AssetAtlasComp*      atlasNormal = vfx_atlas(world, atlasManager, VfxAtlasType_StampNormal);
-  if (!atlasColor || !atlasNormal) {
+  const SceneTimeComp*       timeComp      = ecs_view_read_t(globalItr, SceneTimeComp);
+  const SceneTerrainComp*    terrainComp   = ecs_view_read_t(globalItr, SceneTerrainComp);
+  const VfxAtlasManagerComp* atlasMan      = ecs_view_read_t(globalItr, VfxAtlasManagerComp);
+  const AssetAtlasComp*      atlasColor    = vfx_atlas(world, atlasMan, VfxAtlasType_StampColor);
+  const AssetAtlasComp*      atlasNormal   = vfx_atlas(world, atlasMan, VfxAtlasType_StampNormal);
+  const AssetAtlasComp*      atlasEmissive = vfx_atlas(world, atlasMan, VfxAtlasType_StampEmissive);
+  if (!atlasColor || !atlasNormal || !atlasEmissive) {
     return; // Atlas hasn't loaded yet.
   }
 
@@ -488,8 +489,8 @@ ecs_system_define(VfxDecalSingleUpdateSys) {
   RendObjectComp* objNormal   = vfx_rend_obj_get(rendObjView, vfxRend, VfxRendObj_DecalStampSingle);
   RendObjectComp* objDbg = vfx_rend_obj_get(rendObjView, vfxRend, VfxRendObj_DecalStampSingleDebug);
 
-  vfx_stamp_init(objNormal, atlasColor, atlasNormal);
-  vfx_stamp_init(objDbg, atlasColor, atlasNormal);
+  vfx_stamp_init(objNormal, atlasColor, atlasNormal, atlasEmissive);
+  vfx_stamp_init(objDbg, atlasColor, atlasNormal, atlasEmissive);
 
   EcsView* singleView = ecs_world_view_t(world, SingleUpdateView);
   for (EcsIterator* itr = ecs_view_itr(singleView); ecs_view_walk(itr);) {
@@ -820,12 +821,13 @@ ecs_system_define(VfxDecalTrailUpdateSys) {
   if (!globalItr) {
     return;
   }
-  const SceneTimeComp*       timeComp     = ecs_view_read_t(globalItr, SceneTimeComp);
-  const SceneTerrainComp*    terrainComp  = ecs_view_read_t(globalItr, SceneTerrainComp);
-  const VfxAtlasManagerComp* atlasManager = ecs_view_read_t(globalItr, VfxAtlasManagerComp);
-  const AssetAtlasComp*      atlasColor   = vfx_atlas(world, atlasManager, VfxAtlasType_StampColor);
-  const AssetAtlasComp*      atlasNormal = vfx_atlas(world, atlasManager, VfxAtlasType_StampNormal);
-  if (!atlasColor || !atlasNormal) {
+  const SceneTimeComp*       timeComp      = ecs_view_read_t(globalItr, SceneTimeComp);
+  const SceneTerrainComp*    terrainComp   = ecs_view_read_t(globalItr, SceneTerrainComp);
+  const VfxAtlasManagerComp* atlasMan      = ecs_view_read_t(globalItr, VfxAtlasManagerComp);
+  const AssetAtlasComp*      atlasColor    = vfx_atlas(world, atlasMan, VfxAtlasType_StampColor);
+  const AssetAtlasComp*      atlasNormal   = vfx_atlas(world, atlasMan, VfxAtlasType_StampNormal);
+  const AssetAtlasComp*      atlasEmissive = vfx_atlas(world, atlasMan, VfxAtlasType_StampEmissive);
+  if (!atlasColor || !atlasNormal || !atlasEmissive) {
     return; // Atlas hasn't loaded yet.
   }
 
@@ -836,8 +838,8 @@ ecs_system_define(VfxDecalTrailUpdateSys) {
   RendObjectComp* objNormal   = vfx_rend_obj_get(rendObjView, vfxRend, VfxRendObj_DecalStampTrail);
   RendObjectComp* objDbg = vfx_rend_obj_get(rendObjView, vfxRend, VfxRendObj_DecalStampTrailDebug);
 
-  vfx_stamp_init(objNormal, atlasColor, atlasNormal);
-  vfx_stamp_init(objDbg, atlasColor, atlasNormal);
+  vfx_stamp_init(objNormal, atlasColor, atlasNormal, atlasEmissive);
+  vfx_stamp_init(objDbg, atlasColor, atlasNormal, atlasEmissive);
 
   EcsView* trailView = ecs_world_view_t(world, TrailUpdateView);
   for (EcsIterator* itr = ecs_view_itr(trailView); ecs_view_walk(itr);) {

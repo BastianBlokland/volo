@@ -6,14 +6,14 @@
 #include "vertex.glsl"
 
 struct MetaData {
-  AtlasMeta atlasColor, atlasNormal;
+  AtlasMeta atlasColor, atlasNormal, atlasEmissive;
 };
 
 struct StampData {
   f32v4 data1; // x, y, z: position, w: 16b flags, 16b excludeTags.
   f16v4 data2; // x, y, z, w: rotation quaternion.
   f16v4 data3; // x, y, z: stampScale, w: roughness.
-  u16v4 data4; // x: atlasColorIndex, y: atlasNormalIndex, z: unused, w: alphaBegin/alphaEnd.
+  u16v4 data4; // x: atlasColorIdx, y: atlasNormalIdx, z: atlasEmissiveIdx, w: alphaBegin/alphaEnd.
   f16v4 data5; // x, y: warpScale, z: texOffsetY, w: texScaleY.
   f16v4 data6; // x, y: warpP0 (bottom left), z, w: warpP1 (bottom right).
   f16v4 data7; // x, y: warpP2 (top left),    z, w: warpP3 (top right).

@@ -6,6 +6,7 @@ typedef enum {
   VfxAtlasType_Sprite,
   VfxAtlasType_StampColor,
   VfxAtlasType_StampNormal,
+  VfxAtlasType_StampEmissive,
 
   VfxAtlasType_Count,
 } VfxAtlasType;

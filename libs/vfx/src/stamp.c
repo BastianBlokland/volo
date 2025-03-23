@@ -13,10 +13,10 @@
 #endif
 
 typedef struct {
-  VfxAtlasDrawData atlasColor, atlasNormal;
+  VfxAtlasDrawData atlasColor, atlasNormal, atlasEmissive;
 } VfxStampMetaData;
 
-ASSERT(sizeof(VfxStampMetaData) == 32, "Size needs to match the size defined in glsl");
+ASSERT(sizeof(VfxStampMetaData) == 48, "Size needs to match the size defined in glsl");
 
 typedef struct {
   ALIGNAS(16)
@@ -44,10 +44,15 @@ static f32 vfx_clamp01(const f32 val) {
 }
 
 void vfx_stamp_init(
-    RendObjectComp* obj, const AssetAtlasComp* atlasColor, const AssetAtlasComp* atlasNormal) {
+    RendObjectComp*       obj,
+    const AssetAtlasComp* atlasColor,
+    const AssetAtlasComp* atlasNormal,
+    const AssetAtlasComp* atlasEmissive) {
+
   *rend_object_set_data_t(obj, VfxStampMetaData) = (VfxStampMetaData){
-      .atlasColor  = vfx_atlas_draw_data(atlasColor),
-      .atlasNormal = vfx_atlas_draw_data(atlasNormal),
+      .atlasColor    = vfx_atlas_draw_data(atlasColor),
+      .atlasNormal   = vfx_atlas_draw_data(atlasNormal),
+      .atlasEmissive = vfx_atlas_draw_data(atlasEmissive),
   };
 }
 
@@ -71,7 +76,7 @@ void vfx_stamp_output(RendObjectComp* obj, const VfxStamp* params) {
 
   out->data4[0] = params->atlasColorIndex;
   out->data4[1] = params->atlasNormalIndex;
-  out->data4[2] = 0;
+  out->data4[2] = params->atlasEmissiveIndex;
 
   const u16 alphaBeginEnc = (u8)(vfx_clamp01(params->alphaBegin) * 255.999f);
   const u16 alphaEndEnc   = (u8)(vfx_clamp01(params->alphaEnd) * 255.999f);

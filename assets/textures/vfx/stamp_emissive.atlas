@@ -1,0 +1,11 @@
+{
+  "size": 1024,
+  "entrySize": 256,
+  "entryPadding": 6,
+  "mipmaps": true,
+  "maxMipMaps": 3,
+  "srgb": false,
+  "entries": [
+    { "name": "test", "texture": "textures/zero.proctex" }
+  ]
+}

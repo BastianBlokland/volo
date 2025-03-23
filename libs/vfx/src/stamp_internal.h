@@ -19,7 +19,7 @@ typedef enum {
 typedef struct {
   GeoVector     pos;
   GeoQuat       rot;
-  u16           atlasColorIndex, atlasNormalIndex;
+  u16           atlasColorIndex, atlasNormalIndex, atlasEmissiveIndex;
   VfxStampFlags flags : 8;
   u8            excludeTags;
   f32           alphaBegin, alphaEnd, roughness;
@@ -34,7 +34,10 @@ typedef struct {
  * NOTE: NOT thread-safe, should be called only once per frame.
  */
 void vfx_stamp_init(
-    RendObjectComp*, const AssetAtlasComp* atlasColor, const AssetAtlasComp* atlasNormal);
+    RendObjectComp*,
+    const AssetAtlasComp* atlasColor,
+    const AssetAtlasComp* atlasNormal,
+    const AssetAtlasComp* atlasEmissive);
 
 /**
  * Output a stamp to the given render object.
