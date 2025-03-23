@@ -44,7 +44,7 @@ typedef enum {
 ecs_comp_define(VfxDecalAnyComp);
 
 ecs_comp_define(VfxDecalSingleComp) {
-  u16            atlasColorIndex, atlasNormalIndex;
+  u16            atlasColorIndex, atlasNormalIndex, atlasEmissiveIndex;
   VfxStampFlags  stampFlags : 8;
   AssetDecalAxis axis : 8;
   u8             excludeTags; // First 8 entries of SceneTags are supported.
@@ -61,7 +61,7 @@ typedef enum {
 } VfxTrailFlags;
 
 ecs_comp_define(VfxDecalTrailComp) {
-  u16            atlasColorIndex, atlasNormalIndex;
+  u16            atlasColorIndex, atlasNormalIndex, atlasEmissiveIndex;
   VfxStampFlags  stampFlags : 8;
   VfxTrailFlags  trailFlags : 8;
   AssetDecalAxis axis : 8;
@@ -184,6 +184,9 @@ static VfxStampFlags vfx_stamp_flags(const AssetDecalComp* asset) {
   if (asset->atlasNormalEntry) {
     flags |= VfxStamp_OutputNormal;
   }
+  if (asset->atlasEmissiveEntry) {
+    flags |= VfxStamp_OutputEmissive;
+  }
   switch (asset->baseNormal) {
   case AssetDecalNormal_GBuffer:
     flags |= VfxStamp_GBufferBaseNormal;
@@ -213,6 +216,7 @@ static void vfx_decal_create_single(
     const EcsEntityId     entity,
     const u16             atlasColorIndex,
     const u16             atlasNormalIndex,
+    const u16             atlasEmissiveIndex,
     const AssetDecalComp* asset,
     const SceneTimeComp*  timeComp) {
 
@@ -224,21 +228,22 @@ static void vfx_decal_create_single(
       world,
       entity,
       VfxDecalSingleComp,
-      .atlasColorIndex  = atlasColorIndex,
-      .atlasNormalIndex = atlasNormalIndex,
-      .stampFlags       = vfx_stamp_flags(asset),
-      .axis             = asset->projectionAxis,
-      .excludeTags      = vfx_decal_mask_to_tags(asset->excludeMask),
-      .snapToTerrain    = (asset->flags & AssetDecalFlags_SnapToTerrain) != 0,
-      .angle            = randomRotation ? rng_sample_f32(g_rng) * math_pi_f32 * 2.0f : 0.0f,
-      .roughness        = asset->roughness,
-      .alpha            = alpha,
-      .fadeInTimeInv    = asset->fadeInTimeInv,
-      .fadeOutTimeInv   = asset->fadeOutTimeInv,
-      .creationTime     = timeComp->time - time_millisecond /* Avoid starting the age at 0 */,
-      .width            = asset->width * scale,
-      .height           = asset->height * scale,
-      .thickness        = asset->thickness);
+      .atlasColorIndex    = atlasColorIndex,
+      .atlasNormalIndex   = atlasNormalIndex,
+      .atlasEmissiveIndex = atlasEmissiveIndex,
+      .stampFlags         = vfx_stamp_flags(asset),
+      .axis               = asset->projectionAxis,
+      .excludeTags        = vfx_decal_mask_to_tags(asset->excludeMask),
+      .snapToTerrain      = (asset->flags & AssetDecalFlags_SnapToTerrain) != 0,
+      .angle              = randomRotation ? rng_sample_f32(g_rng) * math_pi_f32 * 2.0f : 0.0f,
+      .roughness          = asset->roughness,
+      .alpha              = alpha,
+      .fadeInTimeInv      = asset->fadeInTimeInv,
+      .fadeOutTimeInv     = asset->fadeOutTimeInv,
+      .creationTime       = timeComp->time - time_millisecond /* Avoid starting the age at 0 */,
+      .width              = asset->width * scale,
+      .height             = asset->height * scale,
+      .thickness          = asset->thickness);
 }
 
 static void vfx_decal_create_trail(
@@ -246,6 +251,7 @@ static void vfx_decal_create_trail(
     const EcsEntityId     entity,
     const u16             atlasColorIndex,
     const u16             atlasNormalIndex,
+    const u16             atlasEmissiveIndex,
     const AssetDecalComp* asset,
     const SceneTimeComp*  timeComp) {
 
@@ -256,22 +262,23 @@ static void vfx_decal_create_trail(
       world,
       entity,
       VfxDecalTrailComp,
-      .stampFlags       = vfx_stamp_flags(asset),
-      .trailFlags       = VfxTrailFlags_HistoryReset,
-      .atlasColorIndex  = atlasColorIndex,
-      .atlasNormalIndex = atlasNormalIndex,
-      .axis             = asset->projectionAxis,
-      .excludeTags      = vfx_decal_mask_to_tags(asset->excludeMask),
-      .snapToTerrain    = (asset->flags & AssetDecalFlags_SnapToTerrain) != 0,
-      .pointSpacing     = asset->spacing,
-      .roughness        = asset->roughness,
-      .alpha            = alpha,
-      .fadeInTimeInv    = asset->fadeInTimeInv,
-      .fadeOutTimeInv   = asset->fadeOutTimeInv,
-      .creationTime     = timeComp->time - time_millisecond /* Avoid starting the age at 0 */,
-      .width            = asset->width * scale,
-      .height           = asset->height * scale,
-      .thickness        = asset->thickness);
+      .stampFlags         = vfx_stamp_flags(asset),
+      .trailFlags         = VfxTrailFlags_HistoryReset,
+      .atlasColorIndex    = atlasColorIndex,
+      .atlasNormalIndex   = atlasNormalIndex,
+      .atlasEmissiveIndex = atlasEmissiveIndex,
+      .axis               = asset->projectionAxis,
+      .excludeTags        = vfx_decal_mask_to_tags(asset->excludeMask),
+      .snapToTerrain      = (asset->flags & AssetDecalFlags_SnapToTerrain) != 0,
+      .pointSpacing       = asset->spacing,
+      .roughness          = asset->roughness,
+      .alpha              = alpha,
+      .fadeInTimeInv      = asset->fadeInTimeInv,
+      .fadeOutTimeInv     = asset->fadeOutTimeInv,
+      .creationTime       = timeComp->time - time_millisecond /* Avoid starting the age at 0 */,
+      .width              = asset->width * scale,
+      .height             = asset->height * scale,
+      .thickness          = asset->thickness);
 }
 
 ecs_system_define(VfxDecalInitSys) {
@@ -280,11 +287,12 @@ ecs_system_define(VfxDecalInitSys) {
   if (!globalItr) {
     return;
   }
-  const SceneTimeComp*       timeComp     = ecs_view_read_t(globalItr, SceneTimeComp);
-  const VfxAtlasManagerComp* atlasManager = ecs_view_read_t(globalItr, VfxAtlasManagerComp);
-  const AssetAtlasComp*      atlasColor   = vfx_atlas(world, atlasManager, VfxAtlasType_StampColor);
-  const AssetAtlasComp*      atlasNormal = vfx_atlas(world, atlasManager, VfxAtlasType_StampNormal);
-  if (!atlasColor || !atlasNormal) {
+  const SceneTimeComp*       timeComp      = ecs_view_read_t(globalItr, SceneTimeComp);
+  const VfxAtlasManagerComp* atlasMan      = ecs_view_read_t(globalItr, VfxAtlasManagerComp);
+  const AssetAtlasComp*      atlasColor    = vfx_atlas(world, atlasMan, VfxAtlasType_StampColor);
+  const AssetAtlasComp*      atlasNormal   = vfx_atlas(world, atlasMan, VfxAtlasType_StampNormal);
+  const AssetAtlasComp*      atlasEmissive = vfx_atlas(world, atlasMan, VfxAtlasType_StampEmissive);
+  if (!atlasColor || !atlasNormal || !atlasEmissive) {
     return; // Atlas hasn't loaded yet.
   }
 
@@ -313,15 +321,15 @@ ecs_system_define(VfxDecalInitSys) {
       }
       continue;
     }
-    const AssetDecalComp* asset           = ecs_view_read_t(assetItr, AssetDecalComp);
-    u16                   atlasColorIndex = 0, atlasNormalIndex = 0;
+    const AssetDecalComp* asset         = ecs_view_read_t(assetItr, AssetDecalComp);
+    u16                   atlasColorIdx = 0, atlasNormalIdx = 0, atlasEmissiveIdx = 0;
     {
       const AssetAtlasEntry* entry = asset_atlas_lookup(atlasColor, asset->atlasColorEntry);
       if (UNLIKELY(!entry)) {
         log_e("Vfx decal color-atlas entry missing");
         continue;
       }
-      atlasColorIndex = entry->atlasIndex;
+      atlasColorIdx = entry->atlasIndex;
     }
     if (asset->atlasNormalEntry) {
       const AssetAtlasEntry* entry = asset_atlas_lookup(atlasNormal, asset->atlasNormalEntry);
@@ -329,17 +337,27 @@ ecs_system_define(VfxDecalInitSys) {
         log_e("Vfx decal normal-atlas entry missing");
         continue;
       }
-      atlasNormalIndex = entry->atlasIndex;
+      atlasNormalIdx = entry->atlasIndex;
+    }
+    if (asset->atlasEmissiveEntry) {
+      const AssetAtlasEntry* entry = asset_atlas_lookup(atlasEmissive, asset->atlasEmissiveEntry);
+      if (UNLIKELY(!entry)) {
+        log_e("Vfx decal emissive-atlas entry missing");
+        continue;
+      }
+      atlasEmissiveIdx = entry->atlasIndex;
     }
     if (asset->flags & AssetDecalFlags_Trail) {
-      vfx_decal_create_trail(world, e, atlasColorIndex, atlasNormalIndex, asset, timeComp);
+      vfx_decal_create_trail(
+          world, e, atlasColorIdx, atlasNormalIdx, atlasEmissiveIdx, asset, timeComp);
 
 #if vfx_decal_track_stats
       ecs_world_add_empty_t(world, e, VfxStatsAnyComp);
       ecs_utils_maybe_add_t(world, e, VfxDecalTrailStatsComp);
 #endif
     } else {
-      vfx_decal_create_single(world, e, atlasColorIndex, atlasNormalIndex, asset, timeComp);
+      vfx_decal_create_single(
+          world, e, atlasColorIdx, atlasNormalIdx, atlasEmissiveIdx, asset, timeComp);
 
 #if vfx_decal_track_stats
       ecs_world_add_empty_t(world, e, VfxStatsAnyComp);
