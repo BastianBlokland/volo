@@ -37,7 +37,7 @@ ecs_comp_extern_public(AssetDecalComp) {
   AssetDecalFlags  flags : 8;
   AssetDecalMask   excludeMask : 8;
   f32              spacing;
-  f32              roughness;
+  f32              roughness, metalness;
   f32              alphaMin, alphaMax;
   f32              width, height;
   f32              thickness;

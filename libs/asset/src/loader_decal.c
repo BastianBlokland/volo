@@ -31,7 +31,7 @@ typedef struct {
   bool             randomRotation;
   bool             snapToTerrain;
   AssetDecalMask   excludeMask;
-  f32              roughness;
+  f32              roughness, metalness;
   f32              alphaMin, alphaMax;
   f32              width, height;
   f32              thickness;
@@ -77,6 +77,7 @@ static void decal_build_def(const DecalDef* def, AssetDecalComp* out) {
   out->flags              = decal_build_flags(def);
   out->excludeMask        = def->excludeMask;
   out->roughness          = def->roughness;
+  out->metalness          = def->metalness;
   out->alphaMin           = def->alphaMin < f32_epsilon ? 1.0f : def->alphaMin;
   out->alphaMax           = math_max(out->alphaMin, def->alphaMax);
   out->width              = def->width > f32_epsilon ? def->width : decal_default_size;
@@ -127,6 +128,7 @@ void asset_data_init_decal(void) {
   data_reg_field_t(g_dataReg, DecalDef, snapToTerrain, data_prim_t(bool), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, DecalDef, excludeMask, t_AssetDecalMask, .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, DecalDef, roughness, data_prim_t(f32));
+  data_reg_field_t(g_dataReg, DecalDef, metalness, data_prim_t(f32), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, DecalDef, alphaMin, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
   data_reg_field_t(g_dataReg, DecalDef, alphaMax, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
   data_reg_field_t(g_dataReg, DecalDef, width, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
