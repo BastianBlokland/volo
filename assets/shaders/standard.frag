@@ -14,10 +14,11 @@ bind_spec(3) const bool s_maskMap     = false;
 
 bind_graphic_img(0) uniform sampler2D u_texColor;
 bind_graphic_img(1) uniform sampler2D u_texRough;
-bind_graphic_img(2) uniform sampler2D u_texNormal;
-bind_graphic_img(3) uniform sampler2D u_texEmissive;
-bind_graphic_img(4) uniform sampler2D u_texAlpha;
-bind_graphic_img(5) uniform sampler2D u_texMask;
+bind_graphic_img(2) uniform sampler2D u_texMetal;
+bind_graphic_img(3) uniform sampler2D u_texNormal;
+bind_graphic_img(4) uniform sampler2D u_texEmissive;
+bind_graphic_img(5) uniform sampler2D u_texAlpha;
+bind_graphic_img(6) uniform sampler2D u_texMask;
 
 bind_internal(0) in f32v3 in_worldNormal;  // NOTE: non-normalized
 bind_internal(1) in f32v4 in_worldTangent; // NOTE: non-normalized
@@ -56,7 +57,7 @@ void main() {
   // Output attributes.
   GeoAttribute attr;
   attr.roughness = texture(u_texRough, in_texcoord).r;
-  attr.metalness = 0;
+  attr.metalness = texture(u_texMetal, in_texcoord).r;
   out_attribute  = geo_attr_encode(attr);
 
   // Output normal.

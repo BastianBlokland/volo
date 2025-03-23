@@ -12,6 +12,7 @@
   "samplers": [
     { "texture": "external/rock/rock_2_color.png", "anisotropy": "x2" },
     { "texture": "external/rock/rock_2_rough.png", "anisotropy": "x2" },
+    { "texture": "textures/zero.proctex" },
     { "texture": "external/rock/rock_2_normal.png", "anisotropy": "x2" }
   ],
   "mesh": "external/rock/rock.gltf"
