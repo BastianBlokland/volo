@@ -31,7 +31,7 @@ bind_internal(3) out flat f32v3 out_atlasColorMeta;    // xy: origin, z: scale.
 bind_internal(4) out flat f32v3 out_atlasNormalMeta;   // xy: origin, z: scale.
 bind_internal(5) out flat f32v3 out_atlasEmissiveMeta; // xy: origin, z: scale.
 bind_internal(6) out flat u32 out_flags;
-bind_internal(7) out flat f32 out_roughness;
+bind_internal(7) out flat f32v2 out_attribute;
 bind_internal(8) out flat f32v2 out_alpha; // x: alphaBegin, y: alphaEnd.
 bind_internal(9) out flat u32 out_excludeTags;
 bind_internal(10) out flat f32v4 out_texTransform; // xy: offset, zw: scale.
@@ -79,7 +79,7 @@ void main() {
   out_atlasNormalMeta   = f32v3(texOrgNormal, atlas_entry_size(u_meta.atlasNormal));
   out_atlasEmissiveMeta = f32v3(texOrgEmissive, atlas_entry_size(u_meta.atlasEmissive));
   out_flags             = instanceFlags;
-  out_roughness         = instanceRoughness;
+  out_attribute         = f32v2(instanceRoughness, 0 /* metalness */);
   out_alpha             = f32v2(instanceAlphaBegin, instanceAlphaEnd);
   out_excludeTags       = instanceExcludeTags;
   out_texTransform      = f32v4(0, instanceTexTransformY.x, 1, instanceTexTransformY.y);

@@ -32,7 +32,7 @@ static const RvkPassConfig g_passConfig[AssetGraphicPass_Count] = {
     .attachColorFormat[1] = RvkPassFormat_Color2Linear,
     .attachColorLoad[1]   = RvkPassLoad_DontCare,
 
-    // Attachment color 2: [r] roughness [g] unused
+    // Attachment color 2: [r] roughness [g] metalness
     .attachColorFormat[2] = RvkPassFormat_Color2Linear,
     .attachColorLoad[2]   = RvkPassLoad_DontCare,
 
@@ -54,7 +54,7 @@ static const RvkPassConfig g_passConfig[AssetGraphicPass_Count] = {
     .attachColorFormat[1] = RvkPassFormat_Color2Linear,
     .attachColorLoad[1]   = RvkPassLoad_Preserve,
 
-    // Attachment color 2: [r] roughness [g] unused
+    // Attachment color 2: [r] roughness [g] metalness
     .attachColorFormat[2] = RvkPassFormat_Color2Linear,
     .attachColorLoad[2]   = RvkPassLoad_Preserve,
 

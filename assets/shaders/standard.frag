@@ -56,6 +56,7 @@ void main() {
   // Output attributes.
   GeoAttribute attr;
   attr.roughness = texture(u_texRough, in_texcoord).r;
+  attr.metalness = 0;
   out_attribute  = geo_attr_encode(attr);
 
   // Output normal.

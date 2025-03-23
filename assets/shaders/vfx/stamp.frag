@@ -32,7 +32,7 @@ bind_internal(3) in flat f32v3 in_atlasColorMeta;    // xy: origin, z: scale.
 bind_internal(4) in flat f32v3 in_atlasNormalMeta;   // xy: origin, z: scale.
 bind_internal(5) in flat f32v3 in_atlasEmissiveMeta; // xy: origin, z: scale.
 bind_internal(6) in flat u32 in_flags;
-bind_internal(7) in flat f32 in_roughness;
+bind_internal(7) in flat f32v2 in_attribute; // r: roughness, y: metalness
 bind_internal(8) in flat f32v2 in_alpha; // x: alphaBegin, y: alphaEnd.
 bind_internal(9) in flat u32 in_excludeTags;
 bind_internal(10) in flat f32v4 in_texTransform; // xy: offset, zw: scale.
@@ -42,7 +42,7 @@ bind_internal(12) in flat f32v4 in_warpP23;      // top left and top right.
 /**
  * Geometry Base:      [r] color     [g] color     [b] color    [a] tags
  * Geometry Normal:    [r] normal    [g] normal
- * Geometry Attribute: [r] roughness [g] unused
+ * Geometry Attribute: [r] roughness [g] metalness
  * Geometry Emissive:  [r] emissive  [g] emissive  [b] emissive
  * Alpha blended, w is used to control the blending hence outputting tags is not supported.
  *
@@ -188,7 +188,7 @@ void main() {
     out_base = f32v4(0);
   }
   out_normal    = f32v4(math_normal_encode(normal), 0, alpha);
-  out_attribute = f32v4(in_roughness, 0, 0, alpha);
+  out_attribute = f32v4(in_attribute, 0, alpha);
 
   if ((in_flags & c_flagOutputEmissive) != 0) {
     const f32v3 emissive = atlas_sample(u_atlasEmissive, in_atlasEmissiveMeta, stampCoord).rgb;
