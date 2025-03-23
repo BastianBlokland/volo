@@ -10,36 +10,40 @@ const f32 c_fadeAngleMax = 0.8;
 
 const u32 c_flagOutputColor           = 1 << 0;
 const u32 c_flagOutputNormal          = 1 << 1;
-const u32 c_flagGBufferBaseNormal     = 1 << 2;
-const u32 c_flagDepthBufferBaseNormal = 1 << 3;
-const u32 c_flagFadeUsingDepthNormal  = 1 << 4;
+const u32 c_flagOutputEmissive        = 1 << 2;
+const u32 c_flagGBufferBaseNormal     = 1 << 3;
+const u32 c_flagDepthBufferBaseNormal = 1 << 4;
+const u32 c_flagFadeUsingDepthNormal  = 1 << 5;
 
 bind_global_data(0) readonly uniform Global { GlobalData u_global; };
 
 bind_graphic_img(0) uniform sampler2D u_atlasColor;
 bind_graphic_img(1) uniform sampler2D u_atlasNormal;
+bind_graphic_img(2) uniform sampler2D u_atlasEmissive;
 
 bind_global_img(0) uniform sampler2D u_texGeoBase;
 bind_global_img(1) uniform sampler2D u_texGeoNormal;
 bind_global_img(2) uniform sampler2D u_texGeoDepth;
 
-bind_internal(0) in flat f32v3 in_position;        // World-space.
-bind_internal(1) in flat f32v4 in_rotation;        // World-space.
-bind_internal(2) in flat f32v3 in_scale;           // World-space.
-bind_internal(3) in flat f32v3 in_atlasColorMeta;  // xy: origin, z: scale.
-bind_internal(4) in flat f32v3 in_atlasNormalMeta; // xy: origin, z: scale.
-bind_internal(5) in flat u32 in_flags;
-bind_internal(6) in flat f32 in_roughness;
-bind_internal(7) in flat f32v2 in_alpha; // x: alphaBegin, y: alphaEnd.
-bind_internal(8) in flat u32 in_excludeTags;
-bind_internal(9) in flat f32v4 in_texTransform; // xy: offset, zw: scale.
-bind_internal(10) in flat f32v4 in_warpP01;     // bottom left and bottom right.
-bind_internal(11) in flat f32v4 in_warpP23;     // top left and top right.
+bind_internal(0) in flat f32v3 in_position;          // World-space.
+bind_internal(1) in flat f32v4 in_rotation;          // World-space.
+bind_internal(2) in flat f32v3 in_scale;             // World-space.
+bind_internal(3) in flat f32v3 in_atlasColorMeta;    // xy: origin, z: scale.
+bind_internal(4) in flat f32v3 in_atlasNormalMeta;   // xy: origin, z: scale.
+bind_internal(5) in flat f32v3 in_atlasEmissiveMeta; // xy: origin, z: scale.
+bind_internal(6) in flat u32 in_flags;
+bind_internal(7) in flat f32 in_roughness;
+bind_internal(8) in flat f32v2 in_alpha; // x: alphaBegin, y: alphaEnd.
+bind_internal(9) in flat u32 in_excludeTags;
+bind_internal(10) in flat f32v4 in_texTransform; // xy: offset, zw: scale.
+bind_internal(11) in flat f32v4 in_warpP01;      // bottom left and bottom right.
+bind_internal(12) in flat f32v4 in_warpP23;      // top left and top right.
 
 /**
  * Geometry Base:      [r] color     [g] color     [b] color    [a] tags
  * Geometry Normal:    [r] normal    [g] normal
  * Geometry Attribute: [r] roughness [g] unused
+ * Geometry Emissive:  [r] emissive  [g] emissive  [b] emissive
  * Alpha blended, w is used to control the blending hence outputting tags is not supported.
  *
  * NOTE: Normals can only be blended (without discontinuities) if the source and destination both
@@ -49,6 +53,7 @@ bind_internal(11) in flat f32v4 in_warpP23;     // top left and top right.
 bind_internal(0) out f32v4 out_base;
 bind_internal(1) out f32v4 out_normal;
 bind_internal(2) out f32v4 out_attribute;
+bind_internal(3) out f32v4 out_emissive;
 
 f32v4 atlas_sample(const sampler2D atlas, const f32v3 atlasMeta, const f32v2 atlasCoord) {
   // NOTE: Flip the Y component as we are using the bottom as the texture origin.
@@ -184,4 +189,11 @@ void main() {
   }
   out_normal    = f32v4(math_normal_encode(normal), 0, alpha);
   out_attribute = f32v4(in_roughness, 0, 0, alpha);
+
+  if ((in_flags & c_flagOutputEmissive) != 0) {
+    const f32v3 emissive = atlas_sample(u_atlasEmissive, in_atlasEmissiveMeta, stampCoord).rgb;
+    out_emissive = f32v4(emissive, alpha);
+  } else {
+    out_emissive = f32v4(0);
+  }
 }

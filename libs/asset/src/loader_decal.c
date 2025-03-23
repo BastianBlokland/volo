@@ -23,7 +23,8 @@ typedef struct {
   f32              spacing;
   AssetDecalAxis   projectionAxis;
   StringHash       colorAtlasEntry;
-  StringHash       normalAtlasEntry; // Optional, empty if unused.
+  StringHash       normalAtlasEntry;   // Optional, empty if unused.
+  StringHash       emissiveAtlasEntry; // Optional, empty if unused.
   AssetDecalNormal baseNormal;
   bool             fadeUsingDepthNormal;
   bool             noColorOutput;
@@ -67,23 +68,24 @@ static AssetDecalFlags decal_build_flags(const DecalDef* def) {
 }
 
 static void decal_build_def(const DecalDef* def, AssetDecalComp* out) {
-  out->spacing          = def->spacing < f32_epsilon ? decal_default_spacing : def->spacing;
-  out->projectionAxis   = def->projectionAxis;
-  out->atlasColorEntry  = def->colorAtlasEntry;
-  out->atlasNormalEntry = def->normalAtlasEntry;
-  out->baseNormal       = def->baseNormal;
-  out->flags            = decal_build_flags(def);
-  out->excludeMask      = def->excludeMask;
-  out->roughness        = def->roughness;
-  out->alphaMin         = def->alphaMin < f32_epsilon ? 1.0f : def->alphaMin;
-  out->alphaMax         = math_max(out->alphaMin, def->alphaMax);
-  out->width            = def->width > f32_epsilon ? def->width : decal_default_size;
-  out->height           = def->height > f32_epsilon ? def->height : decal_default_size;
-  out->thickness        = def->thickness > f32_epsilon ? def->thickness : decal_default_thickness;
-  out->scaleMin         = def->scaleMin < f32_epsilon ? 1.0f : def->scaleMin;
-  out->scaleMax         = math_max(out->scaleMin, def->scaleMax);
-  out->fadeInTimeInv    = (def->fadeInTime > f32_epsilon) ? (1.0f / def->fadeInTime) : f32_max;
-  out->fadeOutTimeInv   = (def->fadeOutTime > f32_epsilon) ? (1.0f / def->fadeOutTime) : f32_max;
+  out->spacing            = def->spacing < f32_epsilon ? decal_default_spacing : def->spacing;
+  out->projectionAxis     = def->projectionAxis;
+  out->atlasColorEntry    = def->colorAtlasEntry;
+  out->atlasNormalEntry   = def->normalAtlasEntry;
+  out->atlasEmissiveEntry = def->emissiveAtlasEntry;
+  out->baseNormal         = def->baseNormal;
+  out->flags              = decal_build_flags(def);
+  out->excludeMask        = def->excludeMask;
+  out->roughness          = def->roughness;
+  out->alphaMin           = def->alphaMin < f32_epsilon ? 1.0f : def->alphaMin;
+  out->alphaMax           = math_max(out->alphaMin, def->alphaMax);
+  out->width              = def->width > f32_epsilon ? def->width : decal_default_size;
+  out->height             = def->height > f32_epsilon ? def->height : decal_default_size;
+  out->thickness          = def->thickness > f32_epsilon ? def->thickness : decal_default_thickness;
+  out->scaleMin           = def->scaleMin < f32_epsilon ? 1.0f : def->scaleMin;
+  out->scaleMax           = math_max(out->scaleMin, def->scaleMax);
+  out->fadeInTimeInv      = (def->fadeInTime > f32_epsilon) ? (1.0f / def->fadeInTime) : f32_max;
+  out->fadeOutTimeInv     = (def->fadeOutTime > f32_epsilon) ? (1.0f / def->fadeOutTime) : f32_max;
 }
 
 ecs_module_init(asset_decal_module) {
@@ -117,6 +119,7 @@ void asset_data_init_decal(void) {
   data_reg_field_t(g_dataReg, DecalDef, projectionAxis, t_AssetDecalAxis);
   data_reg_field_t(g_dataReg, DecalDef, colorAtlasEntry, data_prim_t(StringHash), .flags = DataFlags_NotEmpty);
   data_reg_field_t(g_dataReg, DecalDef, normalAtlasEntry, data_prim_t(StringHash), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, DecalDef, emissiveAtlasEntry, data_prim_t(StringHash), .flags = DataFlags_Opt | DataFlags_NotEmpty);
   data_reg_field_t(g_dataReg, DecalDef, baseNormal, t_AssetDecalNormal, .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, DecalDef, fadeUsingDepthNormal, data_prim_t(bool), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, DecalDef, noColorOutput, data_prim_t(bool), .flags = DataFlags_Opt);

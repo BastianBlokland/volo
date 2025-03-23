@@ -57,6 +57,10 @@ static const RvkPassConfig g_passConfig[AssetGraphicPass_Count] = {
     // Attachment color 2: [r] roughness [g] unused
     .attachColorFormat[2] = RvkPassFormat_Color2Linear,
     .attachColorLoad[2]   = RvkPassLoad_Preserve,
+
+     // Attachment color 3: [r] emissive  [g] emissive  [b] emissive
+     .attachColorFormat[3] = RvkPassFormat_Color3LowPrecision,
+     .attachColorLoad[3]   = RvkPassLoad_Preserve,
   },
 
   REND_DEFINE_PASS(Fog)

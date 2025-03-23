@@ -688,6 +688,7 @@ static bool rend_canvas_paint_3d(
     rend_builder_attach_color(b, geoBase, 0);
     rend_builder_attach_color(b, geoNormal, 1);
     rend_builder_attach_color(b, geoAttribute, 2);
+    rend_builder_attach_color(b, geoEmissive, 3);
     rend_builder_attach_depth(b, geoDepth);
     painter_set_global_data(&ctx, &camMat, &projMat, geoSize, time, RendViewType_Main);
     painter_push_objects_simple(&ctx, objView, resView, AssetGraphicPass_Decal);
