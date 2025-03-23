@@ -137,7 +137,7 @@ static void script_lookup_compute_line_ends(ScriptLookup* l) {
 void script_lookup_update(ScriptLookup* l, const String src) {
   if (src.size > l->srcBuffer.size) {
     string_maybe_free(l->alloc, l->srcBuffer);
-    l->srcBuffer = alloc_alloc(l->alloc, bits_nextpow2(src.size), 1);
+    l->srcBuffer = alloc_alloc(l->alloc, sized_call(bits_nextpow2, src.size), 1);
   }
   mem_cpy(l->srcBuffer, src);
   l->srcSize = src.size;
@@ -148,7 +148,7 @@ void script_lookup_update(ScriptLookup* l, const String src) {
 void script_lookup_update_range(ScriptLookup* l, const String src, const ScriptRange range) {
   const usize newSize = l->srcSize - (range.end - range.start) + src.size;
   if (newSize > l->srcBuffer.size) {
-    const String newAlloc = alloc_alloc(l->alloc, bits_nextpow2(newSize), 1);
+    const String newAlloc = alloc_alloc(l->alloc, sized_call(bits_nextpow2, newSize), 1);
     mem_cpy(newAlloc, l->srcBuffer); // TODO: This can also copy text that will be replaced.
     string_maybe_free(l->alloc, l->srcBuffer);
     l->srcBuffer = newAlloc;

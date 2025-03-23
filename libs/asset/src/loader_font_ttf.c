@@ -277,7 +277,7 @@ static void ttf_read_offset_table(Mem data, TtfOffsetTable* out, TtfError* err) 
       *err = TtfError_UnalignedTable;
       return;
     }
-    tableLength = bits_align(tableLength, 4); // All tables have to be 4 byte aligned.
+    tableLength = bits_align_32(tableLength, 4); // All tables have to be 4 byte aligned.
     if (UNLIKELY(tableOffset + tableLength > fileData.size)) {
       *err = TtfError_TableDataMissing;
       return;

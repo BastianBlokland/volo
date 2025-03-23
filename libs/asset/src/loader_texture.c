@@ -277,7 +277,7 @@ static void tex_write_at(
 }
 
 static bool tex_can_compress_u8(const u32 width, const u32 height) {
-  if (!bits_ispow2(width) || !bits_ispow2(height)) {
+  if (!bits_ispow2_32(width) || !bits_ispow2_32(height)) {
     /**
      * Requiring both sides to be powers of two makes mip-map generation easier as all levels are
      * neatly divisible by four, and then the only needed exceptions are the last levels that are
@@ -488,8 +488,8 @@ static void tex_load_u8_compress_gen_mips(
   diag_assert(inLayers == tex->layers);
   diag_assert(tex_format_bc4x4(tex->format));
   diag_assert(!(tex->flags & AssetTextureFlags_Lossless));
-  diag_assert(bits_aligned(tex->width, 4) && bits_ispow2(tex->width));
-  diag_assert(bits_aligned(tex->height, 4) && bits_ispow2(tex->height));
+  diag_assert(bits_aligned(tex->width, 4) && bits_ispow2_32(tex->width));
+  diag_assert(bits_aligned(tex->height, 4) && bits_ispow2_32(tex->height));
 
   const u8* restrict inPtr = in.ptr;
   diag_assert(in.size == tex_pixel_count(tex->width, tex->height, inLayers, inMips) * inChannels);

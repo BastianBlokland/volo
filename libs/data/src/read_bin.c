@@ -296,7 +296,7 @@ NO_INLINE_HINT static void data_read_bin_string_hash(ReadCtx* ctx, DataReadResul
 }
 
 static usize data_read_bin_mem_align(const usize size) {
-  const usize biggestPow2 = u64_lit(1) << bits_ctz(size);
+  const usize biggestPow2 = usize_lit(1) << sized_call(bits_ctz, size);
   return math_min(biggestPow2, data_type_mem_align_max);
 }
 

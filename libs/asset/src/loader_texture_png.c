@@ -581,7 +581,7 @@ void asset_load_tex_png(
       channels = PngChannels_RGB;
     }
     sampleBits = header.bitDepth;
-    if (UNLIKELY((sampleBits > 1) && (!bits_ispow2(sampleBits) || sampleBits > 8))) {
+    if (UNLIKELY((sampleBits > 1) && (!bits_ispow2_32(sampleBits) || sampleBits > 8))) {
       png_load_fail(world, entity, id, PngError_InvalidIndexBitDepth);
     }
   } else {

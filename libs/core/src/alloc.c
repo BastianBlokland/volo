@@ -68,7 +68,9 @@ Mem alloc_alloc(Allocator* allocator, const usize size, const usize align) {
 
   diag_assert_msg(size, "alloc_alloc: 0 byte allocations are not valid");
   diag_assert_msg(
-      bits_ispow2(align), "alloc_alloc: Alignment '{}' is not a power-of-two", fmt_int(align));
+      sized_call(bits_ispow2, align),
+      "alloc_alloc: Alignment '{}' is not a power-of-two",
+      fmt_int(align));
   diag_assert_msg(
       bits_aligned(size, align),
       "alloc_alloc: Size '{}' is not a multiple of the alignment '{}'",

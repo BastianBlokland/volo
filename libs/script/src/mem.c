@@ -27,7 +27,7 @@ INLINE_HINT static u32 slot_data_should_grow(ScriptMem* mem) {
 static usize slot_data_size(const u32 slotCount) {
   const usize valuesSize = sizeof(ScriptVal) * slotCount;
   const usize keysSize   = sizeof(StringHash) * slotCount;
-  return bits_align(valuesSize + keysSize, alignof(ScriptVal));
+  return sized_call(bits_align, valuesSize + keysSize, alignof(ScriptVal));
 }
 
 static void* slot_data_alloc(const u32 slotCount) {

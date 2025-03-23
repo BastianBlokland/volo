@@ -486,7 +486,7 @@ static AssetMeshDataPtr gltf_data_push_string(GltfLoad* ld, const String val) {
 
 MAYBE_UNUSED static AssetMeshDataPtr gltf_data_push_access(GltfLoad* ld, const u32 acc) {
   const u32 elemSize         = gltf_comp_size(ld->access[acc].compType) * ld->access[acc].compCount;
-  const AssetMeshDataPtr res = gltf_data_begin(ld, bits_nextpow2(elemSize));
+  const AssetMeshDataPtr res = gltf_data_begin(ld, bits_nextpow2_32(elemSize));
   const Mem accessorMem = mem_create(ld->access[acc].data_raw, elemSize * ld->access[acc].count);
   mem_cpy(dynarray_push(&ld->animData, accessorMem.size), accessorMem);
   return res;
@@ -1588,7 +1588,7 @@ static void gltf_build_skeleton(
   AssetMeshDataPtr resRootTransform = gltf_data_push_trans(ld, rootTrans);
 
   // Pad animData so the size is always a multiple of 16.
-  mem_set(dynarray_push(&ld->animData, bits_padding(ld->animData.size, 16)), 0);
+  mem_set(dynarray_push(&ld->animData, sized_call(bits_padding, ld->animData.size, 16)), 0);
 
   *out = (AssetMeshSkeletonComp){
       .anims.values    = resAnims,

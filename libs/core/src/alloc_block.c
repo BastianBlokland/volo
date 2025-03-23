@@ -158,7 +158,7 @@ static void alloc_block_reset(Allocator* allocator) {
 Allocator* alloc_block_create(Allocator* parent, const usize blockSize, const usize blockAlign) {
   diag_assert_msg(blockSize >= sizeof(BlockNode), "Blocksize {} is too small", fmt_int(blockSize));
   diag_assert(blockSize <= u32_max && blockAlign <= u32_max);
-  diag_assert(bits_ispow2(blockAlign));
+  diag_assert(sized_call(bits_ispow2, blockAlign));
   diag_assert(bits_aligned(blockSize, blockAlign));
 
   const Mem mainMem = alloc_alloc(parent, main_size_total, main_align);

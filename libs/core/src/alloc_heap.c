@@ -27,8 +27,8 @@ typedef struct {
 } AllocatorHeap;
 
 static usize alloc_heap_pow_index(const usize size) {
-  const usize sizePow2 = bits_nextpow2(size);
-  return bits_ctz(sizePow2);
+  const usize sizePow2 = sized_call(bits_nextpow2, size);
+  return sized_call(bits_ctz, sizePow2);
 }
 
 static Allocator* alloc_heap_sub_allocator(AllocatorHeap* allocHeap, const usize size) {

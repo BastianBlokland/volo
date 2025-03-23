@@ -119,7 +119,9 @@ Allocator* alloc_chunked_create(Allocator* parent, AllocatorBuilder builder, usi
       fmt_size(chunkSize),
       fmt_size(alloc_chunk_size_min));
   diag_assert_msg(
-      bits_ispow2(chunkSize), "Chunk-size '{}' is not a power-of-two", fmt_int(chunkSize));
+      sized_call(bits_ispow2, chunkSize),
+      "Chunk-size '{}' is not a power-of-two",
+      fmt_int(chunkSize));
 
   // The main-memory contains both the meta-data (AllocatorChunked) as well as chunk 0.
   const Mem mainMem = alloc_alloc(parent, chunkSize, alloc_chunk_align);

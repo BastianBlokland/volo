@@ -25,7 +25,7 @@ static void data_clone_string(const CloneCtx* ctx) {
 }
 
 static usize data_clone_mem_align(const usize size) {
-  const usize biggestPow2 = u64_lit(1) << bits_ctz(size);
+  const usize biggestPow2 = usize_lit(1) << sized_call(bits_ctz, size);
   return math_min(biggestPow2, data_type_mem_align_max);
 }
 

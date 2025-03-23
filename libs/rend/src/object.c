@@ -98,7 +98,7 @@ static void ecs_combine_object(void* dataA, void* dataB) {
 
 INLINE_HINT static void buf_ensure(Mem* mem, const usize size, const usize align) {
   if (UNLIKELY(mem->size < size)) {
-    const Mem newMem = alloc_alloc(g_allocHeap, bits_nextpow2(size), align);
+    const Mem newMem = alloc_alloc(g_allocHeap, sized_call(bits_nextpow2, size), align);
     if (mem_valid(*mem)) {
       mem_cpy(newMem, *mem);
       alloc_free(g_allocHeap, *mem);

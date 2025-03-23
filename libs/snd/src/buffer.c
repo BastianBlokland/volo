@@ -13,7 +13,7 @@
  * Pre-condition: count <= 8192.
  */
 static void snd_fft(Complex buffer[], const u32 count) {
-  diag_assert(bits_ispow2(count));
+  diag_assert(bits_ispow2_32(count));
 
   /**
    * Basic (recursive) Cooley-Tukey FFT implementation.
@@ -120,7 +120,7 @@ f32 snd_buffer_magnitude_rms(const SndBufferView view, const SndChannel channel)
 }
 
 void snd_buffer_spectrum(const SndBufferView view, const SndChannel channel, f32 outMagnitudes[]) {
-  diag_assert(bits_ispow2(view.frameCount));
+  diag_assert(bits_ispow2_32(view.frameCount));
   diag_assert(view.frameCount <= 8192);
 
   Complex* buffer = mem_stack(view.frameCount * sizeof(Complex)).ptr;

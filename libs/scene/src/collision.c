@@ -190,7 +190,7 @@ ecs_module_init(scene_collision_module) {
 }
 
 String scene_layer_name(const SceneLayer layer) {
-  diag_assert_msg(bits_popcnt((u32)layer) == 1, "Exactly one layer should be enabled");
+  diag_assert_msg(bits_popcnt_32((u32)layer) == 1, "Exactly one layer should be enabled");
   const u32           index     = bits_ctz_32(layer);
   static const String g_names[] = {
       string_static("Debug"),
@@ -239,7 +239,7 @@ SceneCollisionComp* scene_collision_add(
     const SceneLayer           layer,
     const SceneCollisionShape* shapes,
     const u32                  shapeCount) {
-  diag_assert_msg(bits_popcnt((u32)layer) == 1, "Collider can only be in 1 layer");
+  diag_assert_msg(bits_popcnt_32((u32)layer) == 1, "Collider can only be in 1 layer");
   diag_assert_msg(shapeCount, "Collider needs at least 1 shape");
 
   const Mem shapesMem = alloc_dup(

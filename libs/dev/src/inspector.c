@@ -1219,7 +1219,7 @@ static void inspector_panel_draw_status(InspectorContext* ctx, UiTable* table) {
     return;
   }
   inspector_panel_next(ctx, table);
-  const u32    activeCount = bits_popcnt((u32)status->active);
+  const u32    activeCount = bits_popcnt_32((u32)status->active);
   const String title       = fmt_write_scratch("Status ({})", fmt_int(activeCount));
   if (inspector_panel_section(ctx, title, ctx->isEditMode /* readonly */)) {
     const UiWidgetFlags flags = ctx->isEditMode ? UiWidget_Disabled : UiWidget_Default;
@@ -1330,7 +1330,7 @@ static void inspector_panel_draw_collision(InspectorContext* ctx, UiTable* table
     inspector_panel_next(ctx, table);
     ui_label(ctx->canvas, string_lit("Layer"));
     ui_table_next_column(ctx->canvas, table);
-    if (bits_popcnt((u32)col->layer) == 1) {
+    if (bits_popcnt_32((u32)col->layer) == 1) {
       inspector_panel_draw_string(ctx, scene_layer_name(col->layer));
     } else {
       inspector_panel_draw_string(ctx, string_lit("< Multiple >"));
@@ -1472,7 +1472,7 @@ static void inspector_panel_draw_tags(InspectorContext* ctx, UiTable* table) {
   if (!tagComp) {
     return;
   }
-  const u32    tagCount = bits_popcnt((u32)tagComp->tags);
+  const u32    tagCount = bits_popcnt_32((u32)tagComp->tags);
   const String title    = fmt_write_scratch("Tags ({})", fmt_int(tagCount));
   inspector_panel_next(ctx, table);
   if (inspector_panel_section(ctx, title, ctx->isEditMode /* readonly */)) {

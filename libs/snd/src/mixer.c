@@ -482,7 +482,7 @@ static SndBuffer snd_mixer_merge(SndMixerComp* m, const u32 frameCount) {
   f32* restrict bufferSamples  = (f32* restrict)m->bufferFrames; // [frameCount * SndChannel_Count].
   const u32 bufferSampleStride = snd_frame_count_max * SndChannel_Count;
 
-  const u32 sampleCount = bits_align(frameCount, 2) * SndChannel_Count;
+  const u32 sampleCount = bits_align_32(frameCount, 2) * SndChannel_Count;
   for (u32 sampleIndex = 0; sampleIndex != sampleCount; sampleIndex += 4) {
     SimdVec accum = simd_vec_load(bufferSamples + sampleIndex);
     for (u32 i = 1; i != snd_mixer_buffer_count; ++i) {

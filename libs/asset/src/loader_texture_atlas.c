@@ -397,7 +397,7 @@ void asset_load_tex_atlas(
     errMsg = result.errorMsg;
     goto Error;
   }
-  if (UNLIKELY(!bits_ispow2(def.size))) {
+  if (UNLIKELY(!sized_call(bits_ispow2, def.size))) {
     errMsg = atlas_error_str(AtlasError_SizeNonPow2);
     goto Error;
   }
@@ -405,7 +405,7 @@ void asset_load_tex_atlas(
     errMsg = atlas_error_str(AtlasError_SizeTooBig);
     goto Error;
   }
-  if (UNLIKELY(!bits_ispow2(def.entrySize))) {
+  if (UNLIKELY(!sized_call(bits_ispow2, def.entrySize))) {
     errMsg = atlas_error_str(AtlasError_EntrySizeNonPow2);
     goto Error;
   }

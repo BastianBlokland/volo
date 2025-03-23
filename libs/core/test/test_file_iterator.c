@@ -101,7 +101,7 @@ spec(file_iterator) {
     }
 
     // Assert all files are found.
-    check_eq_int(bits_popcnt(foundFiles), array_elems(g_fileNames));
+    check_eq_int(bits_popcnt_32(foundFiles), array_elems(g_fileNames));
 
     // Assert end of iterator.
     check_eq_int(file_iterator_next(itr, &entry), FileIteratorResult_End);

@@ -144,7 +144,7 @@ static void prim_copy(QueryPrim* dst, const QueryPrim* src, const QueryPrimType 
 }
 
 NO_INLINE_HINT static void prim_grow(QueryPrim* p, const QueryPrimType type) {
-  QueryPrim newPrim = prim_create(type, bits_nextpow2(p->capacity + 1));
+  QueryPrim newPrim = prim_create(type, bits_nextpow2_32(p->capacity + 1));
   prim_copy(&newPrim, p, type);
   prim_destroy(p, type);
   *p = newPrim;
@@ -340,7 +340,7 @@ static void bvh_grow_if_needed(QueryBvh* bvh, const u32 shapeCount) {
     alloc_free_array_t(g_allocHeap, bvh->nodes, bvh->shapeCapacity * 2);
     alloc_free_array_t(g_allocHeap, bvh->shapes, bvh->shapeCapacity);
   }
-  bvh->shapeCapacity = bits_nextpow2(shapeCount);
+  bvh->shapeCapacity = bits_nextpow2_32(shapeCount);
   bvh->nodes         = alloc_array_t(g_allocHeap, QueryBvhNode, bvh->shapeCapacity * 2);
   bvh->shapes        = alloc_array_t(g_allocHeap, QueryShape, bvh->shapeCapacity);
 }

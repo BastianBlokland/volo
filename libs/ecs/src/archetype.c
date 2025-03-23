@@ -38,7 +38,7 @@ static u32 ecs_archetype_entities_per_chunk(const EcsDef* def, BitSet mask) {
   bitset_for(mask, compId) {
     const usize compSize  = ecs_def_comp_size(def, (EcsCompId)compId);
     const usize compAlign = ecs_def_comp_align(def, (EcsCompId)compId);
-    padding += bits_padding(align, compAlign);
+    padding += sized_call(bits_padding, align, compAlign);
     entityDataSize += compSize;
     align = compAlign;
   }
@@ -148,7 +148,7 @@ EcsArchetype ecs_archetype_create(const EcsDef* def, BitSet mask) {
   bitset_for(mask, compId) {
     const usize compSize  = ecs_def_comp_size(def, (EcsCompId)compId);
     const usize compAlign = ecs_def_comp_align(def, (EcsCompId)compId);
-    offset                = bits_align(offset, compAlign);
+    offset                = sized_call(bits_align, offset, compAlign);
     compOffsets[compIdx]  = (u16)offset;
     compSizes[compIdx]    = (u16)compSize;
     offset += compSize * entitiesPerChunk;

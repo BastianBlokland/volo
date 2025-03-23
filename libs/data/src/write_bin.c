@@ -76,7 +76,7 @@ static void bin_push_mem(const WriteCtx* ctx, const Mem mem) {
 }
 
 static void bin_push_padding(const WriteCtx* ctx, const usize offset, const usize align) {
-  const usize padding = bits_padding(ctx->out->size + offset + 1, align);
+  const usize padding = sized_call(bits_padding, ctx->out->size + offset + 1, align);
   diag_assert(padding <= u8_max);
   bin_push_u8(ctx, (u8)padding);
   mem_set(dynstring_push(ctx->out, padding), 0);
@@ -179,7 +179,7 @@ static void data_write_bin_enum(const WriteCtx* ctx) {
 }
 
 static usize data_write_bin_mem_align(const usize size) {
-  const usize biggestPow2 = u64_lit(1) << bits_ctz(size);
+  const usize biggestPow2 = usize_lit(1) << sized_call(bits_ctz, size);
   return math_min(biggestPow2, data_type_mem_align_max);
 }
 

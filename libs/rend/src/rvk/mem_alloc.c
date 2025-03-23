@@ -47,9 +47,9 @@ static RvkAllocInfo
 rvk_alloc_internal(Allocator* alloc, usize size, usize align, const VkSystemAllocationScope scope) {
   (void)scope;
   align = math_max(align, alignof(RvkAllocMeta));
-  size  = bits_align(size, align);
+  size  = sized_call(bits_align, size, align);
 
-  const usize padding   = bits_padding(sizeof(RvkAllocMeta), align);
+  const usize padding   = sized_call(bits_padding, sizeof(RvkAllocMeta), align);
   const usize totalSize = padding + sizeof(RvkAllocMeta) + size;
 
   Mem mem = alloc_alloc(alloc, totalSize, align);

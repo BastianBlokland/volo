@@ -90,7 +90,7 @@ static VkSemaphore rvk_semaphore_create(RvkDevice* dev) {
 }
 
 static bool rvk_transfer_fits(const RvkTransferBuffer* buffer, const u64 size, const u64 align) {
-  return (bits_align(buffer->offset, align) + size) <= buffer->hostBuffer.size;
+  return (bits_align_64(buffer->offset, align) + size) <= buffer->hostBuffer.size;
 }
 
 static RvkTransferBuffer* rvk_transfer_buffer_create(RvkTransferer* trans, const u64 size) {
@@ -276,7 +276,7 @@ RvkTransferId rvk_transfer_buffer(RvkTransferer* trans, RvkBuffer* dest, const M
   if (buffer->state == RvkTransferState_Idle) {
     rvk_transfer_begin(trans, buffer);
   }
-  buffer->offset = bits_align(buffer->offset, reqAlign);
+  buffer->offset = bits_align_64(buffer->offset, reqAlign);
   rvk_buffer_upload(&buffer->hostBuffer, data, buffer->offset);
 
   const VkBufferCopy copyRegions[] = {
@@ -356,7 +356,7 @@ rvk_transfer_image(RvkTransferer* trans, RvkImage* dest, const Mem data, const u
   if (buffer->state == RvkTransferState_Idle) {
     rvk_transfer_begin(trans, buffer);
   }
-  buffer->offset = bits_align(buffer->offset, reqAlign);
+  buffer->offset = bits_align_64(buffer->offset, reqAlign);
   rvk_buffer_upload(&buffer->hostBuffer, data, buffer->offset);
 
   if (buffer->vkCmdBufferTransfer) {

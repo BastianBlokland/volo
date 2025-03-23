@@ -155,7 +155,7 @@ Mem rvk_uniform_map(RvkUniformPool* uni, const RvkUniformHandle handle) {
 RvkUniformHandle rvk_uniform_push(RvkUniformPool* uni, const usize size) {
   diag_assert(size);
 
-  const u32 padding    = bits_padding((u32)size, uni->alignMin);
+  const u32 padding    = bits_padding_32((u32)size, uni->alignMin);
   const u32 paddedSize = (u32)size + padding;
   diag_assert_msg(paddedSize <= uni->dataSizeMax, "Uniform data exceeds maximum");
 

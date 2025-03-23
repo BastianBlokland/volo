@@ -49,7 +49,7 @@ static AllocTrackerSlot* tracker_slot(
 
 NO_INLINE_HINT static void tracker_grow(AllocTracker* table) {
   // Allocate new slots.
-  const usize       newSlotCount = bits_nextpow2(table->slotCount + 1);
+  const usize       newSlotCount = sized_call(bits_nextpow2, table->slotCount + 1);
   AllocTrackerSlot* newSlots     = tracker_slots_alloc(newSlotCount);
 
   // Insert the old data into the new slots.

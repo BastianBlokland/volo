@@ -518,7 +518,7 @@ void rvk_mem_flush_batch(const RvkMemFlush flushes[], const u32 count) {
     diag_assert(chunkOffset >= alignedOffset && chunkOffset - alignedOffset < flushAlignment);
 
     // Pad the size to be aligned (or until the end of the chunk).
-    u32 paddedSize = bits_align(flush->size, flushAlignment);
+    u32 paddedSize = bits_align_32(flush->size, flushAlignment);
     if (chunkOffset + paddedSize > chunk->size) {
       paddedSize = chunk->size - chunkOffset;
     }

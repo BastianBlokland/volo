@@ -36,11 +36,12 @@ static AssetMeshSnapshot asset_mesh_snapshot(const AssetMeshBuilder* builder, Al
   const Mem orgSkinMem = dynarray_at(&builder->skinData, 0, builder->skinData.size);
   const Mem orgIdxMem  = dynarray_at(&builder->indexData, 0, builder->indexData.size);
 
-  const usize memSize = bits_align(orgVertMem.size + orgSkinMem.size + orgIdxMem.size, Align);
-  const Mem   mem     = alloc_alloc(alloc, memSize, Align);
-  const Mem   vertMem = mem_slice(mem, 0, orgVertMem.size);
-  const Mem   skinMem = mem_slice(mem, orgVertMem.size, orgSkinMem.size);
-  const Mem   idxMem  = mem_slice(mem, orgVertMem.size + orgSkinMem.size, orgIdxMem.size);
+  const usize memSizeUnaligned = orgVertMem.size + orgSkinMem.size + orgIdxMem.size;
+  const usize memSize          = sized_call(bits_align, memSizeUnaligned, Align);
+  const Mem   mem              = alloc_alloc(alloc, memSize, Align);
+  const Mem   vertMem          = mem_slice(mem, 0, orgVertMem.size);
+  const Mem   skinMem          = mem_slice(mem, orgVertMem.size, orgSkinMem.size);
+  const Mem   idxMem           = mem_slice(mem, orgVertMem.size + orgSkinMem.size, orgIdxMem.size);
 
   mem_cpy(vertMem, orgVertMem);
   mem_cpy(skinMem, orgSkinMem);
@@ -74,7 +75,7 @@ AssetMeshBuilder* asset_mesh_builder_create(Allocator* alloc, const u32 maxVerte
       .vertexData     = dynarray_create_t(alloc, AssetMeshVertex, maxVertexCount),
       .skinData       = dynarray_create_t(alloc, AssetMeshSkin, 0),
       .indexData      = dynarray_create_t(alloc, AssetMeshIndex, maxVertexCount),
-      .tableSize      = bits_nextpow2((u32)maxVertexCount),
+      .tableSize      = bits_nextpow2_32((u32)maxVertexCount),
       .maxVertexCount = (u32)maxVertexCount,
       .bounds         = geo_box_inverted3(),
       .alloc          = alloc,

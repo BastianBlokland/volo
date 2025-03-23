@@ -37,7 +37,7 @@ static usize sig_data_size(const ScriptSig* sig) {
   }
   usize result = sig->argOffsets[sig->argCount - 1];
   result += sig_arg_data_size(script_sig_arg(sig, sig->argCount - 1));
-  result += bits_padding(result, alignof(ScriptSig));
+  result += sized_call(bits_padding, result, alignof(ScriptSig));
   return result;
 }
 
@@ -48,9 +48,9 @@ ScriptSig* script_sig_create(
   usize allocSize = sizeof(ScriptSig);
   for (u8 i = 0; i != argCount; ++i) {
     allocSize += sig_arg_data_size(args[i]);
-    allocSize += bits_padding(allocSize, alignof(ScriptMask));
+    allocSize += sized_call(bits_padding, allocSize, alignof(ScriptMask));
   }
-  allocSize += bits_padding(allocSize, alignof(ScriptSig));
+  allocSize += sized_call(bits_padding, allocSize, alignof(ScriptSig));
 
   ScriptSig* sig = alloc_alloc(alloc, allocSize, alignof(ScriptSig)).ptr;
   sig->retMask   = ret;
@@ -73,9 +73,9 @@ ScriptSig* script_sig_create(
     mem_cpy(mem_create(bits_ptr_offset(sig, offset + sizeof(ScriptMask) + 2), name.size), name);
 
     offset += sig_arg_data_size(args[i]);
-    offset += bits_padding(offset, alignof(ScriptMask));
+    offset += sized_call(bits_padding, offset, alignof(ScriptMask));
   }
-  diag_assert(bits_align(offset, alignof(ScriptSig)) == allocSize);
+  diag_assert(sized_call(bits_align, offset, alignof(ScriptSig)) == allocSize);
 
   return sig;
 }

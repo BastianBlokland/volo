@@ -31,7 +31,7 @@ ecs_comp_define_public(SceneDeadComp);
 
 static SceneHealthMod* mod_storage_push(SceneHealthModStorage* storage) {
   if (UNLIKELY(storage->count == storage->capacity)) {
-    const u32       newCapacity = storage->capacity ? bits_nextpow2(storage->capacity + 1) : 4;
+    const u32       newCapacity = storage->capacity ? bits_nextpow2_32(storage->capacity + 1) : 4;
     SceneHealthMod* newValues   = alloc_array_t(g_allocHeap, SceneHealthMod, newCapacity);
     if (UNLIKELY(!newValues)) {
       diag_crash_msg("damage_storage_push(): Allocation failed");

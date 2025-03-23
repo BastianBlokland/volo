@@ -359,7 +359,7 @@ void asset_load_tex_proc(
     errMsg = result.errorMsg;
     goto Error;
   }
-  if (UNLIKELY(!bits_ispow2(def.size))) {
+  if (UNLIKELY(!bits_ispow2_32(def.size))) {
     errMsg = proctex_error_str(ProcTexError_SizeNonPow2);
     goto Error;
   }

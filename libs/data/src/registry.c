@@ -204,7 +204,8 @@ DataType data_declare(DataReg* reg, const String name) {
 
 DataType data_reg_struct(DataReg* reg, const String name, const usize size, const usize align) {
   diag_assert_msg(name.size, "Type name cannot be empty");
-  diag_assert_msg(bits_ispow2(align), "Alignment '{}' is not a power-of-two", fmt_int(align));
+  diag_assert_msg(
+      sized_call(bits_ispow2, align), "Alignment '{}' is not a power-of-two", fmt_int(align));
   diag_assert_msg(
       bits_aligned(size, align),
       "Size '{}' is not a multiple of alignment '{}'",
@@ -267,7 +268,8 @@ DataType data_reg_union(
     DataReg* reg, const String name, const usize size, const usize align, const usize tagOffset) {
 
   diag_assert_msg(name.size, "Type name cannot be empty");
-  diag_assert_msg(bits_ispow2(align), "Alignment '{}' is not a power-of-two", fmt_int(align));
+  diag_assert_msg(
+      sized_call(bits_ispow2, align), "Alignment '{}' is not a power-of-two", fmt_int(align));
   diag_assert_msg(
       bits_aligned(size, align),
       "Size '{}' is not a multiple of alignment '{}'",
@@ -361,7 +363,8 @@ void data_reg_const(DataReg* reg, const DataType parent, const String name, cons
 
 DataType data_reg_opaque(DataReg* reg, const String name, const usize size, const usize align) {
   diag_assert_msg(name.size, "Type name cannot be empty");
-  diag_assert_msg(bits_ispow2(align), "Alignment '{}' is not a power-of-two", fmt_int(align));
+  diag_assert_msg(
+      sized_call(bits_ispow2, align), "Alignment '{}' is not a power-of-two", fmt_int(align));
   diag_assert_msg(
       bits_aligned(size, align),
       "Size '{}' is not a multiple of alignment '{}'",

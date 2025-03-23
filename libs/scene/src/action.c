@@ -37,7 +37,7 @@ ecs_comp_define(SceneActionQueueComp) {
 
 static usize action_queue_mem_size(const u32 cap) {
   const usize rawSize = sizeof(SceneAction) * cap + sizeof(ActionTypeStorage) * cap;
-  return bits_align(rawSize, alignof(SceneAction));
+  return sized_call(bits_align, rawSize, alignof(SceneAction));
 }
 
 static Mem action_queue_types(void* memPtr, const u32 cap) {
@@ -79,7 +79,7 @@ static void ecs_combine_action_queue(void* compA, void* compB) {
 }
 
 NO_INLINE_HINT static void action_queue_grow(SceneActionQueueComp* q) {
-  const u32   newCap     = bits_nextpow2(q->cap + 1);
+  const u32   newCap     = bits_nextpow2_32(q->cap + 1);
   const usize newMemSize = action_queue_mem_size(newCap);
   void*       newData    = alloc_alloc(g_allocHeap, newMemSize, alignof(SceneAction)).ptr;
   diag_assert_msg(newData, "Allocation failed");

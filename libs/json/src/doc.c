@@ -67,8 +67,9 @@ static JsonVal json_add_data(JsonDoc* doc, JsonValData data) {
 static String json_bigstring_add(JsonDoc* doc, const String data) {
   diag_assert(data.size >= json_str_big_threshold);
 
-  const usize allocSize = bits_align(data.size + sizeof(JsonBigStr), alignof(JsonBigStr));
-  const Mem   allocMem  = alloc_alloc(doc->alloc, allocSize, alignof(JsonBigStr));
+  const usize bigStrAlign = alignof(JsonBigStr);
+  const usize allocSize   = sized_call(bits_align, data.size + sizeof(JsonBigStr), bigStrAlign);
+  const Mem   allocMem    = alloc_alloc(doc->alloc, allocSize, bigStrAlign);
   if (UNLIKELY(!mem_valid(allocMem))) {
     diag_crash_msg("Json doc failed to allocate big string ({})", fmt_size(data.size));
   }
@@ -93,8 +94,9 @@ static String json_bigstring_add(JsonDoc* doc, const String data) {
 
 static void json_bigstring_free_all(JsonDoc* doc) {
   for (JsonBigStr* node = doc->bigStrs; node;) {
-    JsonBigStr* next     = node->next;
-    const usize nodeSize = bits_align(sizeof(JsonBigStr) + node->size, alignof(JsonBigStr));
+    JsonBigStr* next        = node->next;
+    const usize bigStrAlign = alignof(JsonBigStr);
+    const usize nodeSize    = sized_call(bits_align, sizeof(JsonBigStr) + node->size, bigStrAlign);
     alloc_free(doc->alloc, mem_create(node, nodeSize));
     node = next;
   }
