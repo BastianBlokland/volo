@@ -93,7 +93,7 @@ struct PbrSurface {
   f32v3 position;
   f32v3 color;
   f32v3 normal;
-  f32   roughness;
+  f32   roughness, metalness;
 };
 
 f32v3 pbr_light_dir(

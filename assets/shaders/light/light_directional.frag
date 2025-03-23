@@ -119,6 +119,7 @@ void main() {
   surf.color     = geoBase.color;
   surf.normal    = geoNormal;
   surf.roughness = geoAttr.roughness;
+  surf.metalness = geoAttr.metalness;
 
   out_color = pbr_light_dir(effectiveRadiance, in_direction, viewDir, surf);
 }

@@ -94,6 +94,7 @@ void main() {
   surf.color     = geoBase.color;
   surf.normal    = geoNormal;
   surf.roughness = geoAttr.roughness;
+  surf.metalness = geoAttr.metalness;
 
   const f32v3 viewDir      = normalize(u_global.camPosition.xyz - worldPos);
   const f32   ambientLight = u_draw.packed.x;
