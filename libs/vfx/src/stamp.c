@@ -23,7 +23,7 @@ typedef struct {
   f32 data1[4]; // xyz: position, w: 16b flags, 16b excludeTags.
   f16 data2[4]; // xyzw: rotation quaternion.
   f16 data3[4]; // xyz: scale, w: roughness.
-  u16 data4[4]; // x: atlasColorIndex, y: atlasNormalIndex, z: alphaBegin, w: alphaEnd.
+  u16 data4[4]; // x: atlasColorIndex, y: atlasNormalIndex, z: unused, w: 16b alphaBegin/alphaEnd.
   f16 data5[4]; // xy: warpScale, z: texOffsetY, w: texScaleY.
   union {
     f16 warpPoints[4][2];
@@ -71,8 +71,11 @@ void vfx_stamp_output(RendObjectComp* obj, const VfxStamp* params) {
 
   out->data4[0] = params->atlasColorIndex;
   out->data4[1] = params->atlasNormalIndex;
-  out->data4[2] = (u16)(vfx_clamp01(params->alphaBegin) * 65534.9999f);
-  out->data4[3] = (u16)(vfx_clamp01(params->alphaEnd) * 65534.9999f);
+  out->data4[2] = 0;
+
+  const u16 alphaBeginEnc = (u8)(vfx_clamp01(params->alphaBegin) * 255.999f);
+  const u16 alphaEndEnc   = (u8)(vfx_clamp01(params->alphaEnd) * 255.999f);
+  out->data4[3]           = alphaBeginEnc | (alphaEndEnc << 8);
 
   geo_vector_pack_f16(
       geo_vector(warpScale.x, warpScale.y, params->texOffsetY, params->texScaleY), out->data5);

@@ -13,7 +13,7 @@ struct StampData {
   f32v4 data1; // x, y, z: position, w: 16b flags, 16b excludeTags.
   f16v4 data2; // x, y, z, w: rotation quaternion.
   f16v4 data3; // x, y, z: stampScale, w: roughness.
-  u16v4 data4; // x: atlasColorIndex, y: atlasNormalIndex, z: alphaBegin, w: alphaEnd.
+  u16v4 data4; // x: atlasColorIndex, y: atlasNormalIndex, z: unused, w: alphaBegin/alphaEnd.
   f16v4 data5; // x, y: warpScale, z: texOffsetY, w: texScaleY.
   f16v4 data6; // x, y: warpP0 (bottom left), z, w: warpP1 (bottom right).
   f16v4 data7; // x, y: warpP2 (top left),    z, w: warpP3 (top right).
@@ -56,7 +56,8 @@ void main() {
   const f32   instanceRoughness        = instanceData3.w;
   const f32   instanceAtlasColorIndex  = f32(instanceData4.x);
   const f32   instanceAtlasNormalIndex = f32(instanceData4.y);
-  const f32v2 instanceAlpha            = f32v2(instanceData4.zw) / f32(0xFFFF);
+  const f32   instanceAlphaBegin       = f32(instanceData4.w & 0xFF) / f32(0xFF);
+  const f32   instanceAlphaEnd         = f32((instanceData4.w >> 8) & 0xFF) / f32(0xFF);
   const f32v2 instanceWarpScale        = instanceData5.xy;
   const f32v2 instanceTexTransformY    = instanceData5.zw;
   const f32v4 instanceWarpP01          = instanceData6;
@@ -75,7 +76,7 @@ void main() {
   out_atlasNormalMeta = f32v3(normalTexOrigin, atlas_entry_size(u_meta.atlasNormal));
   out_flags           = instanceFlags;
   out_roughness       = instanceRoughness;
-  out_alpha           = instanceAlpha;
+  out_alpha           = f32v2(instanceAlphaBegin, instanceAlphaEnd);
   out_excludeTags     = instanceExcludeTags;
   out_texTransform    = f32v4(0, instanceTexTransformY.x, 1, instanceTexTransformY.y);
   out_warpP01         = instanceWarpP01;
