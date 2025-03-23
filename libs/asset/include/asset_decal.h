@@ -30,7 +30,8 @@ typedef enum {
 
 ecs_comp_extern_public(AssetDecalComp) {
   StringHash       atlasColorEntry;
-  StringHash       atlasNormalEntry; // Optional, 0 if unused.
+  StringHash       atlasNormalEntry;   // Optional, 0 if unused.
+  StringHash       atlasEmissiveEntry; // Optional, 0 if unused.
   AssetDecalAxis   projectionAxis : 8;
   AssetDecalNormal baseNormal : 8; // Base normal where the normal-map is optionally applied on top.
   AssetDecalFlags  flags : 8;

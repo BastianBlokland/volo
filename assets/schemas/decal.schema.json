@@ -11,6 +11,7 @@
         "projectionAxis": { "title": "AssetDecalAxis", "$ref": "#/$defs/AssetDecalAxis" },
         "colorAtlasEntry": { "title": "StringHash", "type": "string", "minLength": 1 },
         "normalAtlasEntry": { "title": "StringHash", "type": "string", "minLength": 1 },
+        "emissiveAtlasEntry": { "title": "StringHash", "type": "string", "minLength": 1 },
         "baseNormal": { "title": "AssetDecalNormal", "$ref": "#/$defs/AssetDecalNormal" },
         "fadeUsingDepthNormal": { "title": "bool", "type": "boolean" },
         "noColorOutput": { "title": "bool", "type": "boolean" },
