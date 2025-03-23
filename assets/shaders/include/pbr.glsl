@@ -11,12 +11,6 @@
  */
 
 /**
- * Uniform reflectance.
- * NOTE: Metals are not supported, all materials are assumed to be dia-electric (like plastic).
- */
-const f32v3 c_pbrReflectance = f32v3(0.04);
-
-/**
  * Trowbridge-Reitz normal distribution function.
  * Statistically approximates the relative surface area of microfacets exactly aligned to the
  * halfway vector.
@@ -60,9 +54,9 @@ f32 pbr_geometry_smith(
 /**
  * Compute the ratio of light that gets reflected over the light that gets refracted.
  */
-f32v3 pbr_fresnel_schlick(const f32 cosTheta) {
-  const f32v3 r = 1.0 - c_pbrReflectance;
-  return c_pbrReflectance + r * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
+f32v3 pbr_fresnel_schlick(const f32 cosTheta, const f32v3 reflectance) {
+  const f32v3 r = 1.0 - reflectance;
+  return reflectance + r * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
 }
 
 /**
@@ -71,9 +65,17 @@ f32v3 pbr_fresnel_schlick(const f32 cosTheta) {
  * Approximates fresnel attenuation based on the roughness as described in:
  * https://seblagarde.wordpress.com/2011/08/17/hello-world/
  */
-f32v3 pbr_fresnel_schlick_atten(const f32 cosTheta, const f32 roughness) {
-  const f32v3 r = max(f32v3(1.0 - roughness), c_pbrReflectance) - c_pbrReflectance;
-  return c_pbrReflectance + r * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
+f32v3 pbr_fresnel_schlick_atten(const f32 cosTheta, const f32v3 reflectance, const f32 roughness) {
+  const f32v3 r = max(f32v3(1.0 - roughness), reflectance) - reflectance;
+  return reflectance + r * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
+}
+
+f32v3 pbr_reflectance(const f32v3 color, const f32 metalness) {
+  /**
+   * Calculate reflectance at normal incidence; if dia-electric (like plastic) use uniform
+   * reflectance of 0.04 and if it's a metal, use the albedo color (metallic workflow).
+   */
+  return mix(f32v3(0.04), color, metalness);
 }
 
 f32 pbr_attenuation_resolve(const f32 dist, const f32 radiusInv) {
@@ -93,18 +95,19 @@ struct PbrSurface {
   f32v3 position;
   f32v3 color;
   f32v3 normal;
-  f32   roughness;
+  f32   roughness, metalness;
 };
 
 f32v3 pbr_light_dir(
     const f32v3 radiance, const f32v3 dir, const f32v3 viewDir, const PbrSurface surf) {
 
-  const f32v3 halfDir = normalize(viewDir - dir);
+  const f32v3 halfDir     = normalize(viewDir - dir);
+  const f32v3 reflectance = pbr_reflectance(surf.color, surf.metalness);
 
   // Cook-Torrance BRDF.
   const f32   normDistFrac = pbr_distribution_ggx(surf.normal, halfDir, surf.roughness);
   const f32   geoFrac      = pbr_geometry_smith(surf.normal, viewDir, -dir, surf.roughness);
-  const f32v3 fresnel      = pbr_fresnel_schlick(max(dot(halfDir, viewDir), 0.0));
+  const f32v3 fresnel      = pbr_fresnel_schlick(max(dot(halfDir, viewDir), 0.0), reflectance);
 
   const f32v3 numerator = normDistFrac * geoFrac * fresnel;
   f32 denominator = 4.0 * max(dot(surf.normal, viewDir), 0.0) * max(dot(surf.normal, -dir), 0.0);
@@ -116,7 +119,11 @@ f32v3 pbr_light_dir(
 
   // For energy conservation, the diffuse and specular light can't be above 1.0 (unless the surface
   // emits light). To preserve this relationship the diffuse component (kD) should equal 1.0 - kS.
-  const f32v3 kD = f32v3(1.0) - kS;
+  f32v3 kD = f32v3(1.0) - kS;
+
+  // Multiply kD by the inverse metalness such that only non-metals have diffuse lighting, or a
+  // linear blend if partly metal (pure metals have no diffuse light).
+  kD *= 1.0 - surf.metalness;
 
   // Scale light by NdotL.
   const f32 normDotDir = max(dot(surf.normal, -dir), 0.0);

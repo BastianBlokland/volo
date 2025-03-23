@@ -65,6 +65,7 @@ void main() {
   attr.roughness = 0;
   attr.roughness += splat.r * texture_multi(u_tex1Rough, in_texcoord * s_splat1UvScale).r;
   attr.roughness += splat.g * texture_multi(u_tex2Rough, in_texcoord * s_splat2UvScale).r;
+  attr.metalness = 0;
   out_attribute = geo_attr_encode(attr);
 
   // Sample the detail-normal based on the splat-map.

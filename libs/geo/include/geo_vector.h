@@ -142,6 +142,7 @@ GeoVector geo_vector_sqrt(GeoVector);
  */
 GeoVector geo_vector_clamp(GeoVector, f32 maxMagnitude);
 GeoVector geo_vector_clamp_comps(GeoVector, GeoVector min, GeoVector max);
+GeoVector geo_vector_clamp01(GeoVector);
 
 /**
  * Round all components to integers.

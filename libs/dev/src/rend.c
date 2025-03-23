@@ -51,6 +51,7 @@ static const String g_tooltipAmbientMode      = string_static("Controls the ambi
                                                             "Debug options:\n"
                                                             "- \a.bDebugColor\ar: Geometry color output.\n"
                                                             "- \a.bDebugRoughness\ar: Geometry roughness output.\n"
+                                                            "- \a.bDebugMetalness\ar: Geometry metalness output.\n"
                                                             "- \a.bDebugEmissive\ar: Geometry emissive output.\n"
                                                             "- \a.bDebugNormal\ar: Geometry world-space normals output.\n"
                                                             "- \a.bDebugDepth\ar: Geometry depth buffer.\n"
@@ -179,6 +180,7 @@ static const String g_ambientModeNames[] = {
     string_static("SpecularIrradiance"),
     string_static("DebugColor"),
     string_static("DebugRoughness"),
+    string_static("DebugMetalness"),
     string_static("DebugEmissive"),
     string_static("DebugNormal"),
     string_static("DebugDepth"),

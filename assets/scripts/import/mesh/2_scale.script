@@ -5,3 +5,8 @@
 if (asset_id_match("external/headquarter/*")) {
   vertex_scale(0.05)
 }
+
+if (asset_id_match("external/chest/*")) {
+  vertex_scale(1.75)
+  vertex_translation(vec3(0, 0.35, 0))
+}

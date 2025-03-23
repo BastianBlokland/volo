@@ -34,6 +34,7 @@ void main() {
   surf.color     = geoBase.color;
   surf.normal    = geoNormal;
   surf.roughness = geoAttr.roughness;
+  surf.metalness = geoAttr.metalness;
 
   out_color = pbr_light_point(radiance, radiusInv, in_position, viewDir, surf);
 }

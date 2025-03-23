@@ -11,7 +11,7 @@
  * Textures:
  * - GeoBase:      (srgb rgba32):  [r] color     [g] color     [b] color    [a] tags
  * - GeoNormal:    (linear rg16):  [r] normal    [g] normal
- * - GeoAttribute: (linear rg16):  [r] roughness [g] unused
+ * - GeoAttribute: (linear rg16):  [r] roughness [g] metalness
  * - GeoEmissive:  (linear rgb16): [r] emissive  [g] emissive  [b] emissive
  */
 
@@ -21,7 +21,7 @@ struct GeoBase {
 };
 
 struct GeoAttribute {
-  f32 roughness;
+  f32 roughness, metalness;
 };
 
 f32v4 geo_base_encode(const GeoBase base) {
@@ -40,12 +40,13 @@ f32v2 geo_normal_encode(const f32v3 normal) { return math_normal_encode(normal);
 
 f32v3 geo_normal_decode(const f32v2 data) { return math_normal_decode(data); }
 
-f32v2 geo_attr_encode(const GeoAttribute attr) { return f32v2(attr.roughness, 0); }
+f32v2 geo_attr_encode(const GeoAttribute attr) { return f32v2(attr.roughness, attr.metalness); }
 
 GeoAttribute geo_attr_decode(const f32v2 data) {
-  GeoAttribute base;
-  base.roughness = data.r;
-  return base;
+  GeoAttribute attr;
+  attr.roughness = data.r;
+  attr.metalness = data.g;
+  return attr;
 }
 
 #endif // INCLUDE_GEOMETRY

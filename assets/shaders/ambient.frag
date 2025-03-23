@@ -16,14 +16,15 @@ const u32 c_modeDiffuseIrradiance       = 1;
 const u32 c_modeSpecularIrradiance      = 2;
 const u32 c_modeDebugColor              = 3;
 const u32 c_modeDebugRoughness          = 4;
-const u32 c_modeDebugEmissive           = 5;
-const u32 c_modeDebugNormal             = 6;
-const u32 c_modeDebugDepth              = 7;
-const u32 c_modeDebugTags               = 8;
-const u32 c_modeDebugAmbientOcclusion   = 9;
-const u32 c_modeDebugFresnel            = 10;
-const u32 c_modeDebugDiffuseIrradiance  = 11;
-const u32 c_modeDebugSpecularIrradiance = 12;
+const u32 c_modeDebugMetalness          = 5;
+const u32 c_modeDebugEmissive           = 6;
+const u32 c_modeDebugNormal             = 7;
+const u32 c_modeDebugDepth              = 8;
+const u32 c_modeDebugTags               = 9;
+const u32 c_modeDebugAmbientOcclusion   = 10;
+const u32 c_modeDebugFresnel            = 11;
+const u32 c_modeDebugDiffuseIrradiance  = 12;
+const u32 c_modeDebugSpecularIrradiance = 13;
 
 const u32 c_flagsAmbientOcclusion     = 1 << 0;
 const u32 c_flagsAmbientOcclusionBlur = 1 << 1;
@@ -93,6 +94,7 @@ void main() {
   surf.color     = geoBase.color;
   surf.normal    = geoNormal;
   surf.roughness = geoAttr.roughness;
+  surf.metalness = geoAttr.metalness;
 
   const f32v3 viewDir      = normalize(u_global.camPosition.xyz - worldPos);
   const f32   ambientLight = u_draw.packed.x;
@@ -116,6 +118,9 @@ void main() {
     case c_modeDebugRoughness:
       out_color = geoAttr.roughness.rrr;
       break;
+    case c_modeDebugMetalness:
+      out_color = geoAttr.metalness.rrr;
+      break;
     case c_modeDebugEmissive:
       out_color = geoEmissive;
       break;
@@ -134,16 +139,18 @@ void main() {
       out_color = ambientOcclusion.rrr;
       break;
     case c_modeDebugFresnel: {
-      const f32 nDotV = max(dot(surf.normal, viewDir), 0);
-      out_color       = pbr_fresnel_schlick_atten(nDotV, surf.roughness);
+      const f32   nDotV       = max(dot(surf.normal, viewDir), 0);
+      const f32v3 reflectance = pbr_reflectance(surf.color, surf.metalness);
+      out_color               = pbr_fresnel_schlick_atten(nDotV, reflectance, surf.roughness);
     } break;
     case c_modeDebugDiffuseIrradiance:
       out_color = ambient_diff_irradiance(surf, ambientLight);
       break;
     case c_modeDebugSpecularIrradiance: {
-      const f32   nDotV   = max(dot(surf.normal, viewDir), 0);
-      const f32v3 fresnel = pbr_fresnel_schlick_atten(nDotV, surf.roughness);
-      out_color           = ambient_spec_irradiance(surf, ambientLight, nDotV, fresnel, viewDir);
+      const f32   nDotV       = max(dot(surf.normal, viewDir), 0);
+      const f32v3 reflectance = pbr_reflectance(surf.color, surf.metalness);
+      const f32v3 fresnel     = pbr_fresnel_schlick_atten(nDotV, reflectance, surf.roughness);
+      out_color               = ambient_spec_irradiance(surf, ambientLight, nDotV, fresnel, viewDir);
     } break;
     }
   } else {
@@ -156,7 +163,8 @@ void main() {
     case c_modeDiffuseIrradiance:
     case c_modeSpecularIrradiance: {
       const f32   nDotV          = max(dot(surf.normal, viewDir), 0);
-      const f32v3 fresnel        = pbr_fresnel_schlick_atten(nDotV, surf.roughness);
+      const f32v3 reflectance    = pbr_reflectance(surf.color, surf.metalness);
+      const f32v3 fresnel        = pbr_fresnel_schlick_atten(nDotV, reflectance, surf.roughness);
       const f32v3 diffIrradiance = ambient_diff_irradiance(surf, ambientLight);
       out_color                  = (1.0 - fresnel) * diffIrradiance * surf.color * ambientOcclusion;
 
