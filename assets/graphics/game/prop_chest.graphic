@@ -1,0 +1,20 @@
+{
+  "pass": "Geometry",
+  "shaders": [
+    { "program": "shaders/standard.vert" },
+    {
+      "program": "shaders/standard.frag",
+      "overrides": [
+        { "name": "normalMap", "binding": 0, "value": 1 }
+      ]
+    }
+  ],
+  "samplers": [
+    { "texture": "external/chest/chest_color.png", "anisotropy": "x2" },
+    { "texture": "external/chest/chest_rough.png", "anisotropy": "x2" },
+    { "texture": "external/chest/chest_metal.png", "anisotropy": "x2" },
+    { "texture": "external/chest/chest_normal.png", "anisotropy": "x2" }
+  ],
+  "mesh": "external/chest/chest_mesh.obj",
+  "cull": "None"
+}
