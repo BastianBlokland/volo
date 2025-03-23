@@ -543,7 +543,7 @@ static void vfx_decal_trail_history_reset(VfxDecalTrailComp* inst, const VfxTrai
   inst->historyCountTotal = 0;
   for (u32 i = 0; i != vfx_decal_trail_history_count; ++i) {
     inst->history[i]      = point.pos;
-    inst->historyAlpha[i] = point.alpha;
+    inst->historyAlpha[i] = 0.0f;
   }
 }
 
