@@ -189,5 +189,11 @@ void main() {
   }
   out_normal    = f32v4(math_normal_encode(normal), 0, alpha);
   out_attribute = f32v4(in_roughness, 0, 0, alpha);
-  out_emissive  = f32v4(0);
+
+  if ((in_flags & c_flagOutputEmissive) != 0) {
+    const f32v3 emissive = atlas_sample(u_atlasEmissive, in_atlasEmissiveMeta, stampCoord).rgb;
+    out_emissive = f32v4(emissive, alpha);
+  } else {
+    out_emissive = f32v4(0);
+  }
 }
