@@ -60,6 +60,7 @@ typedef enum eRendAmbientMode {
   RendAmbientMode_DebugStart,
   RendAmbientMode_DebugColor = RendAmbientMode_DebugStart,
   RendAmbientMode_DebugRoughness,
+  RendAmbientMode_DebugMetalness,
   RendAmbientMode_DebugEmissive,
   RendAmbientMode_DebugNormal,
   RendAmbientMode_DebugDepth,

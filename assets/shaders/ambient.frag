@@ -16,14 +16,15 @@ const u32 c_modeDiffuseIrradiance       = 1;
 const u32 c_modeSpecularIrradiance      = 2;
 const u32 c_modeDebugColor              = 3;
 const u32 c_modeDebugRoughness          = 4;
-const u32 c_modeDebugEmissive           = 5;
-const u32 c_modeDebugNormal             = 6;
-const u32 c_modeDebugDepth              = 7;
-const u32 c_modeDebugTags               = 8;
-const u32 c_modeDebugAmbientOcclusion   = 9;
-const u32 c_modeDebugFresnel            = 10;
-const u32 c_modeDebugDiffuseIrradiance  = 11;
-const u32 c_modeDebugSpecularIrradiance = 12;
+const u32 c_modeDebugMetalness          = 5;
+const u32 c_modeDebugEmissive           = 6;
+const u32 c_modeDebugNormal             = 7;
+const u32 c_modeDebugDepth              = 8;
+const u32 c_modeDebugTags               = 9;
+const u32 c_modeDebugAmbientOcclusion   = 10;
+const u32 c_modeDebugFresnel            = 11;
+const u32 c_modeDebugDiffuseIrradiance  = 12;
+const u32 c_modeDebugSpecularIrradiance = 13;
 
 const u32 c_flagsAmbientOcclusion     = 1 << 0;
 const u32 c_flagsAmbientOcclusionBlur = 1 << 1;
@@ -115,6 +116,9 @@ void main() {
       break;
     case c_modeDebugRoughness:
       out_color = geoAttr.roughness.rrr;
+      break;
+    case c_modeDebugMetalness:
+      out_color = geoAttr.metalness.rrr;
       break;
     case c_modeDebugEmissive:
       out_color = geoEmissive;
