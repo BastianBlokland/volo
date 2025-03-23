@@ -14,8 +14,8 @@ struct MetaData {
 struct StampData {
   f32v4 data1; // x, y, z: position, w: 16b flags, 16b excludeTags.
   f16v4 data2; // x, y, z, w: rotation quaternion.
-  u16v4 data3; // x, y, z: stampScale / stamp_size_max, w: roughness/metalness.
-  u16v4 data4; // x: atlasColorIdx, y: atlasNormalIdx, z: atlasEmissiveIdx, w: alphaBegin/alphaEnd.
+  u16v4 data3; // x, y, z: stampScale / stamp_size_max, w: roughness & metalness.
+  u16v4 data4; // x: atlasColorIdx, y: atlasNrmIdx, z: atlasEmissiveIdx, w: alphaBegin & alphaEnd.
   f16v4 data5; // x, y: warpScale, z: texOffsetY, w: texScaleY.
   f16v4 data6; // x, y: warpP0 (bottom left), z, w: warpP1 (bottom right).
   f16v4 data7; // x, y: warpP2 (top left),    z, w: warpP3 (top right).

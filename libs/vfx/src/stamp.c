@@ -28,8 +28,8 @@ typedef struct {
   ALIGNAS(16)
   f32 data1[4]; // xyz: position, w: 16b flags, 16b excludeTags.
   f16 data2[4]; // xyzw: rotation quaternion.
-  u16 data3[4]; // xyz: scale / vfx_stamp_size_max, w: roughness/metalness.
-  u16 data4[4]; // x: atlasColorIdx, y: atlasNormalIdx, z: atlasEmissiveIdx, w: alphaBegin/alphaEnd.
+  u16 data3[4]; // xyz: scale / vfx_stamp_size_max, w: roughness & metalness.
+  u16 data4[4]; // x: atlasColorIdx, y: atlasNrmIdx, z: atlasEmissiveIdx, w: alphaBegin & alphaEnd.
   f16 data5[4]; // xy: warpScale, z: texOffsetY, w: texScaleY.
   union {
     f16 warpPoints[4][2];
