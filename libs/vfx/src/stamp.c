@@ -12,6 +12,12 @@
 #include "core_simd.h"
 #endif
 
+/**
+ * Maximum supported stamp size (in meters).
+ * NOTE: Needs to match the size defined in glsl.
+ */
+#define vfx_stamp_size_max 10.0f
+
 typedef struct {
   VfxAtlasDrawData atlasColor, atlasNormal, atlasEmissive;
 } VfxStampMetaData;
@@ -22,7 +28,7 @@ typedef struct {
   ALIGNAS(16)
   f32 data1[4]; // xyz: position, w: 16b flags, 16b excludeTags.
   f16 data2[4]; // xyzw: rotation quaternion.
-  f16 data3[4]; // xyz: scale, w: roughness.
+  u16 data3[4]; // xyz: scale / vfx_stamp_size_max, w: roughness.
   u16 data4[4]; // x: atlasColorIdx, y: atlasNormalIdx, z: atlasEmissiveIdx, w: alphaBegin/alphaEnd.
   f16 data5[4]; // xy: warpScale, z: texOffsetY, w: texScaleY.
   union {
@@ -33,14 +39,24 @@ typedef struct {
 
 ASSERT(sizeof(VfxStampData) == 64, "Size needs to match the size defined in glsl");
 
-static f32 vfx_clamp01(const f32 val) {
+static u8 vfx_frac_to_u8(const f32 val) {
   if (val <= 0.0f) {
-    return 0.0f;
+    return 0;
   }
   if (val >= 1.0f) {
-    return 1.0f;
+    return u8_max;
   }
-  return val;
+  return (u8)(val * 255.999f);
+}
+
+static u16 vfx_frac_to_u16(const f32 val) {
+  if (val <= 0.0f) {
+    return 0;
+  }
+  if (val >= 1.0f) {
+    return u16_max;
+  }
+  return (u16)(val * 65535.999f);
 }
 
 void vfx_stamp_init(
@@ -71,15 +87,21 @@ void vfx_stamp_output(RendObjectComp* obj, const VfxStamp* params) {
 
   geo_quat_pack_f16(params->rot, out->data2);
 
-  geo_vector_pack_f16(
-      geo_vector(stampSize.x, stampSize.y, stampSize.z, params->roughness), out->data3);
+  static const f32 g_stampSizeMaxInv = 1.0f / vfx_stamp_size_max;
+  const GeoVector  stampSizeFrac = geo_vector_clamp01(geo_vector_mul(stampSize, g_stampSizeMaxInv));
+
+  out->data3[0] = vfx_frac_to_u16(stampSizeFrac.x);
+  out->data3[1] = vfx_frac_to_u16(stampSizeFrac.y);
+  out->data3[2] = vfx_frac_to_u16(stampSizeFrac.z);
+
+  out->data3[3] = vfx_frac_to_u16(params->roughness);
 
   out->data4[0] = params->atlasColorIndex;
   out->data4[1] = params->atlasNormalIndex;
   out->data4[2] = params->atlasEmissiveIndex;
 
-  const u16 alphaBeginEnc = (u8)(vfx_clamp01(params->alphaBegin) * 255.999f);
-  const u16 alphaEndEnc   = (u8)(vfx_clamp01(params->alphaEnd) * 255.999f);
+  const u16 alphaBeginEnc = vfx_frac_to_u8(params->alphaBegin);
+  const u16 alphaEndEnc   = vfx_frac_to_u8(params->alphaEnd);
   out->data4[3]           = alphaBeginEnc | (alphaEndEnc << 8);
 
   geo_vector_pack_f16(
