@@ -64,32 +64,12 @@
 u8 bits_popcnt_32(u32);
 u8 bits_popcnt_64(u64);
 
-// clang-format off
-
-#define bits_popcnt(_VAL_)                                                                         \
-  _Generic((_VAL_),                                                                                \
-    u32 : bits_popcnt_32((u32)(_VAL_)),                                                            \
-    u64 : bits_popcnt_64((u64)(_VAL_))                                                             \
-  )
-
-// clang-format on
-
 /**
  * Count the trailing zeroes in a mask.
  * NOTE: returns 32 / 64 for a mask with 0 set bits.
  */
 u8 bits_ctz_32(u32);
 u8 bits_ctz_64(u64);
-
-// clang-format off
-
-#define bits_ctz(_VAL_)                                                                            \
-  _Generic((_VAL_),                                                                                \
-    u32 : bits_ctz_32((u32)(_VAL_)),                                                               \
-    u64 : bits_ctz_64((u64)(_VAL_))                                                                \
-  )
-
-// clang-format on
 
 /**
  * Count the leading zeroes in a mask.
@@ -98,33 +78,12 @@ u8 bits_ctz_64(u64);
 u8 bits_clz_32(u32);
 u8 bits_clz_64(u64);
 
-// clang-format off
-
-#define bits_clz(_VAL_)                                                                            \
-  _Generic((_VAL_),                                                                                \
-    u32 : bits_clz_32((u32)(_VAL_)),                                                               \
-    u64 : bits_clz_64((u64)(_VAL_))                                                                \
-  )
-
-// clang-format on
-
 /**
  * Check if the given value is a power of two.
  * Pre-condition: val != 0.
  */
 bool bits_ispow2_32(u32);
 bool bits_ispow2_64(u64);
-
-// clang-format off
-
-#define bits_ispow2(_VAL_)                                                                         \
-  _Generic((_VAL_),                                                                                \
-    u16 : bits_ispow2_32((u32)(_VAL_)),                                                            \
-    u32 : bits_ispow2_32((u32)(_VAL_)),                                                            \
-    u64 : bits_ispow2_64((u64)(_VAL_))                                                             \
-  )
-
-// clang-format on
 
 /**
  * Return the next power of two greater or equal to val.
@@ -134,16 +93,6 @@ bool bits_ispow2_64(u64);
  */
 u32 bits_nextpow2_32(u32);
 u64 bits_nextpow2_64(u64);
-
-// clang-format off
-
-#define bits_nextpow2(_VAL_)                                                                       \
-  _Generic((_VAL_),                                                                                \
-    u32 : bits_nextpow2_32((u32)(_VAL_)),                                                          \
-    u64 : bits_nextpow2_64((u64)(_VAL_))                                                           \
-  )
-
-// clang-format on
 
 /**
  * Create a (non cryptographic) hash of the input data.
@@ -175,16 +124,6 @@ u32 bits_adler_32(u32 adler, Mem);
 u32 bits_padding_32(u32 val, u32 align);
 u64 bits_padding_64(u64 val, u64 align);
 
-// clang-format off
-
-#define bits_padding(_VAL_, _ALIGN_)                                                               \
-  _Generic((_VAL_),                                                                                \
-    u32 : bits_padding_32((u32)(_VAL_), (u32)(_ALIGN_)),                                           \
-    u64 : bits_padding_64((u64)(_VAL_), (u64)(_ALIGN_))                                            \
-  )
-
-// clang-format on
-
 /**
  * Pad the given value to reach the requested alignment.
  */
@@ -193,16 +132,10 @@ u64 bits_align_64(u64 val, u64 align);
 
 // clang-format off
 
-#define bits_align(_VAL_, _ALIGN_)                                                                 \
-  _Generic((_VAL_),                                                                                \
-    u32 : bits_align_32((u32)(_VAL_), (u32)(_ALIGN_)),                                             \
-    u64 : bits_align_64((u64)(_VAL_), (u64)(_ALIGN_))                                              \
-  )
-
 /**
  * Pad the given pointer to reach the requested alignment.
  */
-#define bits_align_ptr(_VAL_, _ALIGN_) ((void*)bits_align((uptr)(_VAL_), (_ALIGN_)))
+#define bits_align_ptr(_VAL_, _ALIGN_) ((void*)sized_call(bits_align, (uptr)(_VAL_), (_ALIGN_)))
 
 /**
  * Check if the value satisfies the given alignment.
