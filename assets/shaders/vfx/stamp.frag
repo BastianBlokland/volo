@@ -18,23 +18,25 @@ bind_global_data(0) readonly uniform Global { GlobalData u_global; };
 
 bind_graphic_img(0) uniform sampler2D u_atlasColor;
 bind_graphic_img(1) uniform sampler2D u_atlasNormal;
+bind_graphic_img(2) uniform sampler2D u_atlasEmissive;
 
 bind_global_img(0) uniform sampler2D u_texGeoBase;
 bind_global_img(1) uniform sampler2D u_texGeoNormal;
 bind_global_img(2) uniform sampler2D u_texGeoDepth;
 
-bind_internal(0) in flat f32v3 in_position;        // World-space.
-bind_internal(1) in flat f32v4 in_rotation;        // World-space.
-bind_internal(2) in flat f32v3 in_scale;           // World-space.
-bind_internal(3) in flat f32v3 in_atlasColorMeta;  // xy: origin, z: scale.
-bind_internal(4) in flat f32v3 in_atlasNormalMeta; // xy: origin, z: scale.
-bind_internal(5) in flat u32 in_flags;
-bind_internal(6) in flat f32 in_roughness;
-bind_internal(7) in flat f32v2 in_alpha; // x: alphaBegin, y: alphaEnd.
-bind_internal(8) in flat u32 in_excludeTags;
-bind_internal(9) in flat f32v4 in_texTransform; // xy: offset, zw: scale.
-bind_internal(10) in flat f32v4 in_warpP01;     // bottom left and bottom right.
-bind_internal(11) in flat f32v4 in_warpP23;     // top left and top right.
+bind_internal(0) in flat f32v3 in_position;          // World-space.
+bind_internal(1) in flat f32v4 in_rotation;          // World-space.
+bind_internal(2) in flat f32v3 in_scale;             // World-space.
+bind_internal(3) in flat f32v3 in_atlasColorMeta;    // xy: origin, z: scale.
+bind_internal(4) in flat f32v3 in_atlasNormalMeta;   // xy: origin, z: scale.
+bind_internal(5) in flat f32v3 in_atlasEmissiveMeta; // xy: origin, z: scale.
+bind_internal(6) in flat u32 in_flags;
+bind_internal(7) in flat f32 in_roughness;
+bind_internal(8) in flat f32v2 in_alpha; // x: alphaBegin, y: alphaEnd.
+bind_internal(9) in flat u32 in_excludeTags;
+bind_internal(10) in flat f32v4 in_texTransform; // xy: offset, zw: scale.
+bind_internal(11) in flat f32v4 in_warpP01;      // bottom left and bottom right.
+bind_internal(12) in flat f32v4 in_warpP23;      // top left and top right.
 
 /**
  * Geometry Base:      [r] color     [g] color     [b] color    [a] tags
