@@ -121,6 +121,7 @@ typedef unsigned char bool;
 
 /**
  * Retrieve a pointer to a field inside the given value.
+ *
  * Example usage:
  * ```
  * void* myVal = ...
@@ -128,3 +129,17 @@ typedef unsigned char bool;
  * ```
  */
 #define field_ptr(_VAL_, _TYPE_, _FIELD_) (&((_TYPE_*)(_VAL_))->_FIELD_)
+
+/**
+ * Pick the 32 bit or 64 version of an api based on the pointer size of the platform.
+ *
+ * Example usage:
+ * ```
+ * usize padding = sized_call(bits_padding, mySize, myAlign);
+ * ```
+ */
+#ifdef VOLO_32_BIT
+#define sized_call(_API_, ...) _API_##_32(__VA_ARGS__)
+#else
+#define sized_call(_API_, ...) _API_##_64(__VA_ARGS__)
+#endif
