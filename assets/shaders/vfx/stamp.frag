@@ -10,9 +10,10 @@ const f32 c_fadeAngleMax = 0.8;
 
 const u32 c_flagOutputColor           = 1 << 0;
 const u32 c_flagOutputNormal          = 1 << 1;
-const u32 c_flagGBufferBaseNormal     = 1 << 2;
-const u32 c_flagDepthBufferBaseNormal = 1 << 3;
-const u32 c_flagFadeUsingDepthNormal  = 1 << 4;
+const u32 c_flagOutputEmissive        = 1 << 2;
+const u32 c_flagGBufferBaseNormal     = 1 << 3;
+const u32 c_flagDepthBufferBaseNormal = 1 << 4;
+const u32 c_flagFadeUsingDepthNormal  = 1 << 5;
 
 bind_global_data(0) readonly uniform Global { GlobalData u_global; };
 
