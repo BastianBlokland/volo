@@ -50,7 +50,7 @@ ecs_comp_define(VfxDecalSingleComp) {
   u8             excludeTags; // First 8 entries of SceneTags are supported.
   bool           snapToTerrain;
   f32            angle;
-  f32            roughness, alpha;
+  f32            roughness, metalness, alpha;
   f32            fadeInTimeInv, fadeOutTimeInv; // 1.0 / timeInSeconds.
   f32            width, height, thickness;
   TimeDuration   creationTime;
@@ -67,7 +67,7 @@ ecs_comp_define(VfxDecalTrailComp) {
   AssetDecalAxis axis : 8;
   bool           snapToTerrain;
   u8             excludeTags; // First 8 entries of SceneTags are supported.
-  f32            roughness, alpha;
+  f32            roughness, metalness, alpha;
   f32            fadeInTimeInv, fadeOutTimeInv; // 1.0 / timeInSeconds.
   f32            width, height, thickness;
   TimeDuration   creationTime;
@@ -237,6 +237,7 @@ static void vfx_decal_create_single(
       .snapToTerrain      = (asset->flags & AssetDecalFlags_SnapToTerrain) != 0,
       .angle              = randomRotation ? rng_sample_f32(g_rng) * math_pi_f32 * 2.0f : 0.0f,
       .roughness          = asset->roughness,
+      .metalness          = asset->metalness,
       .alpha              = alpha,
       .fadeInTimeInv      = asset->fadeInTimeInv,
       .fadeOutTimeInv     = asset->fadeOutTimeInv,
@@ -272,6 +273,7 @@ static void vfx_decal_create_trail(
       .snapToTerrain      = (asset->flags & AssetDecalFlags_SnapToTerrain) != 0,
       .pointSpacing       = asset->spacing,
       .roughness          = asset->roughness,
+      .metalness          = asset->metalness,
       .alpha              = alpha,
       .fadeInTimeInv      = asset->fadeInTimeInv,
       .fadeOutTimeInv     = asset->fadeOutTimeInv,
@@ -468,6 +470,7 @@ static void vfx_decal_single_update(
         .alphaBegin       = alpha,
         .alphaEnd         = alpha,
         .roughness        = inst->roughness,
+        .metalness        = inst->metalness,
         .texOffsetY       = 0.0f,
         .texScaleY        = 1.0f,
         .warpScale        = {1.0f, 1.0f},
@@ -815,6 +818,7 @@ static void vfx_decal_trail_update(
         .alphaBegin       = i ? alphaBegin * seg->alphaBegin : 0.0f,
         .alphaEnd         = alphaEnd * seg->alphaEnd,
         .roughness        = inst->roughness,
+        .metalness        = inst->metalness,
         .texOffsetY       = texOffset,
         .texScaleY        = segTexScale,
         .warpScale  = vfx_warp_bounds(corners, array_elems(corners), (VfxWarpVec){0.5f, 0.5f}),

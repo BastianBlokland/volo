@@ -14,7 +14,7 @@ struct MetaData {
 struct StampData {
   f32v4 data1; // x, y, z: position, w: 16b flags, 16b excludeTags.
   f16v4 data2; // x, y, z, w: rotation quaternion.
-  u16v4 data3; // x, y, z: stampScale / stamp_size_max, w: roughness.
+  u16v4 data3; // x, y, z: stampScale / stamp_size_max, w: roughness/metalness.
   u16v4 data4; // x: atlasColorIdx, y: atlasNormalIdx, z: atlasEmissiveIdx, w: alphaBegin/alphaEnd.
   f16v4 data5; // x, y: warpScale, z: texOffsetY, w: texScaleY.
   f16v4 data6; // x, y: warpP0 (bottom left), z, w: warpP1 (bottom right).
@@ -56,7 +56,8 @@ void main() {
   const u32   instanceExcludeTags      = (floatBitsToUint(instanceData1.w) >> 16) & 0xFFFF;
   const f32v4 instanceQuat             = instanceData2;
   const f32v3 instanceScale            = (instanceData3.xyz / f32v3(0xFFFF)) * stamp_size_max;
-  const f32   instanceRoughness        = instanceData3.w / f32(0xFFFF);
+  const f32   instanceRoughness        = f32(instanceData3.w & 0xFF) / f32(0xFF);
+  const f32   instanceMetalness        = f32((instanceData3.w >> 8) & 0xFF) / f32(0xFF);
   const f32   instanceAtlasColorIdx    = f32(instanceData4.x);
   const f32   instanceAtlasNormalIdx   = f32(instanceData4.y);
   const f32   instanceAtlasEmissiveIdx = f32(instanceData4.z);
@@ -81,7 +82,7 @@ void main() {
   out_atlasNormalMeta   = f32v3(texOrgNormal, atlas_entry_size(u_meta.atlasNormal));
   out_atlasEmissiveMeta = f32v3(texOrgEmissive, atlas_entry_size(u_meta.atlasEmissive));
   out_flags             = instanceFlags;
-  out_attribute         = f32v2(instanceRoughness, 0 /* metalness */);
+  out_attribute         = f32v2(instanceRoughness, instanceMetalness);
   out_alpha             = f32v2(instanceAlphaBegin, instanceAlphaEnd);
   out_excludeTags       = instanceExcludeTags;
   out_texTransform      = f32v4(0, instanceTexTransformY.x, 1, instanceTexTransformY.y);
