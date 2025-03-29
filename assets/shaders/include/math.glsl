@@ -43,4 +43,17 @@ f32v3 math_normal_decode(f32v2 f) {
   return normalize(n);
 }
 
+/**
+ * Find the closest position on the line formed by two points to the given point.
+ */
+f32v3 math_line_closest_point(const f32v3 lineA, const f32v3 lineB, const f32v3 point) {
+  const f32v3 toB       = lineB - lineA;
+  const f32   lengthSqr = dot(toB, toB);
+  if (lengthSqr == 0.0) {
+    return lineA; // Zero length line.
+  }
+  const f32 t = dot(point - lineA, toB) / lengthSqr;
+  return lineA + toB * clamp(t, 0.0, 1.0);
+}
+
 #endif // INCLUDE_MATH
