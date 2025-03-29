@@ -23,7 +23,7 @@ typedef struct {
   u8            atlasColorIndex, atlasNormalIndex, atlasEmissiveIndex;
   VfxStampFlags flags : 8;
   u8            excludeTags;
-  f32           alphaBegin, alphaEnd, roughness, metalness;
+  f32           alphaBegin, alphaEnd, roughness, metalness, emissive;
   f32           width, height, thickness;
   f32           texOffsetY, texScaleY;
   VfxWarpVec    warpScale;

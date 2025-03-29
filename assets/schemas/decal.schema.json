@@ -20,6 +20,7 @@
         "excludeMask": { "title": "AssetDecalMask", "$ref": "#/$defs/AssetDecalMask" },
         "roughness": { "title": "f32", "type": "number" },
         "metalness": { "title": "f32", "type": "number" },
+        "emissive": { "title": "f32", "type": "number" },
         "alphaMin": { "title": "f32", "type": "number" },
         "alphaMax": { "title": "f32", "type": "number" },
         "width": { "title": "f32", "type": "number" },
