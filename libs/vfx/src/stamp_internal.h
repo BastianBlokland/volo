@@ -20,7 +20,7 @@ typedef enum {
 typedef struct {
   GeoVector     pos;
   GeoQuat       rot;
-  u16           atlasColorIndex, atlasNormalIndex, atlasEmissiveIndex;
+  u8            atlasColorIndex, atlasNormalIndex, atlasEmissiveIndex;
   VfxStampFlags flags : 8;
   u8            excludeTags;
   f32           alphaBegin, alphaEnd, roughness, metalness;

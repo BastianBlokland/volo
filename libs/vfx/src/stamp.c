@@ -97,9 +97,9 @@ void vfx_stamp_output(RendObjectComp* obj, const VfxStamp* params) {
   out->data3[2] = vfx_frac_u16(stampSizeFrac.z);
   out->data3[3] = vfx_combine_u16(vfx_frac_u8(params->roughness), vfx_frac_u8(params->metalness));
 
-  out->data4[0] = params->atlasColorIndex;
-  out->data4[1] = params->atlasNormalIndex;
-  out->data4[2] = params->atlasEmissiveIndex;
+  out->data4[0] = vfx_combine_u16(params->atlasColorIndex, 0);
+  out->data4[1] = vfx_combine_u16(params->atlasNormalIndex, 0);
+  out->data4[2] = vfx_combine_u16(params->atlasEmissiveIndex, 0);
   out->data4[3] = vfx_combine_u16(vfx_frac_u8(params->alphaBegin), vfx_frac_u8(params->alphaEnd));
 
   geo_vector_pack_f16(
