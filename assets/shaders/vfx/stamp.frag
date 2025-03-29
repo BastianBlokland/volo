@@ -32,12 +32,13 @@ bind_internal(3) in flat f32v3 in_atlasColorMeta;    // xy: origin, z: scale.
 bind_internal(4) in flat f32v3 in_atlasNormalMeta;   // xy: origin, z: scale.
 bind_internal(5) in flat f32v3 in_atlasEmissiveMeta; // xy: origin, z: scale.
 bind_internal(6) in flat u32 in_flags;
-bind_internal(7) in flat f32v2 in_attribute; // r: roughness, y: metalness
-bind_internal(8) in flat f32v2 in_alpha; // x: alphaBegin, y: alphaEnd.
-bind_internal(9) in flat u32 in_excludeTags;
-bind_internal(10) in flat f32v4 in_texTransform; // xy: offset, zw: scale.
-bind_internal(11) in flat f32v4 in_warpP01;      // bottom left and bottom right.
-bind_internal(12) in flat f32v4 in_warpP23;      // top left and top right.
+bind_internal(7) in flat f32v2 in_attribute; // x: roughness, y: metalness
+bind_internal(8) in flat f32 in_emissive;
+bind_internal(9) in flat f32v2 in_alpha;     // x: alphaBegin, y: alphaEnd.
+bind_internal(10) in flat u32 in_excludeTags;
+bind_internal(11) in flat f32v4 in_texTransform; // xy: offset, zw: scale.
+bind_internal(12) in flat f32v4 in_warpP01;      // bottom left and bottom right.
+bind_internal(13) in flat f32v4 in_warpP23;      // top left and top right.
 
 /**
  * Geometry Base:      [r] color     [g] color     [b] color    [a] tags
@@ -191,8 +192,8 @@ void main() {
   out_attribute = f32v4(in_attribute, 0, alpha);
 
   if ((in_flags & c_flagOutputEmissive) != 0) {
-    const f32v3 emissive = atlas_sample(u_atlasEmissive, in_atlasEmissiveMeta, stampCoord).rgb;
-    out_emissive = f32v4(emissive, alpha);
+    const f32v3 emissiveCol = atlas_sample(u_atlasEmissive, in_atlasEmissiveMeta, stampCoord).rgb;
+    out_emissive = f32v4(emissiveCol * in_emissive, alpha);
   } else {
     out_emissive = f32v4(0);
   }

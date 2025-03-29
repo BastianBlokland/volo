@@ -44,13 +44,13 @@ typedef enum {
 ecs_comp_define(VfxDecalAnyComp);
 
 ecs_comp_define(VfxDecalSingleComp) {
-  u16            atlasColorIndex, atlasNormalIndex, atlasEmissiveIndex;
+  u8             atlasColorIndex, atlasNormalIndex, atlasEmissiveIndex;
   VfxStampFlags  stampFlags : 8;
   AssetDecalAxis axis : 8;
   u8             excludeTags; // First 8 entries of SceneTags are supported.
   bool           snapToTerrain;
   f32            angle;
-  f32            roughness, metalness, alpha;
+  f32            roughness, metalness, emissive, alpha;
   f32            fadeInTimeInv, fadeOutTimeInv; // 1.0 / timeInSeconds.
   f32            width, height, thickness;
   TimeDuration   creationTime;
@@ -61,13 +61,13 @@ typedef enum {
 } VfxTrailFlags;
 
 ecs_comp_define(VfxDecalTrailComp) {
-  u16            atlasColorIndex, atlasNormalIndex, atlasEmissiveIndex;
+  u8             atlasColorIndex, atlasNormalIndex, atlasEmissiveIndex;
   VfxStampFlags  stampFlags : 8;
   VfxTrailFlags  trailFlags : 8;
   AssetDecalAxis axis : 8;
   bool           snapToTerrain;
   u8             excludeTags; // First 8 entries of SceneTags are supported.
-  f32            roughness, metalness, alpha;
+  f32            roughness, metalness, emissive, alpha;
   f32            fadeInTimeInv, fadeOutTimeInv; // 1.0 / timeInSeconds.
   f32            width, height, thickness;
   TimeDuration   creationTime;
@@ -214,9 +214,9 @@ static u8 vfx_decal_mask_to_tags(const AssetDecalMask mask) {
 static void vfx_decal_create_single(
     EcsWorld*             world,
     const EcsEntityId     entity,
-    const u16             atlasColorIndex,
-    const u16             atlasNormalIndex,
-    const u16             atlasEmissiveIndex,
+    const u8              atlasColorIndex,
+    const u8              atlasNormalIndex,
+    const u8              atlasEmissiveIndex,
     const AssetDecalComp* asset,
     const SceneTimeComp*  timeComp) {
 
@@ -238,6 +238,7 @@ static void vfx_decal_create_single(
       .angle              = randomRotation ? rng_sample_f32(g_rng) * math_pi_f32 * 2.0f : 0.0f,
       .roughness          = asset->roughness,
       .metalness          = asset->metalness,
+      .emissive           = asset->emissive,
       .alpha              = alpha,
       .fadeInTimeInv      = asset->fadeInTimeInv,
       .fadeOutTimeInv     = asset->fadeOutTimeInv,
@@ -250,9 +251,9 @@ static void vfx_decal_create_single(
 static void vfx_decal_create_trail(
     EcsWorld*             world,
     const EcsEntityId     entity,
-    const u16             atlasColorIndex,
-    const u16             atlasNormalIndex,
-    const u16             atlasEmissiveIndex,
+    const u8              atlasColorIndex,
+    const u8              atlasNormalIndex,
+    const u8              atlasEmissiveIndex,
     const AssetDecalComp* asset,
     const SceneTimeComp*  timeComp) {
 
@@ -274,6 +275,7 @@ static void vfx_decal_create_trail(
       .pointSpacing       = asset->spacing,
       .roughness          = asset->roughness,
       .metalness          = asset->metalness,
+      .emissive           = asset->emissive,
       .alpha              = alpha,
       .fadeInTimeInv      = asset->fadeInTimeInv,
       .fadeOutTimeInv     = asset->fadeOutTimeInv,
@@ -324,30 +326,30 @@ ecs_system_define(VfxDecalInitSys) {
       continue;
     }
     const AssetDecalComp* asset         = ecs_view_read_t(assetItr, AssetDecalComp);
-    u16                   atlasColorIdx = 0, atlasNormalIdx = 0, atlasEmissiveIdx = 0;
+    u8                    atlasColorIdx = 0, atlasNormalIdx = 0, atlasEmissiveIdx = 0;
     {
       const AssetAtlasEntry* entry = asset_atlas_lookup(atlasColor, asset->atlasColorEntry);
-      if (UNLIKELY(!entry)) {
-        log_e("Vfx decal color-atlas entry missing");
+      if (UNLIKELY(!entry || entry->atlasIndex > u8_max)) {
+        log_e("Vfx decal color-atlas entry invalid");
         continue;
       }
-      atlasColorIdx = entry->atlasIndex;
+      atlasColorIdx = (u8)entry->atlasIndex;
     }
     if (asset->atlasNormalEntry) {
       const AssetAtlasEntry* entry = asset_atlas_lookup(atlasNormal, asset->atlasNormalEntry);
-      if (UNLIKELY(!entry)) {
-        log_e("Vfx decal normal-atlas entry missing");
+      if (UNLIKELY(!entry || entry->atlasIndex > u8_max)) {
+        log_e("Vfx decal normal-atlas entry invalid");
         continue;
       }
-      atlasNormalIdx = entry->atlasIndex;
+      atlasNormalIdx = (u8)entry->atlasIndex;
     }
     if (asset->atlasEmissiveEntry) {
       const AssetAtlasEntry* entry = asset_atlas_lookup(atlasEmissive, asset->atlasEmissiveEntry);
-      if (UNLIKELY(!entry)) {
-        log_e("Vfx decal emissive-atlas entry missing");
+      if (UNLIKELY(!entry || entry->atlasIndex > u8_max)) {
+        log_e("Vfx decal emissive-atlas entry invalid");
         continue;
       }
-      atlasEmissiveIdx = entry->atlasIndex;
+      atlasEmissiveIdx = (u8)entry->atlasIndex;
     }
     if (asset->flags & AssetDecalFlags_Trail) {
       vfx_decal_create_trail(
@@ -471,6 +473,7 @@ static void vfx_decal_single_update(
         .alphaEnd         = alpha,
         .roughness        = inst->roughness,
         .metalness        = inst->metalness,
+        .emissive         = inst->emissive,
         .texOffsetY       = 0.0f,
         .texScaleY        = 1.0f,
         .warpScale        = {1.0f, 1.0f},
@@ -819,6 +822,7 @@ static void vfx_decal_trail_update(
         .alphaEnd         = alphaEnd * seg->alphaEnd,
         .roughness        = inst->roughness,
         .metalness        = inst->metalness,
+        .emissive         = inst->emissive,
         .texOffsetY       = texOffset,
         .texScaleY        = segTexScale,
         .warpScale  = vfx_warp_bounds(corners, array_elems(corners), (VfxWarpVec){0.5f, 0.5f}),
