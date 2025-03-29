@@ -145,4 +145,20 @@ f32v3 pbr_light_point(
   return pbr_light_dir(effectiveRadiance, lightDir, viewDir, surf);
 }
 
+f32v3 pbr_light_line(
+    const f32v3      radiance,
+    const f32        radiusInv,
+    const f32v3      posA,
+    const f32v3      posB,
+    const f32v3      viewDir,
+    const PbrSurface surf) {
+
+  const f32v3 linePos           = math_line_closest_point(posA, posB, surf.position);
+  const f32v3 lightDir          = normalize(surf.position - linePos);
+  const f32   dist              = length(surf.position - linePos);
+  const f32v3 effectiveRadiance = radiance * pbr_attenuation_resolve(dist, radiusInv);
+  return pbr_light_dir(effectiveRadiance, lightDir, viewDir, surf);
+}
+
+
 #endif // INCLUDE_PBR
