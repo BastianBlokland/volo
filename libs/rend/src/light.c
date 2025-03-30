@@ -85,6 +85,8 @@ static const String g_lightGraphics[RendLightObj_Count] = {
     [RendLightType_Directional + RendLightVariation_Normal] = string_static("graphics/light/light_directional.graphic"),
     [RendLightType_Point       + RendLightVariation_Normal] = string_static("graphics/light/light_point.graphic"),
     [RendLightType_Point       + RendLightVariation_Debug]  = string_static("graphics/light/light_point_debug.graphic"),
+    [RendLightType_Line        + RendLightVariation_Normal] = string_static("graphics/light/light_line.graphic"),
+    [RendLightType_Line        + RendLightVariation_Debug]  = string_static("graphics/light/light_line_debug.graphic"),
 };
 // clang-format on
 
@@ -499,10 +501,10 @@ ecs_system_define(RendLightRenderSys) {
       }
       case RendLightType_Point: {
         if (entry->data_point.flags & RendLightFlags_Shadow) {
-          log_e("Point-light shadows are unsupported");
+          log_e("Point-light shadows are not supported");
         }
         const GeoVector pos      = entry->data_point.pos;
-        const GeoColor  radiance = rend_radiance_resolve(entry->data_directional.radiance);
+        const GeoColor  radiance = rend_radiance_resolve(entry->data_point.radiance);
         const f32       radius   = entry->data_point.radius;
         if (UNLIKELY(rend_light_brightness(radiance) < 0.01f || radius < f32_epsilon)) {
           continue;
@@ -518,6 +520,21 @@ ecs_system_define(RendLightRenderSys) {
             .radianceAndRadiusInv.b = radiance.b,
             .radianceAndRadiusInv.a = 1.0f / radius,
         };
+        break;
+      }
+      case RendLightType_Line: {
+        if (entry->data_line.flags & RendLightFlags_Shadow) {
+          log_e("Line-light shadows are not supported");
+        }
+        const GeoVector posA     = entry->data_line.posA;
+        const GeoVector posB     = entry->data_line.posB;
+        const GeoColor  radiance = rend_radiance_resolve(entry->data_line.radiance);
+        const f32       radius   = entry->data_line.radius;
+        if (UNLIKELY(rend_light_brightness(radiance) < 0.01f || radius < f32_epsilon)) {
+          continue;
+        }
+        (void)posA;
+        (void)posB;
         break;
       }
       default:

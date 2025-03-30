@@ -1,0 +1,12 @@
+{
+  "pass": "Forward",
+  "passOrder": -90,
+  "shaders": [
+    { "program": "shaders/light/light_line.vert" },
+    { "program": "shaders/light/light_line.frag" }
+  ],
+  "mesh": "meshes/light/light_line.procmesh",
+  "blend": "Additive",
+  "depth": "AlwaysNoWrite",
+  "cull": "Front"
+}
