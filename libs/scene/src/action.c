@@ -318,7 +318,9 @@ static void action_update_light_param(ActionContext* ctx, const SceneActionUpdat
     SceneLightPointComp* pointComp = ecs_view_write_t(ctx->lightPointItr, SceneLightPointComp);
     switch (a->param) {
     case SceneActionLightParam_Radiance:
-      pointComp->radiance = a->value;
+      pointComp->radiance = a->value_color;
+      break;
+    case SceneActionLightParam_Length:
       break;
     }
   }
@@ -326,7 +328,10 @@ static void action_update_light_param(ActionContext* ctx, const SceneActionUpdat
     SceneLightLineComp* lineComp = ecs_view_write_t(ctx->lightLineItr, SceneLightLineComp);
     switch (a->param) {
     case SceneActionLightParam_Radiance:
-      lineComp->radiance = a->value;
+      lineComp->radiance = a->value_color;
+      break;
+    case SceneActionLightParam_Length:
+      lineComp->length = a->value_f32;
       break;
     }
   }
@@ -334,7 +339,9 @@ static void action_update_light_param(ActionContext* ctx, const SceneActionUpdat
     SceneLightDirComp* dirComp = ecs_view_write_t(ctx->lightDirItr, SceneLightDirComp);
     switch (a->param) {
     case SceneActionLightParam_Radiance:
-      dirComp->radiance = a->value;
+      dirComp->radiance = a->value_color;
+      break;
+    case SceneActionLightParam_Length:
       break;
     }
   }

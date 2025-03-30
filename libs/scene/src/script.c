@@ -175,6 +175,7 @@ static void eval_enum_init_light_param(void) {
   script_enum_push((_ENUM_), string_lit(#_NAME_), SceneActionLightParam_##_NAME_);
 
   PUSH_LIGHT_PARAM(&g_scriptEnumLightParam, Radiance);
+  PUSH_LIGHT_PARAM(&g_scriptEnumLightParam, Length);
 
 #undef PUSH_LIGHT_PARAM
 }
@@ -1426,6 +1427,8 @@ static ScriptVal eval_light_param(EvalContext* ctx, ScriptBinderCall* call) {
       switch (param) {
       case SceneActionLightParam_Radiance:
         return script_color(point->radiance);
+      case SceneActionLightParam_Length:
+        return script_num(0);
       }
     }
     if (ecs_view_maybe_jump(ctx->lightLineItr, entity)) {
@@ -1433,6 +1436,8 @@ static ScriptVal eval_light_param(EvalContext* ctx, ScriptBinderCall* call) {
       switch (param) {
       case SceneActionLightParam_Radiance:
         return script_color(line->radiance);
+      case SceneActionLightParam_Length:
+        return script_num(line->length);
       }
     }
     if (ecs_view_maybe_jump(ctx->lightDirItr, entity)) {
@@ -1440,6 +1445,8 @@ static ScriptVal eval_light_param(EvalContext* ctx, ScriptBinderCall* call) {
       switch (param) {
       case SceneActionLightParam_Radiance:
         return script_color(dir->radiance);
+      case SceneActionLightParam_Length:
+        return script_num(0);
       }
     }
     return script_null();
@@ -1453,9 +1460,15 @@ static ScriptVal eval_light_param(EvalContext* ctx, ScriptBinderCall* call) {
   act->updateLightParam = (SceneActionUpdateLightParam){
       .entity = entity,
       .param  = param,
-      .value  = script_arg_color(call, 2),
   };
-
+  switch (param) {
+  case SceneActionLightParam_Radiance:
+    act->updateLightParam.value_color = script_arg_color(call, 2);
+    break;
+  case SceneActionLightParam_Length:
+    act->updateLightParam.value_f32 = (f32)script_arg_num(call, 2);
+    break;
+  }
   return script_null();
 }
 

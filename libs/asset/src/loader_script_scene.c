@@ -37,7 +37,7 @@ void asset_data_init_script_scene(void) {
   static const String g_navFindTypeDoc     = string_static("Supported types:\n\n-`ClosestCell` (default)\n\n-`UnblockedCell`\n\n-`FreeCell`");
   static const String g_vfxParamDoc        = string_static("Supported parameters:\n\n-`Alpha`\n\n-`EmitMultiplier`");
   static const String g_renderableParamDoc = string_static("Supported parameters:\n\n-`Color`\n\n-`Alpha`\n\n-`Emissive`");
-  static const String g_lightParamDoc      = string_static("Supported parameters:\n\n-`Radiance`");
+  static const String g_lightParamDoc      = string_static("Supported parameters:\n\n-`Radiance`\n\n-`Length`");
   static const String g_soundParamDoc      = string_static("Supported parameters:\n\n-`Gain`\n\n-`Pitch`");
   static const String g_animParamDoc       = string_static("Supported parameters:\n\n-`Time`\n\n-`TimeNorm`\n\n-`Speed`\n\n-`Weight`\n\n-`Active`\n\n-`Loop`\n\n-`FadeIn`\n\n-`FadeOut`\n\n-`Duration`");
   {
@@ -612,7 +612,7 @@ void asset_data_init_script_scene(void) {
     const ScriptSigArg args[] = {
         {string_lit("v"), script_mask_entity},
         {string_lit("param"), script_mask_str},
-        {string_lit("value"), script_mask_color | script_mask_null},
+        {string_lit("value"), script_mask_color | script_mask_num | script_mask_null},
     };
     bind(binder, name, doc, ret, args, array_elems(args));
   }
