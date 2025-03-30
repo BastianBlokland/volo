@@ -1397,6 +1397,26 @@ static ScriptVal eval_light_point_spawn(EvalContext* ctx, ScriptBinderCall* call
   return script_entity(result);
 }
 
+static ScriptVal eval_light_line_spawn(EvalContext* ctx, ScriptBinderCall* call) {
+  const GeoVector pos      = script_arg_vec3(call, 0);
+  const GeoQuat   rot      = script_arg_quat(call, 1);
+  const GeoColor  radiance = script_arg_color(call, 2);
+  const f32       radius   = (f32)script_arg_num_range(call, 3, 1e-3f, 1e+3f);
+  const f32       length   = (f32)script_arg_num_range(call, 4, 0.0f, 1e+3f);
+
+  const EcsEntityId result = ecs_world_entity_create(ctx->world);
+  ecs_world_add_t(ctx->world, result, SceneTransformComp, .position = pos, .rotation = rot);
+  ecs_world_add_t(
+      ctx->world,
+      result,
+      SceneLightLineComp,
+      .radiance = radiance,
+      .radius   = radius,
+      .length   = length);
+  ecs_world_add_empty_t(ctx->world, result, SceneLevelInstanceComp);
+  return script_entity(result);
+}
+
 static ScriptVal eval_light_param(EvalContext* ctx, ScriptBinderCall* call) {
   const EcsEntityId entity = script_arg_entity(call, 0);
   const i32         param  = script_arg_enum(call, 1, &g_scriptEnumLightParam);
@@ -1929,6 +1949,7 @@ static void eval_binder_init(void) {
     eval_bind(b, string_lit("collision_box_spawn"),    eval_collision_box_spawn);
     eval_bind(b, string_lit("collision_sphere_spawn"), eval_collision_sphere_spawn);
     eval_bind(b, string_lit("light_point_spawn"),      eval_light_point_spawn);
+    eval_bind(b, string_lit("light_line_spawn"),       eval_light_line_spawn);
     eval_bind(b, string_lit("light_param"),            eval_light_param);
     eval_bind(b, string_lit("sound_spawn"),            eval_sound_spawn);
     eval_bind(b, string_lit("sound_param"),            eval_sound_param);

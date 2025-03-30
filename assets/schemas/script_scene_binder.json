@@ -787,6 +787,20 @@
       }
     },
     {
+      "name": "light_line_spawn",
+      "doc": "Spawn a line light.\n\n*Note*: Resulting entity is not automatically destroyed.\n\n*Note*: It takes one frame before it can be used with the 'light_param()' api.",
+      "sig": {
+        "ret": "entity",
+        "args": [
+          { "name": "pos", "mask": "vec3" },
+          { "name": "rot", "mask": "quat" },
+          { "name": "radiance", "mask": "color" },
+          { "name": "radius", "mask": "num" },
+          { "name": "length", "mask": "num" }
+        ]
+      }
+    },
+    {
       "name": "debug_break",
       "doc": "Break into the debugger if there is one attached.",
       "sig": {
