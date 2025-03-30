@@ -31,6 +31,7 @@ static const f32 g_worldHeight            = 10.0f;
 typedef enum {
   RendLightType_Directional,
   RendLightType_Point,
+  RendLightType_Line,
   RendLightType_Ambient,
 
   RendLightType_Count,
@@ -59,6 +60,13 @@ typedef struct {
 } RendLightPoint;
 
 typedef struct {
+  GeoVector      posA, posB;
+  GeoColor       radiance;
+  f32            radius;
+  RendLightFlags flags;
+} RendLightLine;
+
+typedef struct {
   f32 intensity;
 } RendLightAmbient;
 
@@ -67,6 +75,7 @@ typedef struct {
   union {
     RendLightDirectional data_directional;
     RendLightPoint       data_point;
+    RendLightLine        data_line;
     RendLightAmbient     data_ambient;
   };
 } RendLight;
@@ -599,6 +608,28 @@ void rend_light_point(
           .data_point =
               {
                   .pos      = pos,
+                  .radiance = radiance,
+                  .radius   = radius,
+                  .flags    = flags,
+              },
+      });
+}
+
+void rend_light_line(
+    RendLightComp*       comp,
+    const GeoVector      posA,
+    const GeoVector      posB,
+    const GeoColor       radiance,
+    const f32            radius,
+    const RendLightFlags flags) {
+  rend_light_add(
+      comp,
+      (RendLight){
+          .type = RendLightType_Line,
+          .data_line =
+              {
+                  .posA     = posA,
+                  .posB     = posB,
                   .radiance = radiance,
                   .radius   = radius,
                   .flags    = flags,
