@@ -460,6 +460,13 @@ ecs_system_define(RendLightRenderSys) {
       } LightPointData;
       ASSERT(sizeof(LightPointData) == 32, "Size needs to match the size defined in glsl");
 
+      typedef struct {
+        ALIGNAS(16)
+        GeoVector posA, posB;           // x, y, z: position, w: unused.
+        GeoColor  radianceAndRadiusInv; // r, g, b: radiance, a: inverse radius (1.0 / radius).
+      } LightLineData;
+      ASSERT(sizeof(LightLineData) == 48, "Size needs to match the size defined in glsl");
+
       switch (entry->type) {
       case RendLightType_Directional: {
         const GeoColor radiance = rend_radiance_resolve(entry->data_directional.radiance);
@@ -533,8 +540,15 @@ ecs_system_define(RendLightRenderSys) {
         if (UNLIKELY(rend_light_brightness(radiance) < 0.01f || radius < f32_epsilon)) {
           continue;
         }
-        (void)posA;
-        (void)posB;
+        const GeoBox bounds = geo_box_from_capsule(posA, posB, radius);
+        *rend_object_add_instance_t(obj, LightLineData, tags, bounds) = (LightLineData){
+            .posA                   = posA,
+            .posB                   = posB,
+            .radianceAndRadiusInv.r = radiance.r,
+            .radianceAndRadiusInv.g = radiance.g,
+            .radianceAndRadiusInv.b = radiance.b,
+            .radianceAndRadiusInv.a = 1.0f / radius,
+        };
         break;
       }
       default:
