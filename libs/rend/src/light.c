@@ -143,6 +143,12 @@ ecs_view_define(LightPointInstView) {
   ecs_access_maybe_read(SceneScaleComp);
 }
 
+ecs_view_define(LightLineInstView) {
+  ecs_access_read(SceneTransformComp);
+  ecs_access_read(SceneLightLineComp);
+  ecs_access_maybe_read(SceneScaleComp);
+}
+
 ecs_view_define(LightDirInstView) {
   ecs_access_read(SceneTransformComp);
   ecs_access_read(SceneLightDirComp);
@@ -249,6 +255,30 @@ ecs_system_define(RendLightPushSys) {
     }
     const RendLightFlags flags = RendLightFlags_None;
     rend_light_point(light, transformComp->position, radiance, radius, flags);
+  }
+
+  // Push all line-lights.
+  EcsView* lineLights = ecs_world_view_t(world, LightLineInstView);
+  for (EcsIterator* itr = ecs_view_itr(lineLights); ecs_view_walk(itr);) {
+    const SceneTransformComp* transformComp = ecs_view_read_t(itr, SceneTransformComp);
+    const SceneScaleComp*     scaleComp     = ecs_view_read_t(itr, SceneScaleComp);
+    const SceneLightLineComp* lineComp      = ecs_view_read_t(itr, SceneLightLineComp);
+
+    GeoColor radiance = lineComp->radiance;
+    f32      radius   = lineComp->radius;
+    f32      length   = lineComp->length;
+    if (scaleComp) {
+      radiance.a *= scaleComp->scale;
+      radius *= scaleComp->scale;
+      length *= scaleComp->scale;
+    }
+
+    const GeoVector dir  = geo_quat_rotate(transformComp->rotation, geo_forward);
+    const GeoVector posA = transformComp->position;
+    const GeoVector posB = geo_vector_add(posA, geo_vector_mul(dir, length));
+
+    const RendLightFlags flags = RendLightFlags_None;
+    rend_light_line(light, posA, posB, radiance, radius, flags);
   }
 
   // Push all directional lights.
@@ -570,6 +600,7 @@ ecs_module_init(rend_light_module) {
   ecs_register_view(ObjView);
   ecs_register_view(CameraView);
   ecs_register_view(LightPointInstView);
+  ecs_register_view(LightLineInstView);
   ecs_register_view(LightDirInstView);
   ecs_register_view(LightAmbientInstView);
 
@@ -579,6 +610,7 @@ ecs_module_init(rend_light_module) {
       RendLightPushSys,
       ecs_view_id(GlobalView),
       ecs_view_id(LightPointInstView),
+      ecs_view_id(LightLineInstView),
       ecs_view_id(LightDirInstView),
       ecs_view_id(LightAmbientInstView));
 
