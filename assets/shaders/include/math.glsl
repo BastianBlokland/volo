@@ -14,6 +14,23 @@ f32m2 math_rotate_f32m2(const f32 angle) {
   return f32m2(c, -s, s, c);
 }
 
+/**
+ * Create a rotation matrix that rotates from the rotation to a new axis system.
+ * NOTE: Up does not need to be orthogonal to fwd as the up is reconstructed.
+ * Pre-condition: fwd and upRef are normalized.
+ */
+f32m3 math_rotate_look_f32m3(const f32v3 fwd, const f32v3 upRef) {
+  f32v3     right       = cross(upRef, fwd);
+  const f32 rightMagSqr = dot(right, right);
+  if (rightMagSqr > 0.001) {
+    right = right / sqrt(rightMagSqr);
+  } else {
+    right = f32v3(1, 0, 0);
+  }
+  const f32v3 up = cross(fwd, right);
+  return f32m3(right, up, fwd);
+}
+
 f32v2 math_oct_wrap(const f32v2 v) {
   return (1.0 - abs(v.yx)) * f32v2(v.x >= 0.0 ? 1.0 : -1.0, v.y >= 0.0 ? 1.0 : -1.0);
 }
