@@ -26,6 +26,7 @@ typedef enum {
   AssetPrefabTrait_Decal,
   AssetPrefabTrait_Sound,
   AssetPrefabTrait_LightPoint,
+  AssetPrefabTrait_LightLine,
   AssetPrefabTrait_LightDir,
   AssetPrefabTrait_LightAmbient,
   AssetPrefabTrait_Lifetime,
@@ -83,6 +84,11 @@ typedef struct {
   GeoColor radiance;
   f32      radius;
 } AssetPrefabTraitLightPoint;
+
+typedef struct {
+  GeoColor radiance;
+  f32      radius, length;
+} AssetPrefabTraitLightLine;
 
 typedef struct {
   GeoColor radiance;
@@ -182,6 +188,7 @@ typedef struct {
     AssetPrefabTraitDecal        data_decal;
     AssetPrefabTraitSound        data_sound;
     AssetPrefabTraitLightPoint   data_lightPoint;
+    AssetPrefabTraitLightLine    data_lightLine;
     AssetPrefabTraitLightDir     data_lightDir;
     AssetPrefabTraitLightAmbient data_lightAmbient;
     AssetPrefabTraitLifetime     data_lifetime;

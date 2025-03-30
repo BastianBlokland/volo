@@ -468,6 +468,16 @@ static void setup_light_point(PrefabSetupContext* ctx, const AssetPrefabTraitLig
       ctx->world, ctx->entity, SceneLightPointComp, .radiance = t->radiance, .radius = t->radius);
 }
 
+static void setup_light_line(PrefabSetupContext* ctx, const AssetPrefabTraitLightLine* t) {
+  ecs_world_add_t(
+      ctx->world,
+      ctx->entity,
+      SceneLightLineComp,
+      .radiance = t->radiance,
+      .radius   = t->radius,
+      .length   = t->length);
+}
+
 static void setup_light_dir(PrefabSetupContext* ctx, const AssetPrefabTraitLightDir* t) {
   ecs_world_add_t(
       ctx->world,
@@ -722,6 +732,9 @@ static void setup_trait(PrefabSetupContext* ctx, const AssetPrefabTrait* t) {
     return;
   case AssetPrefabTrait_LightPoint:
     setup_light_point(ctx, &t->data_lightPoint);
+    return;
+  case AssetPrefabTrait_LightLine:
+    setup_light_line(ctx, &t->data_lightLine);
     return;
   case AssetPrefabTrait_LightDir:
     setup_light_dir(ctx, &t->data_lightDir);
