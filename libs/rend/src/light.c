@@ -463,7 +463,7 @@ ecs_system_define(RendLightRenderSys) {
       typedef struct {
         ALIGNAS(16)
         GeoVector posA, posB;           // x, y, z: position, w: unused.
-        GeoColor  radianceAndRadiusInv; // r, g, b: radiance, a: inverse radius (1.0 / radius).
+        GeoColor  radianceAndRadiusInv; // r, g, b: radiance, a: radius.
       } LightLineData;
       ASSERT(sizeof(LightLineData) == 48, "Size needs to match the size defined in glsl");
 
@@ -547,7 +547,7 @@ ecs_system_define(RendLightRenderSys) {
             .radianceAndRadiusInv.r = radiance.r,
             .radianceAndRadiusInv.g = radiance.g,
             .radianceAndRadiusInv.b = radiance.b,
-            .radianceAndRadiusInv.a = 1.0f / radius,
+            .radianceAndRadiusInv.a = radius,
         };
         break;
       }

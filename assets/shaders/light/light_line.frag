@@ -9,8 +9,9 @@ bind_global_img(1) uniform sampler2D u_texGeoNormal;
 bind_global_img(2) uniform sampler2D u_texGeoAttribute;
 bind_global_img(4) uniform sampler2D u_texGeoDepth;
 
-bind_internal(0) in flat f32v3 in_position;
-bind_internal(1) in flat f32v4 in_radianceAndRadiusInv;
+bind_internal(0) in flat f32v3 in_positionA;
+bind_internal(1) in flat f32v3 in_positionB;
+bind_internal(2) in flat f32v4 in_radianceAndRadiusInv;
 
 bind_internal(0) out f32v3 out_color;
 
@@ -36,5 +37,5 @@ void main() {
   surf.roughness = geoAttr.roughness;
   surf.metalness = geoAttr.metalness;
 
-  out_color = pbr_light_point(radiance, radiusInv, in_position, viewDir, surf);
+  out_color = pbr_light_line(radiance, radiusInv, in_positionA, in_positionB, viewDir, surf);
 }
