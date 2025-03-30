@@ -22,7 +22,7 @@ void main() {
 
   const f32v3 instancePosA     = u_instances[in_instanceIndex].posA.xyz;
   const f32v3 instancePosB     = u_instances[in_instanceIndex].posB.xyz;
-  const f32v4 instanceRadiance = u_instances[in_instanceIndex].radianceAndRadius.rgb;
+  const f32v3 instanceRadiance = u_instances[in_instanceIndex].radianceAndRadius.rgb;
   const f32   instanceRadius   = u_instances[in_instanceIndex].radianceAndRadius.w;
 
   const f32v3 lineDelta  = instancePosB - instancePosA;
@@ -35,10 +35,10 @@ void main() {
    * TODO: Currently we rasterize a line-light as a box, it would be more optimal however to
    * rasterize it as a capsule. This would reduce the wasted frag shader invocations at the corners.
    */
-  const f32v3 worldPos = lineRot * vert.position * lineScale) + instancePosA - lineDelta * 0.5;
+  const f32v3 worldPos = lineRot * vert.position * lineScale + instancePosA - lineDelta * 0.5;
 
   out_vertexPosition       = u_global.viewProj * f32v4(worldPos, 1);
   out_positionA            = instancePosA;
   out_positionB            = instancePosB;
-  out_radianceAndRadiusInv = f32v4(instanceRadianceAndRadius.rgb, 1.0 / instanceRadius);
+  out_radianceAndRadiusInv = f32v4(instanceRadiance, 1.0 / instanceRadius);
 }
