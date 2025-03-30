@@ -99,7 +99,7 @@ void main() {
   const u32 glyphOutlineWidth = (atomData.data.w >> 16) & 0xFF;
   const u32 glyphWeight       = (atomData.data.w >> 24) & 0xFF;
 
-  const f32m2 rotMat = math_rotate_mat_f32m2(angleRad);
+  const f32m2 rotMat = math_rotate_f32m2(angleRad);
 
   /**
    * Compute the ui positions of the vertices.
