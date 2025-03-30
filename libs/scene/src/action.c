@@ -115,6 +115,7 @@ ecs_view_define(ActionRenderableView) { ecs_access_write(SceneRenderableComp); }
 ecs_view_define(ActionVfxSysView) { ecs_access_write(SceneVfxSystemComp); }
 ecs_view_define(ActionVfxDecalView) { ecs_access_write(SceneVfxDecalComp); }
 ecs_view_define(ActionLightPointView) { ecs_access_write(SceneLightPointComp); }
+ecs_view_define(ActionLightLineView) { ecs_access_write(SceneLightLineComp); }
 ecs_view_define(ActionLightDirView) { ecs_access_write(SceneLightDirComp); }
 ecs_view_define(ActionSoundView) { ecs_access_write(SceneSoundComp); }
 ecs_view_define(ActionAnimView) { ecs_access_write(SceneAnimationComp); }
@@ -135,6 +136,7 @@ typedef struct {
   EcsIterator* vfxSysItr;
   EcsIterator* vfxDecalItr;
   EcsIterator* lightPointItr;
+  EcsIterator* lightLineItr;
   EcsIterator* lightDirItr;
   EcsIterator* soundItr;
   EcsIterator* animItr;
@@ -320,6 +322,14 @@ static void action_update_light_param(ActionContext* ctx, const SceneActionUpdat
       break;
     }
   }
+  if (ecs_view_maybe_jump(ctx->lightLineItr, a->entity)) {
+    SceneLightLineComp* lineComp = ecs_view_write_t(ctx->lightLineItr, SceneLightLineComp);
+    switch (a->param) {
+    case SceneActionLightParam_Radiance:
+      lineComp->radiance = a->value;
+      break;
+    }
+  }
   if (ecs_view_maybe_jump(ctx->lightDirItr, a->entity)) {
     SceneLightDirComp* dirComp = ecs_view_write_t(ctx->lightDirItr, SceneLightDirComp);
     switch (a->param) {
@@ -406,6 +416,7 @@ ecs_system_define(SceneActionUpdateSys) {
       .vfxSysItr     = ecs_view_itr(ecs_world_view_t(world, ActionVfxSysView)),
       .vfxDecalItr   = ecs_view_itr(ecs_world_view_t(world, ActionVfxDecalView)),
       .lightPointItr = ecs_view_itr(ecs_world_view_t(world, ActionLightPointView)),
+      .lightLineItr  = ecs_view_itr(ecs_world_view_t(world, ActionLightLineView)),
       .lightDirItr   = ecs_view_itr(ecs_world_view_t(world, ActionLightDirView)),
       .soundItr      = ecs_view_itr(ecs_world_view_t(world, ActionSoundView)),
       .animItr       = ecs_view_itr(ecs_world_view_t(world, ActionAnimView)),
@@ -516,6 +527,7 @@ ecs_module_init(scene_action_module) {
       ecs_register_view(ActionVfxSysView),
       ecs_register_view(ActionVfxDecalView),
       ecs_register_view(ActionLightPointView),
+      ecs_register_view(ActionLightLineView),
       ecs_register_view(ActionLightDirView),
       ecs_register_view(ActionSoundView),
       ecs_register_view(ActionAnimView));
