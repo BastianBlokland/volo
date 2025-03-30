@@ -540,6 +540,7 @@ ecs_system_define(RendLightRenderSys) {
         if (UNLIKELY(rend_light_brightness(radiance) < 0.01f || radius < f32_epsilon)) {
           continue;
         }
+        diag_assert(geo_vector_mag_sqr(geo_vector_sub(posB, posA)) > (0.01f * 0.01f));
         const GeoBox bounds = geo_box_from_capsule(posA, posB, radius);
         *rend_object_add_instance_t(obj, LightLineData, tags, bounds) = (LightLineData){
             .posA                   = posA,
@@ -653,19 +654,36 @@ void rend_light_line(
     const GeoColor       radiance,
     const f32            radius,
     const RendLightFlags flags) {
-  rend_light_add(
-      comp,
-      (RendLight){
-          .type = RendLightType_Line,
-          .data_line =
-              {
-                  .posA     = posA,
-                  .posB     = posB,
-                  .radiance = radiance,
-                  .radius   = radius,
-                  .flags    = flags,
-              },
-      });
+
+  const f32 lineLengthSqr = geo_vector_mag_sqr(geo_vector_sub(posB, posA));
+  if (lineLengthSqr <= (0.01f * 0.01f)) {
+    rend_light_add(
+        comp,
+        (RendLight){
+            .type = RendLightType_Point,
+            .data_point =
+                {
+                    .pos      = posA,
+                    .radiance = radiance,
+                    .radius   = radius,
+                    .flags    = flags,
+                },
+        });
+  } else {
+    rend_light_add(
+        comp,
+        (RendLight){
+            .type = RendLightType_Line,
+            .data_line =
+                {
+                    .posA     = posA,
+                    .posB     = posB,
+                    .radiance = radiance,
+                    .radius   = radius,
+                    .flags    = flags,
+                },
+        });
+  }
 }
 
 void rend_light_ambient(RendLightComp* comp, const f32 intensity) {
