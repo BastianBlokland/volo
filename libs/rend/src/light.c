@@ -80,15 +80,20 @@ typedef struct {
   };
 } RendLight;
 
+#define LIGHT_OBJ_INDEX(_TYPE_, _VAR_)                                                             \
+  (RendLightType_##_TYPE_ * RendLightVariation_Count + RendLightVariation_##_VAR_)
+
 // clang-format off
 static const String g_lightGraphics[RendLightObj_Count] = {
-    [RendLightType_Directional + RendLightVariation_Normal] = string_static("graphics/light/light_directional.graphic"),
-    [RendLightType_Point       + RendLightVariation_Normal] = string_static("graphics/light/light_point.graphic"),
-    [RendLightType_Point       + RendLightVariation_Debug]  = string_static("graphics/light/light_point_debug.graphic"),
-    [RendLightType_Line        + RendLightVariation_Normal] = string_static("graphics/light/light_line.graphic"),
-    [RendLightType_Line        + RendLightVariation_Debug]  = string_static("graphics/light/light_line_debug.graphic"),
+  [LIGHT_OBJ_INDEX(Directional, Normal)] = string_static("graphics/light/light_directional.graphic"),
+  [LIGHT_OBJ_INDEX(Point,       Normal)] = string_static("graphics/light/light_point.graphic"),
+  [LIGHT_OBJ_INDEX(Point,       Debug)]  = string_static("graphics/light/light_point_debug.graphic"),
+  [LIGHT_OBJ_INDEX(Line,        Normal)] = string_static("graphics/light/light_line.graphic"),
+  [LIGHT_OBJ_INDEX(Line,        Debug)]  = string_static("graphics/light/light_line_debug.graphic"),
 };
 // clang-format on
+
+#undef LIGHT_OBJ_INDEX
 
 ecs_comp_define(RendLightRendererComp) {
   EcsEntityId objEntities[RendLightObj_Count];
@@ -161,7 +166,7 @@ ecs_view_define(LightAmbientInstView) {
 }
 
 static u32 rend_obj_index(const RendLightType type, const RendLightVariation variation) {
-  return (u32)type + (u32)variation;
+  return (u32)type * RendLightVariation_Count + (u32)variation;
 }
 
 static EcsEntityId rend_light_obj_create(
