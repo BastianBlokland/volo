@@ -175,11 +175,8 @@ f32v3 pbr_light_line(
   // Clamp the line so it doesn't go inside the surface.
   math_line_clamp_plane(posA, posB, surf.position, surf.normal);
 
-  const f32v3 toA     = posA - surf.position;
-  const f32   distToA = length(toA);
-
-  const f32v3 toB     = posB - surf.position;
-  const f32   distToB = length(toB);
+  const f32 distToA = length(posA - surf.position);
+  const f32 distToB = length(posB - surf.position);
 
   /**
    * Approximate the light direction by picking a single point on the line that is most
