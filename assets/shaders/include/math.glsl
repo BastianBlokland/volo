@@ -77,7 +77,7 @@ f32v3 math_line_closest_point(const f32v3 lineA, const f32v3 lineB, const f32v3 
  * Clamp given line to a plane (end the line at the intersection point with the plane).
  */
 void math_line_clamp_plane(
-  inout f32v3 lineA, inout f32v3 lineB, const f32v3 planePos, const f32v3 planeNorm) {
+    inout f32v3 lineA, inout f32v3 lineB, const f32v3 planePos, const f32v3 planeNorm) {
 
   const f32v3 lineDir  = lineB - lineA;
   const f32v3 aToPlane = lineA - planePos;
@@ -94,9 +94,9 @@ void math_line_clamp_plane(
   const f32v3 hit  = lineA + lineDir * hitT;
 
   if (aToPlaneDot > 0.0) {
-    lineA = hit;
-  } else {
     lineB = hit;
+  } else {
+    lineA = hit;
   }
 }
 
