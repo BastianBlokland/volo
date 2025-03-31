@@ -134,12 +134,16 @@ typedef struct {
 
 typedef enum {
   SceneActionLightParam_Radiance,
+  SceneActionLightParam_Length,
 } SceneActionLightParam;
 
 typedef struct {
   EcsEntityId           entity;
   SceneActionLightParam param;
-  GeoColor              value;
+  union {
+    GeoColor value_color;
+    f32      value_f32;
+  };
 } SceneActionUpdateLightParam;
 
 typedef enum {

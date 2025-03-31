@@ -81,7 +81,7 @@ f32 shadow_frac(const f32v3 worldPos) {
    * visible patterns at the tradeoff of some noise.
    */
   const f32   randVal = rand_f32(f32v4(worldPos, 0));
-  const f32m2 rotMat  = math_rotate_mat_f32m2(randVal * c_pi * 2);
+  const f32m2 rotMat  = math_rotate_f32m2(randVal * c_pi * 2);
 
   f32 shadowSum = 0;
   for (u32 i = 0; i < c_poissonDiskSampleCount; ++i) {

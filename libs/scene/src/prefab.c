@@ -47,25 +47,27 @@ ASSERT(AssetPrefabTrait_Count < 64, "Prefab trait masks need to be representable
 static const u64 g_prefabVariantTraitMask[ScenePrefabVariant_Count] = {
     [ScenePrefabVariant_Normal]  = ~u64_lit(0),
 
-    [ScenePrefabVariant_Preview] = (u64_lit(1) << AssetPrefabTrait_Renderable)   |
+    [ScenePrefabVariant_Preview] = (u64_lit(1) << AssetPrefabTrait_Attachment)   |
                                    (u64_lit(1) << AssetPrefabTrait_Decal)        |
-                                   (u64_lit(1) << AssetPrefabTrait_LightPoint)   |
-                                   (u64_lit(1) << AssetPrefabTrait_LightDir)     |
                                    (u64_lit(1) << AssetPrefabTrait_LightAmbient) |
-                                   (u64_lit(1) << AssetPrefabTrait_Attachment)   |
-                                   (u64_lit(1) << AssetPrefabTrait_Scalable),
+                                   (u64_lit(1) << AssetPrefabTrait_LightDir)     |
+                                   (u64_lit(1) << AssetPrefabTrait_LightLine)    |
+                                   (u64_lit(1) << AssetPrefabTrait_LightPoint)   |
+                                   (u64_lit(1) << AssetPrefabTrait_Scalable)     |
+                                   (u64_lit(1) << AssetPrefabTrait_Renderable),
 
-    [ScenePrefabVariant_Edit]    = (u64_lit(1) << AssetPrefabTrait_Renderable)   |
-                                   (u64_lit(1) << AssetPrefabTrait_Property)     |
+    [ScenePrefabVariant_Edit]    = (u64_lit(1) << AssetPrefabTrait_Attachment)   |
+                                   (u64_lit(1) << AssetPrefabTrait_Collision)    |
                                    (u64_lit(1) << AssetPrefabTrait_Decal)        |
+                                   (u64_lit(1) << AssetPrefabTrait_LightAmbient) |
+                                   (u64_lit(1) << AssetPrefabTrait_LightDir)     |
+                                   (u64_lit(1) << AssetPrefabTrait_LightLine)    |
                                    (u64_lit(1) << AssetPrefabTrait_LightPoint)   |
                                    (u64_lit(1) << AssetPrefabTrait_Location)     |
-                                   (u64_lit(1) << AssetPrefabTrait_LightDir)     |
-                                   (u64_lit(1) << AssetPrefabTrait_LightAmbient) |
-                                   (u64_lit(1) << AssetPrefabTrait_Collision)    |
-                                   (u64_lit(1) << AssetPrefabTrait_Script)       |
-                                   (u64_lit(1) << AssetPrefabTrait_Attachment)   |
-                                   (u64_lit(1) << AssetPrefabTrait_Scalable),
+                                   (u64_lit(1) << AssetPrefabTrait_Property)     |
+                                   (u64_lit(1) << AssetPrefabTrait_Renderable)   |
+                                   (u64_lit(1) << AssetPrefabTrait_Scalable)     |
+                                   (u64_lit(1) << AssetPrefabTrait_Script),
 };
 
 // clang-format on
@@ -468,6 +470,16 @@ static void setup_light_point(PrefabSetupContext* ctx, const AssetPrefabTraitLig
       ctx->world, ctx->entity, SceneLightPointComp, .radiance = t->radiance, .radius = t->radius);
 }
 
+static void setup_light_line(PrefabSetupContext* ctx, const AssetPrefabTraitLightLine* t) {
+  ecs_world_add_t(
+      ctx->world,
+      ctx->entity,
+      SceneLightLineComp,
+      .radiance = t->radiance,
+      .radius   = t->radius,
+      .length   = t->length);
+}
+
 static void setup_light_dir(PrefabSetupContext* ctx, const AssetPrefabTraitLightDir* t) {
   ecs_world_add_t(
       ctx->world,
@@ -722,6 +734,9 @@ static void setup_trait(PrefabSetupContext* ctx, const AssetPrefabTrait* t) {
     return;
   case AssetPrefabTrait_LightPoint:
     setup_light_point(ctx, &t->data_lightPoint);
+    return;
+  case AssetPrefabTrait_LightLine:
+    setup_light_line(ctx, &t->data_lightLine);
     return;
   case AssetPrefabTrait_LightDir:
     setup_light_dir(ctx, &t->data_lightDir);

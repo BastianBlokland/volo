@@ -175,6 +175,7 @@ static void eval_enum_init_light_param(void) {
   script_enum_push((_ENUM_), string_lit(#_NAME_), SceneActionLightParam_##_NAME_);
 
   PUSH_LIGHT_PARAM(&g_scriptEnumLightParam, Radiance);
+  PUSH_LIGHT_PARAM(&g_scriptEnumLightParam, Length);
 
 #undef PUSH_LIGHT_PARAM
 }
@@ -259,6 +260,7 @@ ecs_view_define(EvalHealthStatsView) { ecs_access_read(SceneHealthStatsComp); }
 ecs_view_define(EvalHealthView) { ecs_access_read(SceneHealthComp); }
 ecs_view_define(EvalLightDirView) { ecs_access_read(SceneLightDirComp); }
 ecs_view_define(EvalLightPointView) { ecs_access_read(SceneLightPointComp); }
+ecs_view_define(EvalLightLineView) { ecs_access_read(SceneLightLineComp); }
 ecs_view_define(EvalLocoView) { ecs_access_read(SceneLocomotionComp); }
 ecs_view_define(EvalNameView) { ecs_access_read(SceneNameComp); }
 ecs_view_define(EvalNavAgentView) { ecs_access_read(SceneNavAgentComp); }
@@ -310,6 +312,7 @@ typedef struct {
   EcsIterator* healthStatsItr;
   EcsIterator* lightDirItr;
   EcsIterator* lightPointItr;
+  EcsIterator* lightLineItr;
   EcsIterator* lineOfSightItr;
   EcsIterator* locoItr;
   EcsIterator* nameItr;
@@ -368,7 +371,8 @@ context_is_capable(EvalContext* ctx, const EcsEntityId e, const SceneScriptCapab
            ecs_world_has_t(ctx->world, e, SceneVfxDecalComp);
   case SceneScriptCapability_Light:
     return ecs_world_has_t(ctx->world, e, SceneLightDirComp) ||
-           ecs_world_has_t(ctx->world, e, SceneLightPointComp);
+           ecs_world_has_t(ctx->world, e, SceneLightPointComp) ||
+           ecs_world_has_t(ctx->world, e, SceneLightLineComp);
   case SceneScriptCapability_Sound:
     return ecs_world_has_t(ctx->world, e, SceneSoundComp);
   case SceneScriptCapability_Count:
@@ -1394,6 +1398,26 @@ static ScriptVal eval_light_point_spawn(EvalContext* ctx, ScriptBinderCall* call
   return script_entity(result);
 }
 
+static ScriptVal eval_light_line_spawn(EvalContext* ctx, ScriptBinderCall* call) {
+  const GeoVector pos      = script_arg_vec3(call, 0);
+  const GeoQuat   rot      = script_arg_quat(call, 1);
+  const GeoColor  radiance = script_arg_color(call, 2);
+  const f32       radius   = (f32)script_arg_num_range(call, 3, 1e-3f, 1e+3f);
+  const f32       length   = (f32)script_arg_num_range(call, 4, 0.0f, 1e+3f);
+
+  const EcsEntityId result = ecs_world_entity_create(ctx->world);
+  ecs_world_add_t(ctx->world, result, SceneTransformComp, .position = pos, .rotation = rot);
+  ecs_world_add_t(
+      ctx->world,
+      result,
+      SceneLightLineComp,
+      .radiance = radiance,
+      .radius   = radius,
+      .length   = length);
+  ecs_world_add_empty_t(ctx->world, result, SceneLevelInstanceComp);
+  return script_entity(result);
+}
+
 static ScriptVal eval_light_param(EvalContext* ctx, ScriptBinderCall* call) {
   const EcsEntityId entity = script_arg_entity(call, 0);
   const i32         param  = script_arg_enum(call, 1, &g_scriptEnumLightParam);
@@ -1403,6 +1427,17 @@ static ScriptVal eval_light_param(EvalContext* ctx, ScriptBinderCall* call) {
       switch (param) {
       case SceneActionLightParam_Radiance:
         return script_color(point->radiance);
+      case SceneActionLightParam_Length:
+        return script_num(0);
+      }
+    }
+    if (ecs_view_maybe_jump(ctx->lightLineItr, entity)) {
+      const SceneLightLineComp* line = ecs_view_read_t(ctx->lightLineItr, SceneLightLineComp);
+      switch (param) {
+      case SceneActionLightParam_Radiance:
+        return script_color(line->radiance);
+      case SceneActionLightParam_Length:
+        return script_num(line->length);
       }
     }
     if (ecs_view_maybe_jump(ctx->lightDirItr, entity)) {
@@ -1410,6 +1445,8 @@ static ScriptVal eval_light_param(EvalContext* ctx, ScriptBinderCall* call) {
       switch (param) {
       case SceneActionLightParam_Radiance:
         return script_color(dir->radiance);
+      case SceneActionLightParam_Length:
+        return script_num(0);
       }
     }
     return script_null();
@@ -1423,9 +1460,15 @@ static ScriptVal eval_light_param(EvalContext* ctx, ScriptBinderCall* call) {
   act->updateLightParam = (SceneActionUpdateLightParam){
       .entity = entity,
       .param  = param,
-      .value  = script_arg_color(call, 2),
   };
-
+  switch (param) {
+  case SceneActionLightParam_Radiance:
+    act->updateLightParam.value_color = script_arg_color(call, 2);
+    break;
+  case SceneActionLightParam_Length:
+    act->updateLightParam.value_f32 = (f32)script_arg_num(call, 2);
+    break;
+  }
   return script_null();
 }
 
@@ -1919,6 +1962,7 @@ static void eval_binder_init(void) {
     eval_bind(b, string_lit("collision_box_spawn"),    eval_collision_box_spawn);
     eval_bind(b, string_lit("collision_sphere_spawn"), eval_collision_sphere_spawn);
     eval_bind(b, string_lit("light_point_spawn"),      eval_light_point_spawn);
+    eval_bind(b, string_lit("light_line_spawn"),       eval_light_line_spawn);
     eval_bind(b, string_lit("light_param"),            eval_light_param);
     eval_bind(b, string_lit("sound_spawn"),            eval_sound_spawn);
     eval_bind(b, string_lit("sound_param"),            eval_sound_param);
@@ -2084,6 +2128,7 @@ ecs_system_define(SceneScriptUpdateSys) {
       .healthStatsItr    = ecs_view_itr(ecs_world_view_t(world, EvalHealthStatsView)),
       .lightDirItr       = ecs_view_itr(ecs_world_view_t(world, EvalLightDirView)),
       .lightPointItr     = ecs_view_itr(ecs_world_view_t(world, EvalLightPointView)),
+      .lightLineItr      = ecs_view_itr(ecs_world_view_t(world, EvalLightLineView)),
       .lineOfSightItr    = ecs_view_itr(ecs_world_view_t(world, EvalLineOfSightView)),
       .locoItr           = ecs_view_itr(ecs_world_view_t(world, EvalLocoView)),
       .nameItr           = ecs_view_itr(ecs_world_view_t(world, EvalNameView)),
@@ -2180,6 +2225,7 @@ ecs_module_init(scene_script_module) {
       ecs_register_view(EvalHealthView),
       ecs_register_view(EvalLightDirView),
       ecs_register_view(EvalLightPointView),
+      ecs_register_view(EvalLightLineView),
       ecs_register_view(EvalLineOfSightView),
       ecs_register_view(EvalLocoView),
       ecs_register_view(EvalNameView),

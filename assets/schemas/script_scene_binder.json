@@ -760,7 +760,7 @@
     },
     {
       "name": "light_param",
-      "doc": "Change or query a light parameter on the given entity.\n\nRequired capability: 'Light'\n\nSupported parameters:\n\n-`Radiance`",
+      "doc": "Change or query a light parameter on the given entity.\n\nRequired capability: 'Light'\n\nSupported parameters:\n\n-`Radiance`\n\n-`Length`",
       "sig": {
         "ret": [ "null", "num" ],
         "args": [
@@ -768,7 +768,7 @@
           { "name": "param", "mask": "str" },
           {
             "name": "value",
-            "mask": [ "null", "color" ]
+            "mask": [ "null", "num", "color" ]
           }
         ]
       }
@@ -783,6 +783,20 @@
           { "name": "color", "mask": "color" },
           { "name": "size", "mask": "num" },
           { "name": "values", "mask": "any", "multi": true }
+        ]
+      }
+    },
+    {
+      "name": "light_line_spawn",
+      "doc": "Spawn a line light.\n\n*Note*: Resulting entity is not automatically destroyed.\n\n*Note*: It takes one frame before it can be used with the 'light_param()' api.",
+      "sig": {
+        "ret": "entity",
+        "args": [
+          { "name": "pos", "mask": "vec3" },
+          { "name": "rot", "mask": "quat" },
+          { "name": "radiance", "mask": "color" },
+          { "name": "radius", "mask": "num" },
+          { "name": "length", "mask": "num" }
         ]
       }
     },

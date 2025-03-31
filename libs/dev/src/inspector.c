@@ -290,6 +290,7 @@ ecs_view_define(SubjectView) {
   ecs_access_maybe_write(SceneLightAmbientComp);
   ecs_access_maybe_write(SceneLightDirComp);
   ecs_access_maybe_write(SceneLightPointComp);
+  ecs_access_maybe_write(SceneLightLineComp);
   ecs_access_maybe_write(SceneLocationComp);
   ecs_access_maybe_write(ScenePrefabInstanceComp);
   ecs_access_maybe_write(ScenePropertyComp);
@@ -1142,9 +1143,10 @@ static void inspector_panel_draw_script(InspectorContext* ctx, UiTable* table) {
 
 static void inspector_panel_draw_light(InspectorContext* ctx, UiTable* table) {
   SceneLightPointComp*   point = ecs_view_write_t(ctx->subject, SceneLightPointComp);
+  SceneLightLineComp*    line  = ecs_view_write_t(ctx->subject, SceneLightLineComp);
   SceneLightDirComp*     dir   = ecs_view_write_t(ctx->subject, SceneLightDirComp);
   SceneLightAmbientComp* amb   = ecs_view_write_t(ctx->subject, SceneLightAmbientComp);
-  if (!point && !dir && !amb) {
+  if (!point && !line && !dir && !amb) {
     return;
   }
   inspector_panel_next(ctx, table);
@@ -1162,6 +1164,25 @@ static void inspector_panel_draw_light(InspectorContext* ctx, UiTable* table) {
       if (dev_widget_f32(ctx->canvas, &point->radius, flags)) {
         // Clamp the radius to a sane value.
         point->radius = math_clamp_f32(point->radius, 1e-3f, 1e3f);
+      }
+    }
+    if (line) {
+      inspector_panel_next(ctx, table);
+      ui_label(ctx->canvas, string_lit("Radiance"));
+      ui_table_next_column(ctx->canvas, table);
+      dev_widget_color(ctx->canvas, &line->radiance, flags);
+
+      inspector_panel_next(ctx, table);
+      ui_label(ctx->canvas, string_lit("Radius"));
+      ui_table_next_column(ctx->canvas, table);
+      if (dev_widget_f32(ctx->canvas, &line->radius, flags)) {
+        line->radius = math_clamp_f32(line->radius, 1e-3f, 1e3f); // Clamp to a sane value.
+      }
+      inspector_panel_next(ctx, table);
+      ui_label(ctx->canvas, string_lit("Length"));
+      ui_table_next_column(ctx->canvas, table);
+      if (dev_widget_f32(ctx->canvas, &line->length, flags)) {
+        line->length = math_clamp_f32(line->length, 0.0f, 1e3f); // Clamp to a sane value.
       }
     }
     if (dir) {
@@ -2191,6 +2212,19 @@ static void inspector_vis_draw_light_point(
   dev_sphere(shape, pos, radius, geo_color(1, 1, 1, 0.25f), DevShape_Wire);
 }
 
+static void inspector_vis_draw_light_line(
+    DevShapeComp*             shape,
+    const SceneLightLineComp* lightLine,
+    const SceneTransformComp* transform,
+    const SceneScaleComp*     scaleComp) {
+  const f32       radius = scaleComp ? lightLine->radius * scaleComp->scale : lightLine->radius;
+  const f32       length = scaleComp ? lightLine->length * scaleComp->scale : lightLine->length;
+  const GeoVector dir = transform ? geo_quat_rotate(transform->rotation, geo_forward) : geo_forward;
+  const GeoVector posA = transform ? transform->position : geo_vector(0);
+  const GeoVector posB = geo_vector_add(posA, geo_vector_mul(dir, length));
+  dev_capsule(shape, posA, posB, radius, geo_color(1, 1, 1, 0.25f), DevShape_Wire);
+}
+
 static void inspector_vis_draw_light_dir(
     DevShapeComp* shape, const SceneLightDirComp* lightDir, const SceneTransformComp* transform) {
   (void)lightDir;
@@ -2351,6 +2385,7 @@ static void inspector_vis_draw_subject(
   const SceneHealthComp*      healthComp      = ecs_view_read_t(subject, SceneHealthComp);
   const SceneLightDirComp*    lightDirComp    = ecs_view_read_t(subject, SceneLightDirComp);
   const SceneLightPointComp*  lightPointComp  = ecs_view_read_t(subject, SceneLightPointComp);
+  const SceneLightLineComp*   lightLineComp   = ecs_view_read_t(subject, SceneLightLineComp);
   const SceneLocationComp*    locationComp    = ecs_view_read_t(subject, SceneLocationComp);
   const SceneLocomotionComp*  locoComp        = ecs_view_read_t(subject, SceneLocomotionComp);
   const SceneNameComp*        nameComp        = ecs_view_read_t(subject, SceneNameComp);
@@ -2395,6 +2430,9 @@ static void inspector_vis_draw_subject(
   }
   if (lightPointComp && set->visFlags & (1 << DevInspectorVis_Light)) {
     inspector_vis_draw_light_point(shape, lightPointComp, transformComp, scaleComp);
+  }
+  if (lightLineComp && set->visFlags & (1 << DevInspectorVis_Light)) {
+    inspector_vis_draw_light_line(shape, lightLineComp, transformComp, scaleComp);
   }
   if (lightDirComp && set->visFlags & (1 << DevInspectorVis_Light)) {
     inspector_vis_draw_light_dir(shape, lightDirComp, transformComp);
@@ -2534,6 +2572,8 @@ static void inspector_vis_draw_icon(EcsWorld* w, DevTextComp* text, EcsIterator*
     } else if (ecs_world_has_t(w, e, SceneVfxSystemComp)) {
       icon = UiShape_Grain;
     } else if (ecs_world_has_t(w, e, SceneLightPointComp)) {
+      icon = UiShape_Light;
+    } else if (ecs_world_has_t(w, e, SceneLightLineComp)) {
       icon = UiShape_Light;
     } else if (ecs_world_has_t(w, e, SceneLightDirComp)) {
       icon = UiShape_Light;
