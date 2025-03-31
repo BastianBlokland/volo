@@ -145,13 +145,13 @@ f32v3 pbr_light_point(
   return pbr_light_dir(effectiveRadiance, lightDir, viewDir, surf);
 }
 
-#define PBR_LIGHT_LINE_ITERATIVE 1
+#define PBR_LIGHT_LINE_ITERATIVE 0
 
 f32v3 pbr_light_line(
     f32v3            radiance,
     const f32        radiusInv,
-    const f32v3      posA,
-    const f32v3      posB,
+    f32v3            posA,
+    f32v3            posB,
     const f32v3      viewDir,
     const PbrSurface surf) {
 
@@ -171,9 +171,34 @@ f32v3 pbr_light_line(
   }
   return result;
 #else
-  const f32v3 linePos           = math_line_closest_point(posA, posB, surf.position);
-  const f32v3 lightDir          = normalize(surf.position - linePos);
-  const f32   dist              = length(surf.position - linePos);
+
+  // Clamp the line so it doesn't go inside the surface.
+  math_line_clamp_plane(posA, posB, surf.position, surf.normal);
+
+  const f32v3 toA     = posA - surf.position;
+  const f32   distToA = length(toA);
+
+  const f32v3 toB     = posB - surf.position;
+  const f32   distToB = length(toB);
+
+  /**
+   * Approximate the light direction by picking a single point on the line that is most
+   * representative of the light coming from the line.
+   *
+   * Compute the point on the line where the half vector of the surface to the line endpoints
+   * intersects with the line.
+   * TODO: Split the diffuse and specular directions as this is only reasonable for the diffuse.
+   *
+   * References:
+   * - https://www.elopezr.com/rendering-line-lights/
+   */
+  const f32   representativeFrac  = clamp(distToA / (distToB + distToA), 0, 1);
+  const f32v3 representativePoint = posA + (posB - posA) * representativeFrac;
+  const f32v3 lightDir            = normalize(surf.position - representativePoint);
+
+  const f32v3 closestPos = math_line_closest_point(posA, posB, surf.position);
+  const f32   dist       = length(surf.position - closestPos);
+
   const f32v3 effectiveRadiance = radiance * pbr_attenuation_resolve(dist, radiusInv);
   return pbr_light_dir(effectiveRadiance, lightDir, viewDir, surf);
 #endif
