@@ -6,6 +6,7 @@
 #include "ecs_utils.h"
 #include "ecs_view.h"
 #include "ecs_world.h"
+#include "gap_icon.h"
 #include "gap_window.h"
 #include "geo_box.h"
 #include "input_manager.h"
@@ -419,6 +420,8 @@ static void ui_canvas_cursor_update(GapWindowComp* window, const UiInteractType 
       [UiInteractType_SelectAdd]      = GapCursor_SelectAdd,
       [UiInteractType_SelectSubtract] = GapCursor_SelectSubtract,
       [UiInteractType_Target]         = GapCursor_Target,
+      [UiInteractType_DragHorizontal] = GapCursor_DragHorizontal,
+      [UiInteractType_DragVertical]   = GapCursor_DragVertical,
   };
   gap_window_cursor_set(window, g_interactCursor[interact]);
 }

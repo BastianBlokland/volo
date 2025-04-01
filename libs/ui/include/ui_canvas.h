@@ -34,6 +34,8 @@ typedef enum eUiInteractType {
   UiInteractType_SelectAdd,
   UiInteractType_SelectSubtract,
   UiInteractType_Target,
+  UiInteractType_DragHorizontal,
+  UiInteractType_DragVertical,
 
   UiInteractType_Count
 } UiInteractType;
