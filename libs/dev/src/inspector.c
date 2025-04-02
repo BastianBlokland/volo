@@ -725,7 +725,7 @@ static bool inspector_panel_prop_edit(InspectorContext* ctx, ScriptVal* val) {
   switch (script_type(*val)) {
   case ScriptType_Num: {
     f64 valNum = script_get_num(*val, 0);
-    if (ui_numbox(ctx->canvas, &valNum, .min = f64_min, .max = f64_max)) {
+    if (ui_numbox(ctx->canvas, &valNum)) {
       *val = script_num(valNum);
       return true;
     }

@@ -84,7 +84,7 @@ bool dev_widget_f32_many_resettable(
 
 bool dev_widget_u16(UiCanvasComp* canvas, u16* val, const UiWidgetFlags flags) {
   f64 v = *val;
-  if (ui_numbox(canvas, &v, .max = u16_max, .step = 1, .flags = flags)) {
+  if (ui_numbox(canvas, &v, .min = 0, .max = u16_max, .step = 1, .flags = flags)) {
     *val = (u16)v;
     return true;
   }
@@ -93,7 +93,7 @@ bool dev_widget_u16(UiCanvasComp* canvas, u16* val, const UiWidgetFlags flags) {
 
 bool dev_widget_u32(UiCanvasComp* canvas, u32* val, const UiWidgetFlags flags) {
   f64 v = *val;
-  if (ui_numbox(canvas, &v, .max = u32_max, .step = 1, .flags = flags)) {
+  if (ui_numbox(canvas, &v, .min = 0, .max = u32_max, .step = 1, .flags = flags)) {
     *val = (u32)v;
     return true;
   }
