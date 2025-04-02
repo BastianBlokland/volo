@@ -79,6 +79,7 @@ typedef struct {
 typedef struct {
   UiWidgetFlags flags;
   UiTextboxType type;
+  bool          blockInput;
   u16           fontSize;
   usize         maxTextLength;
   UiColor       frameColor;

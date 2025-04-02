@@ -723,7 +723,7 @@ bool ui_textbox_with_opts(UiCanvasComp* canvas, DynString* text, const UiTextbox
   ui_style_pop(canvas);
 
   // Start editing on press.
-  if (!editing && status == UiStatus_Activated) {
+  if (!editing && status == UiStatus_Activated && !opts->blockInput) {
     UiTextFilter filter = 0;
     switch (opts->type) {
     case UiTextbox_Normal:
@@ -752,7 +752,7 @@ bool ui_textbox_with_opts(UiCanvasComp* canvas, DynString* text, const UiTextbox
   if (disabled) {
     ui_style_color_mult(canvas, g_uiDisabledMult);
   }
-  if (editing) {
+  if (editing && !opts->blockInput) {
     const String newText = ui_canvas_text_editor_result(canvas);
     if (!string_eq(dynstring_view(text), newText)) {
       dynstring_clear(text);
@@ -771,7 +771,7 @@ bool ui_textbox_with_opts(UiCanvasComp* canvas, DynString* text, const UiTextbox
     ui_tooltip(canvas, textId, opts->tooltip, .flags = editing ? UiWidget_Disabled : 0);
   }
 
-  if (status >= UiStatus_Hovered) {
+  if (status >= UiStatus_Hovered && !opts->blockInput) {
     ui_canvas_interact_type(canvas, UiInteractType_Text);
   }
 
