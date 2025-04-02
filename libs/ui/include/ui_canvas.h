@@ -118,6 +118,7 @@ UiStatus ui_canvas_status(const UiCanvasComp*);
 UiLayer  ui_canvas_active_layer(const UiCanvasComp*);
 UiVector ui_canvas_resolution(const UiCanvasComp*);
 bool     ui_canvas_input_any(const UiCanvasComp*);
+bool     ui_canvas_input_control(const UiCanvasComp*);
 UiVector ui_canvas_input_delta(const UiCanvasComp*);
 UiVector ui_canvas_input_pos(const UiCanvasComp*);
 UiVector ui_canvas_input_scroll(const UiCanvasComp*);

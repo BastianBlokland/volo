@@ -56,7 +56,10 @@ typedef struct {
 } UiPersistentElem;
 
 typedef enum {
-  UiCanvasFlags_InputAny = 1 << 0,
+  UiCanvasFlags_InputAny     = 1 << 0,
+  UiCanvasFlags_InputControl = 1 << 1,
+
+  UiCanvasFlags_Volatile = UiCanvasFlags_InputAny | UiCanvasFlags_InputControl,
 } UiCanvasFlags;
 
 ecs_comp_define(UiRendererComp) {
@@ -384,10 +387,11 @@ ecs_system_define(UiCanvasInputSys) {
     const GapVector      cursorPos   = gap_window_param(window, GapParam_CursorPos);
     const GapVector      scrollDelta = gap_window_param(window, GapParam_ScrollDelta);
 
+    canvas->flags &= ~UiCanvasFlags_Volatile;
+
     if (!winSize.x || !winSize.y) {
       // Clear any input when the window is zero sized.
       ui_canvas_set_active(canvas, sentinel_u64, UiStatus_Idle);
-      canvas->flags &= ~UiCanvasFlags_InputAny;
       canvas->inputDelta  = ui_vector(0, 0);
       canvas->inputScroll = ui_vector(0, 0);
       continue; // Window is zero sized; No need to render the Ui.
@@ -399,8 +403,9 @@ ecs_system_define(UiCanvasInputSys) {
 
     if (gap_window_events(window) & GapWindowEvents_KeyPressed) {
       canvas->flags |= UiCanvasFlags_InputAny;
-    } else {
-      canvas->flags &= ~UiCanvasFlags_InputAny;
+    }
+    if (gap_window_key_down(window, GapKey_Control)) {
+      canvas->flags |= UiCanvasFlags_InputControl;
     }
 
     canvas->scale       = ui_window_scale(window, settings);
@@ -809,6 +814,9 @@ UiLayer  ui_canvas_active_layer(const UiCanvasComp* comp) { return comp->activeL
 UiVector ui_canvas_resolution(const UiCanvasComp* comp) { return comp->resolution; }
 bool     ui_canvas_input_any(const UiCanvasComp* comp) {
   return (comp->flags & UiCanvasFlags_InputAny) != 0;
+}
+bool ui_canvas_input_control(const UiCanvasComp* comp) {
+  return (comp->flags & UiCanvasFlags_InputControl) != 0;
 }
 UiVector ui_canvas_input_delta(const UiCanvasComp* comp) { return comp->inputDelta; }
 UiVector ui_canvas_input_pos(const UiCanvasComp* comp) { return comp->inputPos; }
