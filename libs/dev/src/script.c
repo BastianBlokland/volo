@@ -267,7 +267,7 @@ static bool memory_draw_bool(UiCanvasComp* c, ScriptVal* value) {
 
 static bool memory_draw_num(UiCanvasComp* c, ScriptVal* value) {
   f64 valNumber = script_get_num(*value, 0);
-  if (ui_numbox(c, &valNumber, .min = f64_min, .max = f64_max)) {
+  if (ui_numbox(c, &valNumber)) {
     *value = script_num(valNumber);
     return true;
   }

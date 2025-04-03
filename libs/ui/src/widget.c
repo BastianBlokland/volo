@@ -700,9 +700,14 @@ bool ui_section_with_opts(UiCanvasComp* canvas, const UiSectionOpts* opts) {
   return isOpen;
 }
 
+static UiId ui_textbox_text_id(UiCanvasComp* canvas) {
+  const UiId frameId = ui_canvas_id_peek(canvas);
+  const UiId textId  = frameId + 1;
+  return textId;
+}
+
 bool ui_textbox_with_opts(UiCanvasComp* canvas, DynString* text, const UiTextboxOpts* opts) {
-  const UiId     frameId  = ui_canvas_id_peek(canvas);
-  const UiId     textId   = frameId + 1;
+  const UiId     textId   = ui_textbox_text_id(canvas);
   const bool     disabled = (opts->flags & UiWidget_Disabled) != 0;
   bool           editing  = ui_canvas_text_editor_active(canvas, textId);
   const UiStatus status   = disabled ? UiStatus_Idle : ui_canvas_elem_status(canvas, textId);
@@ -723,7 +728,7 @@ bool ui_textbox_with_opts(UiCanvasComp* canvas, DynString* text, const UiTextbox
   ui_style_pop(canvas);
 
   // Start editing on press.
-  if (!editing && status == UiStatus_Activated) {
+  if (!editing && status == UiStatus_Activated && !opts->blockInput) {
     UiTextFilter filter = 0;
     switch (opts->type) {
     case UiTextbox_Normal:
@@ -752,7 +757,7 @@ bool ui_textbox_with_opts(UiCanvasComp* canvas, DynString* text, const UiTextbox
   if (disabled) {
     ui_style_color_mult(canvas, g_uiDisabledMult);
   }
-  if (editing) {
+  if (editing && !opts->blockInput) {
     const String newText = ui_canvas_text_editor_result(canvas);
     if (!string_eq(dynstring_view(text), newText)) {
       dynstring_clear(text);
@@ -771,14 +776,39 @@ bool ui_textbox_with_opts(UiCanvasComp* canvas, DynString* text, const UiTextbox
     ui_tooltip(canvas, textId, opts->tooltip, .flags = editing ? UiWidget_Disabled : 0);
   }
 
-  if (status >= UiStatus_Hovered) {
+  if (status >= UiStatus_Hovered && !opts->blockInput) {
     ui_canvas_interact_type(canvas, UiInteractType_Text);
   }
 
   return changed || ((opts->flags & UiWidget_DirtyWhileEditing) && editing);
 }
 
+static void ui_numbox_clamp(f64* input, const UiNumboxOpts* opts) {
+  if (opts->step > f64_epsilon) {
+    *input = math_round_nearest_f64(*input / opts->step) * opts->step;
+  }
+  *input = math_clamp_f64(*input, opts->min, opts->max);
+}
+
 bool ui_numbox_with_opts(UiCanvasComp* canvas, f64* input, const UiNumboxOpts* opts) {
+  const UiId     textId           = ui_textbox_text_id(canvas);
+  const bool     textEditorActive = ui_canvas_text_editor_active(canvas, textId);
+  const UiStatus textStatus       = ui_canvas_elem_status(canvas, textId);
+
+  bool blockTextInput = false;
+  bool dirty          = false;
+
+  if (!textEditorActive && ui_canvas_input_control(canvas) && textStatus >= UiStatus_Hovered) {
+    if (textStatus >= UiStatus_Pressed) {
+      static const f32 g_dragSensitivity = 0.15f;
+      *input += ui_canvas_input_delta(canvas).x * g_dragSensitivity * math_max(opts->step, 0.025f);
+      ui_numbox_clamp(input, opts);
+      dirty = true;
+    }
+    ui_canvas_interact_type(canvas, UiInteractType_DragHorizontal);
+    blockTextInput = true;
+  }
+
   DynString text = dynstring_create_over(mem_stack(64));
   format_write_f64(&text, *input, &format_opts_float(.maxDecDigits = 4));
   if (ui_textbox(
@@ -786,18 +816,17 @@ bool ui_numbox_with_opts(UiCanvasComp* canvas, f64* input, const UiNumboxOpts* o
           &text,
           .flags         = opts->flags,
           .type          = UiTextbox_Digits,
+          .blockInput    = blockTextInput,
           .fontSize      = opts->fontSize,
           .maxTextLength = 64,
           .frameColor    = opts->frameColor,
           .tooltip       = opts->tooltip)) {
     format_read_f64(dynstring_view(&text), input);
-    if (opts->step > f64_epsilon) {
-      *input = math_round_nearest_f64(*input / opts->step) * opts->step;
-    }
-    *input = math_clamp_f64(*input, opts->min, opts->max);
-    return true;
+    ui_numbox_clamp(input, opts);
+    dirty = true;
   }
-  return false;
+
+  return dirty;
 }
 
 bool ui_durbox_with_opts(UiCanvasComp* canvas, TimeDuration* input, const UiDurboxOpts* opts) {

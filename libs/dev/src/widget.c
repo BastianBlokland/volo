@@ -28,8 +28,13 @@ static UiColor dev_geo_to_ui_color(const GeoColor color) {
 }
 
 bool dev_widget_f32(UiCanvasComp* canvas, f32* val, const UiWidgetFlags flags) {
+  return dev_widget_f32_limit(canvas, val, f32_min, f32_max, flags);
+}
+
+bool dev_widget_f32_limit(
+    UiCanvasComp* canvas, f32* val, const f32 min, const f32 max, const UiWidgetFlags flags) {
   f64 v = *val;
-  if (ui_numbox(canvas, &v, .min = f32_min, .max = f32_max, .flags = flags)) {
+  if (ui_numbox(canvas, &v, .min = min, .max = max, .flags = flags)) {
     *val = (f32)v;
     return true;
   }
@@ -38,11 +43,21 @@ bool dev_widget_f32(UiCanvasComp* canvas, f32* val, const UiWidgetFlags flags) {
 
 bool dev_widget_f32_many(
     UiCanvasComp* canvas, f32* val, const u32 count, const UiWidgetFlags flags) {
+  return dev_widget_f32_many_limit(canvas, val, count, f32_min, f32_max, flags);
+}
+
+bool dev_widget_f32_many_limit(
+    UiCanvasComp*       canvas,
+    f32*                val,
+    const u32           count,
+    const f32           min,
+    const f32           max,
+    const UiWidgetFlags flags) {
   if (!count) {
     return false;
   }
   if (count == 1) {
-    return dev_widget_f32(canvas, val, flags);
+    return dev_widget_f32_limit(canvas, val, min, max, flags);
   }
   static const f32 g_spacing   = 10.0f;
   const u8         numSpacings = count - 1;
@@ -54,7 +69,7 @@ bool dev_widget_f32_many(
 
   bool isDirty = false;
   for (u32 i = 0; i != count; ++i) {
-    isDirty |= dev_widget_f32(canvas, val + i, flags);
+    isDirty |= dev_widget_f32_limit(canvas, val + i, min, max, flags);
     ui_layout_next(canvas, Ui_Right, g_spacing);
   }
   ui_layout_pop(canvas);
@@ -84,7 +99,7 @@ bool dev_widget_f32_many_resettable(
 
 bool dev_widget_u16(UiCanvasComp* canvas, u16* val, const UiWidgetFlags flags) {
   f64 v = *val;
-  if (ui_numbox(canvas, &v, .max = u16_max, .step = 1, .flags = flags)) {
+  if (ui_numbox(canvas, &v, .min = 0, .max = u16_max, .step = 1, .flags = flags)) {
     *val = (u16)v;
     return true;
   }
@@ -93,7 +108,7 @@ bool dev_widget_u16(UiCanvasComp* canvas, u16* val, const UiWidgetFlags flags) {
 
 bool dev_widget_u32(UiCanvasComp* canvas, u32* val, const UiWidgetFlags flags) {
   f64 v = *val;
-  if (ui_numbox(canvas, &v, .max = u32_max, .step = 1, .flags = flags)) {
+  if (ui_numbox(canvas, &v, .min = 0, .max = u32_max, .step = 1, .flags = flags)) {
     *val = (u32)v;
     return true;
   }
@@ -128,6 +143,24 @@ bool dev_widget_color(UiCanvasComp* canvas, GeoColor* val, const UiWidgetFlags f
   ui_layout_push(canvas);
   ui_layout_grow(canvas, UiAlign_MiddleLeft, ui_vector(-30, 0), UiBase_Absolute, Ui_X);
   bool isDirty = dev_widget_f32_many(canvas, val->data, 4 /* count */, flags);
+  ui_layout_next(canvas, Ui_Right, 8);
+  ui_layout_resize(canvas, UiAlign_MiddleLeft, ui_vector(22, 0), UiBase_Absolute, Ui_X);
+
+  ui_style_push(canvas);
+  ui_style_outline(canvas, 4);
+  ui_style_color(canvas, dev_geo_to_ui_color(*val));
+  const UiId preview = ui_canvas_draw_glyph(canvas, UiShape_Circle, 0, UiFlags_Interactable);
+  ui_tooltip(canvas, preview, string_lit("Color preview."));
+  ui_style_pop(canvas);
+
+  ui_layout_pop(canvas);
+  return isDirty;
+}
+
+bool dev_widget_color_norm(UiCanvasComp* canvas, GeoColor* val, const UiWidgetFlags flags) {
+  ui_layout_push(canvas);
+  ui_layout_grow(canvas, UiAlign_MiddleLeft, ui_vector(-30, 0), UiBase_Absolute, Ui_X);
+  bool isDirty = dev_widget_f32_many_limit(canvas, val->data, 4 /* count */, 0, 1, flags);
   ui_layout_next(canvas, Ui_Right, 8);
   ui_layout_resize(canvas, UiAlign_MiddleLeft, ui_vector(22, 0), UiBase_Absolute, Ui_X);
 

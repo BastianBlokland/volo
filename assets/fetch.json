@@ -49,6 +49,8 @@
         "crate/crate.bin",
         "crate/crate.gltf",
         "cursors/click.tga",
+        "cursors/drag-horizontal.tga",
+        "cursors/drag-vertical.tga",
         "cursors/normal.tga",
         "cursors/resize.tga",
         "cursors/select-add.tga",

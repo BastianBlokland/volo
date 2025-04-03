@@ -79,6 +79,7 @@ typedef struct {
 typedef struct {
   UiWidgetFlags flags;
   UiTextboxType type;
+  bool          blockInput;
   u16           fontSize;
   usize         maxTextLength;
   UiColor       frameColor;
@@ -226,6 +227,8 @@ typedef struct {
     .max        = f64_max,                                                                         \
     .fontSize   = 16,                                                                              \
     .frameColor = ui_color(32, 32, 32, 192),                                                       \
+    .min        = f64_min,                                                                         \
+    .max        = f64_max,                                                                         \
     __VA_ARGS__}))
 
 /**

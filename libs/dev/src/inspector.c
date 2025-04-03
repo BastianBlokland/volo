@@ -695,10 +695,7 @@ static void inspector_panel_draw_transform(InspectorContext* ctx, UiTable* table
     inspector_panel_next(ctx, table);
     ui_label(ctx->canvas, string_lit("Scale"));
     ui_table_next_column(ctx->canvas, table);
-    if (dev_widget_f32(ctx->canvas, &scale->scale, UiWidget_Default)) {
-      // Clamp the scale to a sane value.
-      scale->scale = math_clamp_f32(scale->scale, 1e-2f, 1e2f);
-    }
+    dev_widget_f32_limit(ctx->canvas, &scale->scale, 1e-2f, 1e2f, UiWidget_Default);
   }
 }
 
@@ -725,7 +722,7 @@ static bool inspector_panel_prop_edit(InspectorContext* ctx, ScriptVal* val) {
   switch (script_type(*val)) {
   case ScriptType_Num: {
     f64 valNum = script_get_num(*val, 0);
-    if (ui_numbox(ctx->canvas, &valNum, .min = f64_min, .max = f64_max)) {
+    if (ui_numbox(ctx->canvas, &valNum)) {
       *val = script_num(valNum);
       return true;
     }
@@ -1054,12 +1051,12 @@ static void inspector_panel_draw_renderable(InspectorContext* ctx, UiTable* tabl
     inspector_panel_next(ctx, table);
     ui_label(ctx->canvas, string_lit("Color"));
     ui_table_next_column(ctx->canvas, table);
-    dev_widget_color(ctx->canvas, &renderable->color, flags);
+    dev_widget_color_norm(ctx->canvas, &renderable->color, flags);
 
     inspector_panel_next(ctx, table);
     ui_label(ctx->canvas, string_lit("Emissive"));
     ui_table_next_column(ctx->canvas, table);
-    dev_widget_color(ctx->canvas, &renderable->emissive, flags);
+    dev_widget_color_norm(ctx->canvas, &renderable->emissive, flags);
   }
 }
 
@@ -1205,10 +1202,7 @@ static void inspector_panel_draw_light(InspectorContext* ctx, UiTable* table) {
       inspector_panel_next(ctx, table);
       ui_label(ctx->canvas, string_lit("Ambient"));
       ui_table_next_column(ctx->canvas, table);
-      if (dev_widget_f32(ctx->canvas, &amb->intensity, flags)) {
-        // Clamp the ambient intensity to a sane value.
-        amb->intensity = math_clamp_f32(amb->intensity, 0.0f, 10.0f);
-      }
+      dev_widget_f32_limit(ctx->canvas, &amb->intensity, 0.0f, 10.0f, flags);
     }
   }
 }

@@ -16,6 +16,8 @@ typedef enum eGapCursor {
   GapCursor_SelectSubtract,
   GapCursor_Target,
   GapCursor_Resize,
+  GapCursor_DragHorizontal,
+  GapCursor_DragVertical,
 
   GapCursor_Count,
 } GapCursor;

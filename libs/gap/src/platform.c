@@ -22,6 +22,8 @@ static const String g_gapCursorAssets[GapCursor_Count] = {
     [GapCursor_SelectSubtract] = string_static("icons/cursor_select-subtract.icon"),
     [GapCursor_Target]         = string_static("icons/cursor_target.icon"),
     [GapCursor_Resize]         = string_static("icons/cursor_resize.icon"),
+    [GapCursor_DragHorizontal] = string_static("icons/cursor_drag-horizontal.icon"),
+    [GapCursor_DragVertical]   = string_static("icons/cursor_drag-vertical.icon"),
 };
 
 ecs_comp_define_public(GapPlatformComp);
