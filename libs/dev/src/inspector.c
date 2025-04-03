@@ -1051,12 +1051,12 @@ static void inspector_panel_draw_renderable(InspectorContext* ctx, UiTable* tabl
     inspector_panel_next(ctx, table);
     ui_label(ctx->canvas, string_lit("Color"));
     ui_table_next_column(ctx->canvas, table);
-    dev_widget_color(ctx->canvas, &renderable->color, flags);
+    dev_widget_color_norm(ctx->canvas, &renderable->color, flags);
 
     inspector_panel_next(ctx, table);
     ui_label(ctx->canvas, string_lit("Emissive"));
     ui_table_next_column(ctx->canvas, table);
-    dev_widget_color(ctx->canvas, &renderable->emissive, flags);
+    dev_widget_color_norm(ctx->canvas, &renderable->emissive, flags);
   }
 }
 

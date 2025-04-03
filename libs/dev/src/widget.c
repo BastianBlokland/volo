@@ -157,6 +157,24 @@ bool dev_widget_color(UiCanvasComp* canvas, GeoColor* val, const UiWidgetFlags f
   return isDirty;
 }
 
+bool dev_widget_color_norm(UiCanvasComp* canvas, GeoColor* val, const UiWidgetFlags flags) {
+  ui_layout_push(canvas);
+  ui_layout_grow(canvas, UiAlign_MiddleLeft, ui_vector(-30, 0), UiBase_Absolute, Ui_X);
+  bool isDirty = dev_widget_f32_many_limit(canvas, val->data, 4 /* count */, 0, 1, flags);
+  ui_layout_next(canvas, Ui_Right, 8);
+  ui_layout_resize(canvas, UiAlign_MiddleLeft, ui_vector(22, 0), UiBase_Absolute, Ui_X);
+
+  ui_style_push(canvas);
+  ui_style_outline(canvas, 4);
+  ui_style_color(canvas, dev_geo_to_ui_color(*val));
+  const UiId preview = ui_canvas_draw_glyph(canvas, UiShape_Circle, 0, UiFlags_Interactable);
+  ui_tooltip(canvas, preview, string_lit("Color preview."));
+  ui_style_pop(canvas);
+
+  ui_layout_pop(canvas);
+  return isDirty;
+}
+
 bool dev_widget_faction(UiCanvasComp* c, SceneFaction* val, const UiWidgetFlags flags) {
   static const String g_names[] = {
       string_static("None"),
