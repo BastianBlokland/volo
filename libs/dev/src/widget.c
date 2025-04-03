@@ -36,6 +36,16 @@ bool dev_widget_f32(UiCanvasComp* canvas, f32* val, const UiWidgetFlags flags) {
   return false;
 }
 
+bool dev_widget_f32_limit(
+    UiCanvasComp* canvas, f32* val, const f32 min, const f32 max, const UiWidgetFlags flags) {
+  f64 v = *val;
+  if (ui_numbox(canvas, &v, .min = min, .max = max, .flags = flags)) {
+    *val = (f32)v;
+    return true;
+  }
+  return false;
+}
+
 bool dev_widget_f32_many(
     UiCanvasComp* canvas, f32* val, const u32 count, const UiWidgetFlags flags) {
   if (!count) {

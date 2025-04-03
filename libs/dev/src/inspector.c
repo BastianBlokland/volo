@@ -695,10 +695,7 @@ static void inspector_panel_draw_transform(InspectorContext* ctx, UiTable* table
     inspector_panel_next(ctx, table);
     ui_label(ctx->canvas, string_lit("Scale"));
     ui_table_next_column(ctx->canvas, table);
-    if (dev_widget_f32(ctx->canvas, &scale->scale, UiWidget_Default)) {
-      // Clamp the scale to a sane value.
-      scale->scale = math_clamp_f32(scale->scale, 1e-2f, 1e2f);
-    }
+    dev_widget_f32_limit(ctx->canvas, &scale->scale, 1e-2f, 1e2f, UiWidget_Default);
   }
 }
 
@@ -1205,10 +1202,7 @@ static void inspector_panel_draw_light(InspectorContext* ctx, UiTable* table) {
       inspector_panel_next(ctx, table);
       ui_label(ctx->canvas, string_lit("Ambient"));
       ui_table_next_column(ctx->canvas, table);
-      if (dev_widget_f32(ctx->canvas, &amb->intensity, flags)) {
-        // Clamp the ambient intensity to a sane value.
-        amb->intensity = math_clamp_f32(amb->intensity, 0.0f, 10.0f);
-      }
+      dev_widget_f32_limit(ctx->canvas, &amb->intensity, 0.0f, 10.0f, flags);
     }
   }
 }
