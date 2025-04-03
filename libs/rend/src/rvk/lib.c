@@ -52,6 +52,25 @@ static VkApplicationInfo rvk_inst_app_info(void) {
   };
 }
 
+static void rvk_inst_log_layers(VkInterfaceLoader* loaderApi) {
+  VkLayerProperties layers[64];
+  u32               layerCount = array_elems(layers);
+  rvk_api_check(
+      string_lit("enumerateInstanceLayerProperties"),
+      loaderApi->enumerateInstanceLayerProperties(&layerCount, layers));
+
+  for (u32 i = 0; i != layerCount; ++i) {
+    const String layerName    = string_from_null_term(layers[i].layerName);
+    const String layerDesc    = string_from_null_term(layers[i].description);
+    const u32    layerVersion = layers[i].implementationVersion;
+    log_i(
+        "Vulkan layer detected",
+        log_param("name", fmt_text(layerName)),
+        log_param("description", fmt_text(layerDesc)),
+        log_param("version", fmt_int(layerVersion)));
+  }
+}
+
 static bool rvk_inst_layer_supported(VkInterfaceLoader* loaderApi, const char* layer) {
   VkLayerProperties layers[64];
   u32               layerCount = array_elems(layers);
@@ -255,6 +274,8 @@ RvkLib* rvk_lib_create(const RendSettingsGlobalComp* set) {
   if (!rvk_lib_api_version_supported(loaderVersion)) {
     diag_crash_msg("Vulkan loader is too old; Driver update is required");
   }
+
+  rvk_inst_log_layers(&loaderApi);
 
   const bool validationDesired = (set->flags & RendGlobalFlags_Validation) != 0;
   if (validationDesired && rvk_inst_layer_supported(&loaderApi, VK_LAYER_KHRONOS_validation)) {

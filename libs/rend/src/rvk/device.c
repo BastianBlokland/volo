@@ -244,7 +244,7 @@ static VkPhysicalDevice rvk_pick_physical_device(RvkLib* lib) {
   detectionDone:
     rvk_exts_free(exts);
 
-    log_d(
+    log_i(
         "Vulkan physical device detected",
         log_param("version-major", fmt_int(rvk_version_major(properties.apiVersion))),
         log_param("version-minor", fmt_int(rvk_version_minor(properties.apiVersion))),
