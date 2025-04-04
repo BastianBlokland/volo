@@ -515,6 +515,29 @@ void dev_cone(
       });
 }
 
+void dev_cone_angle(
+    DevShapeComp*      comp,
+    const GeoVector    bottom,
+    const GeoVector    top,
+    const f32          angle,
+    const GeoColor     color,
+    const DevShapeMode mode) {
+
+  const GeoVector delta  = geo_vector_sub(top, bottom);
+  const f32       length = geo_vector_mag(delta);
+  if (length < f32_epsilon || angle < f32_epsilon) {
+    return;
+  }
+  const f32 radius = length * math_tan_f32(angle);
+
+  dev_shape_add(
+      comp,
+      (DevShape){
+          .type      = DevShapeType_Cone + mode,
+          .data_cone = {.bottom = bottom, .top = top, .radius = radius, .color = color},
+      });
+}
+
 void dev_line(
     DevShapeComp* comp, const GeoVector start, const GeoVector end, const GeoColor color) {
   dev_shape_add(

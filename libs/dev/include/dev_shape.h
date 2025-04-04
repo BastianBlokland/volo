@@ -27,6 +27,7 @@ void dev_sphere(DevShapeComp*, GeoVector pos, f32 radius, GeoColor, DevShapeMode
 void dev_cylinder(DevShapeComp*, GeoVector bottom, GeoVector top, f32 radius, GeoColor, DevShapeMode);
 void dev_capsule(DevShapeComp*, GeoVector bottom, GeoVector top, f32 radius, GeoColor, DevShapeMode);
 void dev_cone(DevShapeComp*, GeoVector bottom, GeoVector top, f32 radius, GeoColor, DevShapeMode);
+void dev_cone_angle(DevShapeComp*, GeoVector bottom, GeoVector top, f32 angle, GeoColor, DevShapeMode);
 void dev_line(DevShapeComp*, GeoVector start, GeoVector end, GeoColor);
 void dev_circle(DevShapeComp*, GeoVector pos, GeoQuat, f32 radius, GeoColor);
 void dev_arrow(DevShapeComp*, GeoVector begin, GeoVector end, f32 radius, GeoColor);
