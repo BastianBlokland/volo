@@ -97,6 +97,8 @@ static const String g_lightGraphics[RendLightObj_Count] = {
   [LIGHT_OBJ_INDEX(Directional, Normal)] = string_static("graphics/light/light_directional.graphic"),
   [LIGHT_OBJ_INDEX(Point,       Normal)] = string_static("graphics/light/light_point.graphic"),
   [LIGHT_OBJ_INDEX(Point,       Debug)]  = string_static("graphics/light/light_point_debug.graphic"),
+  [LIGHT_OBJ_INDEX(Spot,        Normal)] = string_static("graphics/light/light_spot.graphic"),
+  [LIGHT_OBJ_INDEX(Spot,        Debug)]  = string_static("graphics/light/light_spot_debug.graphic"),
   [LIGHT_OBJ_INDEX(Line,        Normal)] = string_static("graphics/light/light_line.graphic"),
   [LIGHT_OBJ_INDEX(Line,        Debug)]  = string_static("graphics/light/light_line_debug.graphic"),
 };
