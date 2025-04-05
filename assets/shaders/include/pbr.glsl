@@ -92,6 +92,9 @@ f32 pbr_attenuation_resolve(const f32 dist, const f32 radiusInv) {
 }
 
 f32 pbr_attenuation_resolve_angle(const f32 lightDot, const f32 angleCos) {
+  if (lightDot <= angleCos) {
+    return 0.0;
+  }
   // Linearly attenuate based on the reference angle.
   return 1.0 - (1.0 - lightDot) * (1.0 / (1.0 - angleCos));
 }
@@ -163,9 +166,6 @@ f32v3 pbr_light_spot(
   const f32   distToSurface = length(toSurface);
   const f32v3 dirToSurface  = toSurface / distToSurface;
   const f32   lightDot      = dot(dirToSurface, dir);
-  if (lightDot <= angleCos) {
-    return f32v3(0); // Outside of cone.
-  }
 
   f32v3 effectiveRadiance = radiance;
   effectiveRadiance *= pbr_attenuation_resolve(distToSurface, lengthInv); // Attenuate over dist.

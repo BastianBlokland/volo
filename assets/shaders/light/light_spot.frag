@@ -9,9 +9,9 @@ bind_global_img(1) uniform sampler2D u_texGeoNormal;
 bind_global_img(2) uniform sampler2D u_texGeoAttribute;
 bind_global_img(4) uniform sampler2D u_texGeoDepth;
 
-bind_internal(0) in flat f32v3 in_positionA;
-bind_internal(1) in flat f32v3 in_positionB;
-bind_internal(2) in flat f32v4 in_radianceAndRadiusInv;
+bind_internal(0) in flat f32v3 in_position;
+bind_internal(1) in flat f32v4 in_directionAndAngleCos;
+bind_internal(2) in flat f32v4 in_radianceAndLengthInv;
 
 bind_internal(0) out f32v3 out_color;
 
@@ -27,8 +27,10 @@ void main() {
   const f32v3 worldPos = clip_to_world_pos(u_global, clipPos);
   const f32v3 viewDir  = normalize(u_global.camPosition.xyz - worldPos);
 
-  const f32v3 radiance  = in_radianceAndRadiusInv.rgb;
-  const f32   radiusInv = in_radianceAndRadiusInv.a;
+  const f32v3 dir       = in_directionAndAngleCos.xyz;
+  const f32   angleCos  = in_directionAndAngleCos.w;
+  const f32v3 radiance  = in_radianceAndLengthInv.rgb;
+  const f32   lengthInv = in_radianceAndLengthInv.a;
 
   PbrSurface surf;
   surf.position  = worldPos;
@@ -37,5 +39,5 @@ void main() {
   surf.roughness = geoAttr.roughness;
   surf.metalness = geoAttr.metalness;
 
-  out_color = pbr_light_line(radiance, radiusInv, in_positionA, in_positionB, viewDir, surf);
+  out_color = pbr_light_spot(radiance, lengthInv, angleCos, in_position, dir, viewDir, surf);
 }
