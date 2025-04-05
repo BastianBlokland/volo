@@ -1274,7 +1274,11 @@ static bool vkgen_write_interface(VkGenContext* ctx, const VkGenInterfaceCat cat
           fmt_text(string_consume(varName, 3)));
     }
 
-    fmt_write(&ctx->out, "  {} (SYS_DECL* {})(", fmt_text(cmd->type), fmt_text(varName));
+    VkGenRef typeRef = {.name = cmd->type}; // TODO: Support pointers as cmd output types.
+    vkgen_ref_resolve_alias(&typeRef);
+    const String typeStr = vkgen_ref_scratch(&typeRef);
+
+    fmt_write(&ctx->out, "  {} (SYS_DECL* {})(", fmt_text(typeStr), fmt_text(varName));
     bool anyParam = false;
     xml_for_children(ctx->schemaDoc, cmd->schemaNode, child) {
       if (xml_name_hash(ctx->schemaDoc, child) != g_hash_param) {
