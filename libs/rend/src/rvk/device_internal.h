@@ -13,6 +13,7 @@ typedef enum {
   RvkDeviceFlags_SupportPresentId         = 1 << 5,
   RvkDeviceFlags_SupportPresentWait       = 1 << 6,
   RvkDeviceFlags_SupportDepthClamp        = 1 << 7,
+  RvkDeviceFlags_SupportMemoryBudget      = 1 << 8,
 } RvkDeviceFlags;
 
 typedef struct sRvkDevice {

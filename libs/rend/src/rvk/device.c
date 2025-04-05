@@ -390,6 +390,10 @@ static VkDevice rvk_device_create_internal(RvkLib* lib, RvkDevice* dev) {
   rvk_config_16bit_storage(dev, &feature16BitStorage);
   rvk_config_features(dev, &featureBase.features);
 
+  if (rvk_has_ext(supportedExts, string_from_null_term(VK_EXT_memory_budget))) {
+    dev->flags |= RvkDeviceFlags_SupportMemoryBudget;
+  }
+
   const VkDeviceCreateInfo createInfo = {
       .sType                   = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
       .pNext                   = &featureBase,
