@@ -473,8 +473,13 @@ static void setup_light_point(PrefabSetupContext* ctx, const AssetPrefabTraitLig
 }
 
 static void setup_light_spot(PrefabSetupContext* ctx, const AssetPrefabTraitLightSpot* t) {
-  (void)ctx;
-  (void)t;
+  ecs_world_add_t(
+      ctx->world,
+      ctx->entity,
+      SceneLightSpotComp,
+      .radiance = t->radiance,
+      .angle    = t->angle,
+      .length   = t->length);
 }
 
 static void setup_light_line(PrefabSetupContext* ctx, const AssetPrefabTraitLightLine* t) {
