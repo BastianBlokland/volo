@@ -593,6 +593,19 @@ void asset_data_init_script_scene(void) {
     bind(binder, name, doc, ret, args, array_elems(args));
   }
   {
+    const String       name   = string_lit("light_spot_spawn");
+    const String       doc    = string_lit("Spawn a spot light.\n\n*Note*: Resulting entity is not automatically destroyed.\n\n*Note*: It takes one frame before it can be used with the 'light_param()' api.");
+    const ScriptMask   ret    = script_mask_entity;
+    const ScriptSigArg args[] = {
+        {string_lit("pos"), script_mask_vec3},
+        {string_lit("rot"), script_mask_quat},
+        {string_lit("radiance"), script_mask_color},
+        {string_lit("angle"), script_mask_num},
+        {string_lit("length"), script_mask_num},
+    };
+    bind(binder, name, doc, ret, args, array_elems(args));
+  }
+  {
     const String       name   = string_lit("light_line_spawn");
     const String       doc    = string_lit("Spawn a line light.\n\n*Note*: Resulting entity is not automatically destroyed.\n\n*Note*: It takes one frame before it can be used with the 'light_param()' api.");
     const ScriptMask   ret    = script_mask_entity;
