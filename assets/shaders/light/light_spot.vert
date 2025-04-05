@@ -6,7 +6,7 @@
 
 struct LightSpotData {
   f32v4 posAndLength;      // x, y, z: position, w: length.
-  f32v4 dirAndAngle;       // x, y, z: direction, w: angle.
+  f32v4 dirAndAngleCos;    // x, y, z: direction, w: cos(angle).
   f32v4 radianceAndRadius; // x, y, z: radiance, w: radius.
 };
 
@@ -14,33 +14,26 @@ bind_global_data(0) readonly uniform Global { GlobalData u_global; };
 bind_graphic_data(0) readonly buffer Mesh { VertexPacked[] u_vertices; };
 bind_instance_data(0) readonly uniform Instance { LightSpotData[c_maxInstances] u_instances; };
 
-bind_internal(0) out flat f32v3 out_positionA;
-bind_internal(1) out flat f32v3 out_positionB;
-bind_internal(2) out flat f32v4 out_radianceAndRadiusInv;
+bind_internal(0) out flat f32v3 out_position;
+bind_internal(1) out flat f32v4 out_directionAndAngleCos;
+bind_internal(2) out flat f32v4 out_radianceAndLengthInv;
 
 void main() {
   const Vertex vert = vert_unpack(u_vertices[in_vertexIndex]);
 
-  const f32v3 instancePosA     = u_instances[in_instanceIndex].posA.xyz;
-  const f32v3 instancePosB     = u_instances[in_instanceIndex].posB.xyz;
+  const f32v3 instancePos      = u_instances[in_instanceIndex].posAndLength.xyz;
+  const f32   instanceLength   = u_instances[in_instanceIndex].posAndLength.w;
+  const f32v3 instanceDir      = u_instances[in_instanceIndex].dirAndAngleCos.xyz;
+  const f32   instanceAngleCos = u_instances[in_instanceIndex].dirAndAngleCos.w;
   const f32v3 instanceRadiance = u_instances[in_instanceIndex].radianceAndRadius.rgb;
   const f32   instanceRadius   = u_instances[in_instanceIndex].radianceAndRadius.w;
 
-  const f32   lineDiameter = instanceRadius * 2;
-  const f32v3 lineDelta    = instancePosB - instancePosA;
-  const f32   lineLength   = length(lineDelta);
-  const f32v3 lineDir      = lineDelta / lineLength;
-  const f32m3 lineRot      = math_rotate_look_f32m3(lineDir, f32v3(0, 1, 0));
-  const f32v3 lineScale    = f32v3(lineDiameter, lineDiameter, lineLength + lineDiameter);
-
-  /**
-   * TODO: Currently we rasterize a line-light as a box, it would be more optimal however to
-   * rasterize it as a capsule. This would reduce the wasted frag shader invocations at the corners.
-   */
-  const f32v3 worldPos = lineRot * (vert.position * lineScale) + instancePosA + lineDelta * 0.5;
+  const f32m3 rot      = math_rotate_look_f32m3(instanceDir, f32v3(0, 1, 0));
+  const f32v3 scale    = f32v3(instanceRadius, instanceRadius, instanceLength);
+  const f32v3 worldPos = rot * (vert.position * scale) + instancePos;
 
   out_vertexPosition       = u_global.viewProj * f32v4(worldPos, 1);
-  out_positionA            = instancePosA;
-  out_positionB            = instancePosB;
-  out_radianceAndRadiusInv = f32v4(instanceRadiance, 1.0 / instanceRadius);
+  out_position             = instancePos;
+  out_directionAndAngleCos = f32v4(instanceDir, instanceAngleCos);
+  out_radianceAndLengthInv = f32v4(instanceRadiance, 1.0 / instanceLength);
 }
