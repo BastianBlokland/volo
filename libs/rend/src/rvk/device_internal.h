@@ -36,6 +36,7 @@ typedef struct sRvkDevice {
   RvkSamplerPool*                  samplerPool;
   RvkTransferer*                   transferer;
   RvkRepository*                   repository;
+  u64 memBudgetTotal, memBudgetUsed; // Only available if 'SupportMemoryBudget' flag is set.
 } RvkDevice;
 
 RvkDevice* rvk_device_create(RvkLib*);

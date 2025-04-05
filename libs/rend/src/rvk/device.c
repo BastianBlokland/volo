@@ -503,7 +503,30 @@ String rvk_device_name(const RvkDevice* dev) {
   return string_from_null_term(dev->vkProperties.deviceName);
 }
 
-void rvk_device_update(RvkDevice* dev) { rvk_transfer_flush(dev->transferer); }
+void rvk_device_update(RvkDevice* dev) {
+  // Track device memory budget.
+  if (dev->flags & RvkDeviceFlags_SupportMemoryBudget) {
+    VkPhysicalDeviceMemoryBudgetPropertiesEXT budgetProps = {
+        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_BUDGET_PROPERTIES_EXT,
+    };
+    VkPhysicalDeviceMemoryProperties2 memProps = {
+        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_PROPERTIES_2,
+        .pNext = &budgetProps,
+    };
+    rvk_call(dev->lib, getPhysicalDeviceMemoryProperties2, dev->vkPhysDev, &memProps);
+
+    dev->memBudgetTotal = dev->memBudgetUsed = 0;
+    for (u32 i = 0; i != memProps.memoryProperties.memoryHeapCount; ++i) {
+      if (memProps.memoryProperties.memoryHeaps[i].flags & VK_MEMORY_HEAP_DEVICE_LOCAL_BIT) {
+        dev->memBudgetTotal += budgetProps.heapBudget[i];
+        dev->memBudgetUsed += budgetProps.heapUsage[i];
+      }
+    }
+  }
+
+  // Submit any pending transfers.
+  rvk_transfer_flush(dev->transferer);
+}
 
 void rvk_device_wait_idle(const RvkDevice* dev) {
   rvk_call_checked(dev, deviceWaitIdle, dev->vkDev);
