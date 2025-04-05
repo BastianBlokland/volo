@@ -1172,7 +1172,7 @@ static void inspector_panel_draw_light(InspectorContext* ctx, UiTable* table) {
       ui_label(ctx->canvas, string_lit("Angle"));
       ui_table_next_column(ctx->canvas, table);
       f32 angleDeg = spot->angle * math_rad_to_deg;
-      if (dev_widget_f32_limit(ctx->canvas, &angleDeg, 1.0f, 150.0f, flags)) {
+      if (ui_slider(ctx->canvas, &angleDeg, .min = 1.0f, .max = 89.0f, .flags = flags)) {
         spot->angle = angleDeg * math_deg_to_rad;
       }
 
@@ -2226,12 +2226,11 @@ static void inspector_vis_draw_light_spot(
     const SceneLightSpotComp* lightSpot,
     const SceneTransformComp* transform,
     const SceneScaleComp*     scaleComp) {
-  const f32       angle  = lightSpot->angle * 0.5f;
   const f32       length = scaleComp ? lightSpot->length * scaleComp->scale : lightSpot->length;
   const GeoVector dir = transform ? geo_quat_rotate(transform->rotation, geo_forward) : geo_forward;
   const GeoVector posB = transform ? transform->position : geo_vector(0);
   const GeoVector posA = geo_vector_add(posB, geo_vector_mul(dir, length));
-  dev_cone_angle(shape, posA, posB, angle, geo_color(1, 1, 1, 0.25f), DevShape_Wire);
+  dev_cone_angle(shape, posA, posB, lightSpot->angle, geo_color(1, 1, 1, 0.25f), DevShape_Wire);
 }
 
 static void inspector_vis_draw_light_line(
