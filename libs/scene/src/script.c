@@ -260,6 +260,7 @@ ecs_view_define(EvalHealthStatsView) { ecs_access_read(SceneHealthStatsComp); }
 ecs_view_define(EvalHealthView) { ecs_access_read(SceneHealthComp); }
 ecs_view_define(EvalLightDirView) { ecs_access_read(SceneLightDirComp); }
 ecs_view_define(EvalLightPointView) { ecs_access_read(SceneLightPointComp); }
+ecs_view_define(EvalLightSpotView) { ecs_access_read(SceneLightSpotComp); }
 ecs_view_define(EvalLightLineView) { ecs_access_read(SceneLightLineComp); }
 ecs_view_define(EvalLocoView) { ecs_access_read(SceneLocomotionComp); }
 ecs_view_define(EvalNameView) { ecs_access_read(SceneNameComp); }
@@ -312,6 +313,7 @@ typedef struct {
   EcsIterator* healthStatsItr;
   EcsIterator* lightDirItr;
   EcsIterator* lightPointItr;
+  EcsIterator* lightSpotItr;
   EcsIterator* lightLineItr;
   EcsIterator* lineOfSightItr;
   EcsIterator* locoItr;
@@ -372,6 +374,7 @@ context_is_capable(EvalContext* ctx, const EcsEntityId e, const SceneScriptCapab
   case SceneScriptCapability_Light:
     return ecs_world_has_t(ctx->world, e, SceneLightDirComp) ||
            ecs_world_has_t(ctx->world, e, SceneLightPointComp) ||
+           ecs_world_has_t(ctx->world, e, SceneLightSpotComp) ||
            ecs_world_has_t(ctx->world, e, SceneLightLineComp);
   case SceneScriptCapability_Sound:
     return ecs_world_has_t(ctx->world, e, SceneSoundComp);
@@ -1431,6 +1434,15 @@ static ScriptVal eval_light_param(EvalContext* ctx, ScriptBinderCall* call) {
         return script_num(0);
       }
     }
+    if (ecs_view_maybe_jump(ctx->lightSpotItr, entity)) {
+      const SceneLightSpotComp* spot = ecs_view_read_t(ctx->lightSpotItr, SceneLightSpotComp);
+      switch (param) {
+      case SceneActionLightParam_Radiance:
+        return script_color(spot->radiance);
+      case SceneActionLightParam_Length:
+        return script_num(spot->length);
+      }
+    }
     if (ecs_view_maybe_jump(ctx->lightLineItr, entity)) {
       const SceneLightLineComp* line = ecs_view_read_t(ctx->lightLineItr, SceneLightLineComp);
       switch (param) {
@@ -2128,6 +2140,7 @@ ecs_system_define(SceneScriptUpdateSys) {
       .healthStatsItr    = ecs_view_itr(ecs_world_view_t(world, EvalHealthStatsView)),
       .lightDirItr       = ecs_view_itr(ecs_world_view_t(world, EvalLightDirView)),
       .lightPointItr     = ecs_view_itr(ecs_world_view_t(world, EvalLightPointView)),
+      .lightSpotItr      = ecs_view_itr(ecs_world_view_t(world, EvalLightSpotView)),
       .lightLineItr      = ecs_view_itr(ecs_world_view_t(world, EvalLightLineView)),
       .lineOfSightItr    = ecs_view_itr(ecs_world_view_t(world, EvalLineOfSightView)),
       .locoItr           = ecs_view_itr(ecs_world_view_t(world, EvalLocoView)),
@@ -2225,6 +2238,7 @@ ecs_module_init(scene_script_module) {
       ecs_register_view(EvalHealthView),
       ecs_register_view(EvalLightDirView),
       ecs_register_view(EvalLightPointView),
+      ecs_register_view(EvalLightSpotView),
       ecs_register_view(EvalLightLineView),
       ecs_register_view(EvalLineOfSightView),
       ecs_register_view(EvalLocoView),
