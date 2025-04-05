@@ -323,6 +323,7 @@ static void action_update_light_param(ActionContext* ctx, const SceneActionUpdat
       pointComp->radiance = a->value_color;
       break;
     case SceneActionLightParam_Length:
+    case SceneActionLightParam_Angle:
       break;
     }
   }
@@ -335,6 +336,9 @@ static void action_update_light_param(ActionContext* ctx, const SceneActionUpdat
     case SceneActionLightParam_Length:
       spotComp->length = a->value_f32;
       break;
+    case SceneActionLightParam_Angle:
+      spotComp->angle = a->value_f32;
+      break;
     }
   }
   if (ecs_view_maybe_jump(ctx->lightLineItr, a->entity)) {
@@ -346,6 +350,8 @@ static void action_update_light_param(ActionContext* ctx, const SceneActionUpdat
     case SceneActionLightParam_Length:
       lineComp->length = a->value_f32;
       break;
+    case SceneActionLightParam_Angle:
+      break;
     }
   }
   if (ecs_view_maybe_jump(ctx->lightDirItr, a->entity)) {
@@ -355,6 +361,7 @@ static void action_update_light_param(ActionContext* ctx, const SceneActionUpdat
       dirComp->radiance = a->value_color;
       break;
     case SceneActionLightParam_Length:
+    case SceneActionLightParam_Angle:
       break;
     }
   }
