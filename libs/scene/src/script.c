@@ -176,6 +176,7 @@ static void eval_enum_init_light_param(void) {
 
   PUSH_LIGHT_PARAM(&g_scriptEnumLightParam, Radiance);
   PUSH_LIGHT_PARAM(&g_scriptEnumLightParam, Length);
+  PUSH_LIGHT_PARAM(&g_scriptEnumLightParam, Angle);
 
 #undef PUSH_LIGHT_PARAM
 }
@@ -1431,6 +1432,7 @@ static ScriptVal eval_light_param(EvalContext* ctx, ScriptBinderCall* call) {
       case SceneActionLightParam_Radiance:
         return script_color(point->radiance);
       case SceneActionLightParam_Length:
+      case SceneActionLightParam_Angle:
         return script_num(0);
       }
     }
@@ -1441,6 +1443,8 @@ static ScriptVal eval_light_param(EvalContext* ctx, ScriptBinderCall* call) {
         return script_color(spot->radiance);
       case SceneActionLightParam_Length:
         return script_num(spot->length);
+      case SceneActionLightParam_Angle:
+        return script_num(spot->angle);
       }
     }
     if (ecs_view_maybe_jump(ctx->lightLineItr, entity)) {
@@ -1450,6 +1454,8 @@ static ScriptVal eval_light_param(EvalContext* ctx, ScriptBinderCall* call) {
         return script_color(line->radiance);
       case SceneActionLightParam_Length:
         return script_num(line->length);
+      case SceneActionLightParam_Angle:
+        return script_num(0);
       }
     }
     if (ecs_view_maybe_jump(ctx->lightDirItr, entity)) {
@@ -1458,6 +1464,7 @@ static ScriptVal eval_light_param(EvalContext* ctx, ScriptBinderCall* call) {
       case SceneActionLightParam_Radiance:
         return script_color(dir->radiance);
       case SceneActionLightParam_Length:
+      case SceneActionLightParam_Angle:
         return script_num(0);
       }
     }
@@ -1478,6 +1485,7 @@ static ScriptVal eval_light_param(EvalContext* ctx, ScriptBinderCall* call) {
     act->updateLightParam.value_color = script_arg_color(call, 2);
     break;
   case SceneActionLightParam_Length:
+  case SceneActionLightParam_Angle:
     act->updateLightParam.value_f32 = (f32)script_arg_num(call, 2);
     break;
   }
