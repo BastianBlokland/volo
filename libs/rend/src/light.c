@@ -536,6 +536,14 @@ ecs_system_define(RendLightRenderSys) {
 
       typedef struct {
         ALIGNAS(16)
+        GeoVector posAndLength;      // x, y, z: position, w: length.
+        GeoVector dirAndAngle;       // x, y, z: direction, w: angle.
+        GeoColor  radianceAndRadius; // r, g, b: radiance, a: radius.
+      } LightSpotData;
+      ASSERT(sizeof(LightSpotData) == 48, "Size needs to match the size defined in glsl");
+
+      typedef struct {
+        ALIGNAS(16)
         GeoVector posA, posB;           // x, y, z: position, w: unused.
         GeoColor  radianceAndRadiusInv; // r, g, b: radiance, a: radius.
       } LightLineData;
@@ -600,6 +608,40 @@ ecs_system_define(RendLightRenderSys) {
             .radianceAndRadiusInv.g = radiance.g,
             .radianceAndRadiusInv.b = radiance.b,
             .radianceAndRadiusInv.a = 1.0f / radius,
+        };
+        break;
+      }
+      case RendLightType_Spot: {
+        if (entry->data_point.flags & RendLightFlags_Shadow) {
+          log_e("Spot-light shadows are not supported");
+        }
+        const GeoColor radiance = rend_radiance_resolve(entry->data_spot.radiance);
+        const f32      angle    = entry->data_spot.angle;
+        if (UNLIKELY(rend_light_brightness(radiance) < 0.01f || angle < f32_epsilon)) {
+          continue;
+        }
+        const GeoVector pos    = entry->data_spot.posA;
+        const GeoVector delta  = geo_vector_sub(entry->data_spot.posB, pos);
+        const f32       length = geo_vector_mag(delta);
+        if (UNLIKELY(length < f32_epsilon)) {
+          continue;
+        }
+        const GeoVector dir    = geo_vector_div(delta, length);
+        const f32       radius = length * math_tan_f32(angle);
+        const GeoBox    bounds = geo_box_from_cone(pos, entry->data_spot.posB, radius);
+        *rend_object_add_instance_t(obj, LightSpotData, tags, bounds) = (LightSpotData){
+            .posAndLength.x      = pos.x,
+            .posAndLength.y      = pos.y,
+            .posAndLength.z      = pos.z,
+            .posAndLength.w      = length,
+            .dirAndAngle.x       = dir.x,
+            .dirAndAngle.y       = dir.y,
+            .dirAndAngle.z       = dir.z,
+            .dirAndAngle.w       = angle,
+            .radianceAndRadius.r = radiance.r,
+            .radianceAndRadius.g = radiance.g,
+            .radianceAndRadius.b = radiance.b,
+            .radianceAndRadius.a = radius,
         };
         break;
       }

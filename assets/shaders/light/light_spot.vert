@@ -4,14 +4,15 @@
 #include "math.glsl"
 #include "vertex.glsl"
 
-struct LightLineData {
-  f32v4 posA, posB;        // x, y, z: position, w: unused
-  f32v4 radianceAndRadius; // x, y, z: radiance, w: radius
+struct LightSpotData {
+  f32v4 posAndLength;      // x, y, z: position, w: length.
+  f32v4 dirAndAngle;       // x, y, z: direction, w: angle.
+  f32v4 radianceAndRadius; // x, y, z: radiance, w: radius.
 };
 
 bind_global_data(0) readonly uniform Global { GlobalData u_global; };
 bind_graphic_data(0) readonly buffer Mesh { VertexPacked[] u_vertices; };
-bind_instance_data(0) readonly uniform Instance { LightLineData[c_maxInstances] u_instances; };
+bind_instance_data(0) readonly uniform Instance { LightSpotData[c_maxInstances] u_instances; };
 
 bind_internal(0) out flat f32v3 out_positionA;
 bind_internal(1) out flat f32v3 out_positionB;
