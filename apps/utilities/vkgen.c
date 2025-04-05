@@ -1077,7 +1077,11 @@ static bool vkgen_write_type(VkGenContext* ctx, const StringHash key) {
   if (!vkgen_write_dependencies(ctx, type->schemaNode)) {
     return false;
   }
-  const String name = type->name;
+  const String     name  = type->name;
+  const StringHash alias = xml_attr_get_hash(ctx->schemaDoc, type->schemaNode, g_hash_alias);
+  if (alias) {
+    return vkgen_write_type(ctx, alias);
+  }
 
   // Write type definition.
   switch (type->kind) {
