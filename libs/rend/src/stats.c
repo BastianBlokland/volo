@@ -124,11 +124,13 @@ ecs_system_define(RendUpdateCamStatsSys) {
         mem_create(stats->passes, sizeof(RendStatsPass) * rend_stats_max_passes),
         mem_create(canvasStats.passes, sizeof(RendStatsPass) * canvasStats.passCount));
 
-    stats->memChunks    = rvk_mem_chunks(plat->device->memPool);
-    stats->ramOccupied  = rvk_mem_occupied(plat->device->memPool, RvkMemLoc_Host);
-    stats->ramReserved  = rvk_mem_reserved(plat->device->memPool, RvkMemLoc_Host);
-    stats->vramOccupied = rvk_mem_occupied(plat->device->memPool, RvkMemLoc_Dev);
-    stats->vramReserved = rvk_mem_reserved(plat->device->memPool, RvkMemLoc_Dev);
+    stats->memChunks       = rvk_mem_chunks(plat->device->memPool);
+    stats->ramOccupied     = rvk_mem_occupied(plat->device->memPool, RvkMemLoc_Host);
+    stats->ramReserved     = rvk_mem_reserved(plat->device->memPool, RvkMemLoc_Host);
+    stats->vramOccupied    = rvk_mem_occupied(plat->device->memPool, RvkMemLoc_Dev);
+    stats->vramReserved    = rvk_mem_reserved(plat->device->memPool, RvkMemLoc_Dev);
+    stats->vramBudgetTotal = plat->device->memBudgetTotal;
+    stats->vramBudgetUsed  = plat->device->memBudgetUsed;
 
     stats->descSetsOccupied = rvk_desc_pool_sets_occupied(plat->device->descPool);
     stats->descSetsReserved = rvk_desc_pool_sets_reserved(plat->device->descPool);

@@ -38,6 +38,7 @@
 #define VK_LAYER_KHRONOS_validation "VK_LAYER_KHRONOS_validation"
 
 #define VK_EXT_debug_utils "VK_EXT_debug_utils"
+#define VK_EXT_memory_budget "VK_EXT_memory_budget"
 #define VK_EXT_robustness2 "VK_EXT_robustness2"
 #define VK_EXT_validation_features "VK_EXT_validation_features"
 #define VK_KHR_driver_properties "VK_KHR_driver_properties"
@@ -243,6 +244,7 @@ typedef enum {
   VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_3_PROPERTIES = 1000168000,
   VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_SUPPORT = 1000168001,
   VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DRIVER_PROPERTIES = 1000196000,
+  VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_BUDGET_PROPERTIES_EXT = 1000237000,
   VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT = 1000247000,
   VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRESENT_WAIT_FEATURES_KHR = 1000248000,
   VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_FEATURES_EXT = 1000286000,
@@ -2999,6 +3001,13 @@ typedef struct VkDebugUtilsObjectTagInfoEXT {
   usize tagSize;
   const void* pTag;
 } VkDebugUtilsObjectTagInfoEXT;
+
+typedef struct VkPhysicalDeviceMemoryBudgetPropertiesEXT {
+  VkStructureType sType;
+  void* pNext;
+  VkDeviceSize heapBudget[VK_MAX_MEMORY_HEAPS];
+  VkDeviceSize heapUsage[VK_MAX_MEMORY_HEAPS];
+} VkPhysicalDeviceMemoryBudgetPropertiesEXT;
 
 typedef struct VkPhysicalDeviceRobustness2FeaturesEXT {
   VkStructureType sType;

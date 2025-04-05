@@ -738,6 +738,7 @@ static void dev_stats_draw_interface(
     stats_draw_val_entry(c, string_lit("Renderer chunks"), fmt_write_scratch("{}", fmt_int(rendStats->memChunks)));
     stats_draw_val_entry(c, string_lit("Renderer"), fmt_write_scratch("{<8} reserved: {}", fmt_size(rendStats->ramOccupied), fmt_size(rendStats->ramReserved)));
     stats_draw_val_entry(c, string_lit("GPU (on device)"), fmt_write_scratch("{<8} reserved: {}", fmt_size(rendStats->vramOccupied), fmt_size(rendStats->vramReserved)));
+    stats_draw_val_entry(c, string_lit("GPU (budget)"), fmt_write_scratch("{<8} / {}", fmt_size(rendStats->vramBudgetUsed), fmt_size(rendStats->vramBudgetTotal)));
     stats_draw_val_entry(c, string_lit("File"), fmt_write_scratch("handles: {<3} map: {}", fmt_int(statsGlobal->fileCount), fmt_size(statsGlobal->fileMappingSize)));
     stats_draw_val_entry(c, string_lit("DynLib"), fmt_write_scratch("handles: {<3}", fmt_int(statsGlobal->dynlibCount)));
     stats_draw_val_entry(c, string_lit("StringTable"), fmt_write_scratch("global: {}", fmt_int(statsGlobal->globalStringCount)));

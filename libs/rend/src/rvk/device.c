@@ -61,6 +61,16 @@ static bool rvk_has_ext(RendVkExts availableExts, const String ext) {
   return false;
 }
 
+static u64 rvk_device_local_memory(const VkPhysicalDeviceMemoryProperties* memProps) {
+  u64 result = 0;
+  for (u32 i = 0; i != memProps->memoryHeapCount; ++i) {
+    if (memProps->memoryHeaps[i].flags & VK_MEMORY_HEAP_DEVICE_LOCAL_BIT) {
+      result += memProps->memoryHeaps[i].size;
+    }
+  }
+  return result;
+}
+
 static i32 rvk_device_type_score_value(const VkPhysicalDeviceType vkDevType) {
   switch (vkDevType) {
   case VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU:
@@ -250,6 +260,11 @@ static VkPhysicalDevice rvk_pick_physical_device(RvkLib* lib) {
       goto detectionDone;
     }
 
+    VkPhysicalDeviceMemoryProperties vkMemProperties;
+    rvk_call(lib, getPhysicalDeviceMemoryProperties, vkPhysDevs[i], &vkMemProperties);
+
+    const u64 deviceMemory = rvk_device_local_memory(&vkMemProperties);
+
     score += rvk_device_type_score_value(props.properties.deviceType);
 
   detectionDone:
@@ -262,6 +277,7 @@ static VkPhysicalDevice rvk_pick_physical_device(RvkLib* lib) {
         log_param("vendor", fmt_text(vkVendorIdStr(props.properties.vendorID))),
         log_param("driver-name", fmt_text(string_from_null_term(driverProps.driverName))),
         log_param("driver-info", fmt_text(string_from_null_term(driverProps.driverInfo))),
+        log_param("memory", fmt_size(deviceMemory)),
         log_param("version-major", fmt_int(rvk_version_major(props.properties.apiVersion))),
         log_param("version-minor", fmt_int(rvk_version_minor(props.properties.apiVersion))),
         log_param("score", fmt_int(score)));
@@ -374,6 +390,10 @@ static VkDevice rvk_device_create_internal(RvkLib* lib, RvkDevice* dev) {
   rvk_config_16bit_storage(dev, &feature16BitStorage);
   rvk_config_features(dev, &featureBase.features);
 
+  if (rvk_has_ext(supportedExts, string_from_null_term(VK_EXT_memory_budget))) {
+    dev->flags |= RvkDeviceFlags_SupportMemoryBudget;
+  }
+
   const VkDeviceCreateInfo createInfo = {
       .sType                   = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
       .pNext                   = &featureBase,
@@ -483,7 +503,30 @@ String rvk_device_name(const RvkDevice* dev) {
   return string_from_null_term(dev->vkProperties.deviceName);
 }
 
-void rvk_device_update(RvkDevice* dev) { rvk_transfer_flush(dev->transferer); }
+void rvk_device_update(RvkDevice* dev) {
+  // Track device memory budget.
+  if (dev->flags & RvkDeviceFlags_SupportMemoryBudget) {
+    VkPhysicalDeviceMemoryBudgetPropertiesEXT budgetProps = {
+        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_BUDGET_PROPERTIES_EXT,
+    };
+    VkPhysicalDeviceMemoryProperties2 memProps = {
+        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_PROPERTIES_2,
+        .pNext = &budgetProps,
+    };
+    rvk_call(dev->lib, getPhysicalDeviceMemoryProperties2, dev->vkPhysDev, &memProps);
+
+    dev->memBudgetTotal = dev->memBudgetUsed = 0;
+    for (u32 i = 0; i != memProps.memoryProperties.memoryHeapCount; ++i) {
+      if (memProps.memoryProperties.memoryHeaps[i].flags & VK_MEMORY_HEAP_DEVICE_LOCAL_BIT) {
+        dev->memBudgetTotal += budgetProps.heapBudget[i];
+        dev->memBudgetUsed += budgetProps.heapUsage[i];
+      }
+    }
+  }
+
+  // Submit any pending transfers.
+  rvk_transfer_flush(dev->transferer);
+}
 
 void rvk_device_wait_idle(const RvkDevice* dev) {
   rvk_call_checked(dev, deviceWaitIdle, dev->vkDev);
