@@ -503,7 +503,7 @@ void rvk_debug_label_begin_raw(
   }
 }
 
-void rvk_debug_label_end(RvkDevice* dev, VkCommandBuffer vkCmdBuffer) {
+void rvk_debug_label_end_raw(RvkDevice* dev, VkCommandBuffer vkCmdBuffer) {
   if (dev->lib->flags & RvkLibFlags_Debug) {
     rvk_call(dev->lib, cmdEndDebugUtilsLabelEXT, vkCmdBuffer);
   }
