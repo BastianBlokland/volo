@@ -53,6 +53,7 @@ static const u64 g_prefabVariantTraitMask[ScenePrefabVariant_Count] = {
                                    (u64_lit(1) << AssetPrefabTrait_LightDir)     |
                                    (u64_lit(1) << AssetPrefabTrait_LightLine)    |
                                    (u64_lit(1) << AssetPrefabTrait_LightPoint)   |
+                                   (u64_lit(1) << AssetPrefabTrait_LightSpot)    |
                                    (u64_lit(1) << AssetPrefabTrait_Scalable)     |
                                    (u64_lit(1) << AssetPrefabTrait_Renderable),
 
@@ -63,6 +64,7 @@ static const u64 g_prefabVariantTraitMask[ScenePrefabVariant_Count] = {
                                    (u64_lit(1) << AssetPrefabTrait_LightDir)     |
                                    (u64_lit(1) << AssetPrefabTrait_LightLine)    |
                                    (u64_lit(1) << AssetPrefabTrait_LightPoint)   |
+                                   (u64_lit(1) << AssetPrefabTrait_LightSpot)    |
                                    (u64_lit(1) << AssetPrefabTrait_Location)     |
                                    (u64_lit(1) << AssetPrefabTrait_Property)     |
                                    (u64_lit(1) << AssetPrefabTrait_Renderable)   |
@@ -470,6 +472,16 @@ static void setup_light_point(PrefabSetupContext* ctx, const AssetPrefabTraitLig
       ctx->world, ctx->entity, SceneLightPointComp, .radiance = t->radiance, .radius = t->radius);
 }
 
+static void setup_light_spot(PrefabSetupContext* ctx, const AssetPrefabTraitLightSpot* t) {
+  ecs_world_add_t(
+      ctx->world,
+      ctx->entity,
+      SceneLightSpotComp,
+      .radiance = t->radiance,
+      .angle    = t->angle,
+      .length   = t->length);
+}
+
 static void setup_light_line(PrefabSetupContext* ctx, const AssetPrefabTraitLightLine* t) {
   ecs_world_add_t(
       ctx->world,
@@ -734,6 +746,9 @@ static void setup_trait(PrefabSetupContext* ctx, const AssetPrefabTrait* t) {
     return;
   case AssetPrefabTrait_LightPoint:
     setup_light_point(ctx, &t->data_lightPoint);
+    return;
+  case AssetPrefabTrait_LightSpot:
+    setup_light_spot(ctx, &t->data_lightSpot);
     return;
   case AssetPrefabTrait_LightLine:
     setup_light_line(ctx, &t->data_lightLine);

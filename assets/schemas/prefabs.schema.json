@@ -134,6 +134,17 @@
           "type": "object",
           "additionalProperties": false,
           "properties": {
+            "$type": { "const": "AssetPrefabTrait_LightSpot" },
+            "radiance": { "title": "GeoColor4", "description": "HDR Color (rgba)", "$ref": "#/$defs/GeoColor4" },
+            "angle": { "title": "f32", "type": "number" },
+            "length": { "title": "f32", "type": "number" }
+          },
+          "required": [ "$type", "radiance", "angle", "length" ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
             "$type": { "const": "AssetPrefabTrait_LightLine" },
             "radiance": { "title": "GeoColor4", "description": "HDR Color (rgba)", "$ref": "#/$defs/GeoColor4" },
             "radius": { "title": "f32", "type": "number" },
@@ -352,6 +363,7 @@
         { "label": "New AssetPrefabTrait_Decal", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Decal\",\n  \"asset\": \"placeholder\"\n}" },
         { "label": "New AssetPrefabTrait_Sound", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Sound\",\n  \"assets\": [\n    \"placeholder\"\n  ]\n}" },
         { "label": "New AssetPrefabTrait_LightPoint", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_LightPoint\",\n  \"radiance\": {},\n  \"radius\": 1\n}" },
+        { "label": "New AssetPrefabTrait_LightSpot", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_LightSpot\",\n  \"radiance\": {},\n  \"angle\": 1,\n  \"length\": 1\n}" },
         { "label": "New AssetPrefabTrait_LightLine", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_LightLine\",\n  \"radiance\": {},\n  \"radius\": 1,\n  \"length\": 1\n}" },
         { "label": "New AssetPrefabTrait_LightDir", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_LightDir\",\n  \"radiance\": {}\n}" },
         { "label": "New AssetPrefabTrait_LightAmbient", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_LightAmbient\",\n  \"intensity\": 1\n}" },

@@ -31,6 +31,7 @@ static const f32 g_worldHeight            = 10.0f;
 typedef enum {
   RendLightType_Directional,
   RendLightType_Point,
+  RendLightType_Spot,
   RendLightType_Line,
   RendLightType_Ambient,
 
@@ -62,6 +63,13 @@ typedef struct {
 typedef struct {
   GeoVector      posA, posB;
   GeoColor       radiance;
+  f32            angle;
+  RendLightFlags flags;
+} RendLightSpot;
+
+typedef struct {
+  GeoVector      posA, posB;
+  GeoColor       radiance;
   f32            radius;
   RendLightFlags flags;
 } RendLightLine;
@@ -75,6 +83,7 @@ typedef struct {
   union {
     RendLightDirectional data_directional;
     RendLightPoint       data_point;
+    RendLightSpot        data_spot;
     RendLightLine        data_line;
     RendLightAmbient     data_ambient;
   };
@@ -88,6 +97,8 @@ static const String g_lightGraphics[RendLightObj_Count] = {
   [LIGHT_OBJ_INDEX(Directional, Normal)] = string_static("graphics/light/light_directional.graphic"),
   [LIGHT_OBJ_INDEX(Point,       Normal)] = string_static("graphics/light/light_point.graphic"),
   [LIGHT_OBJ_INDEX(Point,       Debug)]  = string_static("graphics/light/light_point_debug.graphic"),
+  [LIGHT_OBJ_INDEX(Spot,        Normal)] = string_static("graphics/light/light_spot.graphic"),
+  [LIGHT_OBJ_INDEX(Spot,        Debug)]  = string_static("graphics/light/light_spot_debug.graphic"),
   [LIGHT_OBJ_INDEX(Line,        Normal)] = string_static("graphics/light/light_line.graphic"),
   [LIGHT_OBJ_INDEX(Line,        Debug)]  = string_static("graphics/light/light_line_debug.graphic"),
 };
@@ -145,6 +156,12 @@ ecs_view_define(CameraView) {
 ecs_view_define(LightPointInstView) {
   ecs_access_read(SceneTransformComp);
   ecs_access_read(SceneLightPointComp);
+  ecs_access_maybe_read(SceneScaleComp);
+}
+
+ecs_view_define(LightSpotInstView) {
+  ecs_access_read(SceneTransformComp);
+  ecs_access_read(SceneLightSpotComp);
   ecs_access_maybe_read(SceneScaleComp);
 }
 
@@ -260,6 +277,28 @@ ecs_system_define(RendLightPushSys) {
     }
     const RendLightFlags flags = RendLightFlags_None;
     rend_light_point(light, transformComp->position, radiance, radius, flags);
+  }
+
+  // Push all spot-lights.
+  EcsView* spotLights = ecs_world_view_t(world, LightSpotInstView);
+  for (EcsIterator* itr = ecs_view_itr(spotLights); ecs_view_walk(itr);) {
+    const SceneTransformComp* transformComp = ecs_view_read_t(itr, SceneTransformComp);
+    const SceneScaleComp*     scaleComp     = ecs_view_read_t(itr, SceneScaleComp);
+    const SceneLightSpotComp* spotComp      = ecs_view_read_t(itr, SceneLightSpotComp);
+
+    GeoColor radiance = spotComp->radiance;
+    f32      length   = spotComp->length;
+    if (scaleComp) {
+      radiance.a *= scaleComp->scale;
+      length *= scaleComp->scale;
+    }
+
+    const GeoVector dir  = geo_quat_rotate(transformComp->rotation, geo_forward);
+    const GeoVector posA = transformComp->position;
+    const GeoVector posB = geo_vector_add(posA, geo_vector_mul(dir, length));
+
+    const RendLightFlags flags = RendLightFlags_None;
+    rend_light_spot(light, posA, posB, radiance, spotComp->angle, flags);
   }
 
   // Push all line-lights.
@@ -497,6 +536,14 @@ ecs_system_define(RendLightRenderSys) {
 
       typedef struct {
         ALIGNAS(16)
+        GeoVector posAndLength;      // x, y, z: position, w: length.
+        GeoVector dirAndAngleCos;    // x, y, z: direction, w: cos(angle).
+        GeoColor  radianceAndRadius; // r, g, b: radiance, a: radius.
+      } LightSpotData;
+      ASSERT(sizeof(LightSpotData) == 48, "Size needs to match the size defined in glsl");
+
+      typedef struct {
+        ALIGNAS(16)
         GeoVector posA, posB;           // x, y, z: position, w: unused.
         GeoColor  radianceAndRadiusInv; // r, g, b: radiance, a: radius.
       } LightLineData;
@@ -564,6 +611,40 @@ ecs_system_define(RendLightRenderSys) {
         };
         break;
       }
+      case RendLightType_Spot: {
+        if (entry->data_spot.flags & RendLightFlags_Shadow) {
+          log_e("Spot-light shadows are not supported");
+        }
+        const GeoColor radiance = rend_radiance_resolve(entry->data_spot.radiance);
+        const f32      angle    = entry->data_spot.angle;
+        if (UNLIKELY(rend_light_brightness(radiance) < 0.01f || angle < f32_epsilon)) {
+          continue;
+        }
+        const GeoVector pos    = entry->data_spot.posA;
+        const GeoVector delta  = geo_vector_sub(entry->data_spot.posB, pos);
+        const f32       length = geo_vector_mag(delta);
+        if (UNLIKELY(length < f32_epsilon)) {
+          continue;
+        }
+        const GeoVector dir    = geo_vector_div(delta, length);
+        const f32       radius = length * math_tan_f32(angle);
+        const GeoBox    bounds = geo_box_from_cone(pos, entry->data_spot.posB, radius);
+        *rend_object_add_instance_t(obj, LightSpotData, tags, bounds) = (LightSpotData){
+            .posAndLength.x      = pos.x,
+            .posAndLength.y      = pos.y,
+            .posAndLength.z      = pos.z,
+            .posAndLength.w      = length,
+            .dirAndAngleCos.x    = dir.x,
+            .dirAndAngleCos.y    = dir.y,
+            .dirAndAngleCos.z    = dir.z,
+            .dirAndAngleCos.w    = math_cos_f32(angle),
+            .radianceAndRadius.r = radiance.r,
+            .radianceAndRadius.g = radiance.g,
+            .radianceAndRadius.b = radiance.b,
+            .radianceAndRadius.a = radius,
+        };
+        break;
+      }
       case RendLightType_Line: {
         if (entry->data_line.flags & RendLightFlags_Shadow) {
           log_e("Line-light shadows are not supported");
@@ -605,6 +686,7 @@ ecs_module_init(rend_light_module) {
   ecs_register_view(ObjView);
   ecs_register_view(CameraView);
   ecs_register_view(LightPointInstView);
+  ecs_register_view(LightSpotInstView);
   ecs_register_view(LightLineInstView);
   ecs_register_view(LightDirInstView);
   ecs_register_view(LightAmbientInstView);
@@ -615,6 +697,7 @@ ecs_module_init(rend_light_module) {
       RendLightPushSys,
       ecs_view_id(GlobalView),
       ecs_view_id(LightPointInstView),
+      ecs_view_id(LightSpotInstView),
       ecs_view_id(LightLineInstView),
       ecs_view_id(LightDirInstView),
       ecs_view_id(LightAmbientInstView));
@@ -679,6 +762,28 @@ void rend_light_point(
                   .pos      = pos,
                   .radiance = radiance,
                   .radius   = radius,
+                  .flags    = flags,
+              },
+      });
+}
+
+void rend_light_spot(
+    RendLightComp*       comp,
+    const GeoVector      posA,
+    const GeoVector      posB,
+    const GeoColor       radiance,
+    const f32            angle,
+    const RendLightFlags flags) {
+  rend_light_add(
+      comp,
+      (RendLight){
+          .type = RendLightType_Spot,
+          .data_spot =
+              {
+                  .posA     = posA,
+                  .posB     = posB,
+                  .radiance = radiance,
+                  .angle    = angle,
                   .flags    = flags,
               },
       });

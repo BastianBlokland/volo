@@ -3,8 +3,8 @@
 #include "instance.glsl"
 
 struct LightDirData {
-  f32v4 direction;      // x, y, z: direction, w: unused,
-  f32v4 radianceFlags;  // x, y, z: radiance, w: flags,
+  f32v4 direction;      // x, y, z: direction, w: unused.
+  f32v4 radianceFlags;  // x, y, z: radiance, w: flags.
   f32v4 shadowParams;   // x: filterSize, y, z, w: unused.
   f32m4 shadowViewProj; // ShadowMap view-projection matrix.
 };

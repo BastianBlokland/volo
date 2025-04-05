@@ -91,6 +91,14 @@ f32 pbr_attenuation_resolve(const f32 dist, const f32 radiusInv) {
   return centerFracQuad * centerFracQuad / (dist * dist + 1.0);
 }
 
+f32 pbr_attenuation_resolve_angle(const f32 lightDot, const f32 angleCos) {
+  if (lightDot <= angleCos) {
+    return 0.0;
+  }
+  // Linearly attenuate based on the reference angle.
+  return 1.0 - (1.0 - lightDot) * (1.0 / (1.0 - angleCos));
+}
+
 struct PbrSurface {
   f32v3 position;
   f32v3 color;
@@ -143,6 +151,27 @@ f32v3 pbr_light_point(
   const f32   dist              = length(surf.position - pos);
   const f32v3 effectiveRadiance = radiance * pbr_attenuation_resolve(dist, radiusInv);
   return pbr_light_dir(effectiveRadiance, lightDir, viewDir, surf);
+}
+
+f32v3 pbr_light_spot(
+    const f32v3      radiance,
+    const f32        lengthInv,
+    const f32        angleCos,
+    const f32v3      pos,
+    const f32v3      dir,
+    const f32v3      viewDir,
+    const PbrSurface surf) {
+
+  const f32v3 toSurface     = surf.position - pos;
+  const f32   distToSurface = length(toSurface);
+  const f32v3 dirToSurface  = toSurface / distToSurface;
+  const f32   lightDot      = dot(dirToSurface, dir);
+
+  f32v3 effectiveRadiance = radiance;
+  effectiveRadiance *= pbr_attenuation_resolve(distToSurface, lengthInv); // Attenuate over dist.
+  effectiveRadiance *= pbr_attenuation_resolve_angle(lightDot, angleCos); // Attenuate over angle.
+
+  return pbr_light_dir(effectiveRadiance, dir, viewDir, surf);
 }
 
 #define PBR_LIGHT_LINE_ITERATIVE 0

@@ -33,8 +33,7 @@ struct sEcsWorld {
   EcsEntityId   globalEntity;
   Allocator*    alloc;
 
-  TimeDuration lastFlushDur;
-  u32          lastFlushEntities;
+  u32 lastFlushEntities;
 };
 
 static usize

@@ -1,0 +1,8 @@
+{
+  "type": "Cone",
+  "axis": "Backward",
+  "subdivisions": 8,
+  "length": 1,
+  "scaleX": 2.1, "scaleY": 2.1, "scaleZ": 1,
+  "offsetX": 0, "offsetY": 0, "offsetZ": 0.5
+}

@@ -115,6 +115,7 @@ ecs_view_define(ActionRenderableView) { ecs_access_write(SceneRenderableComp); }
 ecs_view_define(ActionVfxSysView) { ecs_access_write(SceneVfxSystemComp); }
 ecs_view_define(ActionVfxDecalView) { ecs_access_write(SceneVfxDecalComp); }
 ecs_view_define(ActionLightPointView) { ecs_access_write(SceneLightPointComp); }
+ecs_view_define(ActionLightSpotView) { ecs_access_write(SceneLightSpotComp); }
 ecs_view_define(ActionLightLineView) { ecs_access_write(SceneLightLineComp); }
 ecs_view_define(ActionLightDirView) { ecs_access_write(SceneLightDirComp); }
 ecs_view_define(ActionSoundView) { ecs_access_write(SceneSoundComp); }
@@ -136,6 +137,7 @@ typedef struct {
   EcsIterator* vfxSysItr;
   EcsIterator* vfxDecalItr;
   EcsIterator* lightPointItr;
+  EcsIterator* lightSpotItr;
   EcsIterator* lightLineItr;
   EcsIterator* lightDirItr;
   EcsIterator* soundItr;
@@ -321,6 +323,21 @@ static void action_update_light_param(ActionContext* ctx, const SceneActionUpdat
       pointComp->radiance = a->value_color;
       break;
     case SceneActionLightParam_Length:
+    case SceneActionLightParam_Angle:
+      break;
+    }
+  }
+  if (ecs_view_maybe_jump(ctx->lightSpotItr, a->entity)) {
+    SceneLightSpotComp* spotComp = ecs_view_write_t(ctx->lightSpotItr, SceneLightSpotComp);
+    switch (a->param) {
+    case SceneActionLightParam_Radiance:
+      spotComp->radiance = a->value_color;
+      break;
+    case SceneActionLightParam_Length:
+      spotComp->length = a->value_f32;
+      break;
+    case SceneActionLightParam_Angle:
+      spotComp->angle = a->value_f32;
       break;
     }
   }
@@ -333,6 +350,8 @@ static void action_update_light_param(ActionContext* ctx, const SceneActionUpdat
     case SceneActionLightParam_Length:
       lineComp->length = a->value_f32;
       break;
+    case SceneActionLightParam_Angle:
+      break;
     }
   }
   if (ecs_view_maybe_jump(ctx->lightDirItr, a->entity)) {
@@ -342,6 +361,7 @@ static void action_update_light_param(ActionContext* ctx, const SceneActionUpdat
       dirComp->radiance = a->value_color;
       break;
     case SceneActionLightParam_Length:
+    case SceneActionLightParam_Angle:
       break;
     }
   }
@@ -423,6 +443,7 @@ ecs_system_define(SceneActionUpdateSys) {
       .vfxSysItr     = ecs_view_itr(ecs_world_view_t(world, ActionVfxSysView)),
       .vfxDecalItr   = ecs_view_itr(ecs_world_view_t(world, ActionVfxDecalView)),
       .lightPointItr = ecs_view_itr(ecs_world_view_t(world, ActionLightPointView)),
+      .lightSpotItr  = ecs_view_itr(ecs_world_view_t(world, ActionLightSpotView)),
       .lightLineItr  = ecs_view_itr(ecs_world_view_t(world, ActionLightLineView)),
       .lightDirItr   = ecs_view_itr(ecs_world_view_t(world, ActionLightDirView)),
       .soundItr      = ecs_view_itr(ecs_world_view_t(world, ActionSoundView)),
@@ -534,6 +555,7 @@ ecs_module_init(scene_action_module) {
       ecs_register_view(ActionVfxSysView),
       ecs_register_view(ActionVfxDecalView),
       ecs_register_view(ActionLightPointView),
+      ecs_register_view(ActionLightSpotView),
       ecs_register_view(ActionLightLineView),
       ecs_register_view(ActionLightDirView),
       ecs_register_view(ActionSoundView),

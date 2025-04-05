@@ -135,6 +135,7 @@ typedef struct {
 typedef enum {
   SceneActionLightParam_Radiance,
   SceneActionLightParam_Length,
+  SceneActionLightParam_Angle,
 } SceneActionLightParam;
 
 typedef struct {

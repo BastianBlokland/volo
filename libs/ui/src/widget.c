@@ -800,7 +800,7 @@ bool ui_numbox_with_opts(UiCanvasComp* canvas, f64* input, const UiNumboxOpts* o
 
   if (!textEditorActive && ui_canvas_input_control(canvas) && textStatus >= UiStatus_Hovered) {
     if (textStatus >= UiStatus_Pressed) {
-      static const f32 g_dragSensitivity = 0.15f;
+      static const f32 g_dragSensitivity = 0.5f;
       *input += ui_canvas_input_delta(canvas).x * g_dragSensitivity * math_max(opts->step, 0.025f);
       ui_numbox_clamp(input, opts);
       dirty = true;

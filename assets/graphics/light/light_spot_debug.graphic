@@ -1,0 +1,11 @@
+{
+  "pass": "Forward",
+  "passOrder": -90,
+  "shaders": [
+    { "program": "shaders/light/light_spot.vert" },
+    { "program": "shaders/light/light_spot_debug.frag" }
+  ],
+  "mesh": "meshes/light/light_spot.procmesh",
+  "depth": "AlwaysNoWrite",
+  "cull": "Front"
+}
