@@ -537,7 +537,7 @@ ecs_system_define(RendLightRenderSys) {
       typedef struct {
         ALIGNAS(16)
         GeoVector posAndLength;      // x, y, z: position, w: length.
-        GeoVector dirAndAngle;       // x, y, z: direction, w: angle.
+        GeoVector dirAndAngleCos;    // x, y, z: direction, w: cos(angle).
         GeoColor  radianceAndRadius; // r, g, b: radiance, a: radius.
       } LightSpotData;
       ASSERT(sizeof(LightSpotData) == 48, "Size needs to match the size defined in glsl");
@@ -612,7 +612,7 @@ ecs_system_define(RendLightRenderSys) {
         break;
       }
       case RendLightType_Spot: {
-        if (entry->data_point.flags & RendLightFlags_Shadow) {
+        if (entry->data_spot.flags & RendLightFlags_Shadow) {
           log_e("Spot-light shadows are not supported");
         }
         const GeoColor radiance = rend_radiance_resolve(entry->data_spot.radiance);
@@ -634,10 +634,10 @@ ecs_system_define(RendLightRenderSys) {
             .posAndLength.y      = pos.y,
             .posAndLength.z      = pos.z,
             .posAndLength.w      = length,
-            .dirAndAngle.x       = dir.x,
-            .dirAndAngle.y       = dir.y,
-            .dirAndAngle.z       = dir.z,
-            .dirAndAngle.w       = angle,
+            .dirAndAngleCos.x    = dir.x,
+            .dirAndAngleCos.y    = dir.y,
+            .dirAndAngleCos.z    = dir.z,
+            .dirAndAngleCos.w    = math_cos_f32(angle),
             .radianceAndRadius.r = radiance.r,
             .radianceAndRadius.g = radiance.g,
             .radianceAndRadius.b = radiance.b,
