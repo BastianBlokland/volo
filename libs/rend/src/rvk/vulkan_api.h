@@ -3036,6 +3036,18 @@ typedef struct VkValidationFeaturesEXT {
   const VkValidationFeatureDisableEXT* pDisabledValidationFeatures;
 } VkValidationFeaturesEXT;
 
+typedef struct VkPhysicalDeviceMaintenance4Features {
+  VkStructureType sType;
+  void* pNext;
+  VkBool32 maintenance4;
+} VkPhysicalDeviceMaintenance4Features;
+
+typedef struct VkPhysicalDeviceMaintenance4Properties {
+  VkStructureType sType;
+  void* pNext;
+  VkDeviceSize maxBufferSize;
+} VkPhysicalDeviceMaintenance4Properties;
+
 typedef struct VkDeviceBufferMemoryRequirements {
   VkStructureType sType;
   const void* pNext;
