@@ -428,16 +428,16 @@ static bool vkgen_enum_entry_push(VkGenContext* ctx, const VkGenEnumEntry enumEn
 }
 
 typedef struct {
-  const VkGenEnumEntry* begin;
-  const VkGenEnumEntry* end;
+  VkGenEnumEntry* begin;
+  VkGenEnumEntry* end;
 } VkGenEnumEntries;
 
 static VkGenEnumEntries vkgen_enum_entries_find(VkGenContext* ctx, const StringHash enumKey) {
-  const VkGenEnumEntry* entriesBegin = dynarray_begin_t(&ctx->enumEntries, VkGenEnumEntry);
-  const VkGenEnumEntry* entriesEnd   = dynarray_end_t(&ctx->enumEntries, VkGenEnumEntry);
+  VkGenEnumEntry* entriesBegin = dynarray_begin_t(&ctx->enumEntries, VkGenEnumEntry);
+  VkGenEnumEntry* entriesEnd   = dynarray_end_t(&ctx->enumEntries, VkGenEnumEntry);
 
-  VkGenEnumEntry        tgt = {.key = enumKey};
-  const VkGenEnumEntry* gt  = search_binary_greater_t(
+  VkGenEnumEntry  tgt = {.key = enumKey};
+  VkGenEnumEntry* gt  = search_binary_greater_t(
       entriesBegin, entriesEnd, VkGenEnumEntry, vkgen_compare_enum_entry_no_value, &tgt);
 
   VkGenEnumEntries res = {.begin = gt ? gt : entriesEnd, .end = gt ? gt : entriesEnd};
@@ -604,6 +604,19 @@ static void vkgen_collect_enum_extensions(
       const String     name    = xml_attr_get(ctx->schemaDoc, entry, g_hash_name);
       if (!enumKey || string_is_empty(name)) {
         continue; // Enum or name missing.
+      }
+      const String aliasName = xml_attr_get(ctx->schemaDoc, entry, g_hash_alias);
+      if (!string_is_empty(aliasName)) {
+        VkGenEnumEntries existingEntries = vkgen_enum_entries_find(ctx, enumKey);
+        for (VkGenEnumEntry* itr = existingEntries.begin; itr != existingEntries.end; ++itr) {
+          if (string_eq(itr->name, aliasName)) {
+            itr->optional = false;
+            goto AliasResolved;
+          }
+        }
+        log_w("Unable to resolve enum alias", log_param("name", fmt_text(aliasName)));
+      AliasResolved:
+        continue;
       }
       const String bitPosStr = xml_attr_get(ctx->schemaDoc, entry, g_hash_bitpos);
       if (!string_is_empty(bitPosStr)) {
