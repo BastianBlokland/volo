@@ -19,7 +19,7 @@ void main() {
   const f32v3 clipPos   = f32v3(texcoord * 2.0 - 1.0, depth);
   const f32v3 worldPos  = clip_to_world_pos(u_global, clipPos);
 
-  const f32v3 toSurface     = worldPos - pos;
+  const f32v3 toSurface     = worldPos - in_position;
   const f32   distToSurface = length(toSurface);
   const f32v3 dirToSurface  = toSurface / distToSurface;
   const f32   lightDot      = dot(dirToSurface, in_directionAndAngleCos.xyz);
