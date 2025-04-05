@@ -40,6 +40,7 @@ ecs_comp_extern_public(RendStatsComp) {
   u16 memChunks;
   u64 ramOccupied, ramReserved;
   u64 vramOccupied, vramReserved;
+  u64 vramBudgetTotal, vramBudgetUsed; // Optionally available if supported by the driver.
   u16 descSetsOccupied, descSetsReserved, descLayouts;
   u16 attachCount;
   u64 attachMemory;
