@@ -61,6 +61,16 @@ static bool rvk_has_ext(RendVkExts availableExts, const String ext) {
   return false;
 }
 
+static u64 rvk_device_local_memory(const VkPhysicalDeviceMemoryProperties* memProps) {
+  u64 result = 0;
+  for (u32 i = 0; i != memProps->memoryHeapCount; ++i) {
+    if (memProps->memoryHeaps[i].flags & VK_MEMORY_HEAP_DEVICE_LOCAL_BIT) {
+      result += memProps->memoryHeaps[i].size;
+    }
+  }
+  return result;
+}
+
 static i32 rvk_device_type_score_value(const VkPhysicalDeviceType vkDevType) {
   switch (vkDevType) {
   case VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU:
@@ -250,6 +260,11 @@ static VkPhysicalDevice rvk_pick_physical_device(RvkLib* lib) {
       goto detectionDone;
     }
 
+    VkPhysicalDeviceMemoryProperties vkMemProperties;
+    rvk_call(lib, getPhysicalDeviceMemoryProperties, vkPhysDevs[i], &vkMemProperties);
+
+    const u64 deviceMemory = rvk_device_local_memory(&vkMemProperties);
+
     score += rvk_device_type_score_value(props.properties.deviceType);
 
   detectionDone:
@@ -262,6 +277,7 @@ static VkPhysicalDevice rvk_pick_physical_device(RvkLib* lib) {
         log_param("vendor", fmt_text(vkVendorIdStr(props.properties.vendorID))),
         log_param("driver-name", fmt_text(string_from_null_term(driverProps.driverName))),
         log_param("driver-info", fmt_text(string_from_null_term(driverProps.driverInfo))),
+        log_param("memory", fmt_size(deviceMemory)),
         log_param("version-major", fmt_int(rvk_version_major(props.properties.apiVersion))),
         log_param("version-minor", fmt_int(rvk_version_minor(props.properties.apiVersion))),
         log_param("score", fmt_int(score)));
