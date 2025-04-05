@@ -231,26 +231,39 @@ static VkPhysicalDevice rvk_pick_physical_device(RvkLib* lib) {
       goto detectionDone;
     }
 
-    VkPhysicalDeviceProperties properties;
-    rvk_call(lib, getPhysicalDeviceProperties, vkPhysDevs[i], &properties);
+    void*                            nextProps   = null;
+    VkPhysicalDeviceDriverProperties driverProps = {
+        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DRIVER_PROPERTIES,
+        .pNext = nextProps,
+    };
+    if (rvk_has_ext(exts, string_lit(VK_KHR_driver_properties))) {
+      nextProps = &driverProps;
+    }
+    VkPhysicalDeviceProperties2 props = {
+        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2,
+        .pNext = nextProps,
+    };
+    rvk_call(lib, getPhysicalDeviceProperties2, vkPhysDevs[i], &props);
 
-    if (!rvk_lib_api_version_supported(properties.apiVersion)) {
+    if (!rvk_lib_api_version_supported(props.properties.apiVersion)) {
       score = -1;
       goto detectionDone;
     }
 
-    score += rvk_device_type_score_value(properties.deviceType);
+    score += rvk_device_type_score_value(props.properties.deviceType);
 
   detectionDone:
     rvk_exts_free(exts);
 
     log_i(
         "Vulkan physical device detected",
-        log_param("version-major", fmt_int(rvk_version_major(properties.apiVersion))),
-        log_param("version-minor", fmt_int(rvk_version_minor(properties.apiVersion))),
-        log_param("device-name", fmt_text(string_from_null_term(properties.deviceName))),
-        log_param("device-type", fmt_text(vkPhysicalDeviceTypeStr(properties.deviceType))),
-        log_param("vendor", fmt_text(vkVendorIdStr(properties.vendorID))),
+        log_param("device-name", fmt_text(string_from_null_term(props.properties.deviceName))),
+        log_param("device-type", fmt_text(vkPhysicalDeviceTypeStr(props.properties.deviceType))),
+        log_param("vendor", fmt_text(vkVendorIdStr(props.properties.vendorID))),
+        log_param("driver-name", fmt_text(string_from_null_term(driverProps.driverName))),
+        log_param("driver-info", fmt_text(string_from_null_term(driverProps.driverInfo))),
+        log_param("version-major", fmt_int(rvk_version_major(props.properties.apiVersion))),
+        log_param("version-minor", fmt_int(rvk_version_minor(props.properties.apiVersion))),
         log_param("score", fmt_int(score)));
 
     if (score > bestScore) {
@@ -391,7 +404,12 @@ RvkDevice* rvk_device_create(RvkLib* lib) {
   dev->graphicsQueueIndex = rvk_pick_graphics_queue(lib, dev->vkPhysDev);
   dev->transferQueueIndex = rvk_pick_transfer_queue(lib, dev->vkPhysDev);
 
-  rvk_call(lib, getPhysicalDeviceProperties, dev->vkPhysDev, &dev->vkProperties);
+  VkPhysicalDeviceProperties2 prop = {
+      .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2,
+  };
+  rvk_call(lib, getPhysicalDeviceProperties2, dev->vkPhysDev, &prop);
+  dev->vkProperties = prop.properties;
+
   rvk_call(lib, getPhysicalDeviceMemoryProperties, dev->vkPhysDev, &dev->vkMemProperties);
 
   dev->vkDev = rvk_device_create_internal(lib, dev);
@@ -496,7 +514,7 @@ void rvk_debug_label_begin_raw(
   }
 }
 
-void rvk_debug_label_end(RvkDevice* dev, VkCommandBuffer vkCmdBuffer) {
+void rvk_debug_label_end_raw(RvkDevice* dev, VkCommandBuffer vkCmdBuffer) {
   if (dev->lib->flags & RvkLibFlags_Debug) {
     rvk_call(dev->lib, cmdEndDebugUtilsLabelEXT, vkCmdBuffer);
   }

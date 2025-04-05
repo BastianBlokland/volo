@@ -40,6 +40,7 @@
 #define VK_EXT_debug_utils "VK_EXT_debug_utils"
 #define VK_EXT_robustness2 "VK_EXT_robustness2"
 #define VK_EXT_validation_features "VK_EXT_validation_features"
+#define VK_KHR_driver_properties "VK_KHR_driver_properties"
 #define VK_KHR_maintenance4 "VK_KHR_maintenance4"
 #define VK_KHR_present_id "VK_KHR_present_id"
 #define VK_KHR_present_wait "VK_KHR_present_wait"
@@ -241,12 +242,17 @@ typedef enum {
   VK_STRUCTURE_TYPE_BIND_IMAGE_MEMORY_INFO = 1000157001,
   VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_3_PROPERTIES = 1000168000,
   VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_SUPPORT = 1000168001,
+  VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DRIVER_PROPERTIES = 1000196000,
   VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT = 1000247000,
   VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRESENT_WAIT_FEATURES_KHR = 1000248000,
   VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_FEATURES_EXT = 1000286000,
   VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_PROPERTIES_EXT = 1000286001,
   VK_STRUCTURE_TYPE_PRESENT_ID_KHR = 1000294000,
   VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRESENT_ID_FEATURES_KHR = 1000294001,
+  VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_4_FEATURES = 1000413000,
+  VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_4_PROPERTIES = 1000413001,
+  VK_STRUCTURE_TYPE_DEVICE_BUFFER_MEMORY_REQUIREMENTS = 1000413002,
+  VK_STRUCTURE_TYPE_DEVICE_IMAGE_MEMORY_REQUIREMENTS = 1000413003,
 } VkStructureType;
 
 typedef enum {
@@ -1195,6 +1201,7 @@ typedef struct VkBindSparseInfo {
 } VkBindSparseInfo;
 
 typedef enum {
+  VK_IMAGE_ASPECT_NONE = 0,
   VK_IMAGE_ASPECT_COLOR_BIT = 1,
   VK_IMAGE_ASPECT_DEPTH_BIT = 2,
   VK_IMAGE_ASPECT_STENCIL_BIT = 4,
@@ -3035,6 +3042,64 @@ typedef struct VkValidationFeaturesEXT {
   u32 disabledValidationFeatureCount;
   const VkValidationFeatureDisableEXT* pDisabledValidationFeatures;
 } VkValidationFeaturesEXT;
+
+typedef enum {
+  VK_DRIVER_ID_AMD_PROPRIETARY = 1,
+  VK_DRIVER_ID_AMD_OPEN_SOURCE = 2,
+  VK_DRIVER_ID_MESA_RADV = 3,
+  VK_DRIVER_ID_NVIDIA_PROPRIETARY = 4,
+  VK_DRIVER_ID_INTEL_PROPRIETARY_WINDOWS = 5,
+  VK_DRIVER_ID_INTEL_OPEN_SOURCE_MESA = 6,
+  VK_DRIVER_ID_IMAGINATION_PROPRIETARY = 7,
+  VK_DRIVER_ID_QUALCOMM_PROPRIETARY = 8,
+  VK_DRIVER_ID_ARM_PROPRIETARY = 9,
+  VK_DRIVER_ID_GOOGLE_SWIFTSHADER = 10,
+  VK_DRIVER_ID_GGP_PROPRIETARY = 11,
+  VK_DRIVER_ID_BROADCOM_PROPRIETARY = 12,
+  VK_DRIVER_ID_MESA_LLVMPIPE = 13,
+  VK_DRIVER_ID_MOLTENVK = 14,
+  VK_DRIVER_ID_COREAVI_PROPRIETARY = 15,
+  VK_DRIVER_ID_JUICE_PROPRIETARY = 16,
+  VK_DRIVER_ID_VERISILICON_PROPRIETARY = 17,
+  VK_DRIVER_ID_MESA_TURNIP = 18,
+  VK_DRIVER_ID_MESA_V3DV = 19,
+  VK_DRIVER_ID_MESA_PANVK = 20,
+  VK_DRIVER_ID_SAMSUNG_PROPRIETARY = 21,
+  VK_DRIVER_ID_MESA_VENUS = 22,
+  VK_DRIVER_ID_MESA_DOZEN = 23,
+  VK_DRIVER_ID_MESA_NVK = 24,
+  VK_DRIVER_ID_IMAGINATION_OPEN_SOURCE_MESA = 25,
+  VK_DRIVER_ID_MESA_HONEYKRISP = 26,
+  VK_DRIVER_ID_VULKAN_SC_EMULATION_ON_VULKAN = 27,
+} VkDriverId;
+
+typedef struct VkConformanceVersion {
+  u8 major;
+  u8 minor;
+  u8 subminor;
+  u8 patch;
+} VkConformanceVersion;
+
+typedef struct VkPhysicalDeviceDriverProperties {
+  VkStructureType sType;
+  void* pNext;
+  VkDriverId driverID;
+  char driverName[VK_MAX_DRIVER_NAME_SIZE];
+  char driverInfo[VK_MAX_DRIVER_INFO_SIZE];
+  VkConformanceVersion conformanceVersion;
+} VkPhysicalDeviceDriverProperties;
+
+typedef struct VkPhysicalDeviceMaintenance4Features {
+  VkStructureType sType;
+  void* pNext;
+  VkBool32 maintenance4;
+} VkPhysicalDeviceMaintenance4Features;
+
+typedef struct VkPhysicalDeviceMaintenance4Properties {
+  VkStructureType sType;
+  void* pNext;
+  VkDeviceSize maxBufferSize;
+} VkPhysicalDeviceMaintenance4Properties;
 
 typedef struct VkDeviceBufferMemoryRequirements {
   VkStructureType sType;

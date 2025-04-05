@@ -93,6 +93,7 @@ static const String g_vkgenExtensions[] = {
     string_static("VK_EXT_debug_utils"),
     string_static("VK_EXT_robustness2"),
     string_static("VK_EXT_validation_features"),
+    string_static("VK_KHR_driver_properties"),
     string_static("VK_KHR_maintenance4"),
     string_static("VK_KHR_present_id"),
     string_static("VK_KHR_present_wait"),
@@ -280,7 +281,8 @@ typedef struct {
 } VkGenType;
 
 typedef struct {
-  StringHash key;  // Enum this entry is part of.
+  StringHash key; // Enum this entry is part of.
+  bool       optional;
   String     name; // Allocated in the schema document.
   i64        value;
 } VkGenEnumEntry;
@@ -427,16 +429,16 @@ static bool vkgen_enum_entry_push(VkGenContext* ctx, const VkGenEnumEntry enumEn
 }
 
 typedef struct {
-  const VkGenEnumEntry* begin;
-  const VkGenEnumEntry* end;
+  VkGenEnumEntry* begin;
+  VkGenEnumEntry* end;
 } VkGenEnumEntries;
 
 static VkGenEnumEntries vkgen_enum_entries_find(VkGenContext* ctx, const StringHash enumKey) {
-  const VkGenEnumEntry* entriesBegin = dynarray_begin_t(&ctx->enumEntries, VkGenEnumEntry);
-  const VkGenEnumEntry* entriesEnd   = dynarray_end_t(&ctx->enumEntries, VkGenEnumEntry);
+  VkGenEnumEntry* entriesBegin = dynarray_begin_t(&ctx->enumEntries, VkGenEnumEntry);
+  VkGenEnumEntry* entriesEnd   = dynarray_end_t(&ctx->enumEntries, VkGenEnumEntry);
 
-  VkGenEnumEntry        tgt = {.key = enumKey};
-  const VkGenEnumEntry* gt  = search_binary_greater_t(
+  VkGenEnumEntry  tgt = {.key = enumKey};
+  VkGenEnumEntry* gt  = search_binary_greater_t(
       entriesBegin, entriesEnd, VkGenEnumEntry, vkgen_compare_enum_entry_no_value, &tgt);
 
   VkGenEnumEntries res = {.begin = gt ? gt : entriesEnd, .end = gt ? gt : entriesEnd};
@@ -569,8 +571,9 @@ static void vkgen_collect_enums(VkGenContext* ctx) {
         continue; // Aliases are not supported.
       }
       VkGenEnumEntry entryRes;
-      entryRes.key  = string_hash(name);
-      entryRes.name = xml_attr_get(ctx->schemaDoc, entryNode, g_hash_name);
+      entryRes.optional = false;
+      entryRes.key      = string_hash(name);
+      entryRes.name     = xml_attr_get(ctx->schemaDoc, entryNode, g_hash_name);
 
       const String bitPos = xml_attr_get(ctx->schemaDoc, entryNode, g_hash_bitpos);
       if (!string_is_empty(bitPos)) {
@@ -587,7 +590,8 @@ static void vkgen_collect_enums(VkGenContext* ctx) {
       log_param("entries", fmt_int(ctx->enumEntries.size)));
 }
 
-static void vkgen_collect_enum_extensions(VkGenContext* ctx, const XmlNode node, i64 extNumber) {
+static void vkgen_collect_enum_extensions(
+    VkGenContext* ctx, const XmlNode node, i64 extNumber, const bool optional) {
   xml_for_children(ctx->schemaDoc, node, child) {
     if (xml_name_hash(ctx->schemaDoc, child) != g_hash_require) {
       continue; // Not a require element.
@@ -602,12 +606,26 @@ static void vkgen_collect_enum_extensions(VkGenContext* ctx, const XmlNode node,
       if (!enumKey || string_is_empty(name)) {
         continue; // Enum or name missing.
       }
+      const String aliasName = xml_attr_get(ctx->schemaDoc, entry, g_hash_alias);
+      if (!string_is_empty(aliasName)) {
+        VkGenEnumEntries existingEntries = vkgen_enum_entries_find(ctx, enumKey);
+        for (VkGenEnumEntry* itr = existingEntries.begin; itr != existingEntries.end; ++itr) {
+          if (string_eq(itr->name, aliasName)) {
+            itr->optional = false;
+            goto AliasResolved;
+          }
+        }
+        log_w("Unable to resolve enum alias", log_param("name", fmt_text(aliasName)));
+      AliasResolved:
+        continue;
+      }
       const String bitPosStr = xml_attr_get(ctx->schemaDoc, entry, g_hash_bitpos);
       if (!string_is_empty(bitPosStr)) {
         const VkGenEnumEntry entryRes = {
-            .key   = enumKey,
-            .name  = name,
-            .value = u64_lit(1) << vkgen_to_int(bitPosStr),
+            .key      = enumKey,
+            .optional = optional,
+            .name     = name,
+            .value    = u64_lit(1) << vkgen_to_int(bitPosStr),
         };
         vkgen_enum_entry_push(ctx, entryRes);
         continue;
@@ -616,9 +634,10 @@ static void vkgen_collect_enum_extensions(VkGenContext* ctx, const XmlNode node,
       const String valueStr = xml_attr_get(ctx->schemaDoc, entry, g_hash_value);
       if (!string_is_empty(valueStr)) {
         const VkGenEnumEntry entryRes = {
-            .key   = enumKey,
-            .name  = name,
-            .value = vkgen_to_int(valueStr) * (invert ? -1 : 1),
+            .key      = enumKey,
+            .optional = optional,
+            .name     = name,
+            .value    = vkgen_to_int(valueStr) * (invert ? -1 : 1),
         };
         vkgen_enum_entry_push(ctx, entryRes);
         continue;
@@ -635,9 +654,10 @@ static void vkgen_collect_enum_extensions(VkGenContext* ctx, const XmlNode node,
         }
         const i64            value = 1000000000 + (extNumber - 1) * 1000 + vkgen_to_int(offsetStr);
         const VkGenEnumEntry entryRes = {
-            .key   = enumKey,
-            .name  = name,
-            .value = value * (invert ? -1 : 1),
+            .key      = enumKey,
+            .optional = optional,
+            .name     = name,
+            .value    = value * (invert ? -1 : 1),
         };
         vkgen_enum_entry_push(ctx, entryRes);
         continue;
@@ -715,11 +735,11 @@ static void vkgen_collect_features(VkGenContext* ctx) {
     }
     const StringHash nameHash  = xml_attr_get_hash(ctx->schemaDoc, child, g_hash_name);
     const u32        featIndex = vkgen_feat_find(nameHash);
-    if (sentinel_check(featIndex)) {
-      continue; // Not an supported extension.
+    const bool       optional  = sentinel_check(featIndex);
+    if (!optional) {
+      ctx->featureNodes[featIndex] = child;
     }
-    vkgen_collect_enum_extensions(ctx, child, -1);
-    ctx->featureNodes[featIndex] = child;
+    vkgen_collect_enum_extensions(ctx, child, -1, optional);
   }
   log_i("Collected features");
 }
@@ -738,13 +758,13 @@ static void vkgen_collect_extensions(VkGenContext* ctx) {
     const StringHash nameHash = xml_attr_get_hash(ctx->schemaDoc, child, g_hash_name);
     const u32        extIndex = vkgen_ext_find(nameHash);
     if (sentinel_check(extIndex)) {
-      continue; // Not an supported extension.
+      continue; // Not a required extension.
     }
     const String numberStr = xml_attr_get(ctx->schemaDoc, child, g_hash_number);
     if (string_is_empty(numberStr)) {
       continue;
     }
-    vkgen_collect_enum_extensions(ctx, child, vkgen_to_int(numberStr));
+    vkgen_collect_enum_extensions(ctx, child, vkgen_to_int(numberStr), false /* optional */);
     ctx->extensionNodes[extIndex] = child;
   }
   log_i("Collected extensions");
@@ -1001,12 +1021,20 @@ static bool vkgen_write_type_func_pointer(VkGenContext* ctx, const VkGenType* ty
 
 static void vkgen_write_type_enum(VkGenContext* ctx, const VkGenType* type) {
   VkGenEnumEntries entries = vkgen_enum_entries_find(ctx, type->key);
-  if (entries.begin == entries.end) {
+
+  u32 entryCount = 0;
+  for (const VkGenEnumEntry* itr = entries.begin; itr != entries.end; ++itr) {
+    entryCount += !itr->optional; // Ignore optional entries.
+  }
+  if (!entryCount) {
     return; // Empty enum;
   }
+
   fmt_write(&ctx->out, "typedef enum {\n");
   for (const VkGenEnumEntry* itr = entries.begin; itr != entries.end; ++itr) {
-    fmt_write(&ctx->out, "  {} = {},\n", fmt_text(itr->name), fmt_int(itr->value));
+    if (!itr->optional) {
+      fmt_write(&ctx->out, "  {} = {},\n", fmt_text(itr->name), fmt_int(itr->value));
+    }
   }
   fmt_write(&ctx->out, "} {};\n\n", fmt_text(type->name));
 }
@@ -1077,7 +1105,11 @@ static bool vkgen_write_type(VkGenContext* ctx, const StringHash key) {
   if (!vkgen_write_dependencies(ctx, type->schemaNode)) {
     return false;
   }
-  const String name = type->name;
+  const String     name  = type->name;
+  const StringHash alias = xml_attr_get_hash(ctx->schemaDoc, type->schemaNode, g_hash_alias);
+  if (alias) {
+    return vkgen_write_type(ctx, alias);
+  }
 
   // Write type definition.
   switch (type->kind) {
@@ -1177,6 +1209,9 @@ static void vkgen_write_stringify_def(VkGenContext* ctx, const VkGenStringify* e
   fmt_write(&ctx->out, "String {}(const {} v) {\n", fmt_text(funcName), fmt_text(entry->typeName));
   fmt_write(&ctx->out, "  switch (v) {\n");
   for (const VkGenEnumEntry* itr = enumEntries.begin; itr != enumEntries.end; ++itr) {
+    if (itr->optional) {
+      continue;
+    }
     String val = itr->name;
     if (string_starts_with(val, entry->entryPrefix)) {
       val = string_consume(val, entry->entryPrefix.size);
@@ -1202,6 +1237,9 @@ static bool vkgen_write_format_info_def(VkGenContext* ctx) {
   fmt_write(&ctx->out, "u32 vkFormatByteSize(const VkFormat f) {\n");
   fmt_write(&ctx->out, "  switch (f) {\n");
   for (const VkGenEnumEntry* itr = enumEntries.begin; itr != enumEntries.end; ++itr) {
+    if (itr->optional) {
+      continue;
+    }
     const VkGenFormat* info = vkgen_format_find(ctx, string_hash(itr->name));
     if (info) {
       fmt_write(&ctx->out, "    case {}: return {};\n", fmt_text(itr->name), fmt_int(info->size));
@@ -1214,6 +1252,9 @@ static bool vkgen_write_format_info_def(VkGenContext* ctx) {
   fmt_write(&ctx->out, "u32 vkFormatComponents(const VkFormat f) {\n");
   fmt_write(&ctx->out, "  switch (f) {\n");
   for (const VkGenEnumEntry* itr = enumEntries.begin; itr != enumEntries.end; ++itr) {
+    if (itr->optional) {
+      continue;
+    }
     const VkGenFormat* info = vkgen_format_find(ctx, string_hash(itr->name));
     if (info) {
       fmt_write(&ctx->out, "    case {}: return {};\n", fmt_text(itr->name), fmt_int(info->comps));
@@ -1226,6 +1267,9 @@ static bool vkgen_write_format_info_def(VkGenContext* ctx) {
   fmt_write(&ctx->out, "bool vkFormatCompressed4x4(const VkFormat f) {\n");
   fmt_write(&ctx->out, "  switch (f) {\n");
   for (const VkGenEnumEntry* itr = enumEntries.begin; itr != enumEntries.end; ++itr) {
+    if (itr->optional) {
+      continue;
+    }
     const VkGenFormat* info = vkgen_format_find(ctx, string_hash(itr->name));
     if (info && info->compressed4x4) {
       fmt_write(&ctx->out, "    case {}:\n", fmt_text(itr->name), fmt_int(info->comps));
@@ -1270,7 +1314,11 @@ static bool vkgen_write_interface(VkGenContext* ctx, const VkGenInterfaceCat cat
           fmt_text(string_consume(varName, 3)));
     }
 
-    fmt_write(&ctx->out, "  {} (SYS_DECL* {})(", fmt_text(cmd->type), fmt_text(varName));
+    VkGenRef typeRef = {.name = cmd->type}; // TODO: Support pointers as cmd output types.
+    vkgen_ref_resolve_alias(&typeRef);
+    const String typeStr = vkgen_ref_scratch(&typeRef);
+
+    fmt_write(&ctx->out, "  {} (SYS_DECL* {})(", fmt_text(typeStr), fmt_text(varName));
     bool anyParam = false;
     xml_for_children(ctx->schemaDoc, cmd->schemaNode, child) {
       if (xml_name_hash(ctx->schemaDoc, child) != g_hash_param) {
