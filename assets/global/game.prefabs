@@ -1048,10 +1048,10 @@
     {
       "name": "Sun",
       "traits": [
-        { "$type": "AssetPrefabTrait_LightAmbient", "intensity": 1.0 },
+        { "$type": "AssetPrefabTrait_LightAmbient", "intensity": 0.5 },
         {
           "$type": "AssetPrefabTrait_LightDir",
-          "radiance": { "r": 1, "g": 0.8, "b": 0.4, "a": 5 },
+          "radiance": { "r": 1, "g": 0.8, "b": 0.4, "a": 1.5 },
           "shadows": true,
           "coverage": true
         }
@@ -1070,6 +1070,17 @@
           "$type": "AssetPrefabTrait_LightPoint",
           "radiance": { "r": 1, "g": 1, "b": 1, "a": 25 },
           "radius": 10
+        }
+      ]
+    },
+    {
+      "name": "LightSpot",
+      "traits": [
+        {
+          "$type": "AssetPrefabTrait_LightSpot",
+          "radiance": { "r": 1, "g": 1, "b": 1, "a": 1000 },
+          "angle": 22,
+          "length": 20
         }
       ]
     },
