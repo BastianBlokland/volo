@@ -231,8 +231,17 @@ static VkPhysicalDevice rvk_pick_physical_device(RvkLib* lib) {
       goto detectionDone;
     }
 
+    void*                            nextProps   = null;
+    VkPhysicalDeviceDriverProperties driverProps = {
+        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DRIVER_PROPERTIES,
+        .pNext = nextProps,
+    };
+    if (rvk_has_ext(exts, string_lit(VK_KHR_driver_properties))) {
+      nextProps = &driverProps;
+    }
     VkPhysicalDeviceProperties2 props = {
         .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2,
+        .pNext = nextProps,
     };
     rvk_call(lib, getPhysicalDeviceProperties2, vkPhysDevs[i], &props);
 
@@ -248,11 +257,13 @@ static VkPhysicalDevice rvk_pick_physical_device(RvkLib* lib) {
 
     log_i(
         "Vulkan physical device detected",
-        log_param("version-major", fmt_int(rvk_version_major(props.properties.apiVersion))),
-        log_param("version-minor", fmt_int(rvk_version_minor(props.properties.apiVersion))),
         log_param("device-name", fmt_text(string_from_null_term(props.properties.deviceName))),
         log_param("device-type", fmt_text(vkPhysicalDeviceTypeStr(props.properties.deviceType))),
         log_param("vendor", fmt_text(vkVendorIdStr(props.properties.vendorID))),
+        log_param("driver-name", fmt_text(string_from_null_term(driverProps.driverName))),
+        log_param("driver-info", fmt_text(string_from_null_term(driverProps.driverInfo))),
+        log_param("version-major", fmt_int(rvk_version_major(props.properties.apiVersion))),
+        log_param("version-minor", fmt_int(rvk_version_minor(props.properties.apiVersion))),
         log_param("score", fmt_int(score)));
 
     if (score > bestScore) {
