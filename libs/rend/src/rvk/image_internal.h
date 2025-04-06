@@ -83,7 +83,7 @@ typedef struct {
 } RvkImageTransition;
 
 void rvk_image_transition(RvkDevice*, RvkImage*, RvkImagePhase, VkCommandBuffer);
-void rvk_image_transition_batch(RvkDevice*, const RvkImageTransition*, u32 count, VkCommandBuffer);
+void rvk_image_transition_batch(RvkDevice*, const RvkImageTransition[], u32 count, VkCommandBuffer);
 void rvk_image_transition_external(RvkImage*, RvkImagePhase);
 
 void rvk_image_generate_mipmaps(RvkDevice*, RvkImage*, VkCommandBuffer);

@@ -545,10 +545,10 @@ void rvk_image_transition(
 }
 
 void rvk_image_transition_batch(
-    RvkDevice*                dev,
-    const RvkImageTransition* transitions,
-    const u32                 count,
-    VkCommandBuffer           vkCmdBuf) {
+    RvkDevice*               dev,
+    const RvkImageTransition transitions[],
+    const u32                count,
+    VkCommandBuffer          vkCmdBuf) {
   VkImageMemoryBarrier barriers[16];
   u32                  barrierCount = 0;
   diag_assert(count <= array_elems(barriers));
