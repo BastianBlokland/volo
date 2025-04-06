@@ -1,6 +1,7 @@
 #pragma once
 #include "core_time.h"
 #include "geo.h"
+#include "vulkan_api.h"
 
 #include "forward_internal.h"
 #include "uniform_internal.h"
@@ -45,6 +46,8 @@ RvkUniformHandle rvk_job_uniform_push_next(RvkJob*, RvkUniformHandle head, usize
 void rvk_job_img_clear_color(RvkJob*, RvkImage*, GeoColor);
 void rvk_job_img_clear_depth(RvkJob*, RvkImage*, f32 depth);
 void rvk_job_img_copy(RvkJob*, RvkImage* src, RvkImage* dst);
+void rvk_job_img_copy_batch(RvkJob*, RvkImage* srcImages[], RvkImage* dstImages[], u32 count);
+
 void rvk_job_img_blit(RvkJob*, RvkImage* src, RvkImage* dst);
 void rvk_job_img_transition(RvkJob*, RvkImage* img, RvkImagePhase phase);
 
