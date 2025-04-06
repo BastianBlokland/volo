@@ -45,11 +45,10 @@ static i8 builder_draw_compare(const void* a, const void* b) {
 }
 
 static void builder_copy_flush(RendCopyBatch* batch, RvkJob* job) {
-  if (!batch->count) {
-    return;
+  if (batch->count) {
+    rvk_job_img_copy_batch(job, batch->src, batch->dst, batch->count);
+    batch->count = 0;
   }
-  rvk_job_img_copy_batch(job, batch->src, batch->dst, batch->count);
-  batch->count = 0;
 }
 
 static void builder_copy_push(RendCopyBatch* batch, RvkJob* job, RvkImage* src, RvkImage* dst) {
