@@ -20,7 +20,7 @@
 #define VOLO_RVK_MEM_LOGGING 0
 #define VOLO_RVK_MEM_RELEASE_EMPTY_CHUNKS 1
 
-#define rvk_mem_chunk_size (64 * usize_mebibyte)
+#define rvk_mem_chunk_size (128 * usize_mebibyte)
 
 typedef u32 RvkChunkId;
 
