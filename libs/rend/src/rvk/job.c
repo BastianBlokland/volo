@@ -339,6 +339,7 @@ void rvk_job_img_copy_batch(
   diag_assert(count * 2 <= array_elems(transitions));
 
   for (u32 i = 0; i != count; ++i) {
+    diag_assert(srcImages[i] && dstImages[i]);
     transitions[i * 2 + 0] = (RvkImageTransition){
         .img   = srcImages[i],
         .phase = RvkImagePhase_TransferSource,
