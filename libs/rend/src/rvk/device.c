@@ -125,8 +125,13 @@ static void rvk_config_present_wait(RvkDevice* d, VkPhysicalDevicePresentWaitFea
 
 static void rvk_config_executable_properties(
     RvkDevice* d, VkPhysicalDevicePipelineExecutablePropertiesFeaturesKHR* f) {
-  if (f->pipelineExecutableInfo) {
-    d->flags |= RvkDeviceFlags_SupportExecutableInfo;
+
+  if (d->lib->flags & RvkLibFlags_ExecutableStatistics) {
+    if (f->pipelineExecutableInfo) {
+      d->flags |= RvkDeviceFlags_SupportExecutableInfo;
+    }
+  } else {
+    f->pipelineExecutableInfo = false;
   }
 }
 
