@@ -43,6 +43,7 @@
 #define VK_EXT_validation_features "VK_EXT_validation_features"
 #define VK_KHR_driver_properties "VK_KHR_driver_properties"
 #define VK_KHR_maintenance4 "VK_KHR_maintenance4"
+#define VK_KHR_pipeline_executable_properties "VK_KHR_pipeline_executable_properties"
 #define VK_KHR_present_id "VK_KHR_present_id"
 #define VK_KHR_present_wait "VK_KHR_present_wait"
 #define VK_KHR_surface "VK_KHR_surface"
@@ -247,6 +248,12 @@ typedef enum {
   VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_BUDGET_PROPERTIES_EXT = 1000237000,
   VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT = 1000247000,
   VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRESENT_WAIT_FEATURES_KHR = 1000248000,
+  VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PIPELINE_EXECUTABLE_PROPERTIES_FEATURES_KHR = 1000269000,
+  VK_STRUCTURE_TYPE_PIPELINE_INFO_KHR = 1000269001,
+  VK_STRUCTURE_TYPE_PIPELINE_EXECUTABLE_PROPERTIES_KHR = 1000269002,
+  VK_STRUCTURE_TYPE_PIPELINE_EXECUTABLE_INFO_KHR = 1000269003,
+  VK_STRUCTURE_TYPE_PIPELINE_EXECUTABLE_STATISTIC_KHR = 1000269004,
+  VK_STRUCTURE_TYPE_PIPELINE_EXECUTABLE_INTERNAL_REPRESENTATION_KHR = 1000269005,
   VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_FEATURES_EXT = 1000286000,
   VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_PROPERTIES_EXT = 1000286001,
   VK_STRUCTURE_TYPE_PRESENT_ID_KHR = 1000294000,
@@ -1831,6 +1838,8 @@ typedef enum {
   VK_PIPELINE_CREATE_DERIVATIVE_BIT = 4,
   VK_PIPELINE_CREATE_VIEW_INDEX_FROM_DEVICE_INDEX_BIT = 8,
   VK_PIPELINE_CREATE_DISPATCH_BASE_BIT = 16,
+  VK_PIPELINE_CREATE_CAPTURE_STATISTICS_BIT_KHR = 64,
+  VK_PIPELINE_CREATE_CAPTURE_INTERNAL_REPRESENTATIONS_BIT_KHR = 128,
 } VkPipelineCreateFlagBits;
 
 typedef VkFlags VkPipelineLayoutCreateFlags;
@@ -3123,6 +3132,67 @@ typedef struct VkDeviceImageMemoryRequirements {
   VkImageAspectFlagBits planeAspect;
 } VkDeviceImageMemoryRequirements;
 
+typedef struct VkPhysicalDevicePipelineExecutablePropertiesFeaturesKHR {
+  VkStructureType sType;
+  void* pNext;
+  VkBool32 pipelineExecutableInfo;
+} VkPhysicalDevicePipelineExecutablePropertiesFeaturesKHR;
+
+typedef struct VkPipelineInfoKHR {
+  VkStructureType sType;
+  const void* pNext;
+  VkPipeline pipeline;
+} VkPipelineInfoKHR;
+
+typedef struct VkPipelineExecutablePropertiesKHR {
+  VkStructureType sType;
+  void* pNext;
+  VkShaderStageFlags stages;
+  char name[VK_MAX_DESCRIPTION_SIZE];
+  char description[VK_MAX_DESCRIPTION_SIZE];
+  u32 subgroupSize;
+} VkPipelineExecutablePropertiesKHR;
+
+typedef struct VkPipelineExecutableInfoKHR {
+  VkStructureType sType;
+  const void* pNext;
+  VkPipeline pipeline;
+  u32 executableIndex;
+} VkPipelineExecutableInfoKHR;
+
+typedef enum {
+  VK_PIPELINE_EXECUTABLE_STATISTIC_FORMAT_BOOL32_KHR = 0,
+  VK_PIPELINE_EXECUTABLE_STATISTIC_FORMAT_INT64_KHR = 1,
+  VK_PIPELINE_EXECUTABLE_STATISTIC_FORMAT_UINT64_KHR = 2,
+  VK_PIPELINE_EXECUTABLE_STATISTIC_FORMAT_FLOAT64_KHR = 3,
+} VkPipelineExecutableStatisticFormatKHR;
+
+typedef union VkPipelineExecutableStatisticValueKHR {
+  VkBool32 b32;
+  i64 i64;
+  u64 u64;
+  f64 f64;
+} VkPipelineExecutableStatisticValueKHR;
+
+typedef struct VkPipelineExecutableStatisticKHR {
+  VkStructureType sType;
+  void* pNext;
+  char name[VK_MAX_DESCRIPTION_SIZE];
+  char description[VK_MAX_DESCRIPTION_SIZE];
+  VkPipelineExecutableStatisticFormatKHR format;
+  VkPipelineExecutableStatisticValueKHR value;
+} VkPipelineExecutableStatisticKHR;
+
+typedef struct VkPipelineExecutableInternalRepresentationKHR {
+  VkStructureType sType;
+  void* pNext;
+  char name[VK_MAX_DESCRIPTION_SIZE];
+  char description[VK_MAX_DESCRIPTION_SIZE];
+  VkBool32 isText;
+  usize dataSize;
+  void* pData;
+} VkPipelineExecutableInternalRepresentationKHR;
+
 typedef struct VkPresentIdKHR {
   VkStructureType sType;
   const void* pNext;
@@ -3520,6 +3590,9 @@ typedef struct VkInterfaceDevice {
   void (SYS_DECL* getDeviceBufferMemoryRequirements)(VkDevice device, const VkDeviceBufferMemoryRequirements* pInfo, VkMemoryRequirements2* pMemoryRequirements);
   void (SYS_DECL* getDeviceImageMemoryRequirements)(VkDevice device, const VkDeviceImageMemoryRequirements* pInfo, VkMemoryRequirements2* pMemoryRequirements);
   void (SYS_DECL* getDeviceImageSparseMemoryRequirements)(VkDevice device, const VkDeviceImageMemoryRequirements* pInfo, u32* pSparseMemoryRequirementCount, VkSparseImageMemoryRequirements2* pSparseMemoryRequirements);
+  VkResult (SYS_DECL* getPipelineExecutablePropertiesKHR)(VkDevice device, const VkPipelineInfoKHR* pPipelineInfo, u32* pExecutableCount, VkPipelineExecutablePropertiesKHR* pProperties);
+  VkResult (SYS_DECL* getPipelineExecutableStatisticsKHR)(VkDevice device, const VkPipelineExecutableInfoKHR* pExecutableInfo, u32* pStatisticCount, VkPipelineExecutableStatisticKHR* pStatistics);
+  VkResult (SYS_DECL* getPipelineExecutableInternalRepresentationsKHR)(VkDevice device, const VkPipelineExecutableInfoKHR* pExecutableInfo, u32* pInternalRepresentationCount, VkPipelineExecutableInternalRepresentationKHR* pInternalRepresentations);
   VkResult (SYS_DECL* waitForPresentKHR)(VkDevice device, VkSwapchainKHR swapchain, u64 presentId, u64 timeout);
   VkResult (SYS_DECL* createSwapchainKHR)(VkDevice device, const VkSwapchainCreateInfoKHR* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkSwapchainKHR* pSwapchain);
   void (SYS_DECL* destroySwapchainKHR)(VkDevice device, VkSwapchainKHR swapchain, const VkAllocationCallbacks* pAllocator);
