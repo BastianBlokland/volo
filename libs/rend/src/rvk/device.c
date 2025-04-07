@@ -372,6 +372,15 @@ static VkDevice rvk_device_create_internal(RvkLib* lib, RvkDevice* dev) {
     extsToEnable[extsToEnableCount++] = VK_KHR_present_wait;
   }
 
+  VkPhysicalDevicePipelineExecutablePropertiesFeaturesKHR featureExecutableProperties = {
+      .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PIPELINE_EXECUTABLE_PROPERTIES_FEATURES_KHR,
+      .pNext = nextFeature,
+  };
+  if (rvk_has_ext(supportedExts, string_from_null_term(VK_KHR_pipeline_executable_properties))) {
+    nextFeature                       = &featureExecutableProperties;
+    extsToEnable[extsToEnableCount++] = VK_KHR_pipeline_executable_properties;
+  }
+
   VkPhysicalDevice16BitStorageFeatures feature16BitStorage = {
       .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_16BIT_STORAGE_FEATURES,
       .pNext = nextFeature,
