@@ -25,3 +25,5 @@ typedef enum eRendObjectRes   RendObjectRes;
 typedef enum eRendPresentMode RendPresentMode;
 typedef enum eRendSkyMode     RendSkyMode;
 typedef enum eRendTonemapper  RendTonemapper;
+typedef struct sRendInfo      RendInfo;
+typedef struct sRendInfoEntry RendInfoEntry;
