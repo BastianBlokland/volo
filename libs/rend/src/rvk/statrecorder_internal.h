@@ -1,8 +1,9 @@
 #pragma once
 #include "core.h"
-#include "vulkan_api.h"
 
 #include "forward_internal.h"
+
+#include "vulkan_api.h"
 
 /**
  * Tracked pipeline statistic.

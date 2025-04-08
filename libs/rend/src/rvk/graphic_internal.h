@@ -1,10 +1,12 @@
 #pragma once
 #include "asset_graphic.h"
-#include "vulkan_api.h"
+#include "rend.h"
 
 #include "desc_internal.h"
 #include "forward_internal.h"
 #include "sampler_internal.h"
+
+#include "vulkan_api.h"
 
 enum {
   RvkGraphicSet_Global   = 0,
@@ -50,7 +52,8 @@ void rvk_graphic_add_mesh(RvkGraphic*, const RvkMesh*);
 void rvk_graphic_add_sampler(
     RvkGraphic*, const AssetGraphicComp*, const RvkTexture*, const AssetGraphicSampler*);
 
-bool rvk_graphic_finalize(RvkGraphic*, const AssetGraphicComp*, RvkDevice*, const RvkPass*);
+bool rvk_graphic_finalize(
+    RvkGraphic*, const AssetGraphicComp*, RvkDevice*, const RvkPass*, const RendReport*);
 
 bool rvk_graphic_is_ready(const RvkGraphic*, const RvkDevice*);
 

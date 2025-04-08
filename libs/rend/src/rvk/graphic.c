@@ -785,7 +785,12 @@ void rvk_graphic_add_sampler(
 }
 
 bool rvk_graphic_finalize(
-    RvkGraphic* gra, const AssetGraphicComp* asset, RvkDevice* dev, const RvkPass* pass) {
+    RvkGraphic*             gra,
+    const AssetGraphicComp* asset,
+    RvkDevice*              dev,
+    const RvkPass*          pass,
+    const RendReport*       report) {
+  (void)report;
   diag_assert_msg(!gra->vkPipeline, "Graphic already finalized");
   diag_assert(gra->passId == rvk_pass_config(pass)->id);
 

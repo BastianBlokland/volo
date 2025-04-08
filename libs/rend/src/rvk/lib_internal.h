@@ -1,5 +1,6 @@
 #pragma once
 #include "rend_settings.h"
+
 #include "vulkan_api.h"
 
 typedef enum {

@@ -11,6 +11,7 @@
 #include "ecs_world.h"
 #include "log_logger.h"
 #include "rend_register.h"
+#include "rend_report.h"
 #include "trace_tracer.h"
 
 #include "platform_internal.h"
@@ -110,6 +111,9 @@ ecs_comp_define(RendResUnloadComp) {
 
 static void ecs_destruct_graphic_comp(void* data) {
   RendResGraphicComp* comp = data;
+  if (comp->report) {
+    rend_report_destroy(g_allocHeap, comp->report);
+  }
   rvk_graphic_destroy((RvkGraphic*)comp->graphic, comp->device);
 }
 
@@ -404,8 +408,19 @@ static bool rend_res_create(const RendPlatformComp* plat, EcsWorld* world, EcsIt
   const AssetTextureComp* maybeAssetTexture = ecs_view_read_t(resItr, AssetTextureComp);
 
   if (maybeAssetGraphic) {
+    RendReport* graphicReport = null;
+    if (dev->flags & RvkDeviceFlags_SupportExecutableInfo) {
+      graphicReport = rend_report_create(g_allocHeap, 4 * usize_kibibyte);
+    }
     RvkGraphic* graphic = rvk_graphic_create(dev, maybeAssetGraphic, id);
-    ecs_world_add_t(world, entity, RendResGraphicComp, .device = dev, .graphic = graphic);
+
+    ecs_world_add_t(
+        world,
+        entity,
+        RendResGraphicComp,
+        .device  = dev,
+        .graphic = graphic,
+        .report  = graphicReport);
 
     // Add shaders.
     EcsView* shaderView = ecs_world_view_t(world, ShaderReadView);
@@ -445,7 +460,7 @@ static bool rend_res_create(const RendPlatformComp* plat, EcsWorld* world, EcsIt
     }
 
     RvkPass* pass = plat->passes[maybeAssetGraphic->pass];
-    if (UNLIKELY(!rvk_graphic_finalize(graphic, maybeAssetGraphic, dev, pass))) {
+    if (UNLIKELY(!rvk_graphic_finalize(graphic, maybeAssetGraphic, dev, pass, graphicReport))) {
       log_e("Invalid graphic", log_param("graphic", fmt_text(id)));
       resComp->state = RendResLoadState_FinishedFailure;
       return false;
@@ -833,6 +848,8 @@ u32 rend_res_ticks_until_unload(const RendResComp* comp) {
 }
 
 u32 rend_res_dependents(const RendResComp* comp) { return (u32)comp->dependents.size; }
+
+const RendReport* rend_res_graphic_report(const RendResGraphicComp* comp) { return comp->report; }
 
 u32 rend_res_mesh_vertices(const RendResMeshComp* comp) { return comp->mesh->vertexCount; }
 

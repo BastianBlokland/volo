@@ -1,10 +1,11 @@
 #pragma once
 #include "core_time.h"
 #include "geo.h"
-#include "vulkan_api.h"
 
 #include "forward_internal.h"
 #include "uniform_internal.h"
+
+#include "vulkan_api.h"
 
 typedef enum eRvkJobPhase {
   RvkJobPhase_Main,

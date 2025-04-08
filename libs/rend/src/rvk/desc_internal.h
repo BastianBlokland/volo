@@ -1,8 +1,8 @@
 #pragma once
-#include "vulkan_api.h"
-
 #include "forward_internal.h"
 #include "sampler_internal.h"
+
+#include "vulkan_api.h"
 
 #define rvk_desc_bindings_max 8
 

@@ -7,6 +7,7 @@
 ecs_comp_extern_public(RendResGraphicComp) {
   RvkDevice*        device;
   const RvkGraphic* graphic;
+  RendReport*       report; // Optional.
 };
 
 ecs_comp_extern_public(RendResShaderComp) {

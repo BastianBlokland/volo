@@ -1,8 +1,9 @@
 #pragma once
 #include "geo.h"
-#include "vulkan_api.h"
 
 #include "forward_internal.h"
+
+#include "vulkan_api.h"
 
 typedef enum {
   RvkDeviceFlags_SupportNullDescriptor    = 1 << 0,
