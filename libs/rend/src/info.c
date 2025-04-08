@@ -8,6 +8,11 @@ typedef struct sRendInfo {
   RendInfoEntry* entryHead;
 } RendInfo;
 
+typedef struct sRendInfoEntry {
+  struct sRendInfoEntry* next;
+  String                 name, desc, value;
+} RendInfoEntry;
+
 RendInfo* rend_info_create(Allocator* alloc, const usize memCapacity) {
   const usize minSize = sizeof(RendInfo) + 64 /* Minimum size for the bump allocator */;
 
@@ -34,6 +39,26 @@ void rend_info_reset(RendInfo* info) {
 }
 
 const RendInfoEntry* rend_info_begin(const RendInfo* info) { return info->entryHead; }
+
+const RendInfoEntry* rend_info_next(const RendInfo* info, const RendInfoEntry* entry) {
+  (void)info;
+  return entry->next;
+}
+
+String rend_info_name(const RendInfo* info, const RendInfoEntry* entry) {
+  (void)info;
+  return entry->name;
+}
+
+String rend_info_desc(const RendInfo* info, const RendInfoEntry* entry) {
+  (void)info;
+  return entry->desc;
+}
+
+String rend_info_value(const RendInfo* info, const RendInfoEntry* entry) {
+  (void)info;
+  return entry->value;
+}
 
 bool rend_info_push(RendInfo* info, const String name, const String desc, const String value) {
   RendInfoEntry* entry = alloc_alloc_t(info->bumpAlloc, RendInfoEntry);
