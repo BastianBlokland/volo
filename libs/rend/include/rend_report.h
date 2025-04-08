@@ -2,18 +2,18 @@
 #include "core.h"
 #include "core_string.h"
 
-typedef struct sRendInfo      RendInfo;
-typedef struct sRendInfoEntry RendInfoEntry;
+typedef struct sRendReport      RendReport;
+typedef struct sRendReportEntry RendReportEntry;
 
-RendInfo* rend_info_create(Allocator*, usize memCapacity);
-void      rend_info_destroy(Allocator*, RendInfo*);
-void      rend_info_reset(RendInfo*);
+RendReport* rend_report_create(Allocator*, usize memCapacity);
+void        rend_report_destroy(Allocator*, RendReport*);
+void        rend_report_reset(RendReport*);
 
-const RendInfoEntry* rend_info_begin(const RendInfo*);
-const RendInfoEntry* rend_info_next(const RendInfo*, const RendInfoEntry*);
+const RendReportEntry* rend_report_begin(const RendReport*);
+const RendReportEntry* rend_report_next(const RendReport*, const RendReportEntry*);
 
-String rend_info_name(const RendInfo*, const RendInfoEntry*);
-String rend_info_desc(const RendInfo*, const RendInfoEntry*);
-String rend_info_value(const RendInfo*, const RendInfoEntry*);
+String rend_report_name(const RendReport*, const RendReportEntry*);
+String rend_report_desc(const RendReport*, const RendReportEntry*);
+String rend_report_value(const RendReport*, const RendReportEntry*);
 
-bool rend_info_push(RendInfo*, String name, String desc, String value);
+bool rend_report_push(RendReport*, String name, String desc, String value);

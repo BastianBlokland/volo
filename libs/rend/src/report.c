@@ -2,77 +2,78 @@
 #include "core_math.h"
 #include "rend_report.h"
 
-typedef struct sRendInfo {
-  Allocator*     bumpAlloc;
-  usize          size;
-  RendInfoEntry* entryHead;
-} RendInfo;
+typedef struct sRendReport {
+  Allocator*       bumpAlloc;
+  usize            size;
+  RendReportEntry* entryHead;
+} RendReport;
 
-typedef struct sRendInfoEntry {
-  struct sRendInfoEntry* next;
-  String                 name, desc, value;
-} RendInfoEntry;
+typedef struct sRendReportEntry {
+  struct sRendReportEntry* next;
+  String                   name, desc, value;
+} RendReportEntry;
 
-RendInfo* rend_info_create(Allocator* alloc, const usize memCapacity) {
-  const usize minSize = sizeof(RendInfo) + 64 /* Minimum size for the bump allocator */;
+RendReport* rend_report_create(Allocator* alloc, const usize memCapacity) {
+  const usize minSize = sizeof(RendReport) + 64 /* Minimum size for the bump allocator */;
 
-  const Mem memTotal   = alloc_alloc(alloc, math_max(memCapacity, minSize), alignof(RendInfo));
-  const Mem memStorage = mem_consume(memTotal, sizeof(RendInfo));
+  const Mem memTotal   = alloc_alloc(alloc, math_max(memCapacity, minSize), alignof(RendReport));
+  const Mem memStorage = mem_consume(memTotal, sizeof(RendReport));
 
-  RendInfo* info = mem_as_t(memTotal, RendInfo);
+  RendReport* report = mem_as_t(memTotal, RendReport);
 
-  *info = (RendInfo){
+  *report = (RendReport){
       .bumpAlloc = alloc_bump_create(memStorage),
       .size      = memTotal.size,
   };
 
-  return info;
+  return report;
 }
 
-void rend_info_destroy(Allocator* alloc, RendInfo* info) {
-  alloc_free(alloc, mem_create(info, info->size));
+void rend_report_destroy(Allocator* alloc, RendReport* report) {
+  alloc_free(alloc, mem_create(report, report->size));
 }
 
-void rend_info_reset(RendInfo* info) {
-  info->entryHead = null;
-  alloc_reset(info->bumpAlloc);
+void rend_report_reset(RendReport* report) {
+  report->entryHead = null;
+  alloc_reset(report->bumpAlloc);
 }
 
-const RendInfoEntry* rend_info_begin(const RendInfo* info) { return info->entryHead; }
+const RendReportEntry* rend_report_begin(const RendReport* report) { return report->entryHead; }
 
-const RendInfoEntry* rend_info_next(const RendInfo* info, const RendInfoEntry* entry) {
-  (void)info;
+const RendReportEntry* rend_report_next(const RendReport* report, const RendReportEntry* entry) {
+  (void)report;
   return entry->next;
 }
 
-String rend_info_name(const RendInfo* info, const RendInfoEntry* entry) {
-  (void)info;
+String rend_report_name(const RendReport* report, const RendReportEntry* entry) {
+  (void)report;
   return entry->name;
 }
 
-String rend_info_desc(const RendInfo* info, const RendInfoEntry* entry) {
-  (void)info;
+String rend_report_desc(const RendReport* report, const RendReportEntry* entry) {
+  (void)report;
   return entry->desc;
 }
 
-String rend_info_value(const RendInfo* info, const RendInfoEntry* entry) {
-  (void)info;
+String rend_report_value(const RendReport* report, const RendReportEntry* entry) {
+  (void)report;
   return entry->value;
 }
 
-bool rend_info_push(RendInfo* info, const String name, const String desc, const String value) {
-  RendInfoEntry* entry = alloc_alloc_t(info->bumpAlloc, RendInfoEntry);
+bool rend_report_push(
+    RendReport* report, const String name, const String desc, const String value) {
+  RendReportEntry* entry = alloc_alloc_t(report->bumpAlloc, RendReportEntry);
   if (!entry) {
     return false; // Out of space.
   }
-  entry->name  = string_dup(info->bumpAlloc, name);
-  entry->desc  = string_maybe_dup(info->bumpAlloc, desc);
-  entry->value = string_dup(info->bumpAlloc, value);
+  entry->name  = string_dup(report->bumpAlloc, name);
+  entry->desc  = string_maybe_dup(report->bumpAlloc, desc);
+  entry->value = string_dup(report->bumpAlloc, value);
 
-  if (info->entryHead) {
-    info->entryHead->next = entry;
+  if (report->entryHead) {
+    report->entryHead->next = entry;
   } else {
-    info->entryHead = entry;
+    report->entryHead = entry;
   }
   return true;
 }
