@@ -4,6 +4,7 @@
 #include "core_math.h"
 #include "core_stringtable.h"
 #include "log_logger.h"
+#include "rend_report.h"
 #include "trace_tracer.h"
 
 #include "desc_internal.h"
@@ -393,13 +394,33 @@ static VkPipelineColorBlendAttachmentState rvk_pipeline_colorblend(const AssetGr
   diag_crash();
 }
 
+static void rvk_pipeline_report_stats(RvkDevice* dev, VkPipeline vkPipeline, RendReport* report) {
+  const VkPipelineInfoKHR pipelineInfo = {
+      .sType    = VK_STRUCTURE_TYPE_PIPELINE_INFO_KHR,
+      .pipeline = vkPipeline,
+  };
+
+  VkPipelineExecutablePropertiesKHR execProps[4];
+  u32                               execCount = array_elems(execProps);
+  rvk_call_checked(
+      dev, getPipelineExecutablePropertiesKHR, dev->vkDev, &pipelineInfo, &execCount, execProps);
+
+  for (u32 execIndex = 0; execIndex != execCount; ++execIndex) {
+    const String execName     = string_from_null_term(execProps[execIndex].name);
+    const String execDesc     = string_from_null_term(execProps[execIndex].description);
+    const u32    subgroupSize = execProps[execIndex].subgroupSize;
+
+    rend_report_push(report, execName, execDesc, fmt_write_scratch("{}", fmt_int(subgroupSize)));
+  }
+}
+
 static VkPipeline rvk_pipeline_create(
     RvkGraphic*             graphic,
     const AssetGraphicComp* asset,
     RvkDevice*              dev,
     const VkPipelineLayout  layout,
     const RvkPass*          pass,
-    const RendReport*       report) {
+    RendReport*             report) {
   const RvkPassConfig* passConfig = rvk_pass_config(pass);
 
   VkPipelineShaderStageCreateInfo shaderStages[rvk_graphic_shaders_max];
@@ -522,6 +543,10 @@ static VkPipeline rvk_pipeline_create(
         dev, createGraphicsPipelines, dev->vkDev, psoc, 1, &info, &dev->vkAlloc, &result);
   }
   trace_end();
+
+  if (report && dev->flags & RvkDeviceFlags_SupportExecutableInfo) {
+    rvk_pipeline_report_stats(dev, result, report);
+  }
 
   return result;
 }
@@ -796,7 +821,7 @@ bool rvk_graphic_finalize(
     const AssetGraphicComp* asset,
     RvkDevice*              dev,
     const RvkPass*          pass,
-    const RendReport*       report) {
+    RendReport*             report) {
   diag_assert_msg(!gra->vkPipeline, "Graphic already finalized");
   diag_assert(gra->passId == rvk_pass_config(pass)->id);
 

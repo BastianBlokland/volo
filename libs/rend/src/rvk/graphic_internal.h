@@ -53,7 +53,7 @@ void rvk_graphic_add_sampler(
     RvkGraphic*, const AssetGraphicComp*, const RvkTexture*, const AssetGraphicSampler*);
 
 bool rvk_graphic_finalize(
-    RvkGraphic*, const AssetGraphicComp*, RvkDevice*, const RvkPass*, const RendReport*);
+    RvkGraphic*, const AssetGraphicComp*, RvkDevice*, const RvkPass*, RendReport*);
 
 bool rvk_graphic_is_ready(const RvkGraphic*, const RvkDevice*);
 
