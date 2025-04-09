@@ -402,6 +402,12 @@ static void rvk_pipeline_report_stats(RvkDevice* dev, VkPipeline vkPipeline, Ren
 
   VkPipelineExecutablePropertiesKHR execProps[4];
   u32                               execCount = array_elems(execProps);
+
+  for (u32 i = 0; i != array_elems(execProps); ++i) {
+    execProps[i].sType = VK_STRUCTURE_TYPE_PIPELINE_EXECUTABLE_PROPERTIES_KHR;
+    execProps[i].pNext = null;
+  }
+
   rvk_call_checked(
       dev, getPipelineExecutablePropertiesKHR, dev->vkDev, &pipelineInfo, &execCount, execProps);
 
