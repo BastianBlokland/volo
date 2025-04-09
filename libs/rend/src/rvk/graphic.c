@@ -398,7 +398,8 @@ static VkPipeline rvk_pipeline_create(
     const AssetGraphicComp* asset,
     RvkDevice*              dev,
     const VkPipelineLayout  layout,
-    const RvkPass*          pass) {
+    const RvkPass*          pass,
+    const RendReport*       report) {
   const RvkPassConfig* passConfig = rvk_pass_config(pass);
 
   VkPipelineShaderStageCreateInfo shaderStages[rvk_graphic_shaders_max];
@@ -491,8 +492,14 @@ static VkPipeline rvk_pipeline_create(
       .pDynamicStates    = dynamicStates,
   };
 
+  VkPipelineCreateFlagBits createFlags = 0;
+  if (report && dev->flags & RvkDeviceFlags_SupportExecutableInfo) {
+    createFlags |= VK_PIPELINE_CREATE_CAPTURE_STATISTICS_BIT_KHR;
+  }
+
   const VkGraphicsPipelineCreateInfo info = {
       .sType               = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
+      .flags               = createFlags,
       .stageCount          = shaderStageCount,
       .pStages             = shaderStages,
       .pVertexInputState   = &vertexInputInfo,
@@ -790,7 +797,6 @@ bool rvk_graphic_finalize(
     RvkDevice*              dev,
     const RvkPass*          pass,
     const RendReport*       report) {
-  (void)report;
   diag_assert_msg(!gra->vkPipeline, "Graphic already finalized");
   diag_assert(gra->passId == rvk_pass_config(pass)->id);
 
@@ -902,7 +908,7 @@ bool rvk_graphic_finalize(
   rvk_desc_update_flush(&descBatch);
 
   gra->vkPipelineLayout = rvk_pipeline_layout_create(gra, dev, pass);
-  gra->vkPipeline       = rvk_pipeline_create(gra, asset, dev, gra->vkPipelineLayout, pass);
+  gra->vkPipeline       = rvk_pipeline_create(gra, asset, dev, gra->vkPipelineLayout, pass, report);
 
   rvk_debug_name_pipeline_layout(dev, gra->vkPipelineLayout, "{}", fmt_text(gra->dbgName));
   rvk_debug_name_pipeline(dev, gra->vkPipeline, "{}", fmt_text(gra->dbgName));
