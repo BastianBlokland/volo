@@ -6,6 +6,7 @@ typedef struct sRendReport {
   Allocator*       bumpAlloc;
   usize            size;
   RendReportEntry* entryHead;
+  RendReportEntry* entryTail;
 } RendReport;
 
 typedef struct sRendReportEntry {
@@ -72,9 +73,11 @@ bool rend_report_push(
   entry->value = string_dup(report->bumpAlloc, value);
 
   if (report->entryHead) {
-    report->entryHead->next = entry;
+    report->entryTail->next = entry;
   } else {
     report->entryHead = entry;
   }
+  report->entryTail = entry;
+
   return true;
 }
