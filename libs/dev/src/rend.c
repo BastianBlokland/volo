@@ -366,7 +366,7 @@ static bool dev_overlay_blocker(UiCanvasComp* canvas) {
 
 static void dev_overlay_bg(UiCanvasComp* c) {
   ui_style_push(c);
-  ui_style_color(c, ui_color(0, 0, 0, 175));
+  ui_style_color(c, ui_color(0, 0, 0, 215));
   ui_style_outline(c, 3);
   ui_canvas_draw_glyph(c, UiShape_Square, 10, UiFlags_Interactable);
   ui_style_pop(c);
@@ -375,7 +375,7 @@ static void dev_overlay_bg(UiCanvasComp* c) {
 static void dev_overlay_str_tooltip(
     UiCanvasComp* c, UiTable* t, const String label, const String tooltip, const String v) {
   ui_table_next_row(c, t);
-  ui_label(c, label, .fontSize = 14);
+  ui_label(c, label, .fontSize = 14, .tooltip = tooltip);
   ui_table_next_column(c, t);
   ui_label(c, v, .fontSize = 14, .tooltip = tooltip, .selectable = true);
 }
@@ -419,15 +419,19 @@ static void dev_overlay_resource(UiCanvasComp* c, RendSettingsComp* set, EcsView
   const RendResTextureComp* texture = ecs_view_read_t(resourceItr, RendResTextureComp);
   const RendResMeshComp*    mesh    = ecs_view_read_t(resourceItr, RendResMeshComp);
 
-  const UiVector panelSize = {900, graphic ? 500 : 180};
+  const UiVector panelSize = {950, graphic ? 500 : 180};
   const UiVector inset     = {-5, -5};
 
   ui_style_push(c);
   ui_style_layer(c, UiLayer_Overlay);
 
   ui_layout_push(c);
-  ui_layout_move_to(c, UiBase_Canvas, UiAlign_BottomCenter, Ui_XY);
-  ui_layout_move_dir(c, Ui_Up, 0.125f, UiBase_Canvas); // Center of the bottom 25% of screen.
+  if (graphic) {
+    ui_layout_move_to(c, UiBase_Canvas, UiAlign_MiddleCenter, Ui_XY);
+  } else {
+    ui_layout_move_to(c, UiBase_Canvas, UiAlign_BottomCenter, Ui_XY);
+    ui_layout_move_dir(c, Ui_Up, 0.125f, UiBase_Canvas); // Center of the bottom 25% of screen.
+  }
   ui_layout_resize(c, UiAlign_MiddleCenter, panelSize, UiBase_Absolute, Ui_XY);
 
   f32 lodMax = 0.0f;
@@ -438,7 +442,7 @@ static void dev_overlay_resource(UiCanvasComp* c, RendSettingsComp* set, EcsView
   ui_layout_container_push(c, UiClip_None, UiLayer_Normal);
 
   UiTable table = ui_table(.spacing = {4, 4}, .rowHeight = 17);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 125);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 200);
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
   // Info section (left side of panel).
