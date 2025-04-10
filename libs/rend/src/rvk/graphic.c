@@ -420,11 +420,16 @@ static void rvk_pipeline_report_stats(RvkDevice* dev, VkPipeline vkPipeline, Ren
       dev, getPipelineExecutablePropertiesKHR, dev->vkDev, &pipelineInfo, &execCount, execProps);
 
   for (u32 execIndex = 0; execIndex != execCount; ++execIndex) {
-    const String execName     = string_from_null_term(execProps[execIndex].name);
-    const String execDesc     = string_from_null_term(execProps[execIndex].description);
-    const u32    subgroupSize = execProps[execIndex].subgroupSize;
+    const String execName = string_from_null_term(execProps[execIndex].name);
+    const String execDesc = string_from_null_term(execProps[execIndex].description);
 
-    rend_report_push(report, execName, execDesc, fmt_write_scratch("{}", fmt_int(subgroupSize)));
+    rend_report_push(report, execName, execDesc, string_empty);
+
+    rend_report_push(
+        report,
+        string_lit("Subgroup Size"),
+        string_lit("Pipeline executable dispatch subgroup size"),
+        fmt_write_scratch("{}", fmt_int(execProps[execIndex].subgroupSize)));
 
     const VkPipelineExecutableInfoKHR execInfo = {
         .sType           = VK_STRUCTURE_TYPE_PIPELINE_EXECUTABLE_INFO_KHR,

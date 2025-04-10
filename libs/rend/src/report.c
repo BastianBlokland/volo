@@ -70,7 +70,7 @@ bool rend_report_push(
   entry->next  = null;
   entry->name  = string_dup(report->bumpAlloc, name);
   entry->desc  = string_maybe_dup(report->bumpAlloc, desc);
-  entry->value = string_dup(report->bumpAlloc, value);
+  entry->value = string_maybe_dup(report->bumpAlloc, value);
 
   if (report->entryHead) {
     report->entryTail->next = entry;
