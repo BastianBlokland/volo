@@ -66,6 +66,7 @@ bool rend_report_push(
   if (!entry) {
     return false; // Out of space.
   }
+  entry->next  = null;
   entry->name  = string_dup(report->bumpAlloc, name);
   entry->desc  = string_maybe_dup(report->bumpAlloc, desc);
   entry->value = string_dup(report->bumpAlloc, value);
