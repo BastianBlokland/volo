@@ -328,6 +328,36 @@ void rvk_job_img_copy(RvkJob* job, RvkImage* src, RvkImage* dst) {
   rvk_debug_label_end(job->dev, cmdBuf);
 }
 
+void rvk_job_img_copy_batch(
+    RvkJob* job, RvkImage* srcImages[], RvkImage* dstImages[], const u32 count) {
+  diag_assert_msg(job->flags & RvkJob_Active, "job not active");
+
+  VkCommandBuffer cmdBuf = job->vkCmdBuffers[job->phase];
+  rvk_debug_label_begin(job->dev, cmdBuf, geo_color_purple, "copy");
+
+  RvkImageTransition transitions[16];
+  diag_assert(count * 2 <= array_elems(transitions));
+
+  for (u32 i = 0; i != count; ++i) {
+    diag_assert(srcImages[i] && dstImages[i]);
+    transitions[i * 2 + 0] = (RvkImageTransition){
+        .img   = srcImages[i],
+        .phase = RvkImagePhase_TransferSource,
+    };
+    transitions[i * 2 + 1] = (RvkImageTransition){
+        .img   = dstImages[i],
+        .phase = RvkImagePhase_TransferDest,
+    };
+  }
+  rvk_image_transition_batch(job->dev, transitions, count * 2, cmdBuf);
+
+  for (u32 i = 0; i != count; ++i) {
+    rvk_image_copy(job->dev, srcImages[i], dstImages[i], cmdBuf);
+  }
+
+  rvk_debug_label_end(job->dev, cmdBuf);
+}
+
 void rvk_job_img_blit(RvkJob* job, RvkImage* src, RvkImage* dst) {
   diag_assert_msg(job->flags & RvkJob_Active, "job not active");
 

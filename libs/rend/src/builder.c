@@ -15,13 +15,20 @@
 
 #define rend_builder_workers_max 8
 
+typedef struct {
+  RvkImage* src[8];
+  RvkImage* dst[8];
+  u32       count;
+} RendImgCopyBatch;
+
 struct sRendBuilder {
   ALIGNAS(64)
-  RvkCanvas*   canvas;
-  RvkPass*     pass;
-  RvkPassSetup passSetup;
-  RvkPassDraw* draw;
-  DynArray     drawList; // RvkPassDraw[]
+  RvkCanvas*       canvas;
+  RvkPass*         pass;
+  RvkPassSetup     passSetup;
+  RvkPassDraw*     draw;
+  DynArray         drawList; // RvkPassDraw[]
+  RendImgCopyBatch imgCopyBatch;
 };
 
 ASSERT(alignof(RendBuilder) == 64, "Unexpected builder alignment")
@@ -35,6 +42,22 @@ static i8 builder_draw_compare(const void* a, const void* b) {
   const RvkPassDraw* drawA = a;
   const RvkPassDraw* drawB = b;
   return compare_i32(&drawA->graphic->passOrder, &drawB->graphic->passOrder);
+}
+
+static void builder_img_copy_flush(RendImgCopyBatch* batch, RvkJob* job) {
+  if (batch->count) {
+    rvk_job_img_copy_batch(job, batch->src, batch->dst, batch->count);
+    batch->count = 0;
+  }
+}
+
+static void builder_img_copy(RendImgCopyBatch* batch, RvkJob* job, RvkImage* src, RvkImage* dst) {
+  if (batch->count == array_elems(batch->src)) {
+    builder_img_copy_flush(batch, job);
+  }
+  batch->src[batch->count] = src;
+  batch->dst[batch->count] = dst;
+  ++batch->count;
 }
 
 RendBuilderContainer* rend_builder_container_create(Allocator* alloc) {
@@ -138,8 +161,7 @@ RvkImage* rend_builder_attach_acquire_copy(RendBuilder* b, RvkImage* src) {
 
   RvkImage* res = rend_builder_attach_acquire_copy_uninit(b, src);
   RvkJob*   job = rvk_canvas_job(b->canvas);
-
-  rvk_job_img_copy(job, src, res);
+  builder_img_copy(&b->imgCopyBatch, job, src, res);
   return res;
 }
 
@@ -190,6 +212,9 @@ void rend_builder_pass_push(RendBuilder* b, RvkPass* pass) {
 void rend_builder_pass_flush(RendBuilder* b) {
   diag_assert_msg(b->pass, "RendBuilder: Pass not active");
   diag_assert_msg(!b->draw, "RendBuilder: Draw still active");
+
+  RvkJob* job = rvk_canvas_job(b->canvas);
+  builder_img_copy_flush(&b->imgCopyBatch, job);
 
   dynarray_sort(&b->drawList, builder_draw_compare);
 
