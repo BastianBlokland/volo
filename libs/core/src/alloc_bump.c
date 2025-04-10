@@ -14,6 +14,8 @@ struct AllocatorBump {
   u8*       tail;
 };
 
+ASSERT(sizeof(struct AllocatorBump) <= 64, "Bump allocator too big");
+
 /**
  * Pre-condition: bits_ispow2(_ALIGN_)
  */

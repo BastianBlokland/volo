@@ -1,11 +1,13 @@
 #pragma once
 #include "rend_settings.h"
+
 #include "vulkan_api.h"
 
 typedef enum {
-  RvkLibFlags_Validation   = 1 << 0,
-  RvkLibFlags_Debug        = 1 << 1,
-  RvkLibFlags_DebugVerbose = 1 << 2,
+  RvkLibFlags_Validation           = 1 << 0,
+  RvkLibFlags_Debug                = 1 << 1,
+  RvkLibFlags_DebugVerbose         = 1 << 2,
+  RvkLibFlags_ExecutableStatistics = 1 << 3,
 } RvkLibFlags;
 
 typedef struct sRvkLib {

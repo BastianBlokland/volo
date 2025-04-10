@@ -1,8 +1,9 @@
 #pragma once
 #include "geo.h"
-#include "vulkan_api.h"
 
 #include "forward_internal.h"
+
+#include "vulkan_api.h"
 
 typedef enum {
   RvkDeviceFlags_SupportNullDescriptor    = 1 << 0,
@@ -14,6 +15,7 @@ typedef enum {
   RvkDeviceFlags_SupportPresentWait       = 1 << 6,
   RvkDeviceFlags_SupportDepthClamp        = 1 << 7,
   RvkDeviceFlags_SupportMemoryBudget      = 1 << 8,
+  RvkDeviceFlags_SupportExecutableInfo    = 1 << 9,
 } RvkDeviceFlags;
 
 typedef struct sRvkDevice {

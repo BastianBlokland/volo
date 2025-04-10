@@ -14,6 +14,7 @@ add_library(lib_rend STATIC
   src/painter.c
   src/platform.c
   src/register.c
+  src/report.c
   src/reset.c
   src/resource.c
   src/rvk/attach.c

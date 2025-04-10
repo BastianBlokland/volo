@@ -251,13 +251,12 @@ static u32 rvk_lib_names(String outPaths[PARAM_ARRAY_SIZE(rvk_lib_vulkan_names_m
 }
 
 RvkLib* rvk_lib_create(const RendSettingsGlobalComp* set) {
-  (void)set;
-
   RvkLib* lib = alloc_alloc_t(g_allocHeap, RvkLib);
 
-  *lib = (RvkLib){
-      .vkAlloc = rvk_mem_allocator(g_allocHeap),
-  };
+  *lib = (RvkLib){.vkAlloc = rvk_mem_allocator(g_allocHeap)};
+  if (set->flags & RendGlobalFlags_DebugGpu) {
+    lib->flags |= RvkLibFlags_ExecutableStatistics;
+  }
 
   String    libNames[rvk_lib_vulkan_names_max];
   const u32 libNameCount = rvk_lib_names(libNames);

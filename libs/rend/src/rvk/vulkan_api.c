@@ -997,6 +997,9 @@ VkResult vkLoadDevice(VkDevice dev, const VkInterfaceInstance* src, VkInterfaceD
   out->getDeviceBufferMemoryRequirements = (Symbol)src->getDeviceProcAddr(dev, "vkGetDeviceBufferMemoryRequirements");
   out->getDeviceImageMemoryRequirements = (Symbol)src->getDeviceProcAddr(dev, "vkGetDeviceImageMemoryRequirements");
   out->getDeviceImageSparseMemoryRequirements = (Symbol)src->getDeviceProcAddr(dev, "vkGetDeviceImageSparseMemoryRequirements");
+  out->getPipelineExecutablePropertiesKHR = (Symbol)src->getDeviceProcAddr(dev, "vkGetPipelineExecutablePropertiesKHR");
+  out->getPipelineExecutableStatisticsKHR = (Symbol)src->getDeviceProcAddr(dev, "vkGetPipelineExecutableStatisticsKHR");
+  out->getPipelineExecutableInternalRepresentationsKHR = (Symbol)src->getDeviceProcAddr(dev, "vkGetPipelineExecutableInternalRepresentationsKHR");
   out->waitForPresentKHR = (Symbol)src->getDeviceProcAddr(dev, "vkWaitForPresentKHR");
   out->createSwapchainKHR = (Symbol)src->getDeviceProcAddr(dev, "vkCreateSwapchainKHR");
   out->destroySwapchainKHR = (Symbol)src->getDeviceProcAddr(dev, "vkDestroySwapchainKHR");

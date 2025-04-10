@@ -5,7 +5,8 @@
 #include "geo_vector.h"
 #include "rend_settings.h"
 
-#define VOLO_REND_GPU_DEBUG 0
+#define VOLO_REND_GPU_DEBUG 1
+#define VOLO_REND_VALIDATION 0
 
 ecs_comp_define_public(RendSettingsComp);
 ecs_comp_define_public(RendSettingsGlobalComp);
@@ -75,7 +76,10 @@ void rend_settings_global_to_default(RendSettingsGlobalComp* s) {
   s->limiterFreq = 0;
 
 #if VOLO_REND_GPU_DEBUG
-  s->flags |= RendGlobalFlags_Validation | RendGlobalFlags_DebugGpu;
+  s->flags |= RendGlobalFlags_DebugGpu;
+#endif
+#if VOLO_REND_VALIDATION
+  s->flags |= RendGlobalFlags_Validation;
 #endif
 
   s->shadowFilterSize = 0.1f;

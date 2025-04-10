@@ -4,6 +4,7 @@
 #include "core_math.h"
 #include "core_stringtable.h"
 #include "log_logger.h"
+#include "rend_report.h"
 #include "trace_tracer.h"
 
 #include "desc_internal.h"
@@ -393,12 +394,89 @@ static VkPipelineColorBlendAttachmentState rvk_pipeline_colorblend(const AssetGr
   diag_crash();
 }
 
+static void rvk_pipeline_report_stats(RvkDevice* dev, VkPipeline vkPipeline, RendReport* report) {
+  const VkPipelineInfoKHR pipelineInfo = {
+      .sType    = VK_STRUCTURE_TYPE_PIPELINE_INFO_KHR,
+      .pipeline = vkPipeline,
+  };
+
+  VkPipelineExecutablePropertiesKHR execProps[4];
+  u32                               execCount = array_elems(execProps);
+
+  for (u32 i = 0; i != array_elems(execProps); ++i) {
+    execProps[i] = (VkPipelineExecutablePropertiesKHR){
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_EXECUTABLE_PROPERTIES_KHR,
+    };
+  }
+
+  rvk_call_checked(
+      dev, getPipelineExecutablePropertiesKHR, dev->vkDev, &pipelineInfo, &execCount, execProps);
+
+  for (u32 execIndex = 0; execIndex != execCount; ++execIndex) {
+    const String execName = string_from_null_term(execProps[execIndex].name);
+    const String execDesc = string_from_null_term(execProps[execIndex].description);
+
+    rend_report_push(report, execName, execDesc, string_empty);
+
+    if (execProps[execIndex].subgroupSize) {
+      rend_report_push(
+          report,
+          string_lit("Subgroup Size"),
+          string_lit("Pipeline executable dispatch subgroup size"),
+          fmt_write_scratch("{}", fmt_int(execProps[execIndex].subgroupSize)));
+    }
+
+    const VkPipelineExecutableInfoKHR execInfo = {
+        .sType           = VK_STRUCTURE_TYPE_PIPELINE_EXECUTABLE_INFO_KHR,
+        .pipeline        = vkPipeline,
+        .executableIndex = execIndex,
+    };
+
+    VkPipelineExecutableStatisticKHR stats[16];
+    u32                              statCount = array_elems(stats);
+
+    for (u32 i = 0; i != array_elems(stats); ++i) {
+      stats[i] = (VkPipelineExecutableStatisticKHR){
+          .sType = VK_STRUCTURE_TYPE_PIPELINE_EXECUTABLE_STATISTIC_KHR,
+      };
+    }
+
+    rvk_call_checked(
+        dev, getPipelineExecutableStatisticsKHR, dev->vkDev, &execInfo, &statCount, stats);
+
+    for (u32 statIndex = 0; statIndex != statCount; ++statIndex) {
+      const String statName = string_from_null_term(stats[statIndex].name);
+      const String statDesc = string_from_null_term(stats[statIndex].description);
+
+      String statValue;
+      switch (stats[statIndex].format) {
+      case VK_PIPELINE_EXECUTABLE_STATISTIC_FORMAT_BOOL32_KHR:
+        statValue = fmt_write_scratch("{}", fmt_bool((bool)stats[statIndex].value.b32));
+        break;
+      case VK_PIPELINE_EXECUTABLE_STATISTIC_FORMAT_INT64_KHR:
+        statValue = fmt_write_scratch("{}", fmt_int(stats[statIndex].value.i64));
+        break;
+      case VK_PIPELINE_EXECUTABLE_STATISTIC_FORMAT_UINT64_KHR:
+        statValue = fmt_write_scratch("{}", fmt_int(stats[statIndex].value.u64));
+        break;
+      case VK_PIPELINE_EXECUTABLE_STATISTIC_FORMAT_FLOAT64_KHR:
+        statValue = fmt_write_scratch("{}", fmt_float(stats[statIndex].value.f64));
+        break;
+      default:
+        UNREACHABLE
+      }
+      rend_report_push(report, statName, statDesc, statValue);
+    }
+  }
+}
+
 static VkPipeline rvk_pipeline_create(
     RvkGraphic*             graphic,
     const AssetGraphicComp* asset,
     RvkDevice*              dev,
     const VkPipelineLayout  layout,
-    const RvkPass*          pass) {
+    const RvkPass*          pass,
+    RendReport*             report) {
   const RvkPassConfig* passConfig = rvk_pass_config(pass);
 
   VkPipelineShaderStageCreateInfo shaderStages[rvk_graphic_shaders_max];
@@ -491,8 +569,14 @@ static VkPipeline rvk_pipeline_create(
       .pDynamicStates    = dynamicStates,
   };
 
+  VkPipelineCreateFlagBits createFlags = 0;
+  if (report && dev->flags & RvkDeviceFlags_SupportExecutableInfo) {
+    createFlags |= VK_PIPELINE_CREATE_CAPTURE_STATISTICS_BIT_KHR;
+  }
+
   const VkGraphicsPipelineCreateInfo info = {
       .sType               = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
+      .flags               = createFlags,
       .stageCount          = shaderStageCount,
       .pStages             = shaderStages,
       .pVertexInputState   = &vertexInputInfo,
@@ -515,6 +599,10 @@ static VkPipeline rvk_pipeline_create(
         dev, createGraphicsPipelines, dev->vkDev, psoc, 1, &info, &dev->vkAlloc, &result);
   }
   trace_end();
+
+  if (report && dev->flags & RvkDeviceFlags_SupportExecutableInfo) {
+    rvk_pipeline_report_stats(dev, result, report);
+  }
 
   return result;
 }
@@ -785,7 +873,11 @@ void rvk_graphic_add_sampler(
 }
 
 bool rvk_graphic_finalize(
-    RvkGraphic* gra, const AssetGraphicComp* asset, RvkDevice* dev, const RvkPass* pass) {
+    RvkGraphic*             gra,
+    const AssetGraphicComp* asset,
+    RvkDevice*              dev,
+    const RvkPass*          pass,
+    RendReport*             report) {
   diag_assert_msg(!gra->vkPipeline, "Graphic already finalized");
   diag_assert(gra->passId == rvk_pass_config(pass)->id);
 
@@ -897,7 +989,7 @@ bool rvk_graphic_finalize(
   rvk_desc_update_flush(&descBatch);
 
   gra->vkPipelineLayout = rvk_pipeline_layout_create(gra, dev, pass);
-  gra->vkPipeline       = rvk_pipeline_create(gra, asset, dev, gra->vkPipelineLayout, pass);
+  gra->vkPipeline       = rvk_pipeline_create(gra, asset, dev, gra->vkPipelineLayout, pass, report);
 
   rvk_debug_name_pipeline_layout(dev, gra->vkPipelineLayout, "{}", fmt_text(gra->dbgName));
   rvk_debug_name_pipeline(dev, gra->vkPipeline, "{}", fmt_text(gra->dbgName));

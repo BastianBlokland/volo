@@ -123,6 +123,18 @@ static void rvk_config_present_wait(RvkDevice* d, VkPhysicalDevicePresentWaitFea
   }
 }
 
+static void rvk_config_executable_properties(
+    RvkDevice* d, VkPhysicalDevicePipelineExecutablePropertiesFeaturesKHR* f) {
+
+  if (d->lib->flags & RvkLibFlags_ExecutableStatistics) {
+    if (f->pipelineExecutableInfo) {
+      d->flags |= RvkDeviceFlags_SupportExecutableInfo;
+    }
+  } else {
+    f->pipelineExecutableInfo = false;
+  }
+}
+
 static void rvk_config_16bit_storage(RvkDevice* d, VkPhysicalDevice16BitStorageFeatures* f) {
   (void)d;
   f->storageBuffer16BitAccess           = true; // Required.
@@ -372,6 +384,15 @@ static VkDevice rvk_device_create_internal(RvkLib* lib, RvkDevice* dev) {
     extsToEnable[extsToEnableCount++] = VK_KHR_present_wait;
   }
 
+  VkPhysicalDevicePipelineExecutablePropertiesFeaturesKHR featureExecutableProperties = {
+      .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PIPELINE_EXECUTABLE_PROPERTIES_FEATURES_KHR,
+      .pNext = nextFeature,
+  };
+  if (rvk_has_ext(supportedExts, string_from_null_term(VK_KHR_pipeline_executable_properties))) {
+    nextFeature                       = &featureExecutableProperties;
+    extsToEnable[extsToEnableCount++] = VK_KHR_pipeline_executable_properties;
+  }
+
   VkPhysicalDevice16BitStorageFeatures feature16BitStorage = {
       .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_16BIT_STORAGE_FEATURES,
       .pNext = nextFeature,
@@ -387,11 +408,13 @@ static VkDevice rvk_device_create_internal(RvkLib* lib, RvkDevice* dev) {
   rvk_config_robustness2(dev, &featureRobustness);
   rvk_config_present_id(dev, &featurePresentId);
   rvk_config_present_wait(dev, &featurePresentWait);
+  rvk_config_executable_properties(dev, &featureExecutableProperties);
   rvk_config_16bit_storage(dev, &feature16BitStorage);
   rvk_config_features(dev, &featureBase.features);
 
   if (rvk_has_ext(supportedExts, string_from_null_term(VK_EXT_memory_budget))) {
     dev->flags |= RvkDeviceFlags_SupportMemoryBudget;
+    extsToEnable[extsToEnableCount++] = VK_EXT_memory_budget;
   }
 
   const VkDeviceCreateInfo createInfo = {

@@ -6,6 +6,8 @@
 #include "forward_internal.h"
 #include "uniform_internal.h"
 
+#include "vulkan_api.h"
+
 typedef enum eRvkJobPhase {
   RvkJobPhase_Main,
   RvkJobPhase_Output, // Work that can only be done when the output is available.
