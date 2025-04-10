@@ -404,16 +404,9 @@ static void rvk_pipeline_report_stats(RvkDevice* dev, VkPipeline vkPipeline, Ren
   u32                               execCount = array_elems(execProps);
 
   for (u32 i = 0; i != array_elems(execProps); ++i) {
-    execProps[i].sType = VK_STRUCTURE_TYPE_PIPELINE_EXECUTABLE_PROPERTIES_KHR;
-    execProps[i].pNext = null;
-  }
-
-  VkPipelineExecutableStatisticKHR stats[16];
-  u32                              statCount = array_elems(stats);
-
-  for (u32 i = 0; i != array_elems(stats); ++i) {
-    stats[i].sType = VK_STRUCTURE_TYPE_PIPELINE_EXECUTABLE_STATISTIC_KHR;
-    stats[i].pNext = null;
+    execProps[i] = (VkPipelineExecutablePropertiesKHR){
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_EXECUTABLE_PROPERTIES_KHR,
+    };
   }
 
   rvk_call_checked(
@@ -437,7 +430,15 @@ static void rvk_pipeline_report_stats(RvkDevice* dev, VkPipeline vkPipeline, Ren
         .executableIndex = execIndex,
     };
 
-    statCount = array_elems(stats);
+    VkPipelineExecutableStatisticKHR stats[16];
+    u32                              statCount = array_elems(stats);
+
+    for (u32 i = 0; i != array_elems(stats); ++i) {
+      stats[i] = (VkPipelineExecutableStatisticKHR){
+          .sType = VK_STRUCTURE_TYPE_PIPELINE_EXECUTABLE_STATISTIC_KHR,
+      };
+    }
+
     rvk_call_checked(
         dev, getPipelineExecutableStatisticsKHR, dev->vkDev, &execInfo, &statCount, stats);
 
