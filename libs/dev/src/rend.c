@@ -20,6 +20,7 @@
 #include "rend_light.h"
 #include "rend_object.h"
 #include "rend_register.h"
+#include "rend_report.h"
 #include "rend_reset.h"
 #include "rend_resource.h"
 #include "rend_settings.h"
@@ -371,11 +372,16 @@ static void dev_overlay_bg(UiCanvasComp* c) {
   ui_style_pop(c);
 }
 
-static void dev_overlay_str(UiCanvasComp* c, UiTable* t, const String label, const String v) {
+static void dev_overlay_str_tooltip(
+    UiCanvasComp* c, UiTable* t, const String label, const String tooltip, const String v) {
   ui_table_next_row(c, t);
-  ui_label(c, label, .fontSize = 14);
+  ui_label(c, label, .fontSize = 14, .tooltip = tooltip);
   ui_table_next_column(c, t);
   ui_label(c, v, .fontSize = 14, .selectable = true);
+}
+
+static void dev_overlay_str(UiCanvasComp* c, UiTable* t, const String label, const String v) {
+  dev_overlay_str_tooltip(c, t, label, string_empty /* tooltip */, v);
 }
 
 static void dev_overlay_int(UiCanvasComp* c, UiTable* t, const String label, const i64 v) {
@@ -435,6 +441,19 @@ static void dev_overlay_resource(UiCanvasComp* c, RendSettingsComp* set, EcsView
   dev_overlay_str(c, &table, string_lit("Name"), asset_id(assetComp));
   dev_overlay_entity(c, &table, string_lit("Entity"), entity);
   dev_overlay_int(c, &table, string_lit("Dependents"), rend_res_dependents(resComp));
+  const RendResGraphicComp* graphic = ecs_view_read_t(resourceItr, RendResGraphicComp);
+  if (graphic) {
+    const RendReport* report = rend_res_graphic_report(graphic);
+    if (report) {
+      for (const RendReportEntry* entry = rend_report_begin(report); entry;
+           entry                        = rend_report_next(report, entry)) {
+        const String name  = rend_report_name(report, entry);
+        const String desc  = rend_report_desc(report, entry);
+        const String value = rend_report_value(report, entry);
+        dev_overlay_str_tooltip(c, &table, name, desc, value);
+      }
+    }
+  }
   const RendResTextureComp* texture = ecs_view_read_t(resourceItr, RendResTextureComp);
   if (texture) {
     lodMax = (f32)(rend_res_texture_mip_levels(texture) - 1);
@@ -860,10 +879,10 @@ static void rend_resource_actions_draw(
     UiCanvasComp* canvas, RendSettingsComp* settings, const DevResourceInfo* resInfo) {
   ui_layout_resize(canvas, UiAlign_MiddleLeft, ui_vector(25, 0), UiBase_Absolute, Ui_X);
 
-  const bool previewActive   = ecs_entity_valid(settings->debugViewerResource);
-  const bool supportsPreview = resInfo->type == DevRendResType_Texture ||
-                               resInfo->type == DevRendResType_TextureCube ||
-                               resInfo->type == DevRendResType_Mesh;
+  const bool previewActive = ecs_entity_valid(settings->debugViewerResource);
+  const bool supportsPreview =
+      resInfo->type == DevRendResType_Graphic || resInfo->type == DevRendResType_Texture ||
+      resInfo->type == DevRendResType_TextureCube || resInfo->type == DevRendResType_Mesh;
 
   if (supportsPreview &&
       ui_button(
