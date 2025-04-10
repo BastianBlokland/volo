@@ -408,6 +408,14 @@ static void rvk_pipeline_report_stats(RvkDevice* dev, VkPipeline vkPipeline, Ren
     execProps[i].pNext = null;
   }
 
+  VkPipelineExecutableStatisticKHR stats[16];
+  u32                              statCount = array_elems(stats);
+
+  for (u32 i = 0; i != array_elems(stats); ++i) {
+    stats[i].sType = VK_STRUCTURE_TYPE_PIPELINE_EXECUTABLE_STATISTIC_KHR;
+    stats[i].pNext = null;
+  }
+
   rvk_call_checked(
       dev, getPipelineExecutablePropertiesKHR, dev->vkDev, &pipelineInfo, &execCount, execProps);
 
@@ -417,6 +425,40 @@ static void rvk_pipeline_report_stats(RvkDevice* dev, VkPipeline vkPipeline, Ren
     const u32    subgroupSize = execProps[execIndex].subgroupSize;
 
     rend_report_push(report, execName, execDesc, fmt_write_scratch("{}", fmt_int(subgroupSize)));
+
+    const VkPipelineExecutableInfoKHR execInfo = {
+        .sType           = VK_STRUCTURE_TYPE_PIPELINE_EXECUTABLE_INFO_KHR,
+        .pipeline        = vkPipeline,
+        .executableIndex = execIndex,
+    };
+
+    statCount = array_elems(stats);
+    rvk_call_checked(
+        dev, getPipelineExecutableStatisticsKHR, dev->vkDev, &execInfo, &statCount, stats);
+
+    for (u32 statIndex = 0; statIndex != statCount; ++statIndex) {
+      const String statName = string_from_null_term(stats[statIndex].name);
+      const String statDesc = string_from_null_term(stats[statIndex].description);
+
+      String statValue;
+      switch (stats[statIndex].format) {
+      case VK_PIPELINE_EXECUTABLE_STATISTIC_FORMAT_BOOL32_KHR:
+        statValue = fmt_write_scratch("{}", fmt_bool((bool)stats[statIndex].value.b32));
+        break;
+      case VK_PIPELINE_EXECUTABLE_STATISTIC_FORMAT_INT64_KHR:
+        statValue = fmt_write_scratch("{}", fmt_int(stats[statIndex].value.i64));
+        break;
+      case VK_PIPELINE_EXECUTABLE_STATISTIC_FORMAT_UINT64_KHR:
+        statValue = fmt_write_scratch("{}", fmt_int(stats[statIndex].value.u64));
+        break;
+      case VK_PIPELINE_EXECUTABLE_STATISTIC_FORMAT_FLOAT64_KHR:
+        statValue = fmt_write_scratch("{}", fmt_float(stats[statIndex].value.f64));
+        break;
+      default:
+        UNREACHABLE
+      }
+      rend_report_push(report, statName, statDesc, statValue);
+    }
   }
 }
 
