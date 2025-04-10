@@ -415,8 +415,12 @@ static void dev_overlay_resource(UiCanvasComp* c, RendSettingsComp* set, EcsView
   const AssetComp*   assetComp = ecs_view_read_t(resourceItr, AssetComp);
   const RendResComp* resComp   = ecs_view_read_t(resourceItr, RendResComp);
 
-  static const UiVector g_panelSize = {900, 180};
-  static const UiVector g_inset     = {-5, -5};
+  const RendResGraphicComp* graphic = ecs_view_read_t(resourceItr, RendResGraphicComp);
+  const RendResTextureComp* texture = ecs_view_read_t(resourceItr, RendResTextureComp);
+  const RendResMeshComp*    mesh    = ecs_view_read_t(resourceItr, RendResMeshComp);
+
+  const UiVector panelSize = {900, graphic ? 500 : 180};
+  const UiVector inset     = {-5, -5};
 
   ui_style_push(c);
   ui_style_layer(c, UiLayer_Overlay);
@@ -424,12 +428,12 @@ static void dev_overlay_resource(UiCanvasComp* c, RendSettingsComp* set, EcsView
   ui_layout_push(c);
   ui_layout_move_to(c, UiBase_Canvas, UiAlign_BottomCenter, Ui_XY);
   ui_layout_move_dir(c, Ui_Up, 0.125f, UiBase_Canvas); // Center of the bottom 25% of screen.
-  ui_layout_resize(c, UiAlign_MiddleCenter, g_panelSize, UiBase_Absolute, Ui_XY);
+  ui_layout_resize(c, UiAlign_MiddleCenter, panelSize, UiBase_Absolute, Ui_XY);
 
   f32 lodMax = 0.0f;
 
   dev_overlay_bg(c);
-  ui_layout_grow(c, UiAlign_MiddleCenter, g_inset, UiBase_Absolute, Ui_XY);
+  ui_layout_grow(c, UiAlign_MiddleCenter, inset, UiBase_Absolute, Ui_XY);
   ui_layout_resize(c, UiAlign_BottomLeft, ui_vector(0.5f, 0), UiBase_Current, Ui_X);
   ui_layout_container_push(c, UiClip_None, UiLayer_Normal);
 
@@ -441,7 +445,6 @@ static void dev_overlay_resource(UiCanvasComp* c, RendSettingsComp* set, EcsView
   dev_overlay_str(c, &table, string_lit("Name"), asset_id(assetComp));
   dev_overlay_entity(c, &table, string_lit("Entity"), entity);
   dev_overlay_int(c, &table, string_lit("Dependents"), rend_res_dependents(resComp));
-  const RendResGraphicComp* graphic = ecs_view_read_t(resourceItr, RendResGraphicComp);
   if (graphic) {
     const RendReport* report = rend_res_graphic_report(graphic);
     if (report) {
@@ -454,7 +457,6 @@ static void dev_overlay_resource(UiCanvasComp* c, RendSettingsComp* set, EcsView
       }
     }
   }
-  const RendResTextureComp* texture = ecs_view_read_t(resourceItr, RendResTextureComp);
   if (texture) {
     lodMax = (f32)(rend_res_texture_mip_levels(texture) - 1);
     dev_overlay_size(c, &table, string_lit("Memory"), rend_res_texture_memory(texture));
@@ -466,7 +468,6 @@ static void dev_overlay_resource(UiCanvasComp* c, RendSettingsComp* set, EcsView
     dev_overlay_int(c, &table, string_lit("Mips"), rend_res_texture_mip_levels(texture));
     dev_overlay_int(c, &table, string_lit("Layers"), rend_res_texture_layers(texture));
   }
-  const RendResMeshComp* mesh = ecs_view_read_t(resourceItr, RendResMeshComp);
   if (mesh) {
     const GeoBox bounds = rend_res_mesh_bounds(mesh);
     dev_overlay_size(c, &table, string_lit("Memory"), rend_res_mesh_memory(mesh));
