@@ -418,11 +418,13 @@ static void rvk_pipeline_report_stats(RvkDevice* dev, VkPipeline vkPipeline, Ren
 
     rend_report_push(report, execName, execDesc, string_empty);
 
-    rend_report_push(
-        report,
-        string_lit("Subgroup Size"),
-        string_lit("Pipeline executable dispatch subgroup size"),
-        fmt_write_scratch("{}", fmt_int(execProps[execIndex].subgroupSize)));
+    if (execProps[execIndex].subgroupSize) {
+      rend_report_push(
+          report,
+          string_lit("Subgroup Size"),
+          string_lit("Pipeline executable dispatch subgroup size"),
+          fmt_write_scratch("{}", fmt_int(execProps[execIndex].subgroupSize)));
+    }
 
     const VkPipelineExecutableInfoKHR execInfo = {
         .sType           = VK_STRUCTURE_TYPE_PIPELINE_EXECUTABLE_INFO_KHR,
