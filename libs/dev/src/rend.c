@@ -375,9 +375,9 @@ static void dev_overlay_bg(UiCanvasComp* c) {
 static void dev_overlay_str_tooltip(
     UiCanvasComp* c, UiTable* t, const String label, const String tooltip, const String v) {
   ui_table_next_row(c, t);
-  ui_label(c, label, .fontSize = 14, .tooltip = tooltip);
+  ui_label(c, label, .fontSize = 14);
   ui_table_next_column(c, t);
-  ui_label(c, v, .fontSize = 14, .selectable = true);
+  ui_label(c, v, .fontSize = 14, .tooltip = tooltip, .selectable = true);
 }
 
 static void dev_overlay_str(UiCanvasComp* c, UiTable* t, const String label, const String v) {
