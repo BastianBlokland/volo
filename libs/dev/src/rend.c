@@ -420,6 +420,10 @@ dev_overlay_resource(UiCanvasComp* c, EcsWorld* world, RendSettingsComp* set, Ec
   const RendResTextureComp* texture = ecs_view_read_t(resourceItr, RendResTextureComp);
   const RendResMeshComp*    mesh    = ecs_view_read_t(resourceItr, RendResMeshComp);
 
+  if (!graphic && !texture && !mesh) {
+    return;
+  }
+
   const UiVector panelSize = {950, graphic ? 500 : 180};
   const UiVector inset     = {-5, -5};
 
@@ -490,9 +494,11 @@ dev_overlay_resource(UiCanvasComp* c, EcsWorld* world, RendSettingsComp* set, Ec
   ui_table_reset(&table);
 
   ui_table_next_row(c, &table);
-  ui_label(c, string_lit("Actions"), .fontSize = 14);
+  ui_label(c, string_lit("Debug"), .fontSize = 14);
   ui_table_next_column(c, &table);
-  if (ui_button(c, .label = string_lit("Reload"), .fontSize = 14)) {
+  bool debug = rend_res_debug_get(world, entity);
+  if (ui_toggle(c, &debug)) {
+    rend_res_debug_set(world, entity, debug);
     asset_reload_request(world, entity);
   }
   if (lodMax > 0.0f) {
@@ -516,6 +522,12 @@ dev_overlay_resource(UiCanvasComp* c, EcsWorld* world, RendSettingsComp* set, Ec
     ui_label(c, string_lit("Alpha Only"), .fontSize = 14);
     ui_table_next_column(c, &table);
     ui_toggle_flag(c, (u32*)&set->debugViewerFlags, RendDebugViewer_AlphaOnly);
+  }
+  ui_table_next_row(c, &table);
+  ui_label(c, string_lit("Actions"), .fontSize = 14);
+  ui_table_next_column(c, &table);
+  if (ui_button(c, .label = string_lit("Reload"), .fontSize = 14)) {
+    asset_reload_request(world, entity);
   }
 
   ui_layout_container_pop(c);
