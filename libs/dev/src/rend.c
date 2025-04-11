@@ -405,7 +405,8 @@ static void dev_overlay_vec3(UiCanvasComp* c, UiTable* t, const String label, co
       fmt_write_scratch("{}", fmt_list_lit(fmt_float(v.x), fmt_float(v.y), fmt_float(v.z))));
 }
 
-static void dev_overlay_resource(UiCanvasComp* c, RendSettingsComp* set, EcsView* resView) {
+static void
+dev_overlay_resource(UiCanvasComp* c, EcsWorld* world, RendSettingsComp* set, EcsView* resView) {
   EcsIterator* resourceItr = ecs_view_maybe_at(resView, set->debugViewerResource);
   if (!resourceItr) {
     return;
@@ -488,6 +489,12 @@ static void dev_overlay_resource(UiCanvasComp* c, RendSettingsComp* set, EcsView
   ui_layout_container_push(c, UiClip_None, UiLayer_Normal);
   ui_table_reset(&table);
 
+  ui_table_next_row(c, &table);
+  ui_label(c, string_lit("Actions"), .fontSize = 14);
+  ui_table_next_column(c, &table);
+  if (ui_button(c, .label = string_lit("Reload"), .fontSize = 14)) {
+    asset_reload_request(world, entity);
+  }
   if (lodMax > 0.0f) {
     ui_table_next_row(c, &table);
     ui_label(c, string_lit("Lod"), .fontSize = 14);
@@ -1287,7 +1294,7 @@ ecs_system_define(DevRendUpdatePanelSys) {
         settings->debugViewerResource = 0;
         settings->flags &= ~RendFlags_DebugOverlay;
       } else {
-        dev_overlay_resource(canvas, settings, ecs_world_view_t(world, ResourceView));
+        dev_overlay_resource(canvas, world, settings, ecs_world_view_t(world, ResourceView));
       }
     }
 
