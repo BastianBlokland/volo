@@ -35,7 +35,7 @@ void rend_report_destroy(Allocator* alloc, RendReport* report) {
 }
 
 void rend_report_reset(RendReport* report) {
-  report->entryHead = null;
+  report->entryHead = report->entryTail = null;
   alloc_reset(report->bumpAlloc);
 }
 
