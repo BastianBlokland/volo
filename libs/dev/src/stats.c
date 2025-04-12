@@ -796,7 +796,7 @@ static void dev_stats_draw_interface(
     stats_draw_val_entry(c, string_lit("Canvasses"), fmt_write_scratch("{}", fmt_int(uiStats->canvasCount)));
     stats_draw_val_entry(c, string_lit("Tracked elements"), fmt_write_scratch("{}", fmt_int(uiStats->trackedElemCount)));
     stats_draw_val_entry(c, string_lit("Persistent elements"), fmt_write_scratch("{}", fmt_int(uiStats->persistElemCount)));
-    stats_draw_val_entry(c, string_lit("Atoms"), fmt_write_scratch("{<8} overlay: {}", fmt_int(uiStats->atomCount), fmt_int(uiStats->atomOverlayCount)));
+    stats_draw_val_entry(c, string_lit("Atoms"), fmt_write_scratch("{<8} deferred: {}", fmt_int(uiStats->atomCount), fmt_int(uiStats->atomDeferredCount)));
     stats_draw_val_entry(c, string_lit("Clip-rects"), fmt_write_scratch("{}", fmt_int(uiStats->clipRectCount)));
     stats_draw_val_entry(c, string_lit("Commands"), fmt_write_scratch("{}", fmt_int(uiStats->commandCount)));
   }

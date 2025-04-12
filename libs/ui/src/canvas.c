@@ -64,7 +64,7 @@ typedef enum {
 
 ecs_comp_define(UiRendererComp) {
   EcsEntityId rendObj;
-  DynArray    overlayAtoms; // UiAtomData[]
+  DynArray    deferredAtoms[UiLayer_Count - 1]; // UiAtomData[][]
 };
 
 ecs_comp_define(UiCanvasComp) {
@@ -91,7 +91,7 @@ ecs_comp_define(UiCanvasComp) {
 
 static void ecs_destruct_renderer(void* data) {
   UiRendererComp* comp = data;
-  dynarray_destroy(&comp->overlayAtoms);
+  array_for_t(comp->deferredAtoms, DynArray, atoms) { dynarray_destroy(atoms); }
 }
 
 static void ecs_destruct_canvas(void* data) {
@@ -219,16 +219,11 @@ static u8 ui_canvas_output_clip_rect(void* userCtx, const UiRect rect) {
 
 static void ui_canvas_output_atom(void* userCtx, const UiAtomData data, const UiLayer layer) {
   UiRenderState* state = userCtx;
-  switch (layer) {
-  case UiLayer_Normal: {
-    const GeoBox bounds = geo_box_inverted3();
-    *rend_object_add_instance_t(state->rendObj, UiAtomData, SceneTags_None, bounds) = data;
-  } break;
-  case UiLayer_Overlay:
-  case UiLayer_Debug: // NOTE: 'Debug' only affects clipping, not render-order at this time.
-    *dynarray_push_t(&state->renderer->overlayAtoms, UiAtomData) = data;
-    break;
+  if (layer == UiLayer_Normal) {
+    *rend_object_add_instance_t(state->rendObj, UiAtomData, 0, geo_box_inverted3()) = data;
+    return;
   }
+  *dynarray_push_t(&state->renderer->deferredAtoms[layer - 1], UiAtomData) = data;
 }
 
 static void ui_canvas_output_rect(void* userCtx, const UiId id, const UiRect rect) {
@@ -439,12 +434,10 @@ static void ui_renderer_create(EcsWorld* world, const EcsEntityId window) {
   RendObjectComp*       rendObj  = rend_object_create(world, rendObjEntity, objFlags);
   rend_object_set_camera_filter(rendObj, window);
 
-  ecs_world_add_t(
-      world,
-      window,
-      UiRendererComp,
-      .rendObj      = rendObjEntity,
-      .overlayAtoms = dynarray_create_t(g_allocHeap, UiAtomData, 32));
+  UiRendererComp* comp = ecs_world_add_t(world, window, UiRendererComp, .rendObj = rendObjEntity);
+  array_for_t(comp->deferredAtoms, DynArray, atoms) {
+    *atoms = dynarray_create_t(g_allocHeap, UiAtomData, 32);
+  }
 
   ecs_world_add_t(world, window, UiStatsComp);
 }
@@ -606,22 +599,25 @@ ecs_system_define(UiRenderSys) {
     }
     ui_canvas_cursor_update(window, interactType);
 
-    stats->canvasSize       = canvasSize;
-    stats->canvasCount      = canvasCount;
-    stats->atomCount        = rend_object_instance_count(rendObj);
-    stats->atomOverlayCount = (u32)renderer->overlayAtoms.size;
-    stats->clipRectCount    = renderState.clipRectCount;
+    stats->canvasSize        = canvasSize;
+    stats->canvasCount       = canvasCount;
+    stats->atomCount         = rend_object_instance_count(rendObj);
+    stats->atomDeferredCount = 0;
+    stats->clipRectCount     = renderState.clipRectCount;
 
     if (!canvasCount) {
       diag_assert(!rend_object_instance_count(rendObj));
       continue;
     }
 
-    // Add the overlay atoms, at this stage all the normal atoms have already been added.
-    dynarray_for_t(&renderer->overlayAtoms, UiAtomData, atom) {
-      *rend_object_add_instance_t(rendObj, UiAtomData, SceneTags_None, geo_box_inverted3()) = *atom;
+    // Add the deferred atoms, at this stage all the normal atoms have already been added.
+    array_for_t(renderer->deferredAtoms, DynArray, atoms) {
+      stats->atomDeferredCount += (u32)atoms->size;
+      dynarray_for_t(atoms, UiAtomData, atom) {
+        *rend_object_add_instance_t(rendObj, UiAtomData, 0, geo_box_inverted3()) = *atom;
+      }
+      dynarray_clear(atoms);
     }
-    dynarray_clear(&renderer->overlayAtoms);
 
     // Set the metadata.
     UiDrawMetaData* drawMeta = rend_object_set_data_t(rendObj, UiDrawMetaData);

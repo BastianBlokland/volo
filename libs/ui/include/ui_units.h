@@ -53,6 +53,8 @@ typedef enum eUiLayer {
   UiLayer_Normal,
   UiLayer_Overlay,
   UiLayer_Debug,
+
+  UiLayer_Count,
 } UiLayer;
 
 /**
