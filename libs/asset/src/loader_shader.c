@@ -177,6 +177,9 @@ String asset_shader_type_array_name_scratch(const u8 types[], const u32 typeCoun
   DynString str        = dynstring_create_over(scratchMem);
 
   for (u32 i = 0; i != typeCount; ++i) {
+    if (types[i] == AssetShaderType_None) {
+      continue;
+    }
     if (i) {
       dynstring_append_char(&str, ',');
     }
