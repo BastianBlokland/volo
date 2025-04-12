@@ -454,7 +454,7 @@ dev_overlay_resource(UiCanvasComp* c, EcsWorld* world, RendSettingsComp* set, Ec
     if (graphic) {
       const RendReport* report = rend_res_graphic_report(graphic);
       if (report) {
-        bool sectionOpen = true;
+        bool sectionOpen = true, insideSection = false;
         for (const RendReportEntry* entry = rend_report_begin(report); entry;
              entry                        = rend_report_next(entry)) {
           const String name = rend_report_name(entry);
@@ -464,15 +464,24 @@ dev_overlay_resource(UiCanvasComp* c, EcsWorld* world, RendSettingsComp* set, Ec
               const String desc  = rend_report_desc(entry);
               const String value = rend_report_value(entry);
               ui_table_next_row(c, &table);
+              if (insideSection) {
+                ui_layout_grow(c, UiAlign_MiddleRight, ui_vector(-15, 0), UiBase_Absolute, Ui_X);
+              }
               ui_label(c, name, .fontSize = 14, .tooltip = desc);
               ui_table_next_column(c, &table);
               ui_label(c, value, .fontSize = 14, .selectable = true);
             }
           } break;
           case RendReportType_Section:
-            ui_table_next_row(c, &table);
-            ui_canvas_id_block_next(c);
-            sectionOpen = ui_section(c, .label = name, .fontSize = 14);
+            if (string_is_empty(name)) {
+              sectionOpen   = true;
+              insideSection = false;
+            } else {
+              ui_table_next_row(c, &table);
+              ui_canvas_id_block_next(c);
+              sectionOpen   = ui_section(c, .label = name, .fontSize = 14);
+              insideSection = true;
+            }
             break;
           }
         }

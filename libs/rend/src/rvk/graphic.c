@@ -510,6 +510,9 @@ static void rvk_pipeline_report_stats(
       rend_report_push_value(report, statName, statDesc, statValue);
     }
   }
+
+  // Clear the section.
+  rend_report_push_section(report, string_empty);
 }
 
 static VkPipeline rvk_pipeline_create(
