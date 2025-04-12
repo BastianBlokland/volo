@@ -1,5 +1,6 @@
 #include "core_alloc.h"
 #include "core_diag.h"
+#include "core_dynstring.h"
 #include "data_read.h"
 #include "data_utils.h"
 #include "ecs_entity.h"
@@ -169,4 +170,21 @@ String asset_shader_type_name(const AssetShaderType type) {
   }
   // clang-format on
   diag_crash_msg("Invalid shader type");
+}
+
+String asset_shader_type_array_name_scratch(const u8 types[], const u32 typeCount) {
+  Mem       scratchMem = alloc_alloc(g_allocScratch, 256, 1);
+  DynString str        = dynstring_create_over(scratchMem);
+
+  for (u32 i = 0; i != typeCount; ++i) {
+    if (types[i] == AssetShaderType_None) {
+      continue;
+    }
+    if (i) {
+      dynstring_append_char(&str, ',');
+    }
+    dynstring_append(&str, asset_shader_type_name((AssetShaderType)types[i]));
+  }
+
+  return dynstring_view(&str);
 }

@@ -438,10 +438,10 @@ dev_overlay_resource(UiCanvasComp* c, EcsWorld* world, RendSettingsComp* set, Ec
 
   dev_overlay_bg(c);
   ui_layout_grow(c, UiAlign_MiddleCenter, inset, UiBase_Absolute, Ui_XY);
-  ui_layout_container_push(c, UiClip_None, UiLayer_Normal);
+  ui_layout_container_push(c, UiClip_Rect, UiLayer_Popup);
 
   ui_layout_set(c, ui_rect(ui_vector(0, 0), ui_vector(0.75f, 1)), UiBase_Container);
-  ui_layout_container_push(c, UiClip_None, UiLayer_Normal);
+  ui_layout_container_push(c, UiClip_None, UiLayer_Popup);
   {
     UiTable table = ui_table(.spacing = {4, 4}, .rowHeight = 17);
     ui_table_add_column(&table, UiTableColumn_Fixed, 250);
@@ -454,7 +454,7 @@ dev_overlay_resource(UiCanvasComp* c, EcsWorld* world, RendSettingsComp* set, Ec
     if (graphic) {
       const RendReport* report = rend_res_graphic_report(graphic);
       if (report) {
-        bool sectionOpen = true;
+        bool sectionOpen = true, insideSection = false;
         for (const RendReportEntry* entry = rend_report_begin(report); entry;
              entry                        = rend_report_next(entry)) {
           const String name = rend_report_name(entry);
@@ -464,15 +464,24 @@ dev_overlay_resource(UiCanvasComp* c, EcsWorld* world, RendSettingsComp* set, Ec
               const String desc  = rend_report_desc(entry);
               const String value = rend_report_value(entry);
               ui_table_next_row(c, &table);
+              if (insideSection) {
+                ui_layout_grow(c, UiAlign_MiddleRight, ui_vector(-15, 0), UiBase_Absolute, Ui_X);
+              }
               ui_label(c, name, .fontSize = 14, .tooltip = desc);
               ui_table_next_column(c, &table);
               ui_label(c, value, .fontSize = 14, .selectable = true);
             }
           } break;
           case RendReportType_Section:
-            ui_table_next_row(c, &table);
-            ui_canvas_id_block_next(c);
-            sectionOpen = ui_section(c, .label = name, .fontSize = 14);
+            if (string_is_empty(name)) {
+              sectionOpen   = true;
+              insideSection = false;
+            } else {
+              ui_table_next_row(c, &table);
+              ui_canvas_id_block_next(c);
+              sectionOpen   = ui_section(c, .label = name, .fontSize = 14);
+              insideSection = true;
+            }
             break;
           }
         }
@@ -502,7 +511,7 @@ dev_overlay_resource(UiCanvasComp* c, EcsWorld* world, RendSettingsComp* set, Ec
 
   // Settings section (right side of panel).
   ui_layout_set(c, ui_rect(ui_vector(0.75f, 0), ui_vector(0.25f, 1)), UiBase_Container);
-  ui_layout_container_push(c, UiClip_None, UiLayer_Normal);
+  ui_layout_container_push(c, UiClip_None, UiLayer_Popup);
   {
     UiTable table = ui_table(.spacing = {4, 4}, .rowHeight = 17);
     ui_table_add_column(&table, UiTableColumn_Fixed, 100);
