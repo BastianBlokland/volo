@@ -66,6 +66,7 @@ ecs_comp_define(AppMainWindowComp) {
   EcsEntityId uiCanvas;
   EcsEntityId devMenu;
   EcsEntityId devLogViewer;
+  bool        statsEnabled;
 };
 
 static EcsEntityId app_main_window_create(
@@ -497,6 +498,11 @@ ecs_system_define(AppUpdateSys) {
     DevStatsComp*      stats        = ecs_view_write_t(mainWinItr, DevStatsComp);
     RendSettingsComp*  rendSetWin   = ecs_view_write_t(mainWinItr, RendSettingsComp);
 
+    if (!appWindow->statsEnabled) {
+      dev_stats_show_set(stats, DevStatShow_Minimal);
+      appWindow->statsEnabled = true;
+    }
+
     // Save last window size.
     if (gap_window_events(win) & GapWindowEvents_Resized) {
       prefs->fullscreen = gap_window_mode(win) == GapWindowMode_Fullscreen;
@@ -535,17 +541,15 @@ ecs_system_define(AppUpdateSys) {
     // clang-format off
     switch (app->mode) {
     case AppMode_Normal:
-      if (devLogViewer)           { dev_log_viewer_set_mask(devLogViewer, LogMask_Warn | LogMask_Error); }
-      if (stats)                  { dev_stats_show_set(stats, DevStatShow_Minimal); }
+      if (devLogViewer) { dev_log_viewer_set_mask(devLogViewer, LogMask_Warn | LogMask_Error); }
       app_dev_hide(world, true);
       input_layer_disable(input, string_hash_lit("Dev"));
       input_layer_enable(input, string_hash_lit("Game"));
       scene_visibility_flags_clear(visibilityEnv, SceneVisibilityFlags_ForceRender);
       break;
     case AppMode_Debug:
-      if (!appWindow->devMenu)    { appWindow->devMenu = dev_menu_create(world, windowEntity); }
-      if (devLogViewer)           { dev_log_viewer_set_mask(devLogViewer, LogMask_All); }
-      if (stats)                  { dev_stats_show_set(stats, DevStatShow_Full); }
+      if (!appWindow->devMenu) { appWindow->devMenu = dev_menu_create(world, windowEntity); }
+      if (devLogViewer)        { dev_log_viewer_set_mask(devLogViewer, LogMask_All); }
       app_dev_hide(world, false);
       input_layer_enable(input, string_hash_lit("Dev"));
       input_layer_disable(input, string_hash_lit("Game"));
