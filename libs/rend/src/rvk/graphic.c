@@ -404,7 +404,23 @@ static String rvk_pipeline_exec_name(const VkPipelineExecutablePropertiesKHR* pr
   return string_from_null_term(props->name);
 }
 
-static void rvk_pipeline_report_stats(RvkDevice* dev, VkPipeline vkPipeline, RendReport* report) {
+static const RvkShader*
+rvk_pipeline_exec_shader(RvkGraphic* graphic, const VkPipelineExecutablePropertiesKHR* props) {
+  for (u32 shaderIdx = 0; shaderIdx != array_elems(graphic->shaders); ++shaderIdx) {
+    const RvkShader* shader = graphic->shaders[shaderIdx];
+    if (!shader) {
+      break;
+    }
+    if (props->stages & shader->vkStage) {
+      return shader;
+    }
+  }
+  return null;
+}
+
+static void rvk_pipeline_report_stats(
+    RvkDevice* dev, RvkGraphic* graphic, VkPipeline vkPipeline, RendReport* report) {
+
   const VkPipelineInfoKHR pipelineInfo = {
       .sType    = VK_STRUCTURE_TYPE_PIPELINE_INFO_KHR,
       .pipeline = vkPipeline,
@@ -424,6 +440,12 @@ static void rvk_pipeline_report_stats(RvkDevice* dev, VkPipeline vkPipeline, Ren
 
   for (u32 execIndex = 0; execIndex != execCount; ++execIndex) {
     rend_report_push_section(report, rvk_pipeline_exec_name(&execProps[execIndex]));
+
+    const RvkShader* shader = rvk_pipeline_exec_shader(graphic, &execProps[execIndex]);
+    if (shader) {
+      rend_report_push_value(
+          report, string_lit("Shader"), string_lit("Source shader"), shader->dbgName);
+    }
 
     if (execProps[execIndex].subgroupSize) {
       rend_report_push_value(
@@ -608,7 +630,7 @@ static VkPipeline rvk_pipeline_create(
   trace_end();
 
   if (report && dev->flags & RvkDeviceFlags_SupportExecutableInfo) {
-    rvk_pipeline_report_stats(dev, result, report);
+    rvk_pipeline_report_stats(dev, graphic, result, report);
   }
 
   return result;
