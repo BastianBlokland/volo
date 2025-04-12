@@ -73,8 +73,8 @@ ecs_comp_extern_public(AssetShaderComp) {
   AssetShaderKind  kind;
   AssetShaderFlags flags;
   u16              killSpecConstMask; // Mask of spec constants that need to be true for kill inst.
-  u8               inputs[asset_shader_max_inputs];  // AssetShaderType[]
-  u8               outputs[asset_shader_max_inputs]; // AssetShaderType[]
+  u8               inputs[asset_shader_max_inputs];   // AssetShaderType[]
+  u8               outputs[asset_shader_max_outputs]; // AssetShaderType[]
   String           entryPoint;
   HeapArray_t(AssetShaderRes) resources;
   HeapArray_t(AssetShaderSpec) specs;

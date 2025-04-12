@@ -22,8 +22,8 @@ typedef struct sRvkShader {
 
   RvkDescMeta descriptors[rvk_shader_desc_max];
 
-  u8 inputs[asset_shader_max_inputs];  // AssetShaderType[]
-  u8 outputs[asset_shader_max_inputs]; // AssetShaderType[]
+  u8 inputs[asset_shader_max_inputs];   // AssetShaderType[]
+  u8 outputs[asset_shader_max_outputs]; // AssetShaderType[]
 
   HeapArray_t(AssetShaderSpec) specs;
 } RvkShader;
