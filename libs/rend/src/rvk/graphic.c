@@ -443,8 +443,9 @@ static void rvk_pipeline_report_stats(
 
     const RvkShader* shader = rvk_pipeline_exec_shader(graphic, &execProps[execIndex]);
     if (shader) {
+      rend_report_push_value(report, string_lit("Shader"), string_empty, shader->dbgName);
       rend_report_push_value(
-          report, string_lit("Shader"), string_lit("Source shader"), shader->dbgName);
+          report, string_lit("Shader entry"), string_lit("Shader entry point"), shader->entryPoint);
     }
 
     if (execProps[execIndex].subgroupSize) {
