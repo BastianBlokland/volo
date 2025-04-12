@@ -639,9 +639,9 @@ static VkPipeline rvk_pipeline_create(
   VkPipeline result;
   trace_begin("rend_pipeline_create", TraceColor_Blue);
   {
-    VkPipelineCache psoc = dev->vkPipelineCache;
+    VkPipelineCache cache = dev->vkPipelineCache;
     rvk_call_checked(
-        dev, createGraphicsPipelines, dev->vkDev, psoc, 1, &info, &dev->vkAlloc, &result);
+        dev, createGraphicsPipelines, dev->vkDev, cache, 1, &info, &dev->vkAlloc, &result);
   }
   trace_end();
 
