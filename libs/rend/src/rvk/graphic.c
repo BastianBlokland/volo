@@ -923,6 +923,8 @@ bool rvk_graphic_finalize(
   diag_assert_msg(!gra->vkPipeline, "Graphic already finalized");
   diag_assert(gra->passId == rvk_pass_config(pass)->id);
 
+  const TimeSteady startTime = time_steady_clock();
+
   RvkDescUpdateBatch descBatch;
   descBatch.count = 0;
 
@@ -1042,6 +1044,15 @@ bool rvk_graphic_finalize(
 
   gra->vkPipelineLayout = rvk_pipeline_layout_create(gra, dev, pass);
   gra->vkPipeline       = rvk_pipeline_create(gra, asset, dev, gra->vkPipelineLayout, pass, report);
+
+  const TimeDuration dur = time_steady_duration(startTime, time_steady_clock());
+  if (report) {
+    rend_report_push_value(
+        report,
+        string_lit("Finalize duration"),
+        string_empty,
+        fmt_write_scratch("{}", fmt_duration(dur)));
+  }
 
   rvk_debug_name_pipeline_layout(dev, gra->vkPipelineLayout, "{}", fmt_text(gra->dbgName));
   rvk_debug_name_pipeline(dev, gra->vkPipeline, "{}", fmt_text(gra->dbgName));
