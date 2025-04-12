@@ -24,6 +24,7 @@
   X(0xE429, Tune)                                                                                  \
   X(0xE4FC, QueryStats)                                                                            \
   X(0xE518, Light)                                                                                 \
+  X(0xE53B, Layers)                                                                                \
   X(0xE548, Hospital)                                                                              \
   X(0xE574, Category)                                                                              \
   X(0xE5CA, Check)                                                                                 \
