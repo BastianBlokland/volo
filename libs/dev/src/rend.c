@@ -372,16 +372,11 @@ static void dev_overlay_bg(UiCanvasComp* c) {
   ui_style_pop(c);
 }
 
-static void dev_overlay_str_tooltip(
-    UiCanvasComp* c, UiTable* t, const String label, const String tooltip, const String v) {
-  ui_table_next_row(c, t);
-  ui_label(c, label, .fontSize = 14, .tooltip = tooltip);
-  ui_table_next_column(c, t);
-  ui_label(c, v, .fontSize = 14, .tooltip = tooltip, .selectable = true);
-}
-
 static void dev_overlay_str(UiCanvasComp* c, UiTable* t, const String label, const String v) {
-  dev_overlay_str_tooltip(c, t, label, string_empty /* tooltip */, v);
+  ui_table_next_row(c, t);
+  ui_label(c, label, .fontSize = 14);
+  ui_table_next_column(c, t);
+  ui_label(c, v, .fontSize = 14, .selectable = true);
 }
 
 static void dev_overlay_int(UiCanvasComp* c, UiTable* t, const String label, const i64 v) {
@@ -459,12 +454,26 @@ dev_overlay_resource(UiCanvasComp* c, EcsWorld* world, RendSettingsComp* set, Ec
     if (graphic) {
       const RendReport* report = rend_res_graphic_report(graphic);
       if (report) {
+        bool sectionOpen = true;
         for (const RendReportEntry* entry = rend_report_begin(report); entry;
-             entry                        = rend_report_next(report, entry)) {
-          const String name  = rend_report_name(report, entry);
-          const String desc  = rend_report_desc(report, entry);
-          const String value = rend_report_value(report, entry);
-          dev_overlay_str_tooltip(c, &table, name, desc, value);
+             entry                        = rend_report_next(entry)) {
+          const String name = rend_report_name(entry);
+          switch (rend_report_type(entry)) {
+          case RendReportType_Value: {
+            if (sectionOpen) {
+              const String desc  = rend_report_desc(entry);
+              const String value = rend_report_value(entry);
+              ui_table_next_row(c, &table);
+              ui_label(c, name, .fontSize = 14, .tooltip = desc);
+              ui_table_next_column(c, &table);
+              ui_label(c, value, .fontSize = 14, .tooltip = desc, .selectable = true);
+            }
+          } break;
+          case RendReportType_Section:
+            ui_table_next_row(c, &table);
+            sectionOpen = ui_section(c, .label = name, .fontSize = 14);
+            break;
+          }
         }
       }
     }

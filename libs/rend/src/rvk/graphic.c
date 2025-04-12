@@ -416,10 +416,11 @@ static void rvk_pipeline_report_stats(RvkDevice* dev, VkPipeline vkPipeline, Ren
     const String execName = string_from_null_term(execProps[execIndex].name);
     const String execDesc = string_from_null_term(execProps[execIndex].description);
 
-    rend_report_push(report, execName, execDesc, string_empty);
+    (void)execDesc;
+    rend_report_push_section(report, execName);
 
     if (execProps[execIndex].subgroupSize) {
-      rend_report_push(
+      rend_report_push_value(
           report,
           string_lit("Subgroup Size"),
           string_lit("Pipeline executable dispatch subgroup size"),
@@ -465,7 +466,7 @@ static void rvk_pipeline_report_stats(RvkDevice* dev, VkPipeline vkPipeline, Ren
       default:
         UNREACHABLE
       }
-      rend_report_push(report, statName, statDesc, statValue);
+      rend_report_push_value(report, statName, statDesc, statValue);
     }
   }
 }

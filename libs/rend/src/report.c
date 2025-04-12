@@ -10,9 +10,19 @@ typedef struct sRendReport {
 } RendReport;
 
 typedef struct sRendReportEntry {
-  struct sRendReportEntry* next;
+  RendReportType           type;
   String                   name, desc, value;
+  struct sRendReportEntry* next;
 } RendReportEntry;
+
+static void rend_report_push(RendReport* report, RendReportEntry* entry) {
+  if (report->entryHead) {
+    report->entryTail->next = entry;
+  } else {
+    report->entryHead = entry;
+  }
+  report->entryTail = entry;
+}
 
 RendReport* rend_report_create(Allocator* alloc, const usize memCapacity) {
   const usize minSize = sizeof(RendReport) + 64 /* Minimum size for the bump allocator */;
@@ -40,44 +50,40 @@ void rend_report_reset(RendReport* report) {
 }
 
 const RendReportEntry* rend_report_begin(const RendReport* report) { return report->entryHead; }
+const RendReportEntry* rend_report_next(const RendReportEntry* entry) { return entry->next; }
 
-const RendReportEntry* rend_report_next(const RendReport* report, const RendReportEntry* entry) {
-  (void)report;
-  return entry->next;
-}
+RendReportType rend_report_type(const RendReportEntry* entry) { return entry->type; }
+String         rend_report_name(const RendReportEntry* entry) { return entry->name; }
+String         rend_report_desc(const RendReportEntry* entry) { return entry->desc; }
+String         rend_report_value(const RendReportEntry* entry) { return entry->value; }
 
-String rend_report_name(const RendReport* report, const RendReportEntry* entry) {
-  (void)report;
-  return entry->name;
-}
-
-String rend_report_desc(const RendReport* report, const RendReportEntry* entry) {
-  (void)report;
-  return entry->desc;
-}
-
-String rend_report_value(const RendReport* report, const RendReportEntry* entry) {
-  (void)report;
-  return entry->value;
-}
-
-bool rend_report_push(
+bool rend_report_push_value(
     RendReport* report, const String name, const String desc, const String value) {
   RendReportEntry* entry = alloc_alloc_t(report->bumpAlloc, RendReportEntry);
   if (!entry) {
     return false; // Out of space.
   }
-  entry->next  = null;
-  entry->name  = string_dup(report->bumpAlloc, name);
-  entry->desc  = string_maybe_dup(report->bumpAlloc, desc);
-  entry->value = string_maybe_dup(report->bumpAlloc, value);
+  *entry = (RendReportEntry){
+      .type  = RendReportType_Value,
+      .name  = string_dup(report->bumpAlloc, name),
+      .desc  = string_maybe_dup(report->bumpAlloc, desc),
+      .value = string_maybe_dup(report->bumpAlloc, value),
+  };
+  rend_report_push(report, entry);
 
-  if (report->entryHead) {
-    report->entryTail->next = entry;
-  } else {
-    report->entryHead = entry;
+  return true;
+}
+
+bool rend_report_push_section(RendReport* report, const String name) {
+  RendReportEntry* entry = alloc_alloc_t(report->bumpAlloc, RendReportEntry);
+  if (!entry) {
+    return false; // Out of space.
   }
-  report->entryTail = entry;
+  *entry = (RendReportEntry){
+      .type = RendReportType_Section,
+      .name = string_dup(report->bumpAlloc, name),
+  };
+  rend_report_push(report, entry);
 
   return true;
 }
