@@ -65,7 +65,7 @@ bool rend_report_push_value(
   }
   *entry = (RendReportEntry){
       .type  = RendReportType_Value,
-      .name  = string_dup(report->bumpAlloc, name),
+      .name  = string_maybe_dup(report->bumpAlloc, name),
       .desc  = string_maybe_dup(report->bumpAlloc, desc),
       .value = string_maybe_dup(report->bumpAlloc, value),
   };
@@ -81,7 +81,7 @@ bool rend_report_push_section(RendReport* report, const String name) {
   }
   *entry = (RendReportEntry){
       .type = RendReportType_Section,
-      .name = string_dup(report->bumpAlloc, name),
+      .name = string_maybe_dup(report->bumpAlloc, name),
   };
   rend_report_push(report, entry);
 
