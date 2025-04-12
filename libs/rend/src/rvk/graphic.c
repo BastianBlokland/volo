@@ -1024,6 +1024,16 @@ bool rvk_graphic_finalize(
     }
   }
 
+  if (report) {
+    rend_report_push_value(
+        report, string_lit("Pass"), string_empty, asset_graphic_pass_name(gra->passId));
+    rend_report_push_value(
+        report,
+        string_lit("Pass order"),
+        string_empty,
+        fmt_write_scratch("{}", fmt_int(gra->passOrder)));
+  }
+
   if (gra->flags & RvkGraphicFlags_Invalid) {
     return false;
   }
