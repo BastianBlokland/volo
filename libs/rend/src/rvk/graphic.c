@@ -394,6 +394,16 @@ static VkPipelineColorBlendAttachmentState rvk_pipeline_colorblend(const AssetGr
   diag_crash();
 }
 
+static String rvk_pipeline_exec_name(const VkPipelineExecutablePropertiesKHR* props) {
+  if (props->stages & VK_SHADER_STAGE_VERTEX_BIT) {
+    return string_lit("Exec Vertex");
+  }
+  if (props->stages & VK_SHADER_STAGE_FRAGMENT_BIT) {
+    return string_lit("Exec Fragment");
+  }
+  return string_from_null_term(props->name);
+}
+
 static void rvk_pipeline_report_stats(RvkDevice* dev, VkPipeline vkPipeline, RendReport* report) {
   const VkPipelineInfoKHR pipelineInfo = {
       .sType    = VK_STRUCTURE_TYPE_PIPELINE_INFO_KHR,
@@ -413,11 +423,7 @@ static void rvk_pipeline_report_stats(RvkDevice* dev, VkPipeline vkPipeline, Ren
       dev, getPipelineExecutablePropertiesKHR, dev->vkDev, &pipelineInfo, &execCount, execProps);
 
   for (u32 execIndex = 0; execIndex != execCount; ++execIndex) {
-    const String execName = string_from_null_term(execProps[execIndex].name);
-    const String execDesc = string_from_null_term(execProps[execIndex].description);
-
-    (void)execDesc;
-    rend_report_push_section(report, execName);
+    rend_report_push_section(report, rvk_pipeline_exec_name(&execProps[execIndex]));
 
     if (execProps[execIndex].subgroupSize) {
       rend_report_push_value(
