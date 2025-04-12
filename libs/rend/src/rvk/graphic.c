@@ -446,6 +446,18 @@ static void rvk_pipeline_report_stats(
       rend_report_push_value(report, string_lit("Shader"), string_empty, shader->dbgName);
       rend_report_push_value(
           report, string_lit("Shader entry"), string_lit("Shader entry point"), shader->entryPoint);
+
+      rend_report_push_value(
+          report,
+          string_lit("Shader inputs"),
+          string_empty,
+          asset_shader_type_array_name_scratch(shader->inputs, asset_shader_max_inputs));
+
+      rend_report_push_value(
+          report,
+          string_lit("Shader outputs"),
+          string_empty,
+          asset_shader_type_array_name_scratch(shader->outputs, asset_shader_max_outputs));
     }
 
     if (execProps[execIndex].subgroupSize) {
