@@ -466,7 +466,7 @@ dev_overlay_resource(UiCanvasComp* c, EcsWorld* world, RendSettingsComp* set, Ec
               ui_table_next_row(c, &table);
               ui_label(c, name, .fontSize = 14, .tooltip = desc);
               ui_table_next_column(c, &table);
-              ui_label(c, value, .fontSize = 14, .tooltip = desc, .selectable = true);
+              ui_label(c, value, .fontSize = 14, .selectable = true);
             }
           } break;
           case RendReportType_Section:
