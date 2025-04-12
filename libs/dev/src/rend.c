@@ -438,10 +438,10 @@ dev_overlay_resource(UiCanvasComp* c, EcsWorld* world, RendSettingsComp* set, Ec
 
   dev_overlay_bg(c);
   ui_layout_grow(c, UiAlign_MiddleCenter, inset, UiBase_Absolute, Ui_XY);
-  ui_layout_container_push(c, UiClip_None, UiLayer_Normal);
+  ui_layout_container_push(c, UiClip_Rect, UiLayer_Popup);
 
   ui_layout_set(c, ui_rect(ui_vector(0, 0), ui_vector(0.75f, 1)), UiBase_Container);
-  ui_layout_container_push(c, UiClip_None, UiLayer_Normal);
+  ui_layout_container_push(c, UiClip_None, UiLayer_Popup);
   {
     UiTable table = ui_table(.spacing = {4, 4}, .rowHeight = 17);
     ui_table_add_column(&table, UiTableColumn_Fixed, 250);
@@ -502,7 +502,7 @@ dev_overlay_resource(UiCanvasComp* c, EcsWorld* world, RendSettingsComp* set, Ec
 
   // Settings section (right side of panel).
   ui_layout_set(c, ui_rect(ui_vector(0.75f, 0), ui_vector(0.25f, 1)), UiBase_Container);
-  ui_layout_container_push(c, UiClip_None, UiLayer_Normal);
+  ui_layout_container_push(c, UiClip_None, UiLayer_Popup);
   {
     UiTable table = ui_table(.spacing = {4, 4}, .rowHeight = 17);
     ui_table_add_column(&table, UiTableColumn_Fixed, 100);
