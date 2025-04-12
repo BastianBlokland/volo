@@ -349,7 +349,7 @@ static bool dev_overlay_blocker(UiCanvasComp* canvas) {
   {
     ui_layout_set(canvas, ui_rect(ui_vector(0, 0), ui_vector(1, 1)), UiBase_Canvas); // Fullscreen.
     ui_style_color(canvas, ui_color(0, 0, 0, 225));
-    ui_style_layer(canvas, UiLayer_Overlay);
+    ui_style_layer(canvas, UiLayer_Popup);
     ui_canvas_draw_glyph(canvas, UiShape_Square, 10, UiFlags_Interactable);
   }
   ui_style_pop(canvas);
@@ -423,7 +423,7 @@ dev_overlay_resource(UiCanvasComp* c, EcsWorld* world, RendSettingsComp* set, Ec
   const UiVector inset     = {-5, -5};
 
   ui_style_push(c);
-  ui_style_layer(c, UiLayer_Overlay);
+  ui_style_layer(c, UiLayer_Popup);
 
   ui_layout_push(c);
   if (graphic) {
@@ -466,7 +466,7 @@ dev_overlay_resource(UiCanvasComp* c, EcsWorld* world, RendSettingsComp* set, Ec
               ui_table_next_row(c, &table);
               ui_label(c, name, .fontSize = 14, .tooltip = desc);
               ui_table_next_column(c, &table);
-              ui_label(c, value, .fontSize = 14, .tooltip = desc, .selectable = true);
+              ui_label(c, value, .fontSize = 14, .selectable = true);
             }
           } break;
           case RendReportType_Section:

@@ -185,8 +185,8 @@ trace_options_trigger_draw(UiCanvasComp* c, DevTracePanelComp* panel, const Trac
 
   ui_style_push(c);
   if (popupActive) {
-    ui_style_layer(c, UiLayer_Overlay);
-    ui_canvas_min_interact_layer(c, UiLayer_Overlay);
+    ui_style_layer(c, UiLayer_Popup);
+    ui_canvas_min_interact_layer(c, UiLayer_Popup);
 
     ui_layout_push(c);
     ui_layout_move(c, ui_vector(0.5f, 0.5f), UiBase_Current, Ui_XY);
