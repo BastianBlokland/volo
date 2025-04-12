@@ -443,92 +443,99 @@ dev_overlay_resource(UiCanvasComp* c, EcsWorld* world, RendSettingsComp* set, Ec
 
   dev_overlay_bg(c);
   ui_layout_grow(c, UiAlign_MiddleCenter, inset, UiBase_Absolute, Ui_XY);
-  ui_layout_resize(c, UiAlign_BottomLeft, ui_vector(0.5f, 0), UiBase_Current, Ui_X);
   ui_layout_container_push(c, UiClip_None, UiLayer_Normal);
 
-  UiTable table = ui_table(.spacing = {4, 4}, .rowHeight = 17);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 200);
-  ui_table_add_column(&table, UiTableColumn_Flexible, 0);
+  ui_layout_set(c, ui_rect(ui_vector(0, 0), ui_vector(0.75f, 1)), UiBase_Container);
+  ui_layout_container_push(c, UiClip_None, UiLayer_Normal);
+  {
+    UiTable table = ui_table(.spacing = {4, 4}, .rowHeight = 17);
+    ui_table_add_column(&table, UiTableColumn_Fixed, 250);
+    ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
-  // Info section (left side of panel).
-  dev_overlay_str(c, &table, string_lit("Name"), asset_id(assetComp));
-  dev_overlay_entity(c, &table, string_lit("Entity"), entity);
-  dev_overlay_int(c, &table, string_lit("Dependents"), rend_res_dependents(resComp));
-  if (graphic) {
-    const RendReport* report = rend_res_graphic_report(graphic);
-    if (report) {
-      for (const RendReportEntry* entry = rend_report_begin(report); entry;
-           entry                        = rend_report_next(report, entry)) {
-        const String name  = rend_report_name(report, entry);
-        const String desc  = rend_report_desc(report, entry);
-        const String value = rend_report_value(report, entry);
-        dev_overlay_str_tooltip(c, &table, name, desc, value);
+    // Info section (left side of panel).
+    dev_overlay_str(c, &table, string_lit("Name"), asset_id(assetComp));
+    dev_overlay_entity(c, &table, string_lit("Entity"), entity);
+    dev_overlay_int(c, &table, string_lit("Dependents"), rend_res_dependents(resComp));
+    if (graphic) {
+      const RendReport* report = rend_res_graphic_report(graphic);
+      if (report) {
+        for (const RendReportEntry* entry = rend_report_begin(report); entry;
+             entry                        = rend_report_next(report, entry)) {
+          const String name  = rend_report_name(report, entry);
+          const String desc  = rend_report_desc(report, entry);
+          const String value = rend_report_value(report, entry);
+          dev_overlay_str_tooltip(c, &table, name, desc, value);
+        }
       }
     }
+    if (texture) {
+      lodMax = (f32)(rend_res_texture_mip_levels(texture) - 1);
+      dev_overlay_size(c, &table, string_lit("Memory"), rend_res_texture_memory(texture));
+      const u16    width   = rend_res_texture_width(texture);
+      const u16    height  = rend_res_texture_height(texture);
+      const String sizeStr = fmt_write_scratch("{} x {}", fmt_int(width), fmt_int(height));
+      dev_overlay_str(c, &table, string_lit("Size"), sizeStr);
+      dev_overlay_str(c, &table, string_lit("Format"), rend_res_texture_format_str(texture));
+      dev_overlay_int(c, &table, string_lit("Mips"), rend_res_texture_mip_levels(texture));
+      dev_overlay_int(c, &table, string_lit("Layers"), rend_res_texture_layers(texture));
+    }
+    if (mesh) {
+      const GeoBox bounds = rend_res_mesh_bounds(mesh);
+      dev_overlay_size(c, &table, string_lit("Memory"), rend_res_mesh_memory(mesh));
+      dev_overlay_int(c, &table, string_lit("Vertices"), rend_res_mesh_vertices(mesh));
+      dev_overlay_int(c, &table, string_lit("Indices"), rend_res_mesh_indices(mesh));
+      dev_overlay_int(c, &table, string_lit("Triangles"), rend_res_mesh_indices(mesh) / 3);
+      dev_overlay_vec3(c, &table, string_lit("Bounds"), geo_box_size(&bounds));
+    }
   }
-  if (texture) {
-    lodMax = (f32)(rend_res_texture_mip_levels(texture) - 1);
-    dev_overlay_size(c, &table, string_lit("Memory"), rend_res_texture_memory(texture));
-    const u16    width   = rend_res_texture_width(texture);
-    const u16    height  = rend_res_texture_height(texture);
-    const String sizeStr = fmt_write_scratch("{} x {}", fmt_int(width), fmt_int(height));
-    dev_overlay_str(c, &table, string_lit("Size"), sizeStr);
-    dev_overlay_str(c, &table, string_lit("Format"), rend_res_texture_format_str(texture));
-    dev_overlay_int(c, &table, string_lit("Mips"), rend_res_texture_mip_levels(texture));
-    dev_overlay_int(c, &table, string_lit("Layers"), rend_res_texture_layers(texture));
-  }
-  if (mesh) {
-    const GeoBox bounds = rend_res_mesh_bounds(mesh);
-    dev_overlay_size(c, &table, string_lit("Memory"), rend_res_mesh_memory(mesh));
-    dev_overlay_int(c, &table, string_lit("Vertices"), rend_res_mesh_vertices(mesh));
-    dev_overlay_int(c, &table, string_lit("Indices"), rend_res_mesh_indices(mesh));
-    dev_overlay_int(c, &table, string_lit("Triangles"), rend_res_mesh_indices(mesh) / 3);
-    dev_overlay_vec3(c, &table, string_lit("Bounds"), geo_box_size(&bounds));
-  }
-  ui_layout_set(c, ui_rect(ui_vector(0, 0), ui_vector(1, 1)), UiBase_Container);
   ui_layout_container_pop(c);
 
   // Settings section (right side of panel).
-  ui_layout_move_dir(c, Ui_Right, 1.0f, UiBase_Current);
+  ui_layout_set(c, ui_rect(ui_vector(0.75f, 0), ui_vector(0.25f, 1)), UiBase_Container);
   ui_layout_container_push(c, UiClip_None, UiLayer_Normal);
-  ui_table_reset(&table);
-
-  ui_table_next_row(c, &table);
-  ui_label(c, string_lit("Debug"), .fontSize = 14);
-  ui_table_next_column(c, &table);
-  bool debug = rend_res_debug_get(world, entity);
-  if (ui_toggle(c, &debug)) {
-    rend_res_debug_set(world, entity, debug);
-    asset_reload_request(world, entity);
-  }
-  if (lodMax > 0.0f) {
-    ui_table_next_row(c, &table);
-    ui_label(c, string_lit("Lod"), .fontSize = 14);
-    ui_table_next_column(c, &table);
-    ui_slider(c, &set->debugViewerLod, .max = lodMax, .step = 1.0f);
-  }
-  if (texture) {
-    ui_table_next_row(c, &table);
-    ui_label(c, string_lit("Interpolate"), .fontSize = 14);
-    ui_table_next_column(c, &table);
-    ui_toggle_flag(c, (u32*)&set->debugViewerFlags, RendDebugViewer_Interpolate);
+  {
+    UiTable table = ui_table(.spacing = {4, 4}, .rowHeight = 17);
+    ui_table_add_column(&table, UiTableColumn_Fixed, 100);
+    ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
     ui_table_next_row(c, &table);
-    ui_label(c, string_lit("Alpha Ignore"), .fontSize = 14);
+    ui_label(c, string_lit("Debug"), .fontSize = 14);
     ui_table_next_column(c, &table);
-    ui_toggle_flag(c, (u32*)&set->debugViewerFlags, RendDebugViewer_AlphaIgnore);
+    bool debug = rend_res_debug_get(world, entity);
+    if (ui_toggle(c, &debug)) {
+      rend_res_debug_set(world, entity, debug);
+      asset_reload_request(world, entity);
+    }
+    if (lodMax > 0.0f) {
+      ui_table_next_row(c, &table);
+      ui_label(c, string_lit("Lod"), .fontSize = 14);
+      ui_table_next_column(c, &table);
+      ui_slider(c, &set->debugViewerLod, .max = lodMax, .step = 1.0f);
+    }
+    if (texture) {
+      ui_table_next_row(c, &table);
+      ui_label(c, string_lit("Interpolate"), .fontSize = 14);
+      ui_table_next_column(c, &table);
+      ui_toggle_flag(c, (u32*)&set->debugViewerFlags, RendDebugViewer_Interpolate);
 
+      ui_table_next_row(c, &table);
+      ui_label(c, string_lit("Alpha Ignore"), .fontSize = 14);
+      ui_table_next_column(c, &table);
+      ui_toggle_flag(c, (u32*)&set->debugViewerFlags, RendDebugViewer_AlphaIgnore);
+
+      ui_table_next_row(c, &table);
+      ui_label(c, string_lit("Alpha Only"), .fontSize = 14);
+      ui_table_next_column(c, &table);
+      ui_toggle_flag(c, (u32*)&set->debugViewerFlags, RendDebugViewer_AlphaOnly);
+    }
     ui_table_next_row(c, &table);
-    ui_label(c, string_lit("Alpha Only"), .fontSize = 14);
+    ui_label(c, string_lit("Actions"), .fontSize = 14);
     ui_table_next_column(c, &table);
-    ui_toggle_flag(c, (u32*)&set->debugViewerFlags, RendDebugViewer_AlphaOnly);
+    if (ui_button(c, .label = string_lit("Reload"), .fontSize = 14)) {
+      asset_reload_request(world, entity);
+    }
   }
-  ui_table_next_row(c, &table);
-  ui_label(c, string_lit("Actions"), .fontSize = 14);
-  ui_table_next_column(c, &table);
-  if (ui_button(c, .label = string_lit("Reload"), .fontSize = 14)) {
-    asset_reload_request(world, entity);
-  }
+  ui_layout_container_pop(c);
 
   ui_layout_container_pop(c);
   ui_layout_pop(c);
