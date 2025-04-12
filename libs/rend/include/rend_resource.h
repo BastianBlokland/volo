@@ -12,6 +12,7 @@ ecs_comp_extern(RendResGraphicComp);
 ecs_comp_extern(RendResShaderComp);
 ecs_comp_extern(RendResMeshComp);
 ecs_comp_extern(RendResTextureComp);
+ecs_comp_extern(RendResDebugComp); // Debug enabled for this resource.
 
 /**
  * Check the status of the given resource.
@@ -40,3 +41,9 @@ usize             rend_res_texture_memory(const RendResTextureComp*);
  */
 AssetGraphicPass rend_res_pass(const RendResGraphicComp*);
 i32              rend_res_pass_order(const RendResGraphicComp*);
+
+/**
+ * Enable additional debug validation / statistics.
+ */
+bool rend_res_debug_get(EcsWorld*, EcsEntityId resource);
+void rend_res_debug_set(EcsWorld*, EcsEntityId resource, bool value);

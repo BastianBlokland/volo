@@ -66,6 +66,7 @@ ecs_comp_define_public(RendResGraphicComp);
 ecs_comp_define_public(RendResShaderComp);
 ecs_comp_define_public(RendResMeshComp);
 ecs_comp_define_public(RendResTextureComp);
+ecs_comp_define_public(RendResDebugComp);
 
 typedef enum {
   RendResFlags_None               = 0,
@@ -402,6 +403,7 @@ static bool rend_res_create(const RendPlatformComp* plat, EcsWorld* world, EcsIt
   const EcsEntityId       entity            = ecs_view_entity(resItr);
   const String            id                = asset_id(ecs_view_read_t(resItr, AssetComp));
   RendResComp*            resComp           = ecs_view_write_t(resItr, RendResComp);
+  const bool              resDebug          = ecs_world_has_t(world, entity, RendResDebugComp);
   const AssetGraphicComp* maybeAssetGraphic = ecs_view_read_t(resItr, AssetGraphicComp);
   const AssetShaderComp*  maybeAssetShader  = ecs_view_read_t(resItr, AssetShaderComp);
   const AssetMeshComp*    maybeAssetMesh    = ecs_view_read_t(resItr, AssetMeshComp);
@@ -409,7 +411,7 @@ static bool rend_res_create(const RendPlatformComp* plat, EcsWorld* world, EcsIt
 
   if (maybeAssetGraphic) {
     RendReport* graphicReport = null;
-    if (dev->flags & RvkDeviceFlags_SupportExecutableInfo) {
+    if (resDebug) {
       graphicReport = rend_report_create(g_allocHeap, 4 * usize_kibibyte);
     }
     RvkGraphic* graphic = rvk_graphic_create(dev, maybeAssetGraphic, id);
@@ -785,6 +787,7 @@ ecs_module_init(rend_resource_module) {
       RendResTextureComp, .destructor = ecs_destruct_texture_comp, .destructOrder = 4);
   ecs_register_comp(
       RendResComp, .destructor = ecs_destruct_res_comp, .combinator = ecs_combine_resource);
+  ecs_register_comp_empty(RendResDebugComp);
   ecs_register_comp_empty(RendResFinishedComp);
   ecs_register_comp(RendResUnloadComp, .combinator = ecs_combine_resource_unload);
   ecs_register_comp_empty(RendResGlobalInitializedComp);
@@ -889,6 +892,18 @@ usize rend_res_texture_memory(const RendResTextureComp* comp) {
 
 AssetGraphicPass rend_res_pass(const RendResGraphicComp* comp) { return comp->graphic->passId; }
 i32 rend_res_pass_order(const RendResGraphicComp* comp) { return comp->graphic->passOrder; }
+
+bool rend_res_debug_get(EcsWorld* world, const EcsEntityId resource) {
+  return ecs_world_has_t(world, resource, RendResDebugComp);
+}
+
+void rend_res_debug_set(EcsWorld* world, const EcsEntityId resource, const bool value) {
+  if (!value && ecs_world_has_t(world, resource, RendResDebugComp)) {
+    ecs_world_remove_t(world, resource, RendResDebugComp);
+  } else if (value && !ecs_world_has_t(world, resource, RendResDebugComp)) {
+    ecs_world_add_empty_t(world, resource, RendResDebugComp);
+  }
+}
 
 bool rend_res_request(EcsWorld* world, const EcsEntityId assetEntity) {
   return rend_res_request_internal(world, assetEntity, RendResFlags_None);
