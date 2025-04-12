@@ -51,6 +51,7 @@ typedef enum eUiAxis {
  */
 typedef enum eUiLayer {
   UiLayer_Normal,
+  UiLayer_Popup,
   UiLayer_Overlay,
   UiLayer_Debug,
 
