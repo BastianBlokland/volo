@@ -471,6 +471,7 @@ dev_overlay_resource(UiCanvasComp* c, EcsWorld* world, RendSettingsComp* set, Ec
           } break;
           case RendReportType_Section:
             ui_table_next_row(c, &table);
+            ui_canvas_id_block_next(c);
             sectionOpen = ui_section(c, .label = name, .fontSize = 14);
             break;
           }
