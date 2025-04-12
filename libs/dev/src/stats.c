@@ -267,12 +267,12 @@ static void stats_draw_bg(UiCanvasComp* c, const DevBgFlags flags) {
   ui_style_pop(c);
 }
 
-static void stats_draw_label(UiCanvasComp* c, const String label) {
+static void stats_draw_label(UiCanvasComp* c, const String label, const UiAlign align) {
   ui_layout_push(c);
 
   ui_layout_resize(c, UiAlign_BottomLeft, ui_vector(g_statsLabelWidth, 0), UiBase_Absolute, Ui_X);
   ui_layout_grow(c, UiAlign_MiddleCenter, ui_vector(-10, 0), UiBase_Absolute, Ui_X);
-  ui_label(c, label, .align = UiAlign_MiddleLeft);
+  ui_label(c, label, .align = align);
 
   ui_layout_pop(c);
 }
@@ -306,14 +306,14 @@ static bool stats_draw_button(UiCanvasComp* c, const String value) {
 
 static void stats_draw_val_entry(UiCanvasComp* c, const String label, const String value) {
   stats_draw_bg(c, DevBgFlags_None);
-  stats_draw_label(c, label);
+  stats_draw_label(c, label, UiAlign_MiddleLeft);
   stats_draw_value(c, value);
   ui_layout_next(c, Ui_Down, 0);
 }
 
 static bool stats_draw_button_entry(UiCanvasComp* c, const String label, const String value) {
   stats_draw_bg(c, DevBgFlags_None);
-  stats_draw_label(c, label);
+  stats_draw_label(c, label, UiAlign_MiddleLeft);
   const bool pressed = stats_draw_button(c, value);
   ui_layout_next(c, Ui_Down, 0);
   return pressed;
@@ -421,7 +421,7 @@ static void stats_draw_plot_dur(
   stats_draw_plot(c, plot, minUs, maxUs, stats_dur_val_writer);
 }
 
-static void stats_draw_frametime(UiCanvasComp* c, const DevStatsComp* stats) {
+static void stats_draw_frametime_value(UiCanvasComp* c, const DevStatsComp* stats) {
   const f64 g_errorThreshold = 1.25;
   const f64 g_warnThreshold  = 1.025;
 
@@ -439,9 +439,8 @@ static void stats_draw_frametime(UiCanvasComp* c, const DevStatsComp* stats) {
   const String freqText =
       fmt_write_scratch("{}hz", fmt_float(freq, .minDecDigits = 1, .maxDecDigits = 1));
 
-  stats_draw_val_entry(
+  stats_draw_value(
       c,
-      string_lit("Frame time"),
       fmt_write_scratch(
           "{}{<8}{<8}{>7} var",
           fmt_text(colorText),
@@ -488,7 +487,7 @@ static void stats_draw_chart(
 static void
 stats_draw_cpu_chart(UiCanvasComp* c, const DevStatsComp* st, const RendStatsComp* rendSt) {
   stats_draw_bg(c, DevBgFlags_None);
-  stats_draw_label(c, string_lit("CPU"));
+  stats_draw_label(c, string_lit("CPU"), UiAlign_MiddleLeft);
 
   ui_layout_push(c);
   ui_style_push(c);
@@ -535,7 +534,7 @@ stats_draw_cpu_chart(UiCanvasComp* c, const DevStatsComp* st, const RendStatsCom
 static void
 stats_draw_gpu_chart(UiCanvasComp* c, const DevStatsComp* st, const RendStatsComp* rendSt) {
   stats_draw_bg(c, DevBgFlags_None);
-  stats_draw_label(c, string_lit("GPU"));
+  stats_draw_label(c, string_lit("GPU"), UiAlign_MiddleLeft);
 
   ui_layout_push(c);
   ui_style_push(c);
@@ -592,7 +591,7 @@ stats_draw_gpu_chart(UiCanvasComp* c, const DevStatsComp* st, const RendStatsCom
 static void stats_draw_renderer_pass_dropdown(
     UiCanvasComp* c, DevStatsComp* stats, const RendStatsComp* rendStats) {
   stats_draw_bg(c, DevBgFlags_None);
-  stats_draw_label(c, string_lit("Pass select"));
+  stats_draw_label(c, string_lit("Pass select"), UiAlign_MiddleLeft);
   {
     ui_layout_push(c);
     ui_style_push(c);
@@ -621,7 +620,7 @@ static void stats_draw_renderer_pass_dropdown(
 
 static void stats_draw_nav_layer_dropdown(UiCanvasComp* c, const DevStatsComp* stats) {
   stats_draw_bg(c, DevBgFlags_None);
-  stats_draw_label(c, string_lit("Layer"));
+  stats_draw_label(c, string_lit("Layer"), UiAlign_MiddleLeft);
   {
     ui_layout_push(c);
     ui_style_push(c);
@@ -650,6 +649,31 @@ static void stats_draw_notifications(UiCanvasComp* c, const DevStatsGlobalComp* 
   }
 }
 
+static void stats_draw_controls(UiCanvasComp* c, DevStatsComp* stats) {
+  ui_layout_push(c);
+  ui_layout_resize(c, UiAlign_BottomLeft, ui_vector(25, 25), UiBase_Absolute, Ui_XY);
+
+  ui_style_push(c);
+  String tooltip;
+  if (stats->show == DevStatShow_Full) {
+    ui_style_color(c, ui_color_lime);
+    tooltip = string_lit("Hide full stats.");
+  } else {
+    tooltip = string_lit("Show full stats.");
+  }
+  if (ui_button(
+          c,
+          .label    = ui_shape_scratch(UiShape_Layers),
+          .noFrame  = true,
+          .fontSize = 18,
+          .tooltip  = tooltip)) {
+    stats->show = stats->show == DevStatShow_Full ? DevStatShow_Minimal : DevStatShow_Full;
+  }
+
+  ui_style_pop(c);
+  ui_layout_pop(c);
+}
+
 static void dev_stats_draw_interface(
     UiCanvasComp*                  c,
     const GapWindowComp*           window,
@@ -668,17 +692,22 @@ static void dev_stats_draw_interface(
   ui_layout_move_to(c, UiBase_Container, UiAlign_TopLeft, Ui_XY);
   ui_layout_resize(c, UiAlign_TopLeft, ui_vector(500, 25), UiBase_Absolute, Ui_XY);
 
-  // clang-format off
-  stats_draw_frametime(c, stats);
+  stats_draw_bg(c, DevBgFlags_None);
+  stats_draw_controls(c, stats);
+  stats_draw_label(c, string_lit("Frame time: "), UiAlign_MiddleRight);
+  stats_draw_frametime_value(c, stats);
+  ui_layout_next(c, Ui_Down, 0);
+
   stats_draw_plot_dur(c, stats->frameDurPlot, 0, stats->frameDurDesired * 2);
   stats_draw_cpu_chart(c, stats, rendStats);
   stats_draw_gpu_chart(c, stats, rendStats);
   stats_draw_notifications(c, statsGlobal);
 
-  if(stats->show != DevStatShow_Full) {
+  if (stats->show != DevStatShow_Full) {
     return;
   }
 
+  // clang-format off
   if(stats_draw_section(c, string_lit("Window"))) {
     const GapVector windowSize = gap_window_param(window, GapParam_WindowSize);
     stats_draw_val_entry(c, string_lit("Size"), fmt_write_scratch("{}", gap_vector_fmt(windowSize)));
