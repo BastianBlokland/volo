@@ -14,6 +14,7 @@ typedef enum {
 typedef struct sRvkShader {
   VkShaderStageFlagBits vkStage;
   VkShaderModule        vkModule;
+  String                dbgName;
   String                entryPoint;
 
   RvkShaderFlags flags : 8;

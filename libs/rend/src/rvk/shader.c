@@ -131,6 +131,7 @@ RvkShader* rvk_shader_create(RvkDevice* dev, const AssetShaderComp* asset, const
       .vkStage           = rvk_shader_stage(asset->kind),
       .flags             = rvk_shader_flags(asset),
       .killSpecConstMask = asset->killSpecConstMask,
+      .dbgName           = string_dup(g_allocHeap, dbgName),
       .entryPoint        = string_dup(g_allocHeap, asset->entryPoint),
   };
 
@@ -180,6 +181,7 @@ RvkShader* rvk_shader_create(RvkDevice* dev, const AssetShaderComp* asset, const
 
 void rvk_shader_destroy(RvkShader* shader, RvkDevice* dev) {
   rvk_call(dev, destroyShaderModule, dev->vkDev, shader->vkModule, &dev->vkAlloc);
+  string_free(g_allocHeap, shader->dbgName);
   string_free(g_allocHeap, shader->entryPoint);
 
   if (shader->specs.values) {
