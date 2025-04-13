@@ -469,7 +469,11 @@ dev_overlay_resource(UiCanvasComp* c, EcsWorld* world, RendSettingsComp* set, Ec
               }
               ui_label(c, name, .fontSize = 14, .tooltip = desc);
               ui_table_next_column(c, &table);
-              ui_label(c, value, .fontSize = 14, .selectable = true);
+              if (value.size >= 64) {
+                ui_label(c, string_slice(value, 0, 64), .fontSize = 14, .selectable = true);
+              } else {
+                ui_label(c, value, .fontSize = 14, .selectable = true);
+              }
             }
           } break;
           case RendReportType_Section:
