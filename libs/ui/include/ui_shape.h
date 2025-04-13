@@ -9,6 +9,7 @@
   X(0xE050, VolumeUp)                                                                              \
   X(0xE069, WebAsset)                                                                              \
   X(0xE145, Add)                                                                                   \
+  X(0xE14D, ContentCopy)                                                                           \
   X(0xE161, Save)                                                                                  \
   X(0xE162, SelectAll)                                                                             \
   X(0xE1DB, Storage)                                                                               \
