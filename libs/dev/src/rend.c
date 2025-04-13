@@ -15,6 +15,7 @@
 #include "ecs_utils.h"
 #include "ecs_view.h"
 #include "ecs_world.h"
+#include "gap_window.h"
 #include "geo_box.h"
 #include "geo_color.h"
 #include "rend_light.h"
@@ -400,8 +401,8 @@ static void dev_overlay_vec3(UiCanvasComp* c, UiTable* t, const String label, co
       fmt_write_scratch("{}", fmt_list_lit(fmt_float(v.x), fmt_float(v.y), fmt_float(v.z))));
 }
 
-static void
-dev_overlay_resource(UiCanvasComp* c, EcsWorld* world, RendSettingsComp* set, EcsView* resView) {
+static void dev_overlay_resource(
+    UiCanvasComp* c, GapWindowComp* win, EcsWorld* world, RendSettingsComp* set, EcsView* resView) {
   EcsIterator* resourceItr = ecs_view_maybe_at(resView, set->debugViewerResource);
   if (!resourceItr) {
     return;
@@ -470,7 +471,19 @@ dev_overlay_resource(UiCanvasComp* c, EcsWorld* world, RendSettingsComp* set, Ec
               ui_label(c, name, .fontSize = 14, .tooltip = desc);
               ui_table_next_column(c, &table);
               if (value.size >= 64) {
+                ui_layout_push(c);
+                ui_layout_grow(c, UiAlign_MiddleLeft, ui_vector(-20, 0), UiBase_Absolute, Ui_X);
                 ui_label(c, string_slice(value, 0, 64), .fontSize = 14, .selectable = true);
+                ui_layout_pop(c);
+                ui_layout_inner(
+                    c, UiBase_Current, UiAlign_MiddleRight, ui_vector(20, 20), UiBase_Absolute);
+                if (ui_button(
+                        c,
+                        .label   = ui_shape_scratch(UiShape_ContentCopy),
+                        .noFrame = true,
+                        .tooltip = string_lit("Copy to clipboard."))) {
+                  gap_window_clip_copy(win, value);
+                }
               } else {
                 ui_label(c, value, .fontSize = 14, .selectable = true);
               }
@@ -1286,6 +1299,7 @@ ecs_view_define(GlobalView) {
 ecs_view_define(PainterView) {
   ecs_access_with(SceneCameraComp);
   ecs_access_write(RendSettingsComp);
+  ecs_access_write(GapWindowComp);
 }
 
 ecs_view_define(PanelUpdateView) {
@@ -1318,6 +1332,7 @@ ecs_system_define(DevRendUpdatePanelSys) {
       continue; // No painter found.
     }
     RendSettingsComp* settings = ecs_view_write_t(painterItr, RendSettingsComp);
+    GapWindowComp*    win      = ecs_view_write_t(painterItr, GapWindowComp);
 
     ui_canvas_reset(canvas);
     const bool pinned = ui_panel_pinned(&panelComp->panel);
@@ -1336,7 +1351,7 @@ ecs_system_define(DevRendUpdatePanelSys) {
         settings->debugViewerResource = 0;
         settings->flags &= ~RendFlags_DebugOverlay;
       } else {
-        dev_overlay_resource(canvas, world, settings, ecs_world_view_t(world, ResourceView));
+        dev_overlay_resource(canvas, win, world, settings, ecs_world_view_t(world, ResourceView));
       }
     }
 
