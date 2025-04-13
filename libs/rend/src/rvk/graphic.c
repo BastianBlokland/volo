@@ -19,6 +19,7 @@
 #include "texture_internal.h"
 
 #define VOLO_RVK_GRAPHIC_VALIDATE_BIND 0
+#define VOLO_RVK_GRAPHIC_REPORT_INTERNAL_DATA 1
 
 static const u8 g_rendSupportedShaderSets[] = {
     RvkGraphicSet_Global,
@@ -509,6 +510,38 @@ static void rvk_pipeline_report_stats(
       }
       rend_report_push_value(report, statName, statDesc, statValue);
     }
+
+#if VOLO_RVK_GRAPHIC_REPORT_INTERNAL_DATA
+    VkPipelineExecutableInternalRepresentationKHR data[4];
+    u32                                           dataCount   = array_elems(data);
+    const usize                                   dataMaxSize = 64 * usize_kibibyte;
+
+    for (u32 i = 0; i != array_elems(data); ++i) {
+      data[i] = (VkPipelineExecutableInternalRepresentationKHR){
+          .sType    = VK_STRUCTURE_TYPE_PIPELINE_EXECUTABLE_INTERNAL_REPRESENTATION_KHR,
+          .dataSize = dataMaxSize,
+          .pData    = alloc_alloc(g_allocScratch, dataMaxSize, alignof(u8)).ptr,
+      };
+    }
+
+    rvk_call_checked(
+        dev,
+        getPipelineExecutableInternalRepresentationsKHR,
+        dev->vkDev,
+        &execInfo,
+        &dataCount,
+        data);
+
+    for (u32 dataIndex = 0; dataIndex != dataCount; ++dataIndex) {
+      if (data[dataIndex].isText) {
+        rend_report_push_value(
+            report,
+            string_from_null_term(data[dataIndex].name),
+            string_from_null_term(data[dataIndex].description),
+            mem_create(data[dataIndex].pData, math_min(data[dataIndex].dataSize, dataMaxSize)));
+      }
+    }
+#endif
   }
 
   // Clear the section.
@@ -617,6 +650,9 @@ static VkPipeline rvk_pipeline_create(
   VkPipelineCreateFlagBits createFlags = 0;
   if (report && dev->flags & RvkDeviceFlags_SupportExecutableInfo) {
     createFlags |= VK_PIPELINE_CREATE_CAPTURE_STATISTICS_BIT_KHR;
+#if VOLO_RVK_GRAPHIC_REPORT_INTERNAL_DATA
+    createFlags |= VK_PIPELINE_CREATE_CAPTURE_INTERNAL_REPRESENTATIONS_BIT_KHR;
+#endif
   }
 
   const VkGraphicsPipelineCreateInfo info = {
