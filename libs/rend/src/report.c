@@ -59,15 +59,28 @@ String         rend_report_value(const RendReportEntry* entry) { return entry->v
 
 bool rend_report_push_value(
     RendReport* report, const String name, const String desc, const String value) {
+
+  const String nameStored = string_maybe_dup(report->bumpAlloc, name);
+  if (!string_is_empty(name) && !mem_valid(nameStored)) {
+    return false; // Out of space.
+  }
+  const String descStored = string_maybe_dup(report->bumpAlloc, desc);
+  if (!string_is_empty(desc) && !mem_valid(descStored)) {
+    return false; // Out of space.
+  }
+  const String valueStored = string_maybe_dup(report->bumpAlloc, value);
+  if (!string_is_empty(value) && !mem_valid(valueStored)) {
+    return false; // Out of space.
+  }
   RendReportEntry* entry = alloc_alloc_t(report->bumpAlloc, RendReportEntry);
   if (!entry) {
     return false; // Out of space.
   }
   *entry = (RendReportEntry){
       .type  = RendReportType_Value,
-      .name  = string_maybe_dup(report->bumpAlloc, name),
-      .desc  = string_maybe_dup(report->bumpAlloc, desc),
-      .value = string_maybe_dup(report->bumpAlloc, value),
+      .name  = nameStored,
+      .desc  = descStored,
+      .value = valueStored,
   };
   rend_report_push(report, entry);
 
@@ -75,14 +88,15 @@ bool rend_report_push_value(
 }
 
 bool rend_report_push_section(RendReport* report, const String name) {
+  const String nameStored = string_maybe_dup(report->bumpAlloc, name);
+  if (!string_is_empty(name) && !mem_valid(nameStored)) {
+    return false; // Out of space.
+  }
   RendReportEntry* entry = alloc_alloc_t(report->bumpAlloc, RendReportEntry);
   if (!entry) {
     return false; // Out of space.
   }
-  *entry = (RendReportEntry){
-      .type = RendReportType_Section,
-      .name = string_maybe_dup(report->bumpAlloc, name),
-  };
+  *entry = (RendReportEntry){.type = RendReportType_Section, .name = nameStored};
   rend_report_push(report, entry);
 
   return true;
