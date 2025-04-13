@@ -511,13 +511,12 @@ ecs_system_define(RendLightRenderSys) {
         renderer->ambientIntensity += entry->data_ambient.intensity;
         continue;
       }
-      const u32 objIndex = rend_obj_index(entry->type, var);
-      if (!renderer->objEntities[objIndex]) {
-        continue;
+      const u32       objIndex = rend_obj_index(entry->type, var);
+      RendObjectComp* obj      = null;
+      if (renderer->objEntities[objIndex]) {
+        ecs_view_jump(objItr, renderer->objEntities[objIndex]);
+        obj = ecs_view_write_t(objItr, RendObjectComp);
       }
-      ecs_view_jump(objItr, renderer->objEntities[objIndex]);
-      RendObjectComp* obj = ecs_view_write_t(objItr, RendObjectComp);
-
       typedef struct {
         ALIGNAS(16)
         GeoVector direction;     // x, y, z: direction, w: unused.
@@ -574,6 +573,9 @@ ecs_system_define(RendLightRenderSys) {
           shadowViewProj = geo_matrix_mul(&renderer->shadowProjMatrix, &viewMat);
         } else {
           shadowViewProj = (GeoMatrix){0};
+        }
+        if (!obj) {
+          continue;
         }
         const GeoVector direction = geo_quat_rotate(entry->data_directional.rotation, geo_forward);
         const GeoBox    bounds    = geo_box_inverted3(); // Cannot be culled.
