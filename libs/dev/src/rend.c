@@ -420,7 +420,7 @@ static void dev_overlay_resource(
     return;
   }
 
-  const UiVector panelSize = {950, graphic ? 500 : 180};
+  const UiVector panelSize = {950, graphic ? 750 : 180};
   const UiVector inset     = {-5, -5};
 
   ui_style_push(c);
