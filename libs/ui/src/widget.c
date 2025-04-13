@@ -549,12 +549,30 @@ bool ui_select_with_opts(
   return (selectFlags & UiSelectFlags_Changed) != 0;
 }
 
-static void ui_tooltip_background(
-    UiCanvasComp* canvas, const UiDir dir, const UiAlign align, const UiRect lastTextRect) {
+static UiAlign ui_tooltip_align(UiCanvasComp* canvas) {
+  const f32 halfCanvas = ui_canvas_resolution(canvas).width * 0.5f;
+  return ui_canvas_input_pos(canvas).x > halfCanvas ? UiAlign_TopRight : UiAlign_TopLeft;
+}
+
+static UiDir ui_tooltip_hor_dir(const UiAlign align) {
+  switch (align) {
+  case UiAlign_TopLeft:
+  case UiAlign_MiddleLeft:
+  case UiAlign_BottomLeft:
+    return Ui_Right;
+  default:
+    return Ui_Left;
+  }
+}
+
+static void
+ui_tooltip_background(UiCanvasComp* canvas, const UiAlign align, const UiRect lastTextRect) {
   const UiVector size = ui_vector(lastTextRect.width + 20, lastTextRect.height + 10);
 
   ui_layout_inner(canvas, UiBase_Input, align, size, UiBase_Absolute);
-  ui_layout_move_dir(canvas, dir, 15, UiBase_Absolute);
+  if (align != UiAlign_MiddleCenter) {
+    ui_layout_move_dir(canvas, ui_tooltip_hor_dir(align), 15, UiBase_Absolute);
+  }
 
   ui_style_color(canvas, ui_color_white);
   ui_style_outline(canvas, 3);
@@ -564,22 +582,29 @@ static void ui_tooltip_background(
 
 static void ui_tooltip_text(
     UiCanvasComp*        canvas,
-    const UiDir          dir,
     const UiAlign        align,
     const String         text,
     const UiRect         lastRect,
     const UiTooltipOpts* opts) {
 
   ui_layout_inner(canvas, UiBase_Input, align, opts->maxSize, UiBase_Absolute);
-  ui_layout_move_dir(canvas, dir, 25, UiBase_Absolute);
-  ui_layout_move_dir(canvas, Ui_Down, 5, UiBase_Absolute);
+  if (align != UiAlign_MiddleCenter) {
+    ui_layout_move_dir(canvas, ui_tooltip_hor_dir(align), 25, UiBase_Absolute);
+    ui_layout_move_dir(canvas, Ui_Down, 5, UiBase_Absolute);
 
-  if (dir == Ui_Left) {
-    /**
-     * Because we always draw the text left aligned it needs to be offset if the tooltip should be
-     * on the left side of the input.
-     */
-    ui_layout_move_dir(canvas, Ui_Right, opts->maxSize.width - lastRect.width, UiBase_Absolute);
+    if (ui_tooltip_hor_dir(align) == Ui_Left) {
+      /**
+       * Because we always draw the text left aligned it needs to be offset if the tooltip should be
+       * on the left side of the input.
+       */
+      ui_layout_move_dir(canvas, Ui_Right, opts->maxSize.width - lastRect.width, UiBase_Absolute);
+    }
+  } else {
+    const UiVector toCenter = {
+        .x = (opts->maxSize.width - lastRect.width) * 0.5f,
+        .y = -(opts->maxSize.height - lastRect.height) * 0.5f,
+    };
+    ui_layout_move(canvas, toCenter, UiBase_Absolute, Ui_XY);
   }
 
   ui_style_color(canvas, ui_color_black);
@@ -587,11 +612,6 @@ static void ui_tooltip_text(
   ui_style_variation(canvas, opts->variation);
 
   ui_canvas_draw_text(canvas, text, opts->fontSize, UiAlign_TopLeft, UiFlags_TrackRect);
-}
-
-static UiDir ui_tooltip_dir(UiCanvasComp* canvas) {
-  const f32 halfCanvas = ui_canvas_resolution(canvas).width * 0.5f;
-  return ui_canvas_input_pos(canvas).x > halfCanvas ? Ui_Left : Ui_Right;
 }
 
 static bool ui_tooltip_show(UiCanvasComp* canvas, const UiId id, const UiTooltipOpts* opts) {
@@ -615,24 +635,11 @@ bool ui_tooltip_with_opts(
     return false;
   }
 
-  const UiDir dir = ui_tooltip_dir(canvas);
-  UiAlign     align;
-  switch (dir) {
-  case Ui_Left:
-    align = UiAlign_TopRight;
-    break;
-  case Ui_Right:
-    align = UiAlign_TopLeft;
-    break;
-  case Ui_Up:
-  case Ui_Down:
-    diag_crash();
-  }
-
-  const UiId   backgroundId = ui_canvas_id_peek(canvas);
-  const UiId   textId       = backgroundId + 1;
-  const UiRect lastTextRect = ui_canvas_elem_rect(canvas, textId);
-  const bool   firstFrame   = lastTextRect.width == 0;
+  const UiAlign align        = opts->centered ? UiAlign_MiddleCenter : ui_tooltip_align(canvas);
+  const UiId    backgroundId = ui_canvas_id_peek(canvas);
+  const UiId    textId       = backgroundId + 1;
+  const UiRect  lastTextRect = ui_canvas_elem_rect(canvas, textId);
+  const bool    firstFrame   = lastTextRect.width == 0;
 
   ui_layout_push(canvas);
   ui_style_push(canvas);
@@ -650,9 +657,9 @@ bool ui_tooltip_with_opts(
   if (firstFrame) {
     ui_canvas_id_skip(canvas, 1);
   } else {
-    ui_tooltip_background(canvas, dir, align, lastTextRect);
+    ui_tooltip_background(canvas, align, lastTextRect);
   }
-  ui_tooltip_text(canvas, dir, align, text, lastTextRect, opts);
+  ui_tooltip_text(canvas, align, text, lastTextRect, opts);
 
   ui_style_pop(canvas);
   ui_layout_pop(canvas);

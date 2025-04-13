@@ -68,6 +68,7 @@ typedef struct {
   u16           fontSize;
   UiVector      maxSize;
   u8            variation;
+  bool          centered;
 } UiTooltipOpts;
 
 typedef struct {
