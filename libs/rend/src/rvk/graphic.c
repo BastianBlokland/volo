@@ -538,7 +538,7 @@ static void rvk_pipeline_report_stats(
             report,
             string_from_null_term(data[dataIndex].name),
             string_from_null_term(data[dataIndex].description),
-            mem_create(data[dataIndex].pData, math_min(data[dataIndex].dataSize - 1, dataMaxSize)));
+            string_clamp(string_from_null_term(data[dataIndex].pData), dataMaxSize));
       }
     }
 #endif
