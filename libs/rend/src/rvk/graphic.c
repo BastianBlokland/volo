@@ -534,11 +534,15 @@ static void rvk_pipeline_report_stats(
 
     for (u32 dataIndex = 0; dataIndex != dataCount; ++dataIndex) {
       if (data[dataIndex].isText) {
-        rend_report_push_value(
+        const bool pushed = rend_report_push_value(
             report,
             string_from_null_term(data[dataIndex].name),
             string_from_null_term(data[dataIndex].description),
             string_clamp(string_from_null_term(data[dataIndex].pData), dataMaxSize));
+
+        if (!pushed) {
+          log_w("Failed to report graphic data value");
+        }
       }
     }
 #endif
