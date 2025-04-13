@@ -412,7 +412,7 @@ static bool rend_res_create(const RendPlatformComp* plat, EcsWorld* world, EcsIt
   if (maybeAssetGraphic) {
     RendReport* graphicReport = null;
     if (resDebug) {
-      graphicReport = rend_report_create(g_allocHeap, 4 * usize_kibibyte);
+      graphicReport = rend_report_create(g_allocHeap, 128 * usize_kibibyte);
     }
     RvkGraphic* graphic = rvk_graphic_create(dev, maybeAssetGraphic, id);
 
