@@ -475,7 +475,7 @@ static void rvk_pipeline_report_stats(
         .executableIndex = execIndex,
     };
 
-    VkPipelineExecutableStatisticKHR stats[16];
+    VkPipelineExecutableStatisticKHR stats[32];
     u32                              statCount = array_elems(stats);
 
     for (u32 i = 0; i != array_elems(stats); ++i) {
