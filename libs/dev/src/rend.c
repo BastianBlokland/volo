@@ -473,7 +473,16 @@ static void dev_overlay_resource(
               if (value.size >= 64) {
                 ui_layout_push(c);
                 ui_layout_grow(c, UiAlign_MiddleLeft, ui_vector(-20, 0), UiBase_Absolute, Ui_X);
+                const UiId id = ui_canvas_id_peek(c);
                 ui_label(c, string_slice(value, 0, 64), .fontSize = 14, .selectable = true);
+                ui_tooltip(
+                    c,
+                    id,
+                    string_clamp(value, 8 * usize_kibibyte),
+                    .fontSize  = 10,
+                    .maxSize   = {1000, 1000},
+                    .centered  = true,
+                    .variation = UiVariation_Monospace);
                 ui_layout_pop(c);
                 ui_layout_inner(
                     c, UiBase_Current, UiAlign_MiddleRight, ui_vector(20, 20), UiBase_Absolute);
