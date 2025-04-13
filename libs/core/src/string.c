@@ -1,5 +1,6 @@
 #include "core_alloc.h"
 #include "core_bits.h"
+#include "core_math.h"
 #include "core_sentinel.h"
 #include "core_string.h"
 
@@ -88,6 +89,10 @@ bool string_ends_with(const String str, const String end) {
 
 String string_slice(const String str, const usize offset, const usize size) {
   return mem_slice(str, offset, size);
+}
+
+String string_clamp(const String str, const usize maxSize) {
+  return mem_slice(str, 0, math_min(str.size, maxSize));
 }
 
 String string_consume(const String str, const usize amount) { return mem_consume(str, amount); }

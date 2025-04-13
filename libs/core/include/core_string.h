@@ -149,6 +149,11 @@ bool string_ends_with(String, String end);
 String string_slice(String, usize offset, usize size);
 
 /**
+ * Create a view of this string that is at most 'maxSize' big.
+ */
+String string_clamp(String, usize maxSize);
+
+/**
  * Create a view 'amount' characters into the string.
  * Pre-condition: string.size >= amount.
  */
