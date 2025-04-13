@@ -58,7 +58,7 @@ static UiId ui_label_selectable(UiCanvasComp* canvas, const String text, const U
     selected = true;
   }
 
-  const UiFlags flags = UiFlags_AllowWordBreak | UiFlags_SingleLine | UiFlags_Interactable |
+  const UiFlags flags = UiFlags_AllowWordBreak | UiFlags_NoLineBreaks | UiFlags_Interactable |
                         UiFlags_InteractOnPress | UiFlags_TightTextRect;
 
   if (selected) {
@@ -745,8 +745,8 @@ bool ui_textbox_with_opts(UiCanvasComp* canvas, DynString* text, const UiTextbox
     editing = true;
   }
 
-  const UiFlags flags =
-      UiFlags_AllowWordBreak | UiFlags_SingleLine | UiFlags_Interactable | UiFlags_InteractOnPress;
+  const UiFlags flags = UiFlags_AllowWordBreak | UiFlags_NoLineBreaks | UiFlags_Interactable |
+                        UiFlags_InteractOnPress;
   bool changed = false;
 
   // Draw text.

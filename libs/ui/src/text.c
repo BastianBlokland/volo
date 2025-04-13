@@ -158,6 +158,9 @@ static String ui_text_line(
 
     switch (cp) {
     case Unicode_Newline:
+      if (flags & UiFlags_NoLineBreaks) {
+        break;
+      }
       goto End;
     case Unicode_CarriageReturn:
       cursorConsumed.pixel = 0;
@@ -390,6 +393,7 @@ static void ui_text_build_line(UiTextBuildState* state, const UiTextLine* line) 
       break;
     }
     case Unicode_ZeroWidthSpace:
+    case Unicode_Newline:
       break;
     case Unicode_Escape:
     case Unicode_Bell:

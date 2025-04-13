@@ -65,7 +65,8 @@ typedef enum eUiFlags {
   UiFlags_TrackTextInfo       = 1 << 5, // Internal use only atm.
   UiFlags_AllowWordBreak      = 1 << 6, // Allow breaking up text in the middle of words.
   UiFlags_SingleLine          = 1 << 7, // Only draw the first line of the text.
-  UiFlags_TightTextRect       = 1 << 8, // Clamp the rectangle to the text size.
+  UiFlags_NoLineBreaks        = 1 << 8, // Ignore line breaks.
+  UiFlags_TightTextRect       = 1 << 9, // Clamp the rectangle to the text size.
 } UiFlags;
 
 typedef enum eUiPersistentFlags {
