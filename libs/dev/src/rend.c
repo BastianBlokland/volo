@@ -503,9 +503,10 @@ static void dev_overlay_resource(
                     c, UiBase_Current, UiAlign_MiddleRight, ui_vector(20, 20), UiBase_Absolute);
                 if (ui_button(
                         c,
-                        .label   = ui_shape_scratch(UiShape_ContentCopy),
-                        .noFrame = true,
-                        .tooltip = string_lit("Copy to clipboard."))) {
+                        .label    = ui_shape_scratch(UiShape_ContentCopy),
+                        .noFrame  = true,
+                        .fontSize = 14,
+                        .tooltip  = string_lit("Copy to clipboard."))) {
                   gap_window_clip_copy(win, value);
                 }
               } else {
