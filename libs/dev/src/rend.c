@@ -15,6 +15,7 @@
 #include "ecs_utils.h"
 #include "ecs_view.h"
 #include "ecs_world.h"
+#include "gap_window.h"
 #include "geo_box.h"
 #include "geo_color.h"
 #include "rend_light.h"
@@ -243,6 +244,11 @@ ecs_comp_define(DevRendPanelComp) {
   bool              hideEmptyObjects;
 };
 
+ecs_comp_define(DevRendOverlayComp) {
+  UiScrollview scrollview;
+  u32          lastNumEntries;
+};
+
 ecs_view_define(RendObjView) { ecs_access_read(RendObjectComp); }
 
 ecs_view_define(GraphicView) {
@@ -374,6 +380,7 @@ static void dev_overlay_bg(UiCanvasComp* c) {
 
 static void dev_overlay_str(UiCanvasComp* c, UiTable* t, const String label, const String v) {
   ui_table_next_row(c, t);
+  ui_table_draw_row_bg(c, t, ui_color(32, 32, 32, 64));
   ui_label(c, label, .fontSize = 14);
   ui_table_next_column(c, t);
   ui_label(c, v, .fontSize = 14, .selectable = true);
@@ -400,8 +407,13 @@ static void dev_overlay_vec3(UiCanvasComp* c, UiTable* t, const String label, co
       fmt_write_scratch("{}", fmt_list_lit(fmt_float(v.x), fmt_float(v.y), fmt_float(v.z))));
 }
 
-static void
-dev_overlay_resource(UiCanvasComp* c, EcsWorld* world, RendSettingsComp* set, EcsView* resView) {
+static void dev_overlay_resource(
+    UiCanvasComp*       c,
+    GapWindowComp*      win,
+    EcsWorld*           world,
+    DevRendOverlayComp* overlayComp,
+    RendSettingsComp*   set,
+    EcsView*            resView) {
   EcsIterator* resourceItr = ecs_view_maybe_at(resView, set->debugViewerResource);
   if (!resourceItr) {
     return;
@@ -419,7 +431,7 @@ dev_overlay_resource(UiCanvasComp* c, EcsWorld* world, RendSettingsComp* set, Ec
     return;
   }
 
-  const UiVector panelSize = {950, graphic ? 500 : 180};
+  const UiVector panelSize = {950, graphic ? 750 : 180};
   const UiVector inset     = {-5, -5};
 
   ui_style_push(c);
@@ -447,6 +459,9 @@ dev_overlay_resource(UiCanvasComp* c, EcsWorld* world, RendSettingsComp* set, Ec
     ui_table_add_column(&table, UiTableColumn_Fixed, 250);
     ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
+    const f32 scrollviewHeight = ui_table_height(&table, overlayComp->lastNumEntries);
+    ui_scrollview_begin(c, &overlayComp->scrollview, UiLayer_Popup, scrollviewHeight);
+
     // Info section (left side of panel).
     dev_overlay_str(c, &table, string_lit("Name"), asset_id(assetComp));
     dev_overlay_entity(c, &table, string_lit("Entity"), entity);
@@ -464,12 +479,39 @@ dev_overlay_resource(UiCanvasComp* c, EcsWorld* world, RendSettingsComp* set, Ec
               const String desc  = rend_report_desc(entry);
               const String value = rend_report_value(entry);
               ui_table_next_row(c, &table);
+              ui_table_draw_row_bg(c, &table, ui_color(32, 32, 32, 64));
               if (insideSection) {
                 ui_layout_grow(c, UiAlign_MiddleRight, ui_vector(-15, 0), UiBase_Absolute, Ui_X);
               }
               ui_label(c, name, .fontSize = 14, .tooltip = desc);
               ui_table_next_column(c, &table);
-              ui_label(c, value, .fontSize = 14, .selectable = true);
+              if (value.size >= 64) {
+                ui_layout_push(c);
+                ui_layout_grow(c, UiAlign_MiddleLeft, ui_vector(-20, 0), UiBase_Absolute, Ui_X);
+                const UiId id = ui_canvas_id_peek(c);
+                ui_label(c, string_slice(value, 0, 64), .fontSize = 14, .selectable = true);
+                ui_tooltip(
+                    c,
+                    id,
+                    string_clamp(value, 8 * usize_kibibyte),
+                    .fontSize  = 10,
+                    .maxSize   = {1000, 1000},
+                    .centered  = true,
+                    .variation = UiVariation_Monospace);
+                ui_layout_pop(c);
+                ui_layout_inner(
+                    c, UiBase_Current, UiAlign_MiddleRight, ui_vector(20, 20), UiBase_Absolute);
+                if (ui_button(
+                        c,
+                        .label    = ui_shape_scratch(UiShape_ContentCopy),
+                        .noFrame  = true,
+                        .fontSize = 14,
+                        .tooltip  = string_lit("Copy to clipboard."))) {
+                  gap_window_clip_copy(win, value);
+                }
+              } else {
+                ui_label(c, value, .fontSize = 14, .selectable = true);
+              }
             }
           } break;
           case RendReportType_Section:
@@ -478,6 +520,7 @@ dev_overlay_resource(UiCanvasComp* c, EcsWorld* world, RendSettingsComp* set, Ec
               insideSection = false;
             } else {
               ui_table_next_row(c, &table);
+              ui_table_draw_row_bg(c, &table, ui_color(32, 32, 32, 128));
               ui_canvas_id_block_next(c);
               sectionOpen   = ui_section(c, .label = name, .fontSize = 14);
               insideSection = true;
@@ -506,6 +549,8 @@ dev_overlay_resource(UiCanvasComp* c, EcsWorld* world, RendSettingsComp* set, Ec
       dev_overlay_int(c, &table, string_lit("Triangles"), rend_res_mesh_indices(mesh) / 3);
       dev_overlay_vec3(c, &table, string_lit("Bounds"), geo_box_size(&bounds));
     }
+    ui_scrollview_end(c, &overlayComp->scrollview);
+    overlayComp->lastNumEntries = table.row + 1;
   }
   ui_layout_container_pop(c);
 
@@ -1282,6 +1327,7 @@ ecs_view_define(GlobalView) {
 ecs_view_define(PainterView) {
   ecs_access_with(SceneCameraComp);
   ecs_access_write(RendSettingsComp);
+  ecs_access_write(GapWindowComp);
 }
 
 ecs_view_define(PanelUpdateView) {
@@ -1289,6 +1335,7 @@ ecs_view_define(PanelUpdateView) {
 
   ecs_access_read(DevPanelComp);
   ecs_access_write(DevRendPanelComp);
+  ecs_access_write(DevRendOverlayComp);
   ecs_access_write(UiCanvasComp);
 }
 
@@ -1314,6 +1361,7 @@ ecs_system_define(DevRendUpdatePanelSys) {
       continue; // No painter found.
     }
     RendSettingsComp* settings = ecs_view_write_t(painterItr, RendSettingsComp);
+    GapWindowComp*    win      = ecs_view_write_t(painterItr, GapWindowComp);
 
     ui_canvas_reset(canvas);
     const bool pinned = ui_panel_pinned(&panelComp->panel);
@@ -1332,7 +1380,9 @@ ecs_system_define(DevRendUpdatePanelSys) {
         settings->debugViewerResource = 0;
         settings->flags &= ~RendFlags_DebugOverlay;
       } else {
-        dev_overlay_resource(canvas, world, settings, ecs_world_view_t(world, ResourceView));
+        DevRendOverlayComp* overlayComp = ecs_view_write_t(itr, DevRendOverlayComp);
+        dev_overlay_resource(
+            canvas, win, world, overlayComp, settings, ecs_world_view_t(world, ResourceView));
       }
     }
 
@@ -1396,6 +1446,7 @@ ecs_system_define(DevRendDrawSys) {
 
 ecs_module_init(dev_rend_module) {
   ecs_register_comp(DevRendPanelComp, .destructor = ecs_destruct_rend_panel);
+  ecs_register_comp(DevRendOverlayComp);
 
   ecs_register_view(RendObjView);
   ecs_register_view(GraphicView);
@@ -1437,6 +1488,8 @@ dev_rend_panel_open(EcsWorld* world, const EcsEntityId window, const DevPanelTyp
       .objects          = dynarray_create_t(g_allocHeap, DevObjInfo, 256),
       .resources        = dynarray_create_t(g_allocHeap, DevResourceInfo, 256),
       .hideEmptyObjects = true);
+
+  ecs_world_add_t(world, panelEntity, DevRendOverlayComp, .scrollview = ui_scrollview());
 
   if (type == DevPanelType_Detached) {
     ui_panel_maximize(&rendPanel->panel);
