@@ -22,6 +22,7 @@ add_library(lib_rend STATIC
   src/rvk/canvas.c
   src/rvk/desc.c
   src/rvk/device.c
+  src/rvk/disassembler.c
   src/rvk/graphic.c
   src/rvk/image.c
   src/rvk/job.c
