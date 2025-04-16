@@ -3,7 +3,7 @@
 
 typedef enum {
   RvkDisassembler_Success = 0,
-  RvkDisassembler_DependenciesNotFound,
+  RvkDisassembler_Unavailable,
   RvkDisassembler_InvalidAssembly,
 } RvkDisassemblerResult;
 
