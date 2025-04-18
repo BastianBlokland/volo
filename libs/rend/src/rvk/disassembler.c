@@ -16,9 +16,25 @@ typedef enum {
   SpirvToolsState_Failed,
 } SpirvToolsState;
 
+typedef enum {
+  SpvTargetEnv_Vulkan_1_1 = 18,
+} SpvTargetEnv;
+
+typedef enum {
+  SpvResult_Success,
+} SpvResult;
+
+typedef struct sSpvContext SpvContext;
+
 typedef struct {
   SpirvToolsState state;
   DynLib*         lib;
+  SpvContext*     ctx;
+
+  // clang-format off
+  SpvContext* (SYS_DECL* spvContextCreate)(SpvTargetEnv);
+  void        (SYS_DECL* spvContextDestroy)(SpvContext*);
+  // clang-format on
 } SpirvTools;
 
 typedef struct sRvkDisassembler {
@@ -56,13 +72,32 @@ static bool spirvtools_init(SpirvTools* spirvTools) {
   if (loadRes != DynLibResult_Success) {
     const String err = dynlib_result_str(loadRes);
     log_w("Failed to load 'SPIRV-Tools' library", log_param("err", fmt_text(err)));
-    spirvTools->state = SpirvToolsState_Failed;
-    return false;
+    goto Failure;
   }
+
+#define SPVTOOLS_LOAD_SYM(_NAME_)                                                                  \
+  do {                                                                                             \
+    spirvTools->_NAME_ = dynlib_symbol(spirvTools->lib, string_lit(#_NAME_));                      \
+    if (!spirvTools->_NAME_) {                                                                     \
+      log_w("SpirvTools symbol '{}' missing", log_param("sym", fmt_text(string_lit(#_NAME_))));    \
+      goto Failure;                                                                                \
+    }                                                                                              \
+  } while (false)
+
+  SPVTOOLS_LOAD_SYM(spvContextCreate);
+  SPVTOOLS_LOAD_SYM(spvContextDestroy);
+
+#undef SPVTOOLS_LOAD_SYM
+
+  spirvTools->ctx = spirvTools->spvContextCreate(SpvTargetEnv_Vulkan_1_1);
 
   log_i("Loaded 'SPIRV-Tools' library", log_param("path", fmt_path(dynlib_path(spirvTools->lib))));
   spirvTools->state = SpirvToolsState_Ready;
   return true;
+
+Failure:
+  spirvTools->state = SpirvToolsState_Failed;
+  return false;
 }
 
 RvkDisassembler* rvk_disassembler_create(Allocator* alloc) {
@@ -77,6 +112,9 @@ RvkDisassembler* rvk_disassembler_create(Allocator* alloc) {
 }
 
 void rvk_disassembler_destroy(RvkDisassembler* dis) {
+  if (dis->spirvTools.ctx) {
+    dis->spirvTools.spvContextDestroy(dis->spirvTools.ctx);
+  }
   if (dis->spirvTools.lib) {
     dynlib_destroy(dis->spirvTools.lib);
   }
