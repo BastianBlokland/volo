@@ -69,7 +69,7 @@ static void httpu_log_interfaces(void) {
 
   for (u32 i = 0; i != ipCount; ++i) {
     const String ipScratch = net_ip_str_scratch(&ips[i]);
-    log_d("Net interface: {}", log_param("ip", fmt_text(ipScratch)));
+    log_d("Net interface detected", log_param("ip", fmt_text(ipScratch)));
   }
 }
 
