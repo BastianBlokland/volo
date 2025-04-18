@@ -200,6 +200,9 @@ static void rest_worker_thread(void* data) {
       // the retry time has expired. That way other requests are not blocked.
       thread_sleep(retrySleep[reqTryIndex]);
     }
+    if (rest->workerShutdown) {
+      break;
+    }
     if (!con) {
       con = net_http_connect_sync(g_allocHeap, req->host, rest->httpFlags);
     }
