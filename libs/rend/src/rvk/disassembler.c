@@ -79,7 +79,7 @@ static bool spirvtools_init(SpirvTools* spirvTools) {
   do {                                                                                             \
     spirvTools->_NAME_ = dynlib_symbol(spirvTools->lib, string_lit(#_NAME_));                      \
     if (!spirvTools->_NAME_) {                                                                     \
-      log_w("SpirvTools symbol '{}' missing", log_param("sym", fmt_text(string_lit(#_NAME_))));    \
+      log_e("SpirvTools symbol '{}' missing", log_param("sym", fmt_text(string_lit(#_NAME_))));    \
       goto Failure;                                                                                \
     }                                                                                              \
   } while (false)
@@ -90,6 +90,10 @@ static bool spirvtools_init(SpirvTools* spirvTools) {
 #undef SPVTOOLS_LOAD_SYM
 
   spirvTools->ctx = spirvTools->spvContextCreate(SpvTargetEnv_Vulkan_1_1);
+  if (!spirvTools->ctx) {
+    log_e("Failed to create SpirvTools context");
+    goto Failure;
+  }
 
   log_i("Loaded 'SPIRV-Tools' library", log_param("path", fmt_path(dynlib_path(spirvTools->lib))));
   spirvTools->state = SpirvToolsState_Ready;
