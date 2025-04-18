@@ -1,6 +1,8 @@
 #include "core_alloc.h"
+#include "core_bits.h"
 #include "core_diag.h"
 #include "core_dynlib.h"
+#include "core_dynstring.h"
 #include "core_env.h"
 #include "core_path.h"
 #include "core_thread.h"
@@ -21,8 +23,26 @@ typedef enum {
 } SpvTargetEnv;
 
 typedef enum {
+  SpvBinaryToTextOpts_None           = 1 << 0,
+  SpvBinaryToTextOpts_Print          = 1 << 1,
+  SpvBinaryToTextOpts_Color          = 1 << 2,
+  SpvBinaryToTextOpts_Indent         = 1 << 3,
+  SpvBinaryToTextOpts_ShowByteOffset = 1 << 4,
+  SpvBinaryToTextOpts_NoHeader       = 1 << 5,
+  SpvBinaryToTextOpts_FriendlyNames  = 1 << 6,
+  SpvBinaryToTextOpts_Comment        = 1 << 7,
+  SpvBinaryToTextOpts_NestedIndent   = 1 << 8,
+  SpvBinaryToTextOpts_ReorderBlocks  = 1 << 9,
+} SpvBinaryToTextOpts;
+
+typedef enum {
   SpvResult_Success,
 } SpvResult;
+
+typedef struct {
+  const char* str;
+  usize       length;
+} SpvText;
 
 typedef struct sSpvContext SpvContext;
 
@@ -34,6 +54,8 @@ typedef struct {
   // clang-format off
   SpvContext* (SYS_DECL* spvContextCreate)(SpvTargetEnv);
   void        (SYS_DECL* spvContextDestroy)(SpvContext*);
+  SpvResult   (SYS_DECL* spvBinaryToText)(const SpvContext*, const u32* data, usize wordCount, u32 options, SpvText* out, void* diagnostic);
+  void        (SYS_DECL* spvTextDestroy)(SpvText);
   // clang-format on
 } SpirvTools;
 
@@ -86,6 +108,8 @@ static bool spirvtools_init(SpirvTools* spirvTools) {
 
   SPVTOOLS_LOAD_SYM(spvContextCreate);
   SPVTOOLS_LOAD_SYM(spvContextDestroy);
+  SPVTOOLS_LOAD_SYM(spvBinaryToText);
+  SPVTOOLS_LOAD_SYM(spvTextDestroy);
 
 #undef SPVTOOLS_LOAD_SYM
 
@@ -128,9 +152,7 @@ void rvk_disassembler_destroy(RvkDisassembler* dis) {
 
 RvkDisassemblerResult
 rvk_disassembler_spirv_to_text(const RvkDisassembler* dis, const String in, DynString* out) {
-  /**
-   * Lazily initialize the SpirvTools library.
-   */
+  // Lazily initialize the SpirvTools library.
   if (dis->spirvTools.state == SpirvToolsState_Idle) {
     thread_mutex_lock(dis->initMutex);
     if (dis->spirvTools.state == SpirvToolsState_Idle) {
@@ -141,7 +163,23 @@ rvk_disassembler_spirv_to_text(const RvkDisassembler* dis, const String in, DynS
   if (dis->spirvTools.state == SpirvToolsState_Failed) {
     return RvkDisassembler_Unavailable;
   }
-  (void)in;
-  (void)out;
-  return RvkDisassembler_InvalidAssembly;
+  const SpvBinaryToTextOpts options = SpvBinaryToTextOpts_None;
+
+  SpvText         resValue;
+  const SpvResult res = dis->spirvTools.spvBinaryToText(
+      dis->spirvTools.ctx,
+      in.ptr,
+      bytes_to_words(in.size),
+      options,
+      &resValue,
+      null /* diagnostic */);
+
+  if (res != SpvResult_Success) {
+    RvkDisassembler_InvalidAssembly;
+  }
+
+  dynstring_append(out, mem_create(resValue.str, resValue.length));
+  dis->spirvTools.spvTextDestroy(resValue);
+
+  return RvkDisassembler_Success;
 }
