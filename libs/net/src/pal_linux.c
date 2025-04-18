@@ -287,6 +287,10 @@ u32 net_ip_interfaces(NetIp out[], const u32 outMax) {
     }
     switch (itr->ifa_addr->sa_family) {
     case AF_INET: {
+      if(!out) {
+        ++outCount;
+        break;
+      }
       const struct sockaddr_in* addr = (struct sockaddr_in*)itr->ifa_addr;
       if (UNLIKELY(outCount == outMax)) {
         goto Ret;
@@ -299,6 +303,10 @@ u32 net_ip_interfaces(NetIp out[], const u32 outMax) {
       break;
     }
     case AF_INET6: {
+      if(!out) {
+        ++outCount;
+        break;
+      }
       const struct sockaddr_in6* addr = (struct sockaddr_in6*)itr->ifa_addr;
       if (UNLIKELY(outCount == outMax)) {
         goto Ret;

@@ -41,6 +41,7 @@ NetIp net_ip_loopback(NetIpType);
 
 /**
  * Lookup the current ip addresses of the active network interfaces (excluding loop-back).
+ * NOTE: Provide null to the 'out' parameter to query the interface count without returning the ips.
  */
 u32 net_ip_interfaces(NetIp out[], u32 outMax);
 
