@@ -10,6 +10,7 @@
 #include "log_logger.h"
 #include "log_sink_json.h"
 #include "log_sink_pretty.h"
+#include "net_addr.h"
 #include "net_http.h"
 #include "net_init.h"
 #include "net_result.h"
@@ -60,6 +61,16 @@ static bool httpu_validate_method(const String input) {
     }
   }
   return false;
+}
+
+static void httpu_log_interfaces(void) {
+  NetIp     ips[32];
+  const u32 ipCount = net_ip_interfaces(ips, array_elems(ips));
+
+  for (u32 i = 0; i != ipCount; ++i) {
+    const String ipScratch = net_ip_str_scratch(&ips[i]);
+    log_d("Net interface: {}", log_param("ip", fmt_text(ipScratch)));
+  }
 }
 
 typedef struct {
@@ -221,6 +232,7 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   }
 
   net_init();
+  httpu_log_interfaces();
   switch (ctx.method) {
   case HttpuMethod_Head:
     retCode = httpu_head(&ctx);
