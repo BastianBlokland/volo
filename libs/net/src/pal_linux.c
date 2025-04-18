@@ -12,6 +12,8 @@
 #include "pal_internal.h"
 
 #include <errno.h>
+#include <ifaddrs.h>
+#include <net/if.h>
 #include <netdb.h>
 #include <netinet/tcp.h>
 #include <sys/socket.h>
@@ -263,6 +265,59 @@ NetResult net_socket_shutdown(NetSocket* s, const NetDir dir) {
 
   s->closedMask |= dir;
   return NetResult_Success;
+}
+
+u32 net_ip_interfaces(NetIp out[], const u32 outMax) {
+  u32 outCount = 0;
+
+  struct ifaddrs* addrs;
+  const int       res = getifaddrs(&addrs);
+  if (UNLIKELY(res < 0)) {
+    return 0; // Failed to lookup addresses.
+  }
+  for (struct ifaddrs* itr = addrs; itr; itr = itr->ifa_next) {
+    if (!itr->ifa_addr) {
+      continue; // Interface has no address.
+    }
+    if (!(itr->ifa_flags & IFF_UP)) {
+      continue; // Interface not running.
+    }
+    if (itr->ifa_flags & IFF_LOOPBACK) {
+      continue; // Exclude loop-back interfaces.
+    }
+    switch (itr->ifa_addr->sa_family) {
+    case AF_INET: {
+      const struct sockaddr_in* addr = (struct sockaddr_in*)itr->ifa_addr;
+      if (UNLIKELY(outCount == outMax)) {
+        goto Ret;
+      }
+      NetIp ip;
+      ip.type = NetIpType_V4;
+      mem_cpy(mem_var(ip.v4.data), mem_var(addr->sin_addr));
+
+      out[outCount++] = ip;
+      break;
+    }
+    case AF_INET6: {
+      const struct sockaddr_in6* addr = (struct sockaddr_in6*)itr->ifa_addr;
+      if (UNLIKELY(outCount == outMax)) {
+        goto Ret;
+      }
+      NetIp ip;
+      ip.type = NetIpType_V6;
+      for (u32 i = 0; i != array_elems(ip.v6.groups); ++i) {
+        mem_consume_be_u16(mem_var(addr->sin6_addr.s6_addr16[i]), &ip.v6.groups[i]);
+      }
+
+      out[outCount++] = ip;
+      break;
+    }
+    }
+  }
+
+Ret:
+  freeifaddrs(addrs);
+  return outCount;
 }
 
 NetResult net_resolve_sync(const String host, NetIp* out) {
