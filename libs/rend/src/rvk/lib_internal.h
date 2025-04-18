@@ -1,6 +1,8 @@
 #pragma once
 #include "rend_settings.h"
 
+#include "forward_internal.h"
+
 #include "vulkan_api.h"
 
 typedef enum {
@@ -17,6 +19,7 @@ typedef struct sRvkLib {
   VkInstance               vkInst;
   VkAllocationCallbacks    vkAlloc;
   VkDebugUtilsMessengerEXT vkMessenger;
+  RvkDisassembler*         disassembler;
 } RvkLib;
 
 RvkLib* rvk_lib_create(const RendSettingsGlobalComp*);

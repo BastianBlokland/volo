@@ -6,6 +6,7 @@
 #include "gap_native.h"
 #include "log_logger.h"
 
+#include "disassembler_internal.h"
 #include "lib_internal.h"
 #include "mem_internal.h"
 
@@ -294,6 +295,9 @@ RvkLib* rvk_lib_create(const RendSettingsGlobalComp* set) {
   if (lib->flags & RvkLibFlags_Debug) {
     rvk_messenger_create(lib);
   }
+  if (set->flags & RendGlobalFlags_DebugGpu) {
+    lib->disassembler = rvk_disassembler_create(g_allocHeap);
+  }
 
   log_i(
       "Vulkan library created",
@@ -311,6 +315,9 @@ void rvk_lib_destroy(RvkLib* lib) {
   }
   rvk_call(lib, destroyInstance, lib->vkInst, &lib->vkAlloc);
   dynlib_destroy(lib->vulkanLib);
+  if (lib->disassembler) {
+    rvk_disassembler_destroy(lib->disassembler);
+  }
   alloc_free_t(g_allocHeap, lib);
 
   log_d("Vulkan library destroyed");
