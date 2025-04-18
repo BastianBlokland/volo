@@ -62,6 +62,7 @@ static NetResult net_pal_socket_error(const int err) {
   case ECONNREFUSED:
     return NetResult_Refused;
   case ENETUNREACH:
+  case EHOSTUNREACH:
   case ETIMEDOUT:
     return NetResult_Unreachable;
   case ECONNRESET:
