@@ -287,7 +287,7 @@ u32 net_ip_interfaces(NetIp out[], const u32 outMax) {
     }
     switch (itr->ifa_addr->sa_family) {
     case AF_INET: {
-      if(!out) {
+      if (!out) {
         ++outCount;
         break;
       }
@@ -303,7 +303,7 @@ u32 net_ip_interfaces(NetIp out[], const u32 outMax) {
       break;
     }
     case AF_INET6: {
-      if(!out) {
+      if (!out) {
         ++outCount;
         break;
       }
