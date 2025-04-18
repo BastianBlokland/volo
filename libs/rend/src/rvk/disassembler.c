@@ -13,10 +13,10 @@
 #define spirvtools_names_max 4
 
 typedef enum {
-  SpirvToolsState_Idle,
-  SpirvToolsState_Ready,
-  SpirvToolsState_Failed,
-} SpirvToolsState;
+  SpvToolsState_Idle,
+  SpvToolsState_Ready,
+  SpvToolsState_Failed,
+} SpvToolsState;
 
 typedef enum {
   SpvTargetEnv_Vulkan_1_1 = 18,
@@ -47,9 +47,9 @@ typedef struct {
 typedef struct sSpvContext SpvContext;
 
 typedef struct {
-  SpirvToolsState state;
-  DynLib*         lib;
-  SpvContext*     ctx;
+  SpvToolsState state;
+  DynLib*       lib;
+  SpvContext*   ctx;
 
   // clang-format off
   SpvContext* (SYS_DECL* spvContextCreate)(SpvTargetEnv);
@@ -57,15 +57,15 @@ typedef struct {
   SpvResult   (SYS_DECL* spvBinaryToText)(const SpvContext*, const u32* data, usize wordCount, u32 options, SpvText* out, void* diagnostic);
   void        (SYS_DECL* spvTextDestroy)(SpvText);
   // clang-format on
-} SpirvTools;
+} SpvTools;
 
 typedef struct sRvkDisassembler {
   Allocator*  alloc;
   ThreadMutex initMutex;
-  SpirvTools  spirvTools;
+  SpvTools    spvTools;
 } RvkDisassembler;
 
-static u32 spirvtools_lib_names(String outNames[PARAM_ARRAY_SIZE(spirvtools_names_max)]) {
+static u32 spvtools_lib_names(String outNames[PARAM_ARRAY_SIZE(spirvtools_names_max)]) {
   const String vkSdkPath = env_var_scratch(string_lit("VULKAN_SDK"));
 
   u32 count = 0;
@@ -84,13 +84,13 @@ static u32 spirvtools_lib_names(String outNames[PARAM_ARRAY_SIZE(spirvtools_name
   return count;
 }
 
-static bool spirvtools_init(SpirvTools* spirvTools) {
-  diag_assert(spirvTools->state == SpirvToolsState_Idle && !spirvTools->lib);
+static bool spvtools_init(SpvTools* spvTools) {
+  diag_assert(spvTools->state == SpvToolsState_Idle && !spvTools->lib);
 
   String    libNames[spirvtools_names_max];
-  const u32 libNameCount = spirvtools_lib_names(libNames);
+  const u32 libNameCount = spvtools_lib_names(libNames);
 
-  DynLibResult loadRes = dynlib_load_first(g_allocHeap, libNames, libNameCount, &spirvTools->lib);
+  DynLibResult loadRes = dynlib_load_first(g_allocHeap, libNames, libNameCount, &spvTools->lib);
   if (loadRes != DynLibResult_Success) {
     const String err = dynlib_result_str(loadRes);
     log_w("Failed to load 'SPIRV-Tools' library", log_param("err", fmt_text(err)));
@@ -99,8 +99,8 @@ static bool spirvtools_init(SpirvTools* spirvTools) {
 
 #define SPVTOOLS_LOAD_SYM(_NAME_)                                                                  \
   do {                                                                                             \
-    spirvTools->_NAME_ = dynlib_symbol(spirvTools->lib, string_lit(#_NAME_));                      \
-    if (!spirvTools->_NAME_) {                                                                     \
+    spvTools->_NAME_ = dynlib_symbol(spvTools->lib, string_lit(#_NAME_));                          \
+    if (!spvTools->_NAME_) {                                                                       \
       log_e("SpirvTools symbol '{}' missing", log_param("sym", fmt_text(string_lit(#_NAME_))));    \
       goto Failure;                                                                                \
     }                                                                                              \
@@ -113,18 +113,18 @@ static bool spirvtools_init(SpirvTools* spirvTools) {
 
 #undef SPVTOOLS_LOAD_SYM
 
-  spirvTools->ctx = spirvTools->spvContextCreate(SpvTargetEnv_Vulkan_1_1);
-  if (!spirvTools->ctx) {
+  spvTools->ctx = spvTools->spvContextCreate(SpvTargetEnv_Vulkan_1_1);
+  if (!spvTools->ctx) {
     log_e("Failed to create SpirvTools context");
     goto Failure;
   }
 
-  log_i("Loaded 'SPIRV-Tools' library", log_param("path", fmt_path(dynlib_path(spirvTools->lib))));
-  spirvTools->state = SpirvToolsState_Ready;
+  log_i("Loaded 'SPIRV-Tools' library", log_param("path", fmt_path(dynlib_path(spvTools->lib))));
+  spvTools->state = SpvToolsState_Ready;
   return true;
 
 Failure:
-  spirvTools->state = SpirvToolsState_Failed;
+  spvTools->state = SpvToolsState_Failed;
   return false;
 }
 
@@ -140,34 +140,34 @@ RvkDisassembler* rvk_disassembler_create(Allocator* alloc) {
 }
 
 void rvk_disassembler_destroy(RvkDisassembler* dis) {
-  if (dis->spirvTools.ctx) {
-    dis->spirvTools.spvContextDestroy(dis->spirvTools.ctx);
+  if (dis->spvTools.ctx) {
+    dis->spvTools.spvContextDestroy(dis->spvTools.ctx);
   }
-  if (dis->spirvTools.lib) {
-    dynlib_destroy(dis->spirvTools.lib);
+  if (dis->spvTools.lib) {
+    dynlib_destroy(dis->spvTools.lib);
   }
   thread_mutex_destroy(dis->initMutex);
   alloc_free_t(dis->alloc, dis);
 }
 
 RvkDisassemblerResult
-rvk_disassembler_spirv_to_text(const RvkDisassembler* dis, const String in, DynString* out) {
+rvk_disassembler_spv(const RvkDisassembler* dis, const String in, DynString* out) {
   // Lazily initialize the SpirvTools library.
-  if (dis->spirvTools.state == SpirvToolsState_Idle) {
+  if (dis->spvTools.state == SpvToolsState_Idle) {
     thread_mutex_lock(dis->initMutex);
-    if (dis->spirvTools.state == SpirvToolsState_Idle) {
-      spirvtools_init((SpirvTools*)&dis->spirvTools);
+    if (dis->spvTools.state == SpvToolsState_Idle) {
+      spvtools_init((SpvTools*)&dis->spvTools);
     }
     thread_mutex_unlock(dis->initMutex);
   }
-  if (dis->spirvTools.state == SpirvToolsState_Failed) {
+  if (dis->spvTools.state == SpvToolsState_Failed) {
     return RvkDisassembler_Unavailable;
   }
   const SpvBinaryToTextOpts options = SpvBinaryToTextOpts_None;
 
   SpvText         resValue;
-  const SpvResult res = dis->spirvTools.spvBinaryToText(
-      dis->spirvTools.ctx,
+  const SpvResult res = dis->spvTools.spvBinaryToText(
+      dis->spvTools.ctx,
       in.ptr,
       bytes_to_words(in.size),
       options,
@@ -179,7 +179,7 @@ rvk_disassembler_spirv_to_text(const RvkDisassembler* dis, const String in, DynS
   }
 
   dynstring_append(out, mem_create(resValue.str, resValue.length));
-  dis->spirvTools.spvTextDestroy(resValue);
+  dis->spvTools.spvTextDestroy(resValue);
 
   return RvkDisassembler_Success;
 }

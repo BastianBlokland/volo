@@ -15,5 +15,4 @@ void             rvk_disassembler_destroy(RvkDisassembler*);
 /**
  * Disassemble the given spir-v assembly to human readable text.
  */
-RvkDisassemblerResult
-rvk_disassembler_spirv_to_text(const RvkDisassembler*, String in, DynString* out);
+RvkDisassemblerResult rvk_disassembler_spv(const RvkDisassembler*, String in, DynString* out);
