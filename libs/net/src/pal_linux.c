@@ -259,7 +259,7 @@ NetResult net_socket_shutdown(NetSocket* s, const NetDir dir) {
     how = SHUT_WR;
   }
 
-  if (shutdown(s->handle, how)) {
+  if (shutdown(s->handle, how) && errno != ENOTCONN) {
     return s->status = net_pal_socket_error(errno);
   }
 
