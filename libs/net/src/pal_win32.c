@@ -349,6 +349,12 @@ NetResult net_socket_shutdown(NetSocket* s, const NetDir dir) {
   return NetResult_Success;
 }
 
+u32 net_ip_interfaces(NetIp out[], const u32 outMax) {
+  (void)out;
+  (void)outMax;
+  return 0;
+}
+
 NetResult net_resolve_sync(const String host, NetIp* out) {
   if (UNLIKELY(!g_netInitialized)) {
     diag_crash_msg("Network subsystem not initialized");
