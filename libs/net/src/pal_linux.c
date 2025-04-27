@@ -268,7 +268,7 @@ NetResult net_socket_shutdown(NetSocket* s, const NetDir dir) {
   return NetResult_Success;
 }
 
-u32 net_ip_interfaces(NetIp out[], const u32 outMax) {
+u32 net_ip_interfaces(NetIp out[], const u32 outMax, const NetInterfaceQueryFlags flags) {
   u32 outCount = 0;
 
   struct ifaddrs* addrs;
@@ -288,10 +288,6 @@ u32 net_ip_interfaces(NetIp out[], const u32 outMax) {
     }
     switch (itr->ifa_addr->sa_family) {
     case AF_INET: {
-      if (!out) {
-        ++outCount;
-        break;
-      }
       const struct sockaddr_in* addr = (struct sockaddr_in*)itr->ifa_addr;
       if (UNLIKELY(outCount == outMax)) {
         goto Ret;
@@ -300,14 +296,17 @@ u32 net_ip_interfaces(NetIp out[], const u32 outMax) {
       ip.type = NetIpType_V4;
       mem_cpy(mem_var(ip.v4.data), mem_var(addr->sin_addr));
 
-      out[outCount++] = ip;
-      break;
+      if (!(flags & NetInterfaceQueryFlags_IncludeLinkLocal) && net_ip_is_linklocal(ip)) {
+        continue;
+      }
+
+      if (out) {
+        out[outCount] = ip;
+      }
+      ++outCount;
+      continue;
     }
     case AF_INET6: {
-      if (!out) {
-        ++outCount;
-        break;
-      }
       const struct sockaddr_in6* addr = (struct sockaddr_in6*)itr->ifa_addr;
       if (UNLIKELY(outCount == outMax)) {
         goto Ret;
@@ -318,8 +317,15 @@ u32 net_ip_interfaces(NetIp out[], const u32 outMax) {
         mem_consume_be_u16(mem_var(addr->sin6_addr.s6_addr16[i]), &ip.v6.groups[i]);
       }
 
-      out[outCount++] = ip;
-      break;
+      if (!(flags & NetInterfaceQueryFlags_IncludeLinkLocal) && net_ip_is_linklocal(ip)) {
+        continue;
+      }
+
+      if (out) {
+        out[outCount] = ip;
+      }
+      ++outCount;
+      continue;
     }
     }
   }

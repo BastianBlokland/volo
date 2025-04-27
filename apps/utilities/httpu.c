@@ -65,7 +65,7 @@ static bool httpu_validate_method(const String input) {
 
 static void httpu_log_interfaces(void) {
   NetIp     ips[32];
-  const u32 ipCount = net_ip_interfaces(ips, array_elems(ips));
+  const u32 ipCount = net_ip_interfaces(ips, array_elems(ips), NetInterfaceQueryFlags_None);
 
   for (u32 i = 0; i != ipCount; ++i) {
     const String ipScratch = net_ip_str_scratch(&ips[i]);

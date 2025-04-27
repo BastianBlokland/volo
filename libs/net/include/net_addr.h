@@ -45,11 +45,16 @@ bool net_ip_is_linklocal(NetIp);
  */
 NetIp net_ip_loopback(NetIpType);
 
+typedef enum {
+  NetInterfaceQueryFlags_None             = 0,
+  NetInterfaceQueryFlags_IncludeLinkLocal = 1 << 0,
+} NetInterfaceQueryFlags;
+
 /**
  * Lookup the current ip addresses of the active network interfaces (excluding loop-back).
  * NOTE: Provide null to the 'out' parameter to query the interface count without returning the ips.
  */
-u32 net_ip_interfaces(NetIp out[], u32 outMax);
+u32 net_ip_interfaces(NetIp out[], u32 outMax, NetInterfaceQueryFlags);
 
 /**
  * Synchonously resolve a host-name to an ip-address.

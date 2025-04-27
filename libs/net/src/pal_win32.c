@@ -391,7 +391,7 @@ NetResult net_socket_shutdown(NetSocket* s, const NetDir dir) {
   return NetResult_Success;
 }
 
-u32 net_ip_interfaces(NetIp out[], const u32 outMax) {
+u32 net_ip_interfaces(NetIp out[], const u32 outMax, const NetInterfaceQueryFlags flags) {
   if (UNLIKELY(!g_netInitialized)) {
     diag_crash_msg("Network subsystem not initialized");
   }
@@ -400,9 +400,9 @@ u32 net_ip_interfaces(NetIp out[], const u32 outMax) {
   }
   ULONG       memSize    = 16 * usize_kibibyte;
   const Mem   scratchMem = alloc_alloc(g_allocScratch, memSize, alignof(void*));
-  const ULONG flags = GAA_FLAG_SKIP_ANYCAST | GAA_FLAG_SKIP_MULTICAST | GAA_FLAG_SKIP_DNS_SERVER;
+  const ULONG apiFlags = GAA_FLAG_SKIP_ANYCAST | GAA_FLAG_SKIP_MULTICAST | GAA_FLAG_SKIP_DNS_SERVER;
   const ULONG ret =
-      g_netIpHlpLib.GetAdaptersAddresses(AF_UNSPEC, flags, NULL, scratchMem.ptr, &memSize);
+      g_netIpHlpLib.GetAdaptersAddresses(AF_UNSPEC, apiFlags, NULL, scratchMem.ptr, &memSize);
 
   if (ret == ERROR_NO_DATA || ret == ERROR_ADDRESS_NOT_ASSOCIATED) {
     return 0;
@@ -425,10 +425,6 @@ u32 net_ip_interfaces(NetIp out[], const u32 outMax) {
     for (IP_ADAPTER_UNICAST_ADDRESS* uni = adapter->FirstUnicastAddress; uni; uni = uni->Next) {
       switch (uni->Address.lpSockaddr->sa_family) {
       case AF_INET: {
-        if (!out) {
-          ++outCount;
-          break;
-        }
         const struct sockaddr_in* addr = (struct sockaddr_in*)uni->Address.lpSockaddr;
         if (UNLIKELY(outCount == outMax)) {
           goto Ret;
@@ -437,14 +433,17 @@ u32 net_ip_interfaces(NetIp out[], const u32 outMax) {
         ip.type = NetIpType_V4;
         mem_cpy(mem_var(ip.v4.data), mem_var(addr->sin_addr));
 
-        out[outCount++] = ip;
-        break;
+        if (!(flags & NetInterfaceQueryFlags_IncludeLinkLocal) && net_ip_is_linklocal(ip)) {
+          continue;
+        }
+
+        if (out) {
+          out[outCount] = ip;
+        }
+        ++outCount;
+        continue;
       }
       case AF_INET6: {
-        if (!out) {
-          ++outCount;
-          break;
-        }
         const struct sockaddr_in6* addr = (struct sockaddr_in6*)uni->Address.lpSockaddr;
         if (UNLIKELY(outCount == outMax)) {
           goto Ret;
@@ -455,8 +454,15 @@ u32 net_ip_interfaces(NetIp out[], const u32 outMax) {
           mem_consume_be_u16(mem_var(addr->sin6_addr.u.Word[i]), &ip.v6.groups[i]);
         }
 
-        out[outCount++] = ip;
-        break;
+        if (!(flags & NetInterfaceQueryFlags_IncludeLinkLocal) && net_ip_is_linklocal(ip)) {
+          continue;
+        }
+
+        if (out) {
+          out[outCount] = ip;
+        }
+        ++outCount;
+        continue;
       }
       }
     }
