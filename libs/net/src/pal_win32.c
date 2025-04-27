@@ -398,9 +398,71 @@ u32 net_ip_interfaces(NetIp out[], const u32 outMax) {
   if (UNLIKELY(!g_netIpHlpLib.ready)) {
     return 0; // IpHelper library not available.
   }
-  (void)out;
-  (void)outMax;
-  return 0;
+  ULONG       memSize    = 16 * usize_kibibyte;
+  const Mem   scratchMem = alloc_alloc(g_allocScratch, memSize, alignof(void*));
+  const ULONG flags = GAA_FLAG_SKIP_ANYCAST | GAA_FLAG_SKIP_MULTICAST | GAA_FLAG_SKIP_DNS_SERVER;
+  const ULONG ret =
+      g_netIpHlpLib.GetAdaptersAddresses(AF_UNSPEC, flags, NULL, scratchMem.ptr, &memSize);
+
+  if (ret == ERROR_NO_DATA || ret == ERROR_ADDRESS_NOT_ASSOCIATED) {
+    return 0;
+  } else if (ret == ERROR_BUFFER_OVERFLOW) {
+    // TODO: Retry with a larger buffer.
+  } else if (ret != ERROR_SUCCESS) {
+    diag_crash_msg("GetAdaptersAddresses: {}", fmt_text(winutils_error_msg_scratch(ret)));
+  }
+
+  u32 outCount = 0;
+
+  for (IP_ADAPTER_ADDRESSES* adapter = scratchMem.ptr; adapter; adapter = adapter->Next) {
+    if (adapter->IfType == IF_TYPE_SOFTWARE_LOOPBACK) {
+      continue; // Skip loopback.
+    }
+    if (adapter->OperStatus != IfOperStatusUp) {
+      continue; // Interface not running.
+    }
+    // Report all unicast addresses.
+    for (IP_ADAPTER_UNICAST_ADDRESS* uni = adapter->FirstUnicastAddress; uni; uni = uni->Next) {
+      switch (uni->Address.lpSockaddr->sa_family) {
+      case AF_INET: {
+        if (!out) {
+          ++outCount;
+          break;
+        }
+        const struct sockaddr_in* addr = (struct sockaddr_in*)uni->Address.lpSockaddr;
+        if (UNLIKELY(outCount == outMax)) {
+          goto Ret;
+        }
+        NetIp ip;
+        ip.type = NetIpType_V4;
+        mem_cpy(mem_var(ip.v4.data), mem_var(addr->sin_addr));
+
+        out[outCount++] = ip;
+        break;
+      }
+      case AF_INET6: {
+        if (!out) {
+          ++outCount;
+          break;
+        }
+        const struct sockaddr_in6* addr = (struct sockaddr_in6*)uni->Address.lpSockaddr;
+        if (UNLIKELY(outCount == outMax)) {
+          goto Ret;
+        }
+        NetIp ip;
+        ip.type = NetIpType_V6;
+        for (u32 i = 0; i != array_elems(ip.v6.groups); ++i) {
+          mem_consume_be_u16(mem_var(addr->sin6_addr.u.Word[i]), &ip.v6.groups[i]);
+        }
+
+        out[outCount++] = ip;
+        break;
+      }
+      }
+    }
+  }
+Ret:
+  return outCount;
 }
 
 NetResult net_resolve_sync(const String host, NetIp* out) {
