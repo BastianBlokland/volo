@@ -12,6 +12,8 @@ bool net_is_loopback(const NetIp ip) {
   case NetIpType_V6:
     return !ip.v6.groups[0] && !ip.v6.groups[1] && !ip.v6.groups[2] && !ip.v6.groups[3] &&
            !ip.v6.groups[4] && !ip.v6.groups[5] && !ip.v6.groups[6] && ip.v6.groups[7] == 1;
+  case NetIpType_Count:
+    break;
   }
   UNREACHABLE
 }
@@ -22,6 +24,8 @@ bool net_is_linklocal(const NetIp ip) {
     return ip.v4.data[0] == 169 && ip.v4.data[0] == 254;
   case NetIpType_V6:
     return ip.v6.groups[0] == 0xfe80;
+  case NetIpType_Count:
+    break;
   }
   UNREACHABLE
 }
