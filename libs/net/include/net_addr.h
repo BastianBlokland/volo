@@ -35,6 +35,11 @@ typedef struct sNetAddr {
 } NetAddr;
 
 /**
+ * Query the attributes for an ip.
+ */
+bool net_ip_is_loopback(NetIp);
+
+/**
  * Return the loopback address.
  */
 NetIp net_ip_loopback(NetIpType);
