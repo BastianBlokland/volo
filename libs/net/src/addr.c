@@ -16,6 +16,16 @@ bool net_ip_is_loopback(const NetIp ip) {
   UNREACHABLE
 }
 
+bool net_ip_is_linklocal(const NetIp ip) {
+  switch (ip.type) {
+  case NetIpType_V4:
+    return ip.v4.data[0] == 169 && ip.v4.data[0] == 254;
+  case NetIpType_V6:
+    return ip.v6.groups[0] == 0xfe80;
+  }
+  UNREACHABLE
+}
+
 NetIp net_ip_loopback(const NetIpType type) {
   switch (type) {
   case NetIpType_V4:
