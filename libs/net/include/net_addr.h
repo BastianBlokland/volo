@@ -35,9 +35,26 @@ typedef struct sNetAddr {
 } NetAddr;
 
 /**
+ * Query the attributes for an ip.
+ */
+bool net_is_loopback(NetIp);
+bool net_is_linklocal(NetIp);
+
+/**
  * Return the loopback address.
  */
 NetIp net_ip_loopback(NetIpType);
+
+typedef enum {
+  NetInterfaceQueryFlags_None             = 0,
+  NetInterfaceQueryFlags_IncludeLinkLocal = 1 << 0,
+} NetInterfaceQueryFlags;
+
+/**
+ * Lookup the current ip addresses of the active network interfaces (excluding loop-back).
+ * NOTE: Provide null to the 'out' parameter to query the interface count without returning the ips.
+ */
+u32 net_ip_interfaces(NetIp out[], u32 outMax, NetInterfaceQueryFlags);
 
 /**
  * Synchonously resolve a host-name to an ip-address.

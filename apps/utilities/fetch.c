@@ -19,6 +19,7 @@
 #include "log_logger.h"
 #include "log_sink_json.h"
 #include "log_sink_pretty.h"
+#include "net_addr.h"
 #include "net_http.h"
 #include "net_init.h"
 #include "net_rest.h"
@@ -382,6 +383,11 @@ static i32 fetch_run(
       "Fetching assets",
       log_param("origins", fmt_int(cfg->origins.count)),
       log_param("output-path", fmt_path(outPath)));
+
+  if (!net_ip_interfaces(null, 0, NetInterfaceQueryFlags_None)) {
+    log_e("No network interface available");
+    return 4;
+  }
 
   const u32 maxRequests = fetch_config_max_origin_assets(cfg);
   if (maxRequests) {

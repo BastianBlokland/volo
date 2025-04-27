@@ -14,9 +14,12 @@
 
 #include <Windows.h>
 #include <ws2tcpip.h>
+// NOTE: IpHelper needs to be included after the WinSock header.
+#include <iphlpapi.h>
 
 typedef struct {
   DynLib* lib;
+  bool    ready;
   // clang-format off
   int    (SYS_DECL* WSAStartup)(WORD versionRequested, WSADATA* out);
   int    (SYS_DECL* WSACleanup)(void);
@@ -33,7 +36,17 @@ typedef struct {
   // clang-format on
 } NetWinSock;
 
+typedef struct {
+  DynLib* lib;
+  bool    ready;
+  // clang-format off
+  ULONG  (SYS_DECL* GetAdaptersAddresses)(ULONG family, ULONG flags, void* reserved, IP_ADAPTER_ADDRESSES* adapterAddresses, ULONG* sizePointer);
+  // clang-format on
+} NetIpHelper;
+
 static bool net_ws_init(NetWinSock* ws, Allocator* alloc) {
+  diag_assert(!ws->ready);
+
   const DynLibResult loadRes = dynlib_load(alloc, string_lit("Ws2_32.dll"), &ws->lib);
   if (UNLIKELY(loadRes != DynLibResult_Success)) {
     const String err = dynlib_result_str(loadRes);
@@ -84,23 +97,50 @@ static bool net_ws_init(NetWinSock* ws, Allocator* alloc) {
       log_param("version-minor", fmt_int(HIBYTE(startupData.wVersion))));
 
 #undef WS_LOAD_SYM
+  ws->ready = true;
   return true;
 }
 
-static NetWinSock g_netWsLib;
-static bool       g_netWsReady;
-static bool       g_netInitialized;
-static i64        g_netTotalResolves, g_netTotalConnects;
-static i64        g_netTotalBytesRead, g_netTotalBytesWrite;
+static bool net_iphlp_init(NetIpHelper* ipHlp, Allocator* alloc) {
+  diag_assert(!ipHlp->ready);
+
+  const DynLibResult loadRes = dynlib_load(alloc, string_lit("Iphlpapi.dll"), &ipHlp->lib);
+  if (UNLIKELY(loadRes != DynLibResult_Success)) {
+    const String err = dynlib_result_str(loadRes);
+    log_w("Failed to load the IpHelper library ('Iphlpapi.dll')", log_param("err", fmt_text(err)));
+    return false;
+  }
+
+#define IP_HELPER_LOAD_SYM(_NAME_)                                                                 \
+  do {                                                                                             \
+    ipHlp->_NAME_ = dynlib_symbol(ipHlp->lib, string_lit(#_NAME_));                                \
+    if (!ipHlp->_NAME_) {                                                                          \
+      log_w("IpHelper symbol '{}' missing", log_param("sym", fmt_text(string_lit(#_NAME_))));      \
+      return false;                                                                                \
+    }                                                                                              \
+  } while (false)
+
+  IP_HELPER_LOAD_SYM(GetAdaptersAddresses);
+
+#undef IP_HELPER_LOAD_SYM
+  ipHlp->ready = true;
+  return true;
+}
+
+static NetWinSock  g_netWsLib;
+static NetIpHelper g_netIpHlpLib;
+static bool        g_netInitialized;
+static i64         g_netTotalResolves, g_netTotalConnects;
+static i64         g_netTotalBytesRead, g_netTotalBytesWrite;
 
 void net_pal_init(void) {
-  diag_assert(!g_netWsReady);
-  g_netWsReady     = net_ws_init(&g_netWsLib, g_allocPersist);
+  net_ws_init(&g_netWsLib, g_allocPersist);
+  net_iphlp_init(&g_netIpHlpLib, g_allocPersist);
   g_netInitialized = true;
 }
 
 void net_pal_teardown(void) {
-  if (g_netWsReady) {
+  if (g_netWsLib.ready) {
     const int cleanupErr = g_netWsLib.WSACleanup();
     if (cleanupErr) {
       log_e("Failed to cleanup WinSock library", log_param("err", fmt_int(cleanupErr)));
@@ -109,9 +149,11 @@ void net_pal_teardown(void) {
   if (g_netWsLib.lib) {
     dynlib_destroy(g_netWsLib.lib);
   }
-
+  if (g_netIpHlpLib.lib) {
+    dynlib_destroy(g_netIpHlpLib.lib);
+  }
   g_netWsLib       = (NetWinSock){0};
-  g_netWsReady     = false;
+  g_netIpHlpLib    = (NetIpHelper){0};
   g_netInitialized = false;
 }
 
@@ -133,7 +175,7 @@ static int net_pal_socket_domain(const NetIpType ipType) {
 }
 
 static NetResult net_pal_socket_error(void) {
-  if (!g_netWsReady) {
+  if (!g_netWsLib.ready) {
     return NetResult_SystemFailure;
   }
   const int wsaErr = g_netWsLib.WSAGetLastError();
@@ -165,7 +207,7 @@ static NetResult net_pal_socket_error(void) {
 }
 
 static NetResult net_pal_resolve_error(void) {
-  if (!g_netWsReady) {
+  if (!g_netWsLib.ready) {
     return NetResult_SystemFailure;
   }
   const int wsaErr = g_netWsLib.WSAGetLastError();
@@ -210,7 +252,7 @@ NetSocket* net_socket_connect_sync(Allocator* alloc, const NetAddr addr) {
   NetSocket* s = alloc_alloc_t(alloc, NetSocket);
 
   *s = (NetSocket){.alloc = alloc, .handle = INVALID_SOCKET};
-  if (UNLIKELY(!g_netWsReady)) {
+  if (UNLIKELY(!g_netWsLib.ready)) {
     s->status = NetResult_SystemFailure;
     return s;
   }
@@ -256,7 +298,7 @@ NetSocket* net_socket_connect_sync(Allocator* alloc, const NetAddr addr) {
 }
 
 void net_socket_destroy(NetSocket* s) {
-  if (g_netWsReady && s->handle != INVALID_SOCKET) {
+  if (g_netWsLib.ready && s->handle != INVALID_SOCKET) {
     const int closeRet = g_netWsLib.closesocket(s->handle);
     (void)closeRet;
     diag_assert_msg(
@@ -349,11 +391,91 @@ NetResult net_socket_shutdown(NetSocket* s, const NetDir dir) {
   return NetResult_Success;
 }
 
+u32 net_ip_interfaces(NetIp out[], const u32 outMax, const NetInterfaceQueryFlags flags) {
+  if (UNLIKELY(!g_netInitialized)) {
+    diag_crash_msg("Network subsystem not initialized");
+  }
+  if (UNLIKELY(!g_netIpHlpLib.ready)) {
+    return 0; // IpHelper library not available.
+  }
+  ULONG       memSize    = 16 * usize_kibibyte;
+  const Mem   scratchMem = alloc_alloc(g_allocScratch, memSize, alignof(void*));
+  const ULONG apiFlags = GAA_FLAG_SKIP_ANYCAST | GAA_FLAG_SKIP_MULTICAST | GAA_FLAG_SKIP_DNS_SERVER;
+  const ULONG ret =
+      g_netIpHlpLib.GetAdaptersAddresses(AF_UNSPEC, apiFlags, NULL, scratchMem.ptr, &memSize);
+
+  if (ret == ERROR_NO_DATA || ret == ERROR_ADDRESS_NOT_ASSOCIATED) {
+    return 0;
+  } else if (ret == ERROR_BUFFER_OVERFLOW) {
+    // TODO: Retry with a larger buffer.
+  } else if (ret != ERROR_SUCCESS) {
+    diag_crash_msg("GetAdaptersAddresses: {}", fmt_text(winutils_error_msg_scratch(ret)));
+  }
+
+  u32 outCount = 0;
+
+  for (IP_ADAPTER_ADDRESSES* adapter = scratchMem.ptr; adapter; adapter = adapter->Next) {
+    if (adapter->IfType == IF_TYPE_SOFTWARE_LOOPBACK) {
+      continue; // Skip loopback.
+    }
+    if (adapter->OperStatus != IfOperStatusUp) {
+      continue; // Interface not running.
+    }
+    // Report all unicast addresses.
+    for (IP_ADAPTER_UNICAST_ADDRESS* uni = adapter->FirstUnicastAddress; uni; uni = uni->Next) {
+      switch (uni->Address.lpSockaddr->sa_family) {
+      case AF_INET: {
+        const struct sockaddr_in* addr = (struct sockaddr_in*)uni->Address.lpSockaddr;
+        if (UNLIKELY(outCount == outMax)) {
+          goto Ret;
+        }
+        NetIp ip;
+        ip.type = NetIpType_V4;
+        mem_cpy(mem_var(ip.v4.data), mem_var(addr->sin_addr));
+
+        if (!(flags & NetInterfaceQueryFlags_IncludeLinkLocal) && net_is_linklocal(ip)) {
+          continue;
+        }
+
+        if (out) {
+          out[outCount] = ip;
+        }
+        ++outCount;
+        continue;
+      }
+      case AF_INET6: {
+        const struct sockaddr_in6* addr = (struct sockaddr_in6*)uni->Address.lpSockaddr;
+        if (UNLIKELY(outCount == outMax)) {
+          goto Ret;
+        }
+        NetIp ip;
+        ip.type = NetIpType_V6;
+        for (u32 i = 0; i != array_elems(ip.v6.groups); ++i) {
+          mem_consume_be_u16(mem_var(addr->sin6_addr.u.Word[i]), &ip.v6.groups[i]);
+        }
+
+        if (!(flags & NetInterfaceQueryFlags_IncludeLinkLocal) && net_is_linklocal(ip)) {
+          continue;
+        }
+
+        if (out) {
+          out[outCount] = ip;
+        }
+        ++outCount;
+        continue;
+      }
+      }
+    }
+  }
+Ret:
+  return outCount;
+}
+
 NetResult net_resolve_sync(const String host, NetIp* out) {
   if (UNLIKELY(!g_netInitialized)) {
     diag_crash_msg("Network subsystem not initialized");
   }
-  if (UNLIKELY(!g_netWsReady)) {
+  if (UNLIKELY(!g_netWsLib.ready)) {
     return NetResult_SystemFailure;
   }
   if (UNLIKELY(string_is_empty(host))) {

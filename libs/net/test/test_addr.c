@@ -112,4 +112,11 @@ spec(addr) {
       check_eq_string(net_addr_str_scratch(&g_testData[i].addr), g_testData[i].expected);
     }
   }
+
+  it("can detect loopback ips") {
+    for (NetIpType ipType = 0; ipType != NetIpType_Count; ++ipType) {
+      const NetIp ip = net_ip_loopback(ipType);
+      check(net_is_loopback(ip));
+    }
+  }
 }
