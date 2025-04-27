@@ -64,6 +64,7 @@ static bool httpu_validate_method(const String input) {
 }
 
 static void httpu_log_interfaces(void) {
+#ifndef VOLO_FAST
   NetIp     ips[32];
   const u32 ipCount = net_ip_interfaces(ips, array_elems(ips), NetInterfaceQueryFlags_None);
 
@@ -71,6 +72,7 @@ static void httpu_log_interfaces(void) {
     const String ipScratch = net_ip_str_scratch(&ips[i]);
     log_d("Net interface detected", log_param("ip", fmt_text(ipScratch)));
   }
+#endif
 }
 
 typedef struct {
