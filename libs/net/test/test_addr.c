@@ -116,7 +116,7 @@ spec(addr) {
   it("can detect loopback ips") {
     for (NetIpType ipType = 0; ipType != NetIpType_Count; ++ipType) {
       const NetIp ip = net_ip_loopback(ipType);
-      check(net_ip_is_loopback(ip));
+      check(net_is_loopback(ip));
     }
   }
 }

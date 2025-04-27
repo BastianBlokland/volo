@@ -37,8 +37,8 @@ typedef struct sNetAddr {
 /**
  * Query the attributes for an ip.
  */
-bool net_ip_is_loopback(NetIp);
-bool net_ip_is_linklocal(NetIp);
+bool net_is_loopback(NetIp);
+bool net_is_linklocal(NetIp);
 
 /**
  * Return the loopback address.

@@ -296,7 +296,7 @@ u32 net_ip_interfaces(NetIp out[], const u32 outMax, const NetInterfaceQueryFlag
       ip.type = NetIpType_V4;
       mem_cpy(mem_var(ip.v4.data), mem_var(addr->sin_addr));
 
-      if (!(flags & NetInterfaceQueryFlags_IncludeLinkLocal) && net_ip_is_linklocal(ip)) {
+      if (!(flags & NetInterfaceQueryFlags_IncludeLinkLocal) && net_is_linklocal(ip)) {
         continue;
       }
 
@@ -317,7 +317,7 @@ u32 net_ip_interfaces(NetIp out[], const u32 outMax, const NetInterfaceQueryFlag
         mem_consume_be_u16(mem_var(addr->sin6_addr.s6_addr16[i]), &ip.v6.groups[i]);
       }
 
-      if (!(flags & NetInterfaceQueryFlags_IncludeLinkLocal) && net_ip_is_linklocal(ip)) {
+      if (!(flags & NetInterfaceQueryFlags_IncludeLinkLocal) && net_is_linklocal(ip)) {
         continue;
       }
 

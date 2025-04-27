@@ -5,7 +5,7 @@
 #include "core_format.h"
 #include "net_addr.h"
 
-bool net_ip_is_loopback(const NetIp ip) {
+bool net_is_loopback(const NetIp ip) {
   switch (ip.type) {
   case NetIpType_V4:
     return ip.v4.data[0] == 127;
@@ -16,7 +16,7 @@ bool net_ip_is_loopback(const NetIp ip) {
   UNREACHABLE
 }
 
-bool net_ip_is_linklocal(const NetIp ip) {
+bool net_is_linklocal(const NetIp ip) {
   switch (ip.type) {
   case NetIpType_V4:
     return ip.v4.data[0] == 169 && ip.v4.data[0] == 254;
