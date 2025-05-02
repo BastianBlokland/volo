@@ -18,6 +18,10 @@ static const VkValidationFeatureEnableEXT g_validationEnabledFeatures[] = {
     VK_VALIDATION_FEATURE_ENABLE_BEST_PRACTICES_EXT,
 };
 
+static const i32 g_rvkMessengerIgnoredMessages[] = {
+    1734198062, // BestPractices-specialuse-extension.
+};
+
 static const char* rvk_to_null_term_scratch(const String str) {
   const Mem scratchMem = alloc_alloc(g_allocScratch, str.size + 1, 1);
   mem_cpy(scratchMem, str);
@@ -204,7 +208,13 @@ static VkBool32 SYS_DECL rvk_message_func(
     VkDebugUtilsMessageTypeFlagsEXT             msgType,
     const VkDebugUtilsMessengerCallbackDataEXT* callbackData,
     void*                                       userData) {
-  (void)userData;
+  Logger* logger = userData;
+
+  array_for_t(g_rvkMessengerIgnoredMessages, i32, ignoredMessage) {
+    if (callbackData->messageIdNumber == *ignoredMessage) {
+      return VK_FALSE; // The application should always return VK_FALSE.
+    }
+  }
 
   thread_ensure_init();
 
@@ -212,7 +222,7 @@ static VkBool32 SYS_DECL rvk_message_func(
   const String   typeLabel = rvk_msg_type_label(msgType);
   const String   message   = string_from_null_term(callbackData->pMessage);
 
-  log(g_logger,
+  log(logger,
       logLevel,
       "Vulkan {} message",
       log_param("type", fmt_text(typeLabel)),
@@ -222,7 +232,8 @@ static VkBool32 SYS_DECL rvk_message_func(
   if (msgSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) {
     diag_break(); // Halt when running in a debugger.
   }
-  return false;
+
+  return VK_FALSE; // The application should always return VK_FALSE.
 }
 
 static void rvk_messenger_create(RvkLib* lib) {
@@ -231,7 +242,7 @@ static void rvk_messenger_create(RvkLib* lib) {
       .messageSeverity = rvk_messenger_severity_mask(lib->flags),
       .messageType     = rvk_messenger_type_mask(lib->flags),
       .pfnUserCallback = rvk_message_func,
-      .pUserData       = null,
+      .pUserData       = (void*)g_logger,
   };
   rvk_call(lib, createDebugUtilsMessengerEXT, lib->vkInst, &info, &lib->vkAlloc, &lib->vkMessenger);
 }
