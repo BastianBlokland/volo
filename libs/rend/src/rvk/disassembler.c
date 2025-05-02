@@ -54,8 +54,8 @@ typedef struct {
   // clang-format off
   SpvContext* (SYS_DECL* spvContextCreate)(SpvTargetEnv);
   void        (SYS_DECL* spvContextDestroy)(SpvContext*);
-  SpvResult   (SYS_DECL* spvBinaryToText)(const SpvContext*, const u32* data, usize wordCount, u32 options, SpvText* out, void* diagnostic);
-  void        (SYS_DECL* spvTextDestroy)(SpvText);
+  SpvResult   (SYS_DECL* spvBinaryToText)(const SpvContext*, const u32* data, usize wordCount, u32 options, SpvText** out, void* diagnostic);
+  void        (SYS_DECL* spvTextDestroy)(SpvText*);
   // clang-format on
 } SpvTools;
 
@@ -165,7 +165,7 @@ rvk_disassembler_spv(const RvkDisassembler* dis, const String in, DynString* out
   }
   const SpvBinaryToTextOpts options = SpvBinaryToTextOpts_None;
 
-  SpvText         resValue;
+  SpvText*        resValue;
   const SpvResult res = dis->spvTools.spvBinaryToText(
       dis->spvTools.ctx,
       in.ptr,
@@ -175,10 +175,10 @@ rvk_disassembler_spv(const RvkDisassembler* dis, const String in, DynString* out
       null /* diagnostic */);
 
   if (res != SpvResult_Success) {
-    RvkDisassembler_InvalidAssembly;
+    return RvkDisassembler_InvalidAssembly;
   }
 
-  dynstring_append(out, mem_create(resValue.str, resValue.length));
+  dynstring_append(out, mem_create(resValue->str, resValue->length));
   dis->spvTools.spvTextDestroy(resValue);
 
   return RvkDisassembler_Success;
