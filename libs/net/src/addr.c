@@ -5,6 +5,31 @@
 #include "core_format.h"
 #include "net_addr.h"
 
+bool net_is_loopback(const NetIp ip) {
+  switch (ip.type) {
+  case NetIpType_V4:
+    return ip.v4.data[0] == 127;
+  case NetIpType_V6:
+    return !ip.v6.groups[0] && !ip.v6.groups[1] && !ip.v6.groups[2] && !ip.v6.groups[3] &&
+           !ip.v6.groups[4] && !ip.v6.groups[5] && !ip.v6.groups[6] && ip.v6.groups[7] == 1;
+  case NetIpType_Count:
+    break;
+  }
+  UNREACHABLE
+}
+
+bool net_is_linklocal(const NetIp ip) {
+  switch (ip.type) {
+  case NetIpType_V4:
+    return ip.v4.data[0] == 169 && ip.v4.data[1] == 254;
+  case NetIpType_V6:
+    return ip.v6.groups[0] == 0xfe80;
+  case NetIpType_Count:
+    break;
+  }
+  UNREACHABLE
+}
+
 NetIp net_ip_loopback(const NetIpType type) {
   switch (type) {
   case NetIpType_V4:
