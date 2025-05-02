@@ -31,8 +31,8 @@
   _X_(AssetFormat_Script,           script,             42 )                                       \
   _X_(AssetFormat_ScriptBin,        script_bin,         3  )                                       \
   _X_(AssetFormat_ShaderBin,        shader_bin,         2  )                                       \
-  _X_(AssetFormat_ShaderGlslFrag,   shader_glsl_frag,   1  )                                       \
-  _X_(AssetFormat_ShaderGlslVert,   shader_glsl_vert,   1  )                                       \
+  _X_(AssetFormat_ShaderGlslFrag,   shader_glsl_frag,   2  )                                       \
+  _X_(AssetFormat_ShaderGlslVert,   shader_glsl_vert,   2  )                                       \
   _X_(AssetFormat_ShaderSpv,        shader_spv,         1  )                                       \
   _X_(AssetFormat_SoundBin,         sound_bin,          2  )                                       \
   _X_(AssetFormat_SoundWav,         sound_wav,          1  )                                       \

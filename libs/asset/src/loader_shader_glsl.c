@@ -18,7 +18,7 @@
  */
 
 #define glsl_version 450
-#define glsl_debug_info true
+#define glsl_debug_info false
 #define glsl_optimize true
 #define glsl_shaderc_names_max 4
 #define glsl_id_chunk_size (4 * usize_kibibyte)
