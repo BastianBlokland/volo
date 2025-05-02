@@ -21,9 +21,9 @@ bool              rend_res_is_loading(const RendResComp*);
 bool              rend_res_is_failed(const RendResComp*);
 bool              rend_res_is_unused(const RendResComp*);
 bool              rend_res_is_persistent(const RendResComp*);
+const RendReport* rend_res_report(const RendResComp*); // Optional.
 u32               rend_res_ticks_until_unload(const RendResComp*);
 u32               rend_res_dependents(const RendResComp*);
-const RendReport* rend_res_graphic_report(const RendResGraphicComp*); // Optional.
 u32               rend_res_mesh_vertices(const RendResMeshComp*);
 u32               rend_res_mesh_indices(const RendResMeshComp*);
 usize             rend_res_mesh_memory(const RendResMeshComp*);

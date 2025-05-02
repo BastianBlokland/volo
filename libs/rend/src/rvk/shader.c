@@ -1,10 +1,13 @@
 #include "asset_graphic.h"
 #include "core_alloc.h"
 #include "core_diag.h"
+#include "core_dynstring.h"
 #include "core_math.h"
 #include "log_logger.h"
+#include "rend_report.h"
 
 #include "device_internal.h"
+#include "disassembler_internal.h"
 #include "lib_internal.h"
 #include "shader_internal.h"
 
@@ -123,7 +126,8 @@ static RvkShaderFlags rvk_shader_flags(const AssetShaderComp* asset) {
   return flags;
 }
 
-RvkShader* rvk_shader_create(RvkDevice* dev, const AssetShaderComp* asset, const String dbgName) {
+RvkShader* rvk_shader_create(
+    RvkDevice* dev, const AssetShaderComp* asset, RendReport* report, const String dbgName) {
   RvkShader* shader = alloc_alloc_t(g_allocHeap, RvkShader);
 
   *shader = (RvkShader){
@@ -164,6 +168,54 @@ RvkShader* rvk_shader_create(RvkDevice* dev, const AssetShaderComp* asset, const
       continue;
     }
     shader->descriptors[res->set].bindings[res->binding] = rvk_shader_desc_kind(res->kind);
+  }
+
+  if (report) {
+    rend_report_push_value(
+        report, string_lit("Kind"), string_empty, asset_shader_kind_name(asset->kind));
+
+    rend_report_push_value(
+        report,
+        string_lit("Data"),
+        string_lit("Size of the SpirV assembly"),
+        fmt_write_scratch("{}", fmt_size(asset->data.size)));
+
+    rend_report_push_value(
+        report, string_lit("Entry"), string_lit("Shader entry point"), asset->entryPoint);
+
+    rend_report_push_value(
+        report,
+        string_lit("Inputs"),
+        string_empty,
+        asset_shader_type_array_name_scratch(asset->inputs, asset_shader_max_inputs));
+
+    rend_report_push_value(
+        report,
+        string_lit("Outputs"),
+        string_empty,
+        asset_shader_type_array_name_scratch(asset->outputs, asset_shader_max_outputs));
+
+    rend_report_push_value(
+        report,
+        string_lit("May kill"),
+        string_lit("Shader uses a kill (aka 'discard') instruction"),
+        shader->flags & RvkShaderFlags_MayKill ? string_lit("true") : string_lit("false"));
+
+    if (dev->lib->disassembler) {
+      DynString                   spvText = dynstring_create(g_allocScratch, 32 * usize_kibibyte);
+      const RvkDisassemblerResult spvRes =
+          rvk_disassembler_spv(dev->lib->disassembler, data_mem(asset->data), &spvText);
+
+      if (spvRes == RvkDisassembler_Success) {
+        rend_report_push_value(
+            report,
+            string_lit("SpirV"),
+            string_lit("SpirV assembly text"),
+            dynstring_view(&spvText));
+      } else if (spvRes != RvkDisassembler_Unavailable) {
+        log_e("Failed to disassemble SpirV", log_param("shader", fmt_text(dbgName)));
+      }
+    }
   }
 
 #if VOLO_RVK_SHADER_LOGGING

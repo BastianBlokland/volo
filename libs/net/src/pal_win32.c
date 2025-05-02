@@ -426,7 +426,7 @@ u32 net_ip_interfaces(NetIp out[], const u32 outMax, const NetInterfaceQueryFlag
       switch (uni->Address.lpSockaddr->sa_family) {
       case AF_INET: {
         const struct sockaddr_in* addr = (struct sockaddr_in*)uni->Address.lpSockaddr;
-        if (UNLIKELY(outCount == outMax)) {
+        if (UNLIKELY(out && outCount == outMax)) {
           goto Ret;
         }
         NetIp ip;
@@ -445,7 +445,7 @@ u32 net_ip_interfaces(NetIp out[], const u32 outMax, const NetInterfaceQueryFlag
       }
       case AF_INET6: {
         const struct sockaddr_in6* addr = (struct sockaddr_in6*)uni->Address.lpSockaddr;
-        if (UNLIKELY(outCount == outMax)) {
+        if (UNLIKELY(out && outCount == outMax)) {
           goto Ret;
         }
         NetIp ip;

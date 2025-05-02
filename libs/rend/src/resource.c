@@ -103,6 +103,7 @@ ecs_comp_define(RendResComp) {
   u32              unusedTicks;
   DynArray         dependencies; // EcsEntityId[], resources this resource depends on.
   DynArray         dependents;   // EcsEntityId[], resources that depend on this resource.
+  RendReport*      report;       // Optional, for debugging purposes.
 };
 ecs_comp_define(RendResFinishedComp);
 ecs_comp_define(RendResUnloadComp) {
@@ -112,9 +113,6 @@ ecs_comp_define(RendResUnloadComp) {
 
 static void ecs_destruct_graphic_comp(void* data) {
   RendResGraphicComp* comp = data;
-  if (comp->report) {
-    rend_report_destroy(g_allocHeap, comp->report);
-  }
   rvk_graphic_destroy((RvkGraphic*)comp->graphic, comp->device);
 }
 
@@ -137,6 +135,9 @@ static void ecs_destruct_res_comp(void* data) {
   RendResComp* comp = data;
   dynarray_destroy(&comp->dependencies);
   dynarray_destroy(&comp->dependents);
+  if (comp->report) {
+    rend_report_destroy(g_allocHeap, comp->report);
+  }
 }
 
 static void rend_res_add_dependency(RendResComp* res, const EcsEntityId dependency) {
@@ -409,20 +410,17 @@ static bool rend_res_create(const RendPlatformComp* plat, EcsWorld* world, EcsIt
   const AssetMeshComp*    maybeAssetMesh    = ecs_view_read_t(resItr, AssetMeshComp);
   const AssetTextureComp* maybeAssetTexture = ecs_view_read_t(resItr, AssetTextureComp);
 
-  if (maybeAssetGraphic) {
-    RendReport* graphicReport = null;
-    if (resDebug) {
-      graphicReport = rend_report_create(g_allocHeap, 128 * usize_kibibyte);
+  if (resDebug) {
+    if (resComp->report) {
+      rend_report_reset(resComp->report);
+    } else {
+      resComp->report = rend_report_create(g_allocHeap, 128 * usize_kibibyte);
     }
-    RvkGraphic* graphic = rvk_graphic_create(dev, maybeAssetGraphic, id);
+  }
 
-    ecs_world_add_t(
-        world,
-        entity,
-        RendResGraphicComp,
-        .device  = dev,
-        .graphic = graphic,
-        .report  = graphicReport);
+  if (maybeAssetGraphic) {
+    RvkGraphic* graphic = rvk_graphic_create(dev, maybeAssetGraphic, id);
+    ecs_world_add_t(world, entity, RendResGraphicComp, .device = dev, .graphic = graphic);
 
     // Add shaders.
     EcsView* shaderView = ecs_world_view_t(world, ShaderReadView);
@@ -462,7 +460,7 @@ static bool rend_res_create(const RendPlatformComp* plat, EcsWorld* world, EcsIt
     }
 
     RvkPass* pass = plat->passes[maybeAssetGraphic->pass];
-    if (UNLIKELY(!rvk_graphic_finalize(graphic, maybeAssetGraphic, dev, pass, graphicReport))) {
+    if (UNLIKELY(!rvk_graphic_finalize(graphic, maybeAssetGraphic, dev, pass, resComp->report))) {
       log_e("Invalid graphic", log_param("graphic", fmt_text(id)));
       resComp->state = RendResLoadState_FinishedFailure;
       return false;
@@ -471,7 +469,7 @@ static bool rend_res_create(const RendPlatformComp* plat, EcsWorld* world, EcsIt
   }
 
   if (maybeAssetShader) {
-    RvkShader* shader = rvk_shader_create(dev, maybeAssetShader, id);
+    RvkShader* shader = rvk_shader_create(dev, maybeAssetShader, resComp->report, id);
     ecs_world_add_t(world, entity, RendResShaderComp, .device = dev, .shader = shader);
     return true;
   }
@@ -843,6 +841,8 @@ bool rend_res_is_persistent(const RendResComp* comp) {
   return (comp->flags & RendResFlags_Persistent) != 0;
 }
 
+const RendReport* rend_res_report(const RendResComp* comp) { return comp->report; }
+
 u32 rend_res_ticks_until_unload(const RendResComp* comp) {
   if (comp->unusedTicks > rend_res_unload_delay) {
     return 0;
@@ -851,8 +851,6 @@ u32 rend_res_ticks_until_unload(const RendResComp* comp) {
 }
 
 u32 rend_res_dependents(const RendResComp* comp) { return (u32)comp->dependents.size; }
-
-const RendReport* rend_res_graphic_report(const RendResGraphicComp* comp) { return comp->report; }
 
 u32 rend_res_mesh_vertices(const RendResMeshComp* comp) { return comp->mesh->vertexCount; }
 

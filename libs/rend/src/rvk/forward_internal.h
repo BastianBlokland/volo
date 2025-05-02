@@ -22,6 +22,7 @@ typedef struct sRvkDescPool        RvkDescPool;
 typedef struct sRvkDescSet         RvkDescSet;
 typedef struct sRvkDescUpdateBatch RvkDescUpdateBatch;
 typedef struct sRvkDevice          RvkDevice;
+typedef struct sRvkDisassembler    RvkDisassembler;
 typedef struct sRvkGraphic         RvkGraphic;
 typedef struct sRvkImage           RvkImage;
 typedef struct sRvkJob             RvkJob;

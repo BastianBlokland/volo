@@ -259,8 +259,6 @@ ecs_view_define(GraphicView) {
 ecs_view_define(ResourceView) {
   ecs_access_read(RendResComp);
   ecs_access_read(AssetComp);
-  ecs_access_maybe_read(RendResGraphicComp);
-  ecs_access_maybe_read(RendResShaderComp);
   ecs_access_maybe_read(RendResMeshComp);
   ecs_access_maybe_read(RendResTextureComp);
 }
@@ -423,26 +421,22 @@ static void dev_overlay_resource(
   const AssetComp*   assetComp = ecs_view_read_t(resourceItr, AssetComp);
   const RendResComp* resComp   = ecs_view_read_t(resourceItr, RendResComp);
 
-  const RendResGraphicComp* graphic = ecs_view_read_t(resourceItr, RendResGraphicComp);
+  const RendReport*         report  = rend_res_report(resComp);
   const RendResTextureComp* texture = ecs_view_read_t(resourceItr, RendResTextureComp);
   const RendResMeshComp*    mesh    = ecs_view_read_t(resourceItr, RendResMeshComp);
 
-  if (!graphic && !texture && !mesh) {
-    return;
-  }
-
-  const UiVector panelSize = {950, graphic ? 750 : 180};
+  const UiVector panelSize = {950, (texture || mesh) ? 180 : 750};
   const UiVector inset     = {-5, -5};
 
   ui_style_push(c);
   ui_style_layer(c, UiLayer_Popup);
 
   ui_layout_push(c);
-  if (graphic) {
-    ui_layout_move_to(c, UiBase_Canvas, UiAlign_MiddleCenter, Ui_XY);
-  } else {
+  if (texture || mesh) {
     ui_layout_move_to(c, UiBase_Canvas, UiAlign_BottomCenter, Ui_XY);
     ui_layout_move_dir(c, Ui_Up, 0.125f, UiBase_Canvas); // Center of the bottom 25% of screen.
+  } else {
+    ui_layout_move_to(c, UiBase_Canvas, UiAlign_MiddleCenter, Ui_XY);
   }
   ui_layout_resize(c, UiAlign_MiddleCenter, panelSize, UiBase_Absolute, Ui_XY);
 
@@ -466,67 +460,68 @@ static void dev_overlay_resource(
     dev_overlay_str(c, &table, string_lit("Name"), asset_id(assetComp));
     dev_overlay_entity(c, &table, string_lit("Entity"), entity);
     dev_overlay_int(c, &table, string_lit("Dependents"), rend_res_dependents(resComp));
-    if (graphic) {
-      const RendReport* report = rend_res_graphic_report(graphic);
-      if (report) {
-        bool sectionOpen = true, insideSection = false;
-        for (const RendReportEntry* entry = rend_report_begin(report); entry;
-             entry                        = rend_report_next(entry)) {
-          const String name = rend_report_name(entry);
-          switch (rend_report_type(entry)) {
-          case RendReportType_Value: {
-            if (sectionOpen) {
-              const String desc  = rend_report_desc(entry);
-              const String value = rend_report_value(entry);
-              ui_table_next_row(c, &table);
-              ui_table_draw_row_bg(c, &table, ui_color(32, 32, 32, 64));
-              if (insideSection) {
-                ui_layout_grow(c, UiAlign_MiddleRight, ui_vector(-15, 0), UiBase_Absolute, Ui_X);
-              }
-              ui_label(c, name, .fontSize = 14, .tooltip = desc);
-              ui_table_next_column(c, &table);
-              if (value.size >= 64) {
-                ui_layout_push(c);
-                ui_layout_grow(c, UiAlign_MiddleLeft, ui_vector(-20, 0), UiBase_Absolute, Ui_X);
-                const UiId id = ui_canvas_id_peek(c);
-                ui_label(c, string_slice(value, 0, 64), .fontSize = 14, .selectable = true);
-                ui_tooltip(
-                    c,
-                    id,
-                    string_clamp(value, 8 * usize_kibibyte),
-                    .fontSize  = 10,
-                    .maxSize   = {1000, 1000},
-                    .centered  = true,
-                    .variation = UiVariation_Monospace);
-                ui_layout_pop(c);
-                ui_layout_inner(
-                    c, UiBase_Current, UiAlign_MiddleRight, ui_vector(20, 20), UiBase_Absolute);
-                if (ui_button(
-                        c,
-                        .label    = ui_shape_scratch(UiShape_ContentCopy),
-                        .noFrame  = true,
-                        .fontSize = 14,
-                        .tooltip  = string_lit("Copy to clipboard."))) {
-                  gap_window_clip_copy(win, value);
-                }
-              } else {
-                ui_label(c, value, .fontSize = 14, .selectable = true);
-              }
+    if (report) {
+      bool sectionOpen = true, insideSection = false;
+      for (const RendReportEntry* entry = rend_report_begin(report); entry;
+           entry                        = rend_report_next(entry)) {
+        const String name = rend_report_name(entry);
+        switch (rend_report_type(entry)) {
+        case RendReportType_Value: {
+          if (sectionOpen) {
+            const String desc  = rend_report_desc(entry);
+            const String value = rend_report_value(entry);
+            ui_table_next_row(c, &table);
+            ui_table_draw_row_bg(c, &table, ui_color(32, 32, 32, 64));
+            if (insideSection) {
+              ui_layout_grow(c, UiAlign_MiddleRight, ui_vector(-15, 0), UiBase_Absolute, Ui_X);
             }
-          } break;
-          case RendReportType_Section:
-            if (string_is_empty(name)) {
-              sectionOpen   = true;
-              insideSection = false;
+            ui_label(c, name, .fontSize = 14, .tooltip = desc);
+            ui_table_next_column(c, &table);
+            if (value.size >= 64) {
+              ui_layout_push(c);
+              ui_layout_grow(c, UiAlign_MiddleLeft, ui_vector(-20, 0), UiBase_Absolute, Ui_X);
+              const UiId id = ui_canvas_id_peek(c);
+              ui_label(
+                  c,
+                  string_slice(string_trim_whitespace(value), 0, 64),
+                  .fontSize   = 14,
+                  .selectable = true);
+              ui_tooltip(
+                  c,
+                  id,
+                  string_clamp(value, 8 * usize_kibibyte),
+                  .fontSize  = 10,
+                  .maxSize   = {1000, 1000},
+                  .centered  = true,
+                  .variation = UiVariation_Monospace);
+              ui_layout_pop(c);
+              ui_layout_inner(
+                  c, UiBase_Current, UiAlign_MiddleRight, ui_vector(20, 20), UiBase_Absolute);
+              if (ui_button(
+                      c,
+                      .label    = ui_shape_scratch(UiShape_ContentCopy),
+                      .noFrame  = true,
+                      .fontSize = 14,
+                      .tooltip  = string_lit("Copy to clipboard."))) {
+                gap_window_clip_copy(win, value);
+              }
             } else {
-              ui_table_next_row(c, &table);
-              ui_table_draw_row_bg(c, &table, ui_color(32, 32, 32, 128));
-              ui_canvas_id_block_next(c);
-              sectionOpen   = ui_section(c, .label = name, .fontSize = 14);
-              insideSection = true;
+              ui_label(c, value, .fontSize = 14, .selectable = true);
             }
-            break;
           }
+        } break;
+        case RendReportType_Section:
+          if (string_is_empty(name)) {
+            sectionOpen   = true;
+            insideSection = false;
+          } else {
+            ui_table_next_row(c, &table);
+            ui_table_draw_row_bg(c, &table, ui_color(32, 32, 32, 128));
+            ui_canvas_id_block_next(c);
+            sectionOpen   = ui_section(c, .label = name, .fontSize = 14);
+            insideSection = true;
+          }
+          break;
         }
       }
     }
@@ -906,16 +901,14 @@ static void rend_resource_info_query(DevRendPanelComp* panelComp, EcsWorld* worl
       if (!rend_panel_filter(panelComp, name)) {
         continue;
       }
-      const RendResGraphicComp* graphic = ecs_view_read_t(itr, RendResGraphicComp);
-      const RendResShaderComp*  shader  = ecs_view_read_t(itr, RendResShaderComp);
       const RendResMeshComp*    mesh    = ecs_view_read_t(itr, RendResMeshComp);
       const RendResTextureComp* texture = ecs_view_read_t(itr, RendResTextureComp);
 
       DevRendResType type   = DevRendResType_Unknown;
       usize          memory = 0;
-      if (graphic) {
+      if (ecs_world_has_t(world, ecs_view_entity(itr), RendResGraphicComp)) {
         type = DevRendResType_Graphic;
-      } else if (shader) {
+      } else if (ecs_world_has_t(world, ecs_view_entity(itr), RendResShaderComp)) {
         type = DevRendResType_Shader;
       } else if (mesh) {
         type   = DevRendResType_Mesh;
@@ -974,10 +967,8 @@ static void rend_resource_actions_draw(
     UiCanvasComp* canvas, RendSettingsComp* settings, const DevResourceInfo* resInfo) {
   ui_layout_resize(canvas, UiAlign_MiddleLeft, ui_vector(25, 0), UiBase_Absolute, Ui_X);
 
-  const bool previewActive = ecs_entity_valid(settings->debugViewerResource);
-  const bool supportsPreview =
-      resInfo->type == DevRendResType_Graphic || resInfo->type == DevRendResType_Texture ||
-      resInfo->type == DevRendResType_TextureCube || resInfo->type == DevRendResType_Mesh;
+  const bool previewActive   = ecs_entity_valid(settings->debugViewerResource);
+  const bool supportsPreview = resInfo->type != DevRendResType_Unknown;
 
   if (supportsPreview &&
       ui_button(
