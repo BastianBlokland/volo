@@ -172,6 +172,9 @@ RvkShader* rvk_shader_create(
 
   if (report) {
     rend_report_push_value(
+        report, string_lit("Kind"), string_empty, asset_shader_kind_name(asset->kind));
+
+    rend_report_push_value(
         report,
         string_lit("Data"),
         string_lit("Size of the SpirV assembly"),
