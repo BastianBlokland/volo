@@ -163,7 +163,10 @@ rvk_disassembler_spv(const RvkDisassembler* dis, const String in, DynString* out
   if (dis->spvTools.state == SpvToolsState_Failed) {
     return RvkDisassembler_Unavailable;
   }
-  const SpvBinaryToTextOpts options = SpvBinaryToTextOpts_None;
+  const SpvBinaryToTextOpts options =
+      SpvBinaryToTextOpts_NoHeader | SpvBinaryToTextOpts_Indent |
+      SpvBinaryToTextOpts_FriendlyNames | SpvBinaryToTextOpts_Comment |
+      SpvBinaryToTextOpts_NestedIndent | SpvBinaryToTextOpts_ReorderBlocks;
 
   SpvText*        resValue;
   const SpvResult res = dis->spvTools.spvBinaryToText(
