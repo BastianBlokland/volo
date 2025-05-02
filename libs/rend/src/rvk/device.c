@@ -417,6 +417,10 @@ static VkDevice rvk_device_create_internal(RvkLib* lib, RvkDevice* dev) {
     extsToEnable[extsToEnableCount++] = VK_EXT_memory_budget;
   }
 
+  if (rvk_has_ext(supportedExts, string_lit(VK_KHR_driver_properties))) {
+    dev->flags |= RvkDeviceFlags_SupportDriverProperties;
+  }
+
   const VkDeviceCreateInfo createInfo = {
       .sType                   = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
       .pNext                   = &featureBase,
