@@ -143,13 +143,6 @@ RvkShader* rvk_shader_create(
   if (shader->flags & RvkShaderFlags_MayKill && asset->kind != AssetShaderKind_SpvFragment) {
     log_e("Non-fragment shader uses kill", log_param("shader", fmt_text(dbgName)));
   }
-  if (report) {
-    rend_report_push_value(
-        report,
-        string_lit("May kill"),
-        string_lit("Shader uses a kill (aka 'discard') instruction"),
-        shader->flags & RvkShaderFlags_MayKill ? string_lit("true") : string_lit("false"));
-  }
 
   rvk_debug_name_shader(dev, shader->vkModule, "{}", fmt_text(dbgName));
 
@@ -173,6 +166,35 @@ RvkShader* rvk_shader_create(
       continue;
     }
     shader->descriptors[res->set].bindings[res->binding] = rvk_shader_desc_kind(res->kind);
+  }
+
+  if (report) {
+    rend_report_push_value(
+        report,
+        string_lit("Data"),
+        string_lit("Size of the SpirV assembly"),
+        fmt_write_scratch("{}", fmt_size(asset->data.size)));
+
+    rend_report_push_value(
+        report, string_lit("Entry"), string_lit("Shader entry point"), asset->entryPoint);
+
+    rend_report_push_value(
+        report,
+        string_lit("Inputs"),
+        string_empty,
+        asset_shader_type_array_name_scratch(asset->inputs, asset_shader_max_inputs));
+
+    rend_report_push_value(
+        report,
+        string_lit("Outputs"),
+        string_empty,
+        asset_shader_type_array_name_scratch(asset->outputs, asset_shader_max_outputs));
+
+    rend_report_push_value(
+        report,
+        string_lit("May kill"),
+        string_lit("Shader uses a kill (aka 'discard') instruction"),
+        shader->flags & RvkShaderFlags_MayKill ? string_lit("true") : string_lit("false"));
   }
 
 #if VOLO_RVK_SHADER_LOGGING
