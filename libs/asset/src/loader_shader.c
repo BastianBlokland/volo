@@ -124,6 +124,17 @@ void asset_load_shader_bin(
   ecs_world_add_empty_t(world, entity, AssetLoadedComp);
 }
 
+String asset_shader_kind_name(const AssetShaderKind kind) {
+  // clang-format off
+  switch (kind) {
+    case AssetShaderKind_SpvVertex:    return string_lit("SpvVertex");
+    case AssetShaderKind_SpvFragment:  return string_lit("SpvFragment");
+    case AssetShaderKind_Count:        break;
+  }
+  // clang-format on
+  diag_crash_msg("Invalid shader kind");
+}
+
 u32 asset_shader_type_size(const AssetShaderType type) {
   diag_assert(type < AssetShaderType_Count);
   static const u32 g_sizes[AssetShaderType_Count] = {
