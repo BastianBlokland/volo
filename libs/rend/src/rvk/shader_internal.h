@@ -1,6 +1,7 @@
 #pragma once
 #include "asset.h"
 #include "asset_shader.h"
+#include "rend.h"
 
 #include "desc_internal.h"
 #include "forward_internal.h"
@@ -28,7 +29,7 @@ typedef struct sRvkShader {
   HeapArray_t(AssetShaderSpec) specs;
 } RvkShader;
 
-RvkShader* rvk_shader_create(RvkDevice*, const AssetShaderComp*, String dbgName);
+RvkShader* rvk_shader_create(RvkDevice*, const AssetShaderComp*, RendReport*, String dbgName);
 void       rvk_shader_destroy(RvkShader*, RvkDevice*);
 
 bool rvk_shader_set_used(const RvkShader*, u32 set);

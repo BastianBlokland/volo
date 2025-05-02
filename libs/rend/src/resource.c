@@ -469,7 +469,7 @@ static bool rend_res_create(const RendPlatformComp* plat, EcsWorld* world, EcsIt
   }
 
   if (maybeAssetShader) {
-    RvkShader* shader = rvk_shader_create(dev, maybeAssetShader, id);
+    RvkShader* shader = rvk_shader_create(dev, maybeAssetShader, resComp->report, id);
     ecs_world_add_t(world, entity, RendResShaderComp, .device = dev, .shader = shader);
     return true;
   }

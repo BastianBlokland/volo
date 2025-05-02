@@ -259,8 +259,6 @@ ecs_view_define(GraphicView) {
 ecs_view_define(ResourceView) {
   ecs_access_read(RendResComp);
   ecs_access_read(AssetComp);
-  ecs_access_maybe_read(RendResGraphicComp);
-  ecs_access_maybe_read(RendResShaderComp);
   ecs_access_maybe_read(RendResMeshComp);
   ecs_access_maybe_read(RendResTextureComp);
 }
@@ -424,13 +422,8 @@ static void dev_overlay_resource(
   const RendResComp* resComp   = ecs_view_read_t(resourceItr, RendResComp);
 
   const RendReport*         report  = rend_res_report(resComp);
-  const RendResGraphicComp* graphic = ecs_view_read_t(resourceItr, RendResGraphicComp);
   const RendResTextureComp* texture = ecs_view_read_t(resourceItr, RendResTextureComp);
   const RendResMeshComp*    mesh    = ecs_view_read_t(resourceItr, RendResMeshComp);
-
-  if (!report && !graphic && !texture && !mesh) {
-    return;
-  }
 
   const UiVector panelSize = {950, (texture || mesh) ? 180 : 750};
   const UiVector inset     = {-5, -5};
@@ -904,16 +897,14 @@ static void rend_resource_info_query(DevRendPanelComp* panelComp, EcsWorld* worl
       if (!rend_panel_filter(panelComp, name)) {
         continue;
       }
-      const RendResGraphicComp* graphic = ecs_view_read_t(itr, RendResGraphicComp);
-      const RendResShaderComp*  shader  = ecs_view_read_t(itr, RendResShaderComp);
       const RendResMeshComp*    mesh    = ecs_view_read_t(itr, RendResMeshComp);
       const RendResTextureComp* texture = ecs_view_read_t(itr, RendResTextureComp);
 
       DevRendResType type   = DevRendResType_Unknown;
       usize          memory = 0;
-      if (graphic) {
+      if (ecs_world_has_t(world, ecs_view_entity(itr), RendResGraphicComp)) {
         type = DevRendResType_Graphic;
-      } else if (shader) {
+      } else if (ecs_world_has_t(world, ecs_view_entity(itr), RendResShaderComp)) {
         type = DevRendResType_Shader;
       } else if (mesh) {
         type   = DevRendResType_Mesh;
@@ -972,10 +963,8 @@ static void rend_resource_actions_draw(
     UiCanvasComp* canvas, RendSettingsComp* settings, const DevResourceInfo* resInfo) {
   ui_layout_resize(canvas, UiAlign_MiddleLeft, ui_vector(25, 0), UiBase_Absolute, Ui_X);
 
-  const bool previewActive = ecs_entity_valid(settings->debugViewerResource);
-  const bool supportsPreview =
-      resInfo->type == DevRendResType_Graphic || resInfo->type == DevRendResType_Texture ||
-      resInfo->type == DevRendResType_TextureCube || resInfo->type == DevRendResType_Mesh;
+  const bool previewActive   = ecs_entity_valid(settings->debugViewerResource);
+  const bool supportsPreview = resInfo->type != DevRendResType_Unknown;
 
   if (supportsPreview &&
       ui_button(

@@ -3,6 +3,7 @@
 #include "core_diag.h"
 #include "core_math.h"
 #include "log_logger.h"
+#include "rend_report.h"
 
 #include "device_internal.h"
 #include "lib_internal.h"
@@ -123,7 +124,8 @@ static RvkShaderFlags rvk_shader_flags(const AssetShaderComp* asset) {
   return flags;
 }
 
-RvkShader* rvk_shader_create(RvkDevice* dev, const AssetShaderComp* asset, const String dbgName) {
+RvkShader* rvk_shader_create(
+    RvkDevice* dev, const AssetShaderComp* asset, RendReport* report, const String dbgName) {
   RvkShader* shader = alloc_alloc_t(g_allocHeap, RvkShader);
 
   *shader = (RvkShader){
@@ -140,6 +142,13 @@ RvkShader* rvk_shader_create(RvkDevice* dev, const AssetShaderComp* asset, const
 
   if (shader->flags & RvkShaderFlags_MayKill && asset->kind != AssetShaderKind_SpvFragment) {
     log_e("Non-fragment shader uses kill", log_param("shader", fmt_text(dbgName)));
+  }
+  if (report) {
+    rend_report_push_value(
+        report,
+        string_lit("May kill"),
+        string_lit("Shader uses a kill (aka 'discard') instruction"),
+        shader->flags & RvkShaderFlags_MayKill ? string_lit("true") : string_lit("false"));
   }
 
   rvk_debug_name_shader(dev, shader->vkModule, "{}", fmt_text(dbgName));
