@@ -236,13 +236,13 @@ static VkBool32 SYS_DECL rvk_message_func(
   return VK_FALSE; // The application should always return VK_FALSE.
 }
 
-static void rvk_messenger_create(RvkLib* lib) {
+static void rvk_messenger_create(RvkLib* lib, Logger* logger) {
   const VkDebugUtilsMessengerCreateInfoEXT info = {
       .sType           = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
       .messageSeverity = rvk_messenger_severity_mask(lib->flags),
       .messageType     = rvk_messenger_type_mask(lib->flags),
       .pfnUserCallback = rvk_message_func,
-      .pUserData       = (void*)g_logger,
+      .pUserData       = (void*)logger,
   };
   rvk_call(lib, createDebugUtilsMessengerEXT, lib->vkInst, &info, &lib->vkAlloc, &lib->vkMessenger);
 }
@@ -305,7 +305,7 @@ RvkLib* rvk_lib_create(const RendSettingsGlobalComp* set) {
   rvk_api_check(string_lit("loadInstance"), vkLoadInstance(lib->vkInst, &loaderApi, &lib->api));
 
   if (lib->flags & RvkLibFlags_Debug) {
-    rvk_messenger_create(lib);
+    rvk_messenger_create(lib, g_logger);
   }
   if (set->flags & RendGlobalFlags_DebugGpu) {
     lib->disassembler = rvk_disassembler_create(g_allocHeap);
