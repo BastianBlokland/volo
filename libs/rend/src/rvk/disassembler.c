@@ -71,8 +71,8 @@ static u32 spvtools_lib_names(String outNames[PARAM_ARRAY_SIZE(spirvtools_names_
   u32 count = 0;
 #ifdef VOLO_WIN32
   outNames[count++] = string_lit("SPIRV-Tools-shared.dll");
-  if (!string_is_empty(vulkanSdkPath)) {
-    outNames[count++] = path_build_scratch(vulkanSdkPath, string_lit("Bin/SPIRV-Tools-shared.dll"));
+  if (!string_is_empty(vkSdkPath)) {
+    outNames[count++] = path_build_scratch(vkSdkPath, string_lit("Bin/SPIRV-Tools-shared.dll"));
   }
 #elif VOLO_LINUX
   outNames[count++] = string_lit("libSPIRV-Tools-shared.so");
