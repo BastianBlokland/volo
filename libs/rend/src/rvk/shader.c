@@ -1,11 +1,13 @@
 #include "asset_graphic.h"
 #include "core_alloc.h"
 #include "core_diag.h"
+#include "core_dynstring.h"
 #include "core_math.h"
 #include "log_logger.h"
 #include "rend_report.h"
 
 #include "device_internal.h"
+#include "disassembler_internal.h"
 #include "lib_internal.h"
 #include "shader_internal.h"
 
@@ -195,6 +197,22 @@ RvkShader* rvk_shader_create(
         string_lit("May kill"),
         string_lit("Shader uses a kill (aka 'discard') instruction"),
         shader->flags & RvkShaderFlags_MayKill ? string_lit("true") : string_lit("false"));
+
+    if (dev->lib->disassembler) {
+      DynString                   spvText = dynstring_create(g_allocScratch, 32 * usize_kibibyte);
+      const RvkDisassemblerResult spvRes =
+          rvk_disassembler_spv(dev->lib->disassembler, data_mem(asset->data), &spvText);
+
+      if (spvRes == RvkDisassembler_Success) {
+        rend_report_push_value(
+            report,
+            string_lit("Assembly"),
+            string_lit("SpirV assembly text"),
+            dynstring_view(&spvText));
+      } else if (spvRes != RvkDisassembler_Unavailable) {
+        log_e("Failed to disassemble SpirV", log_param("shader", fmt_text(dbgName)));
+      }
+    }
   }
 
 #if VOLO_RVK_SHADER_LOGGING
