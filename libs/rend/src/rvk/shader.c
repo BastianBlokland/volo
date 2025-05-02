@@ -206,7 +206,7 @@ RvkShader* rvk_shader_create(
       if (spvRes == RvkDisassembler_Success) {
         rend_report_push_value(
             report,
-            string_lit("Assembly"),
+            string_lit("SpirV"),
             string_lit("SpirV assembly text"),
             dynstring_view(&spvText));
       } else if (spvRes != RvkDisassembler_Unavailable) {
