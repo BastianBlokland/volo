@@ -481,7 +481,11 @@ static void dev_overlay_resource(
               ui_layout_push(c);
               ui_layout_grow(c, UiAlign_MiddleLeft, ui_vector(-20, 0), UiBase_Absolute, Ui_X);
               const UiId id = ui_canvas_id_peek(c);
-              ui_label(c, string_slice(value, 0, 64), .fontSize = 14, .selectable = true);
+              ui_label(
+                  c,
+                  string_slice(string_trim_whitespace(value), 0, 64),
+                  .fontSize   = 14,
+                  .selectable = true);
               ui_tooltip(
                   c,
                   id,
