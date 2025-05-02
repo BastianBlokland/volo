@@ -451,6 +451,9 @@ RvkDevice* rvk_device_create(RvkLib* lib) {
   dev->graphicsQueueIndex = rvk_pick_graphics_queue(lib, dev->vkPhysDev);
   dev->transferQueueIndex = rvk_pick_transfer_queue(lib, dev->vkPhysDev);
 
+  dev->vkDev = rvk_device_create_internal(lib, dev);
+  rvk_api_check(string_lit("loadDevice"), vkLoadDevice(dev->vkDev, &lib->api, &dev->api));
+
   VkPhysicalDeviceProperties2 prop = {
       .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2,
   };
@@ -458,9 +461,6 @@ RvkDevice* rvk_device_create(RvkLib* lib) {
   dev->vkProperties = prop.properties;
 
   rvk_call(lib, getPhysicalDeviceMemoryProperties, dev->vkPhysDev, &dev->vkMemProperties);
-
-  dev->vkDev = rvk_device_create_internal(lib, dev);
-  rvk_api_check(string_lit("loadDevice"), vkLoadDevice(dev->vkDev, &lib->api, &dev->api));
 
   rvk_call(dev, getDeviceQueue, dev->vkDev, dev->graphicsQueueIndex, 0, &dev->vkGraphicsQueue);
   if (!sentinel_check(dev->transferQueueIndex)) {
