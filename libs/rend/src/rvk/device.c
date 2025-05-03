@@ -454,11 +454,24 @@ RvkDevice* rvk_device_create(RvkLib* lib) {
   dev->vkDev = rvk_device_create_internal(lib, dev);
   rvk_api_check(string_lit("loadDevice"), vkLoadDevice(dev->vkDev, &lib->api, &dev->api));
 
+  void*                            nextProps   = null;
+  VkPhysicalDeviceDriverProperties driverProps = {
+      .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DRIVER_PROPERTIES,
+      .pNext = nextProps,
+  };
+  if (dev->flags & RvkDeviceFlags_SupportDriverProperties) {
+    nextProps = &driverProps;
+  }
   VkPhysicalDeviceProperties2 prop = {
       .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2,
+      .pNext = nextProps,
   };
   rvk_call(lib, getPhysicalDeviceProperties2, dev->vkPhysDev, &prop);
   dev->vkProperties = prop.properties;
+
+  if (dev->flags & RvkDeviceFlags_SupportDriverProperties) {
+    dev->driverName = string_maybe_dup(g_allocHeap, string_from_null_term(driverProps.driverName));
+  }
 
   rvk_call(lib, getPhysicalDeviceMemoryProperties, dev->vkPhysDev, &dev->vkMemProperties);
 
@@ -513,6 +526,8 @@ void rvk_device_destroy(RvkDevice* dev) {
   rvk_mem_pool_destroy(dev->memPool);
   rvk_call(dev, destroyDevice, dev->vkDev, &dev->vkAlloc);
 
+  string_maybe_free(g_allocHeap, dev->driverName);
+
   thread_mutex_destroy(dev->queueSubmitMutex);
   alloc_free_t(g_allocHeap, dev);
 
@@ -529,6 +544,8 @@ bool rvk_device_format_supported(
 String rvk_device_name(const RvkDevice* dev) {
   return string_from_null_term(dev->vkProperties.deviceName);
 }
+
+String rvk_device_driver(const RvkDevice* dev) { return dev->driverName; }
 
 void rvk_device_update(RvkDevice* dev) {
   // Track device memory budget.

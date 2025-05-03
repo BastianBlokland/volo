@@ -1,4 +1,5 @@
 #pragma once
+#include "core_string.h"
 #include "geo.h"
 
 #include "forward_internal.h"
@@ -39,7 +40,8 @@ typedef struct sRvkDevice {
   RvkSamplerPool*                  samplerPool;
   RvkTransferer*                   transferer;
   RvkRepository*                   repository;
-  u64 memBudgetTotal, memBudgetUsed; // Only available if 'SupportMemoryBudget' flag is set.
+  u64    memBudgetTotal, memBudgetUsed; // Only available if 'SupportMemoryBudget' flag is set.
+  String driverName;                    // Only available if 'SupportDriverProperties' flag is set.
 } RvkDevice;
 
 RvkDevice* rvk_device_create(RvkLib*);
@@ -47,6 +49,7 @@ void       rvk_device_destroy(RvkDevice*);
 
 bool   rvk_device_format_supported(const RvkDevice*, VkFormat, VkFormatFeatureFlags);
 String rvk_device_name(const RvkDevice*);
+String rvk_device_driver(const RvkDevice*);
 void   rvk_device_update(RvkDevice*);
 void   rvk_device_wait_idle(const RvkDevice*);
 
