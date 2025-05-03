@@ -20,6 +20,7 @@ static const VkValidationFeatureEnableEXT g_validationEnabledFeatures[] = {
 
 static const i32 g_rvkMessengerIgnoredMessages[] = {
     1734198062, // BestPractices-specialuse-extension.
+    358835246,  // BestPractices-vkCreateDevice-specialuse-extension-devtools
 };
 
 static const char* rvk_to_null_term_scratch(const String str) {
@@ -210,9 +211,11 @@ static VkBool32 SYS_DECL rvk_message_func(
     void*                                       userData) {
   Logger* logger = userData;
 
-  array_for_t(g_rvkMessengerIgnoredMessages, i32, ignoredMessage) {
-    if (callbackData->messageIdNumber == *ignoredMessage) {
-      return VK_FALSE; // The application should always return VK_FALSE.
+  if (!(msgSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)) {
+    array_for_t(g_rvkMessengerIgnoredMessages, i32, ignoredMessage) {
+      if (callbackData->messageIdNumber == *ignoredMessage) {
+        return VK_FALSE; // The application should always return VK_FALSE.
+      }
     }
   }
 
