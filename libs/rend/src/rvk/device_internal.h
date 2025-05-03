@@ -49,7 +49,7 @@ void       rvk_device_destroy(RvkDevice*);
 
 bool   rvk_device_format_supported(const RvkDevice*, VkFormat, VkFormatFeatureFlags);
 String rvk_device_name(const RvkDevice*);
-String rvk_device_driver(const RvkDevice*);
+String rvk_device_driver_name(const RvkDevice*);
 void   rvk_device_update(RvkDevice*);
 void   rvk_device_wait_idle(const RvkDevice*);
 

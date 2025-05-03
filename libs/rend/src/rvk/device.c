@@ -545,7 +545,7 @@ String rvk_device_name(const RvkDevice* dev) {
   return string_from_null_term(dev->vkProperties.deviceName);
 }
 
-String rvk_device_driver(const RvkDevice* dev) { return dev->driverName; }
+String rvk_device_driver_name(const RvkDevice* dev) { return dev->driverName; }
 
 void rvk_device_update(RvkDevice* dev) {
   // Track device memory budget.
