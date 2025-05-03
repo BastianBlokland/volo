@@ -470,7 +470,10 @@ RvkDevice* rvk_device_create(RvkLib* lib) {
   dev->vkProperties = prop.properties;
 
   if (dev->flags & RvkDeviceFlags_SupportDriverProperties) {
-    dev->driverName = string_maybe_dup(g_allocHeap, string_from_null_term(driverProps.driverName));
+    const String driverStr = fmt_write_scratch("{} ({})",
+      fmt_text(string_from_null_term(driverProps.driverName)),
+      fmt_text(string_from_null_term(driverProps.driverInfo)));
+    dev->driverName = string_maybe_dup(g_allocHeap, driverStr);
   }
 
   rvk_call(lib, getPhysicalDeviceMemoryProperties, dev->vkPhysDev, &dev->vkMemProperties);
