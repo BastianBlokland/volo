@@ -24,6 +24,7 @@ static void ecs_destruct_rend_stats_comp(void* data) {
   RendStatsComp* comp = data;
   alloc_free_array_t(g_allocHeap, comp->passes, rend_stats_max_passes);
   string_maybe_free(g_allocHeap, comp->gpuName);
+  string_maybe_free(g_allocHeap, comp->gpuDriverName);
 }
 
 static void rend_stats_update_str(String* strPtr, const String newStr) {
@@ -108,6 +109,7 @@ ecs_system_define(RendUpdateCamStatsSys) {
     rvk_canvas_swapchain_stats(painter->canvas, &swapchainStats);
 
     rend_stats_update_str(&stats->gpuName, rvk_device_name(plat->device));
+    rend_stats_update_str(&stats->gpuDriverName, rvk_device_driver_name(plat->device));
 
     stats->swapchainPresentId  = swapchainStats.presentId;
     stats->swapchainImageCount = swapchainStats.imageCount;

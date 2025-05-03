@@ -719,6 +719,7 @@ static void dev_stats_draw_interface(
     const TimeDuration gpuExecDurAvg = dev_plot_avg_dur(stats->gpuExecDurPlot);
 
     stats_draw_val_entry(c, string_lit("Gpu"), fmt_write_scratch("{}", fmt_text(rendStats->gpuName)));
+    stats_draw_val_entry(c, string_lit("Gpu Driver"), fmt_write_scratch("{}", fmt_text(rendStats->gpuDriverName)));
     stats_draw_val_entry(c, string_lit("Gpu exec duration"), fmt_write_scratch("{<9} frac: {}", fmt_duration(gpuExecDurAvg), fmt_float(stats->gpuExecFrac, .minDecDigits = 2, .maxDecDigits = 2)));
     stats_draw_plot_dur(c, stats->gpuExecDurPlot, 0, stats->frameDurDesired * 2);
     stats_draw_val_entry(c, string_lit("Swapchain"), fmt_write_scratch("images: {} present: {}", fmt_int(rendStats->swapchainImageCount), fmt_int(rendStats->swapchainPresentId)));
