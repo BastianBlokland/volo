@@ -3,6 +3,7 @@
 #include "core_dynstring.h"
 #include "core_env.h"
 
+#include <errno.h>
 #include <stdlib.h>
 
 #define env_var_max_name_size 256
@@ -56,7 +57,9 @@ void env_var_set(const String name, const String value) {
         fmt_int(env_var_max_value_size));
     return;
   }
-  setenv(to_null_term_scratch(name), to_null_term_scratch(value), 1 /* replace */);
+  if (UNLIKELY(setenv(to_null_term_scratch(name), to_null_term_scratch(value), 1 /* replace */))) {
+    diag_crash_msg("setenv() failed: {}", fmt_int(errno));
+  }
 }
 
 void env_var_clear(const String name) {
@@ -67,5 +70,7 @@ void env_var_clear(const String name) {
         fmt_int(env_var_max_name_size));
     return;
   }
-  unsetenv(to_null_term_scratch(name));
+  if (UNLIKELY(unsetenv(to_null_term_scratch(name)))) {
+    diag_crash_msg("unsetenv() failed: {}", fmt_int(errno));
+  }
 }
