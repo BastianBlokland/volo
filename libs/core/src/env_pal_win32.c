@@ -10,7 +10,6 @@
 #define env_var_max_value_size (usize_kibibyte * 32)
 
 bool env_var(String name, DynString* output) {
-
   // Convert the name to a null-terminated wide-char string.
   const usize nameBufferSize = winutils_to_widestr_size(name);
   if (UNLIKELY(sentinel_check(nameBufferSize))) {
@@ -57,4 +56,59 @@ bool env_var(String name, DynString* output) {
 
   alloc_free(g_allocScratch, buffer);
   return true;
+}
+
+void env_var_set(const String name, const String value) {
+  // Convert the name to a null-terminated wide-char string.
+  const usize nameBufferSize = winutils_to_widestr_size(name);
+  if (UNLIKELY(sentinel_check(nameBufferSize))) {
+    // Name contains invalid utf8.
+    return;
+  }
+  if (UNLIKELY(nameBufferSize >= env_var_max_name_size)) {
+    diag_assert_fail(
+        "Environment variable name with length {} exceeds maximum of {}",
+        fmt_int(nameBufferSize),
+        fmt_int(env_var_max_name_size));
+    return;
+  }
+  Mem nameBufferMem = mem_stack(nameBufferSize);
+  winutils_to_widestr(nameBufferMem, name);
+
+  const Mem valueBufferMem = winutils_to_widestr_scratch(value);
+
+  if (UNLIKELY(!SetEnvironmentVariable(
+          (const wchar_t*)nameBufferMem.ptr, (const wchar_t*)valueBufferMem.ptr))) {
+    const DWORD err = GetLastError();
+    diag_crash_msg(
+        "SetEnvironmentVariable() failed: {}, {}",
+        fmt_int((u64)err),
+        fmt_text(winutils_error_msg_scratch(err)));
+  }
+}
+
+void env_var_clear(const String name) {
+  // Convert the name to a null-terminated wide-char string.
+  const usize nameBufferSize = winutils_to_widestr_size(name);
+  if (UNLIKELY(sentinel_check(nameBufferSize))) {
+    // Name contains invalid utf8.
+    return;
+  }
+  if (UNLIKELY(nameBufferSize >= env_var_max_name_size)) {
+    diag_assert_fail(
+        "Environment variable name with length {} exceeds maximum of {}",
+        fmt_int(nameBufferSize),
+        fmt_int(env_var_max_name_size));
+    return;
+  }
+  Mem nameBufferMem = mem_stack(nameBufferSize);
+  winutils_to_widestr(nameBufferMem, name);
+
+  if (UNLIKELY(!SetEnvironmentVariable((const wchar_t*)nameBufferMem.ptr, null /* value */))) {
+    const DWORD err = GetLastError();
+    diag_crash_msg(
+        "SetEnvironmentVariable() failed: {}, {}",
+        fmt_int((u64)err),
+        fmt_text(winutils_error_msg_scratch(err)));
+  }
 }
