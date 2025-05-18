@@ -18,4 +18,29 @@ spec(env) {
 
     dynstring_destroy(&buffer);
   }
+
+  it("can write an environment variable") {
+    const String varName = string_lit("VOLO_TEST_ENV_VAR_1");
+    const String varVal  = string_lit("Hello world!");
+
+    env_var_set(varName, varVal);
+
+    DynString buffer = dynstring_create(g_allocHeap, usize_kibibyte);
+
+    check(env_var(varName, &buffer));
+    check_eq_string(dynstring_view(&buffer), varVal);
+
+    dynstring_destroy(&buffer);
+  }
+
+  it("can clear an environment variable") {
+    const String varName = string_lit("VOLO_TEST_ENV_VAR_2");
+    const String varVal  = string_lit("Hello world!");
+
+    env_var_set(varName, varVal);
+    check_eq_string(env_var_scratch(varName), varVal);
+
+    env_var_clear(varName);
+    check_eq_string(env_var_scratch(varName), string_empty);
+  }
 }
