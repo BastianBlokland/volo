@@ -19,3 +19,4 @@ String env_var_scratch(String name);
  * Pre-condition: name.size < 256.
  */
 void env_var_set(String name, String value);
+void env_var_clear(String name);
