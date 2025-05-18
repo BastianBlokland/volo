@@ -1,3 +1,4 @@
+#include "core_alloc.h"
 #include "core_diag.h"
 #include "core_dynstring.h"
 #include "core_env.h"
@@ -7,8 +8,14 @@
 #define env_var_max_name_size 256
 #define env_var_max_value_size (usize_kibibyte * 32)
 
-bool env_var(String name, DynString* output) {
+static const char* to_null_term_scratch(const String str) {
+  const Mem scratchMem = alloc_alloc(g_allocScratch, str.size + 1, 1);
+  mem_cpy(scratchMem, str);
+  *mem_at_u8(scratchMem, str.size) = '\0';
+  return scratchMem.ptr;
+}
 
+bool env_var(String name, DynString* output) {
   if (UNLIKELY(name.size >= env_var_max_name_size)) {
     diag_assert_fail(
         "Environment variable name with length {} exceeds maximum of {}",
@@ -17,12 +24,7 @@ bool env_var(String name, DynString* output) {
     return false;
   }
 
-  // Copy the name on the stack and null-terminate it.
-  Mem pathBuffer = mem_stack(env_var_max_name_size);
-  mem_cpy(pathBuffer, name);
-  *mem_at_u8(pathBuffer, name.size) = '\0';
-
-  const char* res = getenv((const char*)pathBuffer.ptr);
+  const char* res = getenv(to_null_term_scratch(name));
   if (!res) {
     return false;
   }
@@ -37,4 +39,33 @@ bool env_var(String name, DynString* output) {
   }
 
   return true;
+}
+
+void env_var_set(const String name, const String value) {
+  if (UNLIKELY(name.size >= env_var_max_name_size)) {
+    diag_assert_fail(
+        "Environment variable name with length {} exceeds maximum of {}",
+        fmt_int(name.size),
+        fmt_int(env_var_max_name_size));
+    return;
+  }
+  if (UNLIKELY(value.size >= env_var_max_value_size)) {
+    diag_assert_fail(
+        "Environment variable value with length {} exceeds maximum of {}",
+        fmt_int(value.size),
+        fmt_int(env_var_max_value_size));
+    return;
+  }
+  setenv(to_null_term_scratch(name), to_null_term_scratch(value), 1 /* replace */);
+}
+
+void env_var_clear(const String name) {
+  if (UNLIKELY(name.size >= env_var_max_name_size)) {
+    diag_assert_fail(
+        "Environment variable name with length {} exceeds maximum of {}",
+        fmt_int(name.size),
+        fmt_int(env_var_max_name_size));
+    return;
+  }
+  unsetenv(to_null_term_scratch(name));
 }
