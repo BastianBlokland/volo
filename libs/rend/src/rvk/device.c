@@ -1,6 +1,8 @@
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_diag.h"
+#include "core_file.h"
+#include "core_path.h"
 #include "core_thread.h"
 #include "geo_color.h"
 #include "log_logger.h"
@@ -582,6 +584,18 @@ void rvk_device_update(RvkDevice* dev) {
 
 void rvk_device_wait_idle(const RvkDevice* dev) {
   rvk_call_checked(dev, deviceWaitIdle, dev->vkDev);
+}
+
+bool rvk_device_profile_capture(RvkDevice* dev) {
+  if (!(dev->lib->flags & RvkLibFlags_Profiling)) {
+    return false; // Profiling not enabled.
+  }
+  if (dev->flags & RvkDeviceFlags_DriverRadv) {
+    const String triggerPath = path_build_scratch(g_pathTempDir, string_lit("volo_radv_trigger"));
+    file_write_to_path_sync(triggerPath, string_empty);
+    return true; // Capture triggered.
+  }
+  return false; // Profiling not supported for the current driver.
 }
 
 void rvk_debug_name(
