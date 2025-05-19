@@ -7,17 +7,18 @@
 #include "vulkan_api.h"
 
 typedef enum {
-  RvkDeviceFlags_SupportNullDescriptor    = 1 << 0,
-  RvkDeviceFlags_SupportPipelineStatQuery = 1 << 1,
-  RvkDeviceFlags_SupportAnisotropy        = 1 << 2,
-  RvkDeviceFlags_SupportFillNonSolid      = 1 << 3,
-  RvkDeviceFlags_SupportWideLines         = 1 << 4,
-  RvkDeviceFlags_SupportPresentId         = 1 << 5,
-  RvkDeviceFlags_SupportPresentWait       = 1 << 6,
-  RvkDeviceFlags_SupportDepthClamp        = 1 << 7,
-  RvkDeviceFlags_SupportMemoryBudget      = 1 << 8,
-  RvkDeviceFlags_SupportExecutableInfo    = 1 << 9,
-  RvkDeviceFlags_SupportDriverProperties  = 1 << 10,
+  RvkDeviceFlags_DriverRadv               = 1 << 0, // AMD Radeon Mesa RADV driver in use.
+  RvkDeviceFlags_SupportNullDescriptor    = 1 << 1,
+  RvkDeviceFlags_SupportPipelineStatQuery = 1 << 2,
+  RvkDeviceFlags_SupportAnisotropy        = 1 << 3,
+  RvkDeviceFlags_SupportFillNonSolid      = 1 << 4,
+  RvkDeviceFlags_SupportWideLines         = 1 << 5,
+  RvkDeviceFlags_SupportPresentId         = 1 << 6,
+  RvkDeviceFlags_SupportPresentWait       = 1 << 7,
+  RvkDeviceFlags_SupportDepthClamp        = 1 << 8,
+  RvkDeviceFlags_SupportMemoryBudget      = 1 << 9,
+  RvkDeviceFlags_SupportExecutableInfo    = 1 << 10,
+  RvkDeviceFlags_SupportDriverProperties  = 1 << 11,
 } RvkDeviceFlags;
 
 typedef struct sRvkDevice {
