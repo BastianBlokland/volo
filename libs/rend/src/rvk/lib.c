@@ -1,6 +1,7 @@
 #include "core_array.h"
 #include "core_diag.h"
 #include "core_dynlib.h"
+#include "core_env.h"
 #include "core_path.h"
 #include "core_thread.h"
 #include "gap_native.h"
@@ -266,6 +267,23 @@ static u32 rvk_lib_names(String outPaths[PARAM_ARRAY_SIZE(rvk_lib_vulkan_names_m
   return count;
 }
 
+static void rvk_lib_profile_init(RvkLib* lib) {
+  (void)lib;
+
+#if VOLO_LINUX
+  /**
+   * Configure profiling for the Linux AMD RADV driver.
+   * NOTE: Its important to set these before instance creation.
+   * TODO: Find a way to detect if we have the RADV driver installed before setting env vars.
+   */
+  const String triggerPath = path_build_scratch(g_pathTempDir, string_lit("volo_radv_trigger"));
+  env_var_set(string_lit("MESA_VK_TRACE"), string_lit("rgp")); // Radeon GPU Profiler
+  env_var_set(string_lit("MESA_VK_TRACE_TRIGGER"), triggerPath);
+  env_var_set(string_lit("RADV_PROFILE_PSTATE"), string_lit("standard"));
+  lib->flags |= RvkLibFlags_Profiling;
+#endif
+}
+
 RvkLib* rvk_lib_create(const RendSettingsGlobalComp* set) {
   RvkLib* lib = alloc_alloc_t(g_allocHeap, RvkLib);
 
@@ -302,6 +320,10 @@ RvkLib* rvk_lib_create(const RendSettingsGlobalComp* set) {
     if (set->flags & RendGlobalFlags_Verbose) {
       lib->flags |= RvkLibFlags_DebugVerbose;
     }
+  }
+
+  if (set->flags & RendGlobalFlags_Profiling) {
+    rvk_lib_profile_init(lib);
   }
 
   lib->vkInst = rvk_inst_create(&loaderApi, &lib->vkAlloc, lib->flags);
