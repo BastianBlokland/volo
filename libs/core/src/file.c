@@ -107,7 +107,7 @@ FileResult file_write_to_path_sync(const String path, const String data) {
   if ((res = file_create(g_allocScratch, path, FileMode_Create, FileAccess_Write, &file))) {
     goto ret;
   }
-  if ((res = file_write_sync(file, data))) {
+  if (!string_is_empty(data) && (res = file_write_sync(file, data))) {
     goto ret;
   }
 ret:
