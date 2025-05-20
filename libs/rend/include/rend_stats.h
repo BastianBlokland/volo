@@ -32,6 +32,8 @@ ecs_comp_extern_public(RendStatsComp) {
   TimeDuration presentAcquireDur, presentEnqueueDur, presentWaitDur;
   TimeDuration limiterDur;
 
+  bool profileSupported, profileTrigger;
+
   u32            passCount;
   RendStatsPass* passes; // RendStatsPass[rend_stats_max_passes];
 
