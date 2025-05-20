@@ -586,6 +586,16 @@ void rvk_device_wait_idle(const RvkDevice* dev) {
   rvk_call_checked(dev, deviceWaitIdle, dev->vkDev);
 }
 
+bool rvk_device_profile_supported(const RvkDevice* dev) {
+  if (!(dev->lib->flags & RvkLibFlags_Profiling)) {
+    return false; // Profiling not enabled.
+  }
+  if (dev->flags & RvkDeviceFlags_DriverRadv) {
+    return true; // SQTT supported for the 'Radeon GPU Profiler'.
+  }
+  return false; // Profiling not supported for the current driver.
+}
+
 bool rvk_device_profile_capture(RvkDevice* dev) {
   if (!(dev->lib->flags & RvkLibFlags_Profiling)) {
     return false; // Profiling not enabled.
@@ -593,6 +603,8 @@ bool rvk_device_profile_capture(RvkDevice* dev) {
   if (dev->flags & RvkDeviceFlags_DriverRadv) {
     const String triggerPath = path_build_scratch(g_pathTempDir, string_lit("volo_radv_trigger"));
     file_write_to_path_sync(triggerPath, string_empty);
+
+    log_i("Triggered RADV profile capture", log_param("out-path", fmt_path(g_pathTempDir)));
     return true; // Capture triggered.
   }
   return false; // Profiling not supported for the current driver.
