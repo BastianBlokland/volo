@@ -146,7 +146,7 @@ ecs_system_define(RendUpdateCamStatsSys) {
 
     stats->profileSupported = rvk_device_profile_supported(plat->device);
     if (stats->profileTrigger) {
-      rvk_device_profile_capture(plat->device);
+      rvk_device_profile_trigger(plat->device);
       stats->profileTrigger = false;
     }
   }

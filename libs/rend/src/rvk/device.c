@@ -596,7 +596,7 @@ bool rvk_device_profile_supported(const RvkDevice* dev) {
   return false; // Profiling not supported for the current driver.
 }
 
-bool rvk_device_profile_capture(RvkDevice* dev) {
+bool rvk_device_profile_trigger(RvkDevice* dev) {
   if (!(dev->lib->flags & RvkLibFlags_Profiling)) {
     return false; // Profiling not enabled.
   }
@@ -604,8 +604,8 @@ bool rvk_device_profile_capture(RvkDevice* dev) {
     const String triggerPath = path_build_scratch(g_pathTempDir, string_lit("volo_radv_trigger"));
     file_write_to_path_sync(triggerPath, string_empty);
 
-    log_i("Triggered RADV profile capture", log_param("out-path", fmt_path(g_pathTempDir)));
-    return true; // Capture triggered.
+    log_i("Triggered RADV profile", log_param("out-path", fmt_path(g_pathTempDir)));
+    return true; // Profile triggered.
   }
   return false; // Profiling not supported for the current driver.
 }

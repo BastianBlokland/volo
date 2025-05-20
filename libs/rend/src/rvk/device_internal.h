@@ -54,7 +54,7 @@ String rvk_device_driver_name(const RvkDevice*);
 void   rvk_device_update(RvkDevice*);
 void   rvk_device_wait_idle(const RvkDevice*);
 bool   rvk_device_profile_supported(const RvkDevice*);
-bool   rvk_device_profile_capture(RvkDevice*);
+bool   rvk_device_profile_trigger(RvkDevice*);
 
 void rvk_debug_name(RvkDevice*, VkObjectType, u64 vkHandle, String name);
 void rvk_debug_label_begin_raw(RvkDevice*, VkCommandBuffer, GeoColor, String name);
