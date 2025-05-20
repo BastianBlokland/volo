@@ -276,9 +276,15 @@ static void rvk_lib_profile_init(RvkLib* lib) {
    * NOTE: Its important to set these before instance creation.
    * TODO: Find a way to detect if we have the RADV driver installed before setting env vars.
    */
-  const String triggerPath = path_build_scratch(g_pathTempDir, string_lit("volo_radv_trigger"));
+  const String triggerPath   = path_build_scratch(g_pathTempDir, string_lit("volo_radv_trigger"));
+  const String bufferSizeStr = fmt_write_scratch("{}", fmt_int(128 * usize_mebibyte));
+
   env_var_set(string_lit("MESA_VK_TRACE"), string_lit("rgp")); // Radeon GPU Profiler
   env_var_set(string_lit("MESA_VK_TRACE_TRIGGER"), triggerPath);
+  env_var_set(string_lit("RADV_THREAD_TRACE_BUFFER_SIZE"), bufferSizeStr);
+  env_var_set(string_lit("RADV_THREAD_TRACE_CACHE_COUNTERS"), string_lit("true"));
+  env_var_set(string_lit("RADV_THREAD_TRACE_INSTRUCTION_TIMING"), string_lit("true"));
+  env_var_set(string_lit("RADV_THREAD_TRACE_QUEUE_EVENTS"), string_lit("true"));
   env_var_set(string_lit("RADV_PROFILE_PSTATE"), string_lit("standard"));
   lib->flags |= RvkLibFlags_Profiling;
 #endif
