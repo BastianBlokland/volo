@@ -679,7 +679,7 @@ static void dev_stats_draw_interface(
     const GapWindowComp*           window,
     const DevStatsGlobalComp*      statsGlobal,
     DevStatsComp*                  stats,
-    const RendStatsComp*           rendStats,
+    RendStatsComp*                 rendStats,
     const AllocStats*              allocStats,
     const EcsDef*                  ecsDef,
     const EcsWorldStats*           ecsWorldStats,
@@ -724,6 +724,9 @@ static void dev_stats_draw_interface(
     }
     stats_draw_val_entry(c, string_lit("Gpu exec duration"), fmt_write_scratch("{<9} frac: {}", fmt_duration(gpuExecDurAvg), fmt_float(stats->gpuExecFrac, .minDecDigits = 2, .maxDecDigits = 2)));
     stats_draw_plot_dur(c, stats->gpuExecDurPlot, 0, stats->frameDurDesired * 2);
+    if (rendStats->profileSupported && stats_draw_button_entry(c, string_lit("Profile capture"), string_lit("Trigger"))) {
+      rendStats->profileTrigger = true;
+    }
     stats_draw_val_entry(c, string_lit("Swapchain"), fmt_write_scratch("images: {} present: {}", fmt_int(rendStats->swapchainImageCount), fmt_int(rendStats->swapchainPresentId)));
     stats_draw_val_entry(c, string_lit("Attachments"), fmt_write_scratch("{<3} ({})", fmt_int(rendStats->attachCount), fmt_size(rendStats->attachMemory)));
     stats_draw_val_entry(c, string_lit("Samplers"), fmt_write_scratch("{}", fmt_int(rendStats->samplerCount)));
@@ -898,9 +901,9 @@ ecs_view_define(StatsCreateView) {
 
 ecs_view_define(StatsUpdateView) {
   ecs_access_read(GapWindowComp);
-  ecs_access_read(RendStatsComp);
   ecs_access_read(UiStatsComp);
   ecs_access_write(DevStatsComp);
+  ecs_access_write(RendStatsComp);
 }
 
 ecs_view_define(CanvasWriteView) {
@@ -955,7 +958,7 @@ ecs_system_define(DevStatsUpdateSys) {
   for (EcsIterator* itr = ecs_view_itr(statsView); ecs_view_walk(itr);) {
     DevStatsComp*        stats     = ecs_view_write_t(itr, DevStatsComp);
     const GapWindowComp* window    = ecs_view_read_t(itr, GapWindowComp);
-    const RendStatsComp* rendStats = ecs_view_read_t(itr, RendStatsComp);
+    RendStatsComp*       rendStats = ecs_view_write_t(itr, RendStatsComp);
     const UiStatsComp*   uiStats   = ecs_view_read_t(itr, UiStatsComp);
     const EcsDef*        ecsDef    = ecs_world_def(world);
 
