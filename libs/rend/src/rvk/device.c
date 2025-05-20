@@ -1,6 +1,8 @@
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_diag.h"
+#include "core_file.h"
+#include "core_path.h"
 #include "core_thread.h"
 #include "geo_color.h"
 #include "log_logger.h"
@@ -417,6 +419,10 @@ static VkDevice rvk_device_create_internal(RvkLib* lib, RvkDevice* dev) {
     extsToEnable[extsToEnableCount++] = VK_EXT_memory_budget;
   }
 
+  if (rvk_has_ext(supportedExts, string_lit(VK_KHR_driver_properties))) {
+    dev->flags |= RvkDeviceFlags_SupportDriverProperties;
+  }
+
   const VkDeviceCreateInfo createInfo = {
       .sType                   = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
       .pNext                   = &featureBase,
@@ -447,16 +453,37 @@ RvkDevice* rvk_device_create(RvkLib* lib) {
   dev->graphicsQueueIndex = rvk_pick_graphics_queue(lib, dev->vkPhysDev);
   dev->transferQueueIndex = rvk_pick_transfer_queue(lib, dev->vkPhysDev);
 
+  dev->vkDev = rvk_device_create_internal(lib, dev);
+  rvk_api_check(string_lit("loadDevice"), vkLoadDevice(dev->vkDev, &lib->api, &dev->api));
+
+  void*                            nextProps   = null;
+  VkPhysicalDeviceDriverProperties driverProps = {
+      .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DRIVER_PROPERTIES,
+      .pNext = nextProps,
+  };
+  if (dev->flags & RvkDeviceFlags_SupportDriverProperties) {
+    nextProps = &driverProps;
+  }
   VkPhysicalDeviceProperties2 prop = {
       .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2,
+      .pNext = nextProps,
   };
   rvk_call(lib, getPhysicalDeviceProperties2, dev->vkPhysDev, &prop);
   dev->vkProperties = prop.properties;
 
-  rvk_call(lib, getPhysicalDeviceMemoryProperties, dev->vkPhysDev, &dev->vkMemProperties);
+  if (dev->flags & RvkDeviceFlags_SupportDriverProperties) {
+    const String driverStr = fmt_write_scratch(
+        "{} ({})",
+        fmt_text(string_from_null_term(driverProps.driverName)),
+        fmt_text(string_from_null_term(driverProps.driverInfo)));
+    dev->driverName = string_maybe_dup(g_allocHeap, driverStr);
 
-  dev->vkDev = rvk_device_create_internal(lib, dev);
-  rvk_api_check(string_lit("loadDevice"), vkLoadDevice(dev->vkDev, &lib->api, &dev->api));
+    if (driverProps.driverID == VK_DRIVER_ID_MESA_RADV) {
+      dev->flags |= RvkDeviceFlags_DriverRadv;
+    }
+  }
+
+  rvk_call(lib, getPhysicalDeviceMemoryProperties, dev->vkPhysDev, &dev->vkMemProperties);
 
   rvk_call(dev, getDeviceQueue, dev->vkDev, dev->graphicsQueueIndex, 0, &dev->vkGraphicsQueue);
   if (!sentinel_check(dev->transferQueueIndex)) {
@@ -509,6 +536,8 @@ void rvk_device_destroy(RvkDevice* dev) {
   rvk_mem_pool_destroy(dev->memPool);
   rvk_call(dev, destroyDevice, dev->vkDev, &dev->vkAlloc);
 
+  string_maybe_free(g_allocHeap, dev->driverName);
+
   thread_mutex_destroy(dev->queueSubmitMutex);
   alloc_free_t(g_allocHeap, dev);
 
@@ -525,6 +554,8 @@ bool rvk_device_format_supported(
 String rvk_device_name(const RvkDevice* dev) {
   return string_from_null_term(dev->vkProperties.deviceName);
 }
+
+String rvk_device_driver_name(const RvkDevice* dev) { return dev->driverName; }
 
 void rvk_device_update(RvkDevice* dev) {
   // Track device memory budget.
@@ -553,6 +584,30 @@ void rvk_device_update(RvkDevice* dev) {
 
 void rvk_device_wait_idle(const RvkDevice* dev) {
   rvk_call_checked(dev, deviceWaitIdle, dev->vkDev);
+}
+
+bool rvk_device_profile_supported(const RvkDevice* dev) {
+  if (!(dev->lib->flags & RvkLibFlags_Profiling)) {
+    return false; // Profiling not enabled.
+  }
+  if (dev->flags & RvkDeviceFlags_DriverRadv) {
+    return true; // SQTT supported for the 'Radeon GPU Profiler'.
+  }
+  return false; // Profiling not supported for the current driver.
+}
+
+bool rvk_device_profile_trigger(RvkDevice* dev) {
+  if (!(dev->lib->flags & RvkLibFlags_Profiling)) {
+    return false; // Profiling not enabled.
+  }
+  if (dev->flags & RvkDeviceFlags_DriverRadv) {
+    const String triggerPath = path_build_scratch(g_pathTempDir, string_lit("volo_radv_trigger"));
+    file_write_to_path_sync(triggerPath, string_empty);
+
+    log_i("Triggered RADV profile", log_param("out-path", fmt_path(g_pathTempDir)));
+    return true; // Profile triggered.
+  }
+  return false; // Profiling not supported for the current driver.
 }
 
 void rvk_debug_name(

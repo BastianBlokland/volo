@@ -695,6 +695,11 @@ static void rend_settings_tab_draw(
       .tooltip = g_tooltipValidation);
 
   ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Profiling"));
+  ui_table_next_column(canvas, &table);
+  ui_toggle_flag(canvas, (u32*)&settingsGlobal->flags, RendGlobalFlags_Profiling);
+
+  ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Verbose"));
   ui_table_next_column(canvas, &table);
   ui_toggle_flag(

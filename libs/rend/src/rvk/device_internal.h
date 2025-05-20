@@ -1,4 +1,5 @@
 #pragma once
+#include "core_string.h"
 #include "geo.h"
 
 #include "forward_internal.h"
@@ -6,16 +7,18 @@
 #include "vulkan_api.h"
 
 typedef enum {
-  RvkDeviceFlags_SupportNullDescriptor    = 1 << 0,
-  RvkDeviceFlags_SupportPipelineStatQuery = 1 << 1,
-  RvkDeviceFlags_SupportAnisotropy        = 1 << 2,
-  RvkDeviceFlags_SupportFillNonSolid      = 1 << 3,
-  RvkDeviceFlags_SupportWideLines         = 1 << 4,
-  RvkDeviceFlags_SupportPresentId         = 1 << 5,
-  RvkDeviceFlags_SupportPresentWait       = 1 << 6,
-  RvkDeviceFlags_SupportDepthClamp        = 1 << 7,
-  RvkDeviceFlags_SupportMemoryBudget      = 1 << 8,
-  RvkDeviceFlags_SupportExecutableInfo    = 1 << 9,
+  RvkDeviceFlags_DriverRadv               = 1 << 0, // AMD Radeon Mesa RADV driver in use.
+  RvkDeviceFlags_SupportNullDescriptor    = 1 << 1,
+  RvkDeviceFlags_SupportPipelineStatQuery = 1 << 2,
+  RvkDeviceFlags_SupportAnisotropy        = 1 << 3,
+  RvkDeviceFlags_SupportFillNonSolid      = 1 << 4,
+  RvkDeviceFlags_SupportWideLines         = 1 << 5,
+  RvkDeviceFlags_SupportPresentId         = 1 << 6,
+  RvkDeviceFlags_SupportPresentWait       = 1 << 7,
+  RvkDeviceFlags_SupportDepthClamp        = 1 << 8,
+  RvkDeviceFlags_SupportMemoryBudget      = 1 << 9,
+  RvkDeviceFlags_SupportExecutableInfo    = 1 << 10,
+  RvkDeviceFlags_SupportDriverProperties  = 1 << 11,
 } RvkDeviceFlags;
 
 typedef struct sRvkDevice {
@@ -38,7 +41,8 @@ typedef struct sRvkDevice {
   RvkSamplerPool*                  samplerPool;
   RvkTransferer*                   transferer;
   RvkRepository*                   repository;
-  u64 memBudgetTotal, memBudgetUsed; // Only available if 'SupportMemoryBudget' flag is set.
+  u64    memBudgetTotal, memBudgetUsed; // Only available if 'SupportMemoryBudget' flag is set.
+  String driverName;                    // Only available if 'SupportDriverProperties' flag is set.
 } RvkDevice;
 
 RvkDevice* rvk_device_create(RvkLib*);
@@ -46,8 +50,11 @@ void       rvk_device_destroy(RvkDevice*);
 
 bool   rvk_device_format_supported(const RvkDevice*, VkFormat, VkFormatFeatureFlags);
 String rvk_device_name(const RvkDevice*);
+String rvk_device_driver_name(const RvkDevice*);
 void   rvk_device_update(RvkDevice*);
 void   rvk_device_wait_idle(const RvkDevice*);
+bool   rvk_device_profile_supported(const RvkDevice*);
+bool   rvk_device_profile_trigger(RvkDevice*);
 
 void rvk_debug_name(RvkDevice*, VkObjectType, u64 vkHandle, String name);
 void rvk_debug_label_begin_raw(RvkDevice*, VkCommandBuffer, GeoColor, String name);

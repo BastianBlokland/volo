@@ -7,9 +7,10 @@
 
 typedef enum {
   RvkLibFlags_Validation           = 1 << 0,
-  RvkLibFlags_Debug                = 1 << 1,
-  RvkLibFlags_DebugVerbose         = 1 << 2,
-  RvkLibFlags_ExecutableStatistics = 1 << 3,
+  RvkLibFlags_Profiling            = 1 << 1,
+  RvkLibFlags_Debug                = 1 << 2,
+  RvkLibFlags_DebugVerbose         = 1 << 3,
+  RvkLibFlags_ExecutableStatistics = 1 << 4,
 } RvkLibFlags;
 
 typedef struct sRvkLib {

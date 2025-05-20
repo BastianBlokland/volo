@@ -24,6 +24,7 @@ static void ecs_destruct_rend_stats_comp(void* data) {
   RendStatsComp* comp = data;
   alloc_free_array_t(g_allocHeap, comp->passes, rend_stats_max_passes);
   string_maybe_free(g_allocHeap, comp->gpuName);
+  string_maybe_free(g_allocHeap, comp->gpuDriverName);
 }
 
 static void rend_stats_update_str(String* strPtr, const String newStr) {
@@ -38,7 +39,7 @@ static void rend_stats_update_str(String* strPtr, const String newStr) {
 }
 
 ecs_view_define(GlobalView) {
-  ecs_access_read(RendPlatformComp);
+  ecs_access_write(RendPlatformComp);
   ecs_access_read(RendLimiterComp);
   ecs_access_without(RendResetComp);
 }
@@ -89,8 +90,8 @@ ecs_system_define(RendUpdateCamStatsSys) {
   if (!globalItr) {
     return;
   }
-  const RendPlatformComp* plat    = ecs_view_read_t(globalItr, RendPlatformComp);
-  const RendLimiterComp*  limiter = ecs_view_read_t(globalItr, RendLimiterComp);
+  RendPlatformComp*      plat    = ecs_view_write_t(globalItr, RendPlatformComp);
+  const RendLimiterComp* limiter = ecs_view_read_t(globalItr, RendLimiterComp);
 
   RvkCanvasStats    canvasStats;
   RvkSwapchainStats swapchainStats;
@@ -108,6 +109,7 @@ ecs_system_define(RendUpdateCamStatsSys) {
     rvk_canvas_swapchain_stats(painter->canvas, &swapchainStats);
 
     rend_stats_update_str(&stats->gpuName, rvk_device_name(plat->device));
+    rend_stats_update_str(&stats->gpuDriverName, rvk_device_driver_name(plat->device));
 
     stats->swapchainPresentId  = swapchainStats.presentId;
     stats->swapchainImageCount = swapchainStats.imageCount;
@@ -141,6 +143,12 @@ ecs_system_define(RendUpdateCamStatsSys) {
     const RvkAttachPool* attachPool = rvk_canvas_attach_pool(painter->canvas);
     stats->attachCount              = rvk_attach_pool_count(attachPool);
     stats->attachMemory             = rvk_attach_pool_memory(attachPool);
+
+    stats->profileSupported = rvk_device_profile_supported(plat->device);
+    if (stats->profileTrigger) {
+      rvk_device_profile_trigger(plat->device);
+      stats->profileTrigger = false;
+    }
   }
 }
 

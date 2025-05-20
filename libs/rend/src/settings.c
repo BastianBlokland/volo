@@ -7,6 +7,7 @@
 
 #define VOLO_REND_GPU_DEBUG 1
 #define VOLO_REND_VALIDATION 0
+#define VOLO_REND_PROFILING 1
 
 ecs_comp_define_public(RendSettingsComp);
 ecs_comp_define_public(RendSettingsGlobalComp);
@@ -80,6 +81,9 @@ void rend_settings_global_to_default(RendSettingsGlobalComp* s) {
 #endif
 #if VOLO_REND_VALIDATION
   s->flags |= RendGlobalFlags_Validation;
+#endif
+#if VOLO_REND_PROFILING
+  s->flags |= RendGlobalFlags_Profiling;
 #endif
 
   s->shadowFilterSize = 0.1f;

@@ -25,12 +25,14 @@ typedef struct {
 } RendStatsPass;
 
 ecs_comp_extern_public(RendStatsComp) {
-  String gpuName;
+  String gpuName, gpuDriverName;
 
   TimeDuration waitForGpuDur; // Time the cpu was blocked waiting for the gpu.
   TimeDuration gpuWaitDur, gpuExecDur;
   TimeDuration presentAcquireDur, presentEnqueueDur, presentWaitDur;
   TimeDuration limiterDur;
+
+  bool profileSupported, profileTrigger;
 
   u32            passCount;
   RendStatsPass* passes; // RendStatsPass[rend_stats_max_passes];

@@ -679,7 +679,7 @@ static void dev_stats_draw_interface(
     const GapWindowComp*           window,
     const DevStatsGlobalComp*      statsGlobal,
     DevStatsComp*                  stats,
-    const RendStatsComp*           rendStats,
+    RendStatsComp*                 rendStats,
     const AllocStats*              allocStats,
     const EcsDef*                  ecsDef,
     const EcsWorldStats*           ecsWorldStats,
@@ -708,19 +708,25 @@ static void dev_stats_draw_interface(
   }
 
   // clang-format off
-  if(stats_draw_section(c, string_lit("Window"))) {
+  if (stats_draw_section(c, string_lit("Window"))) {
     const GapVector windowSize = gap_window_param(window, GapParam_WindowSize);
     stats_draw_val_entry(c, string_lit("Size"), fmt_write_scratch("{}", gap_vector_fmt(windowSize)));
     stats_draw_val_entry(c, string_lit("Display"), gap_window_display_name(window));
     stats_draw_val_entry(c, string_lit("Refresh rate"), fmt_write_scratch("{}hz", fmt_float(gap_window_refresh_rate(window))));
     stats_draw_val_entry(c, string_lit("Dpi"), fmt_write_scratch("{}", fmt_int(gap_window_dpi(window))));
   }
-  if(stats_draw_section(c, string_lit("Renderer"))) {
+  if (stats_draw_section(c, string_lit("Renderer"))) {
     const TimeDuration gpuExecDurAvg = dev_plot_avg_dur(stats->gpuExecDurPlot);
 
     stats_draw_val_entry(c, string_lit("Gpu"), fmt_write_scratch("{}", fmt_text(rendStats->gpuName)));
+    if (!string_is_empty(rendStats->gpuDriverName)) {
+      stats_draw_val_entry(c, string_lit("Gpu Driver"), fmt_write_scratch("{}", fmt_text(rendStats->gpuDriverName)));
+    }
     stats_draw_val_entry(c, string_lit("Gpu exec duration"), fmt_write_scratch("{<9} frac: {}", fmt_duration(gpuExecDurAvg), fmt_float(stats->gpuExecFrac, .minDecDigits = 2, .maxDecDigits = 2)));
     stats_draw_plot_dur(c, stats->gpuExecDurPlot, 0, stats->frameDurDesired * 2);
+    if (rendStats->profileSupported && stats_draw_button_entry(c, string_lit("Profile capture"), string_lit("Trigger"))) {
+      rendStats->profileTrigger = true;
+    }
     stats_draw_val_entry(c, string_lit("Swapchain"), fmt_write_scratch("images: {} present: {}", fmt_int(rendStats->swapchainImageCount), fmt_int(rendStats->swapchainPresentId)));
     stats_draw_val_entry(c, string_lit("Attachments"), fmt_write_scratch("{<3} ({})", fmt_int(rendStats->attachCount), fmt_size(rendStats->attachMemory)));
     stats_draw_val_entry(c, string_lit("Samplers"), fmt_write_scratch("{}", fmt_int(rendStats->samplerCount)));
@@ -745,7 +751,7 @@ static void dev_stats_draw_interface(
     stats_draw_val_entry(c, string_lit("Pass vertex-shaders"), fmt_write_scratch("{}", fmt_int(passStats->shadersVert)));
     stats_draw_val_entry(c, string_lit("Pass fragment-shaders"), fmt_write_scratch("{}", fmt_int(passStats->shadersFrag)));
   }
-  if(stats_draw_section(c, string_lit("Memory"))) {
+  if (stats_draw_section(c, string_lit("Memory"))) {
     const i64       pageDelta         = allocStats->pageCounter - statsGlobal->allocPrevPageCounter;
     const FormatArg pageDeltaColor    = pageDelta > 0 ? fmt_ui_color(ui_color_red) : fmt_nop();
     const i64       heapDelta         = allocStats->heapCounter - statsGlobal->allocPrevHeapCounter;
@@ -757,11 +763,11 @@ static void dev_stats_draw_interface(
     stats_draw_val_entry(c, string_lit("Page counter"), fmt_write_scratch("count:  {<7} {}delta: {}\ar", fmt_int(allocStats->pageCounter), pageDeltaColor, fmt_int(pageDelta)));
     stats_draw_val_entry(c, string_lit("Heap"), fmt_write_scratch("active: {}", fmt_int(allocStats->heapActive)));
     stats_draw_val_entry(c, string_lit("Heap counter"), fmt_write_scratch("count:  {<7} {}delta: {}\ar", fmt_int(allocStats->heapCounter), heapDeltaColor, fmt_int(heapDelta)));
-    if(stats_draw_button_entry(c, string_lit("Heap tracking"), string_lit("Dump"))) {
+    if (stats_draw_button_entry(c, string_lit("Heap tracking"), string_lit("Dump"))) {
       alloc_heap_dump();
     }
     stats_draw_val_entry(c, string_lit("Persist counter"), fmt_write_scratch("count:  {<7} {}delta: {}\ar", fmt_int(allocStats->persistCounter), persistDeltaColor, fmt_int(persistDelta)));
-    if(stats_draw_button_entry(c, string_lit("Persist tracking"), string_lit("Dump"))) {
+    if (stats_draw_button_entry(c, string_lit("Persist tracking"), string_lit("Dump"))) {
       alloc_persist_dump();
     }
     stats_draw_val_entry(c, string_lit("Renderer chunks"), fmt_write_scratch("{}", fmt_int(rendStats->memChunks)));
@@ -773,7 +779,7 @@ static void dev_stats_draw_interface(
     stats_draw_val_entry(c, string_lit("StringTable"), fmt_write_scratch("global: {}", fmt_int(statsGlobal->globalStringCount)));
     stats_draw_val_entry(c, string_lit("Data"), fmt_write_scratch("types: {}", fmt_int(data_type_count(g_dataReg))));
   }
-  if(stats_draw_section(c, string_lit("ECS"))) {
+  if (stats_draw_section(c, string_lit("ECS"))) {
     const TimeDuration flushDurAvg = dev_plot_avg_dur(statsGlobal->ecsFlushDurPlot);
     const TimeDuration flushDurMax = dev_plot_max_dur(statsGlobal->ecsFlushDurPlot);
 
@@ -788,7 +794,7 @@ static void dev_stats_draw_interface(
     stats_draw_val_entry(c, string_lit("Flush duration"), fmt_write_scratch("{<8} max:    {}", fmt_duration(flushDurAvg), fmt_duration(flushDurMax)));
     stats_draw_val_entry(c, string_lit("Flush entities"), fmt_write_scratch("{}", fmt_int(ecsWorldStats->lastFlushEntities)));
   }
-  if(stats_draw_section(c, string_lit("Collision"))) {
+  if (stats_draw_section(c, string_lit("Collision"))) {
     stats_draw_val_entry(c, string_lit("Prim spheres"), fmt_write_scratch("{}", fmt_int(colStats->queryStats[GeoQueryStat_PrimSphereCount])));
     stats_draw_val_entry(c, string_lit("Prim capsules"), fmt_write_scratch("{}", fmt_int(colStats->queryStats[GeoQueryStat_PrimCapsuleCount])));
     stats_draw_val_entry(c, string_lit("Prim box-rotated"), fmt_write_scratch("{}", fmt_int(colStats->queryStats[GeoQueryStat_PrimBoxRotatedCount])));
@@ -796,13 +802,13 @@ static void dev_stats_draw_interface(
     stats_draw_val_entry(c, string_lit("Query ray"), fmt_write_scratch("normal: {<5} fat: {}", fmt_int(colStats->queryStats[GeoQueryStat_QueryRayCount]), fmt_int(colStats->queryStats[GeoQueryStat_QueryRayFatCount])));
     stats_draw_val_entry(c, string_lit("Query all"), fmt_write_scratch("sphere: {<5} box: {}", fmt_int(colStats->queryStats[GeoQueryStat_QuerySphereAllCount]), fmt_int(colStats->queryStats[GeoQueryStat_QueryBoxAllCount])));
   }
-  if(stats_draw_section(c, string_lit("VFX"))) {
+  if (stats_draw_section(c, string_lit("VFX"))) {
     for (VfxStat vfxStat = 0; vfxStat != VfxStat_Count; ++vfxStat) {
       const i32 val = vfx_stats_get(&vfxStats->set, vfxStat);
       stats_draw_val_entry(c, vfx_stats_name(vfxStat), fmt_write_scratch("{}", fmt_int(val)));
     }
   }
-  if(stats_draw_section(c, string_lit("Navigation"))) {
+  if (stats_draw_section(c, string_lit("Navigation"))) {
     stats_draw_nav_layer_dropdown(c, stats);
     const u32* navStats = scene_nav_grid_stats(navEnv, stats->inspectNavLayer);
     stats_draw_val_entry(c, string_lit("Cells"), fmt_write_scratch("total: {<6} axis: {}", fmt_int(navStats[GeoNavStat_CellCountTotal]), fmt_int(navStats[GeoNavStat_CellCountAxis])));
@@ -820,7 +826,7 @@ static void dev_stats_draw_interface(
     stats_draw_val_entry(c, string_lit("Blocker reachable"), fmt_write_scratch("queries: {}", fmt_int(navStats[GeoNavStat_BlockerReachableQueries])));
     stats_draw_val_entry(c, string_lit("Blocker closest"), fmt_write_scratch("queries: {}", fmt_int(navStats[GeoNavStat_BlockerClosestQueries])));
   }
-  if(stats_draw_section(c, string_lit("Interface"))) {
+  if (stats_draw_section(c, string_lit("Interface"))) {
     stats_draw_val_entry(c, string_lit("Canvas size"), fmt_write_scratch("{}x{}", fmt_float(uiStats->canvasSize.x, .maxDecDigits = 0), fmt_float(uiStats->canvasSize.y, .maxDecDigits = 0)));
     stats_draw_val_entry(c, string_lit("Canvasses"), fmt_write_scratch("{}", fmt_int(uiStats->canvasCount)));
     stats_draw_val_entry(c, string_lit("Tracked elements"), fmt_write_scratch("{}", fmt_int(uiStats->trackedElemCount)));
@@ -895,9 +901,9 @@ ecs_view_define(StatsCreateView) {
 
 ecs_view_define(StatsUpdateView) {
   ecs_access_read(GapWindowComp);
-  ecs_access_read(RendStatsComp);
   ecs_access_read(UiStatsComp);
   ecs_access_write(DevStatsComp);
+  ecs_access_write(RendStatsComp);
 }
 
 ecs_view_define(CanvasWriteView) {
@@ -952,7 +958,7 @@ ecs_system_define(DevStatsUpdateSys) {
   for (EcsIterator* itr = ecs_view_itr(statsView); ecs_view_walk(itr);) {
     DevStatsComp*        stats     = ecs_view_write_t(itr, DevStatsComp);
     const GapWindowComp* window    = ecs_view_read_t(itr, GapWindowComp);
-    const RendStatsComp* rendStats = ecs_view_read_t(itr, RendStatsComp);
+    RendStatsComp*       rendStats = ecs_view_write_t(itr, RendStatsComp);
     const UiStatsComp*   uiStats   = ecs_view_read_t(itr, UiStatsComp);
     const EcsDef*        ecsDef    = ecs_world_def(world);
 

@@ -1,6 +1,7 @@
 #include "core_array.h"
 #include "core_diag.h"
 #include "core_dynlib.h"
+#include "core_env.h"
 #include "core_path.h"
 #include "core_thread.h"
 #include "gap_native.h"
@@ -16,6 +17,11 @@
 
 static const VkValidationFeatureEnableEXT g_validationEnabledFeatures[] = {
     VK_VALIDATION_FEATURE_ENABLE_BEST_PRACTICES_EXT,
+};
+
+static const i32 g_rvkMessengerIgnoredMessages[] = {
+    1734198062, // BestPractices-specialuse-extension.
+    358835246,  // BestPractices-vkCreateDevice-specialuse-extension-devtools
 };
 
 static const char* rvk_to_null_term_scratch(const String str) {
@@ -204,7 +210,15 @@ static VkBool32 SYS_DECL rvk_message_func(
     VkDebugUtilsMessageTypeFlagsEXT             msgType,
     const VkDebugUtilsMessengerCallbackDataEXT* callbackData,
     void*                                       userData) {
-  (void)userData;
+  Logger* logger = userData;
+
+  if (!(msgSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)) {
+    array_for_t(g_rvkMessengerIgnoredMessages, i32, ignoredMessage) {
+      if (callbackData->messageIdNumber == *ignoredMessage) {
+        return VK_FALSE; // The application should always return VK_FALSE.
+      }
+    }
+  }
 
   thread_ensure_init();
 
@@ -212,25 +226,27 @@ static VkBool32 SYS_DECL rvk_message_func(
   const String   typeLabel = rvk_msg_type_label(msgType);
   const String   message   = string_from_null_term(callbackData->pMessage);
 
-  log(g_logger,
+  log(logger,
       logLevel,
       "Vulkan {} message",
       log_param("type", fmt_text(typeLabel)),
-      log_param("text", fmt_text(message)));
+      log_param("text", fmt_text(message)),
+      log_param("id", fmt_int(callbackData->messageIdNumber)));
 
   if (msgSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) {
     diag_break(); // Halt when running in a debugger.
   }
-  return false;
+
+  return VK_FALSE; // The application should always return VK_FALSE.
 }
 
-static void rvk_messenger_create(RvkLib* lib) {
+static void rvk_messenger_create(RvkLib* lib, Logger* logger) {
   const VkDebugUtilsMessengerCreateInfoEXT info = {
       .sType           = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
       .messageSeverity = rvk_messenger_severity_mask(lib->flags),
       .messageType     = rvk_messenger_type_mask(lib->flags),
       .pfnUserCallback = rvk_message_func,
-      .pUserData       = null,
+      .pUserData       = (void*)logger,
   };
   rvk_call(lib, createDebugUtilsMessengerEXT, lib->vkInst, &info, &lib->vkAlloc, &lib->vkMessenger);
 }
@@ -249,6 +265,29 @@ static u32 rvk_lib_names(String outPaths[PARAM_ARRAY_SIZE(rvk_lib_vulkan_names_m
   outPaths[count++] = string_lit("libvulkan.so");
 #endif
   return count;
+}
+
+static void rvk_lib_profile_init(RvkLib* lib) {
+  (void)lib;
+
+#if VOLO_LINUX
+  /**
+   * Configure profiling for the Linux AMD RADV driver.
+   * NOTE: Its important to set these before instance creation.
+   * TODO: Find a way to detect if we have the RADV driver installed before setting env vars.
+   */
+  const String triggerPath   = path_build_scratch(g_pathTempDir, string_lit("volo_radv_trigger"));
+  const String bufferSizeStr = fmt_write_scratch("{}", fmt_int(128 * usize_mebibyte));
+
+  env_var_set(string_lit("MESA_VK_TRACE"), string_lit("rgp")); // Radeon GPU Profiler
+  env_var_set(string_lit("MESA_VK_TRACE_TRIGGER"), triggerPath);
+  env_var_set(string_lit("RADV_THREAD_TRACE_BUFFER_SIZE"), bufferSizeStr);
+  env_var_set(string_lit("RADV_THREAD_TRACE_CACHE_COUNTERS"), string_lit("true"));
+  env_var_set(string_lit("RADV_THREAD_TRACE_INSTRUCTION_TIMING"), string_lit("true"));
+  env_var_set(string_lit("RADV_THREAD_TRACE_QUEUE_EVENTS"), string_lit("true"));
+  env_var_set(string_lit("RADV_PROFILE_PSTATE"), string_lit("standard"));
+  lib->flags |= RvkLibFlags_Profiling;
+#endif
 }
 
 RvkLib* rvk_lib_create(const RendSettingsGlobalComp* set) {
@@ -289,11 +328,15 @@ RvkLib* rvk_lib_create(const RendSettingsGlobalComp* set) {
     }
   }
 
+  if (set->flags & RendGlobalFlags_Profiling) {
+    rvk_lib_profile_init(lib);
+  }
+
   lib->vkInst = rvk_inst_create(&loaderApi, &lib->vkAlloc, lib->flags);
   rvk_api_check(string_lit("loadInstance"), vkLoadInstance(lib->vkInst, &loaderApi, &lib->api));
 
   if (lib->flags & RvkLibFlags_Debug) {
-    rvk_messenger_create(lib);
+    rvk_messenger_create(lib, g_logger);
   }
   if (set->flags & RendGlobalFlags_DebugGpu) {
     lib->disassembler = rvk_disassembler_create(g_allocHeap);
