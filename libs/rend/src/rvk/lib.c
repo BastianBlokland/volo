@@ -222,16 +222,19 @@ static VkBool32 SYS_DECL rvk_message_func(
 
   thread_ensure_init();
 
-  const LogLevel logLevel  = rvk_msg_log_level(msgSeverity);
-  const String   typeLabel = rvk_msg_type_label(msgType);
-  const String   message   = string_from_null_term(callbackData->pMessage);
+  const LogLevel logLevel      = rvk_msg_log_level(msgSeverity);
+  const String   typeLabel     = rvk_msg_type_label(msgType);
+  const String   message       = string_from_null_term(callbackData->pMessage);
+  const i32      messageId     = callbackData->messageIdNumber;
+  const String   messageIdName = string_from_null_term(callbackData->pMessageIdName);
 
   log(logger,
       logLevel,
       "Vulkan {} message",
       log_param("type", fmt_text(typeLabel)),
       log_param("text", fmt_text(message)),
-      log_param("id", fmt_int(callbackData->messageIdNumber)));
+      log_param("id", fmt_int(messageId)),
+      log_param("id-name", fmt_text(messageIdName)));
 
   if (msgSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) {
     diag_break(); // Halt when running in a debugger.
