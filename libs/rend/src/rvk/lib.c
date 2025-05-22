@@ -20,8 +20,9 @@ static const VkValidationFeatureEnableEXT g_validationEnabledFeatures[] = {
 };
 
 static const i32 g_rvkMessengerIgnoredMessages[] = {
+    -628989766, // BestPractices-deprecated-extension.
     1734198062, // BestPractices-specialuse-extension.
-    358835246,  // BestPractices-vkCreateDevice-specialuse-extension-devtools
+    358835246,  // BestPractices-vkCreateDevice-specialuse-extension-devtools.
 };
 
 static const char* rvk_to_null_term_scratch(const String str) {
