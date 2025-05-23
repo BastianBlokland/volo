@@ -355,10 +355,6 @@ static VkDevice rvk_device_create_internal(RvkLib* lib, RvkDevice* dev) {
   // Add optional extensions and features.
   void* nextFeature = null;
 
-  if (rvk_has_ext(supportedExts, string_from_null_term(VK_KHR_maintenance4))) {
-    extsToEnable[extsToEnableCount++] = VK_KHR_maintenance4; // For relaxed shader interface rules.
-  }
-
   VkPhysicalDeviceRobustness2FeaturesEXT featureRobustness = {
       .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_FEATURES_EXT,
       .pNext = nextFeature,
@@ -414,13 +410,20 @@ static VkDevice rvk_device_create_internal(RvkLib* lib, RvkDevice* dev) {
   rvk_config_16bit_storage(dev, &feature16BitStorage);
   rvk_config_features(dev, &featureBase.features);
 
+  if (rvk_has_ext(supportedExts, string_from_null_term(VK_KHR_maintenance4))) {
+    extsToEnable[extsToEnableCount++] = VK_KHR_maintenance4; // For relaxed shader interface rules.
+  }
   if (rvk_has_ext(supportedExts, string_from_null_term(VK_EXT_memory_budget))) {
     dev->flags |= RvkDeviceFlags_SupportMemoryBudget;
     extsToEnable[extsToEnableCount++] = VK_EXT_memory_budget;
   }
-
   if (rvk_has_ext(supportedExts, string_lit(VK_KHR_driver_properties))) {
     dev->flags |= RvkDeviceFlags_SupportDriverProperties;
+    extsToEnable[extsToEnableCount++] = VK_KHR_driver_properties;
+  }
+  if (rvk_has_ext(supportedExts, string_lit(VK_KHR_calibrated_timestamps))) {
+    dev->flags |= RvkDeviceFlags_SupportCalibratedTimestamps;
+    extsToEnable[extsToEnableCount++] = VK_KHR_calibrated_timestamps;
   }
 
   const VkDeviceCreateInfo createInfo = {

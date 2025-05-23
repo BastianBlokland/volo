@@ -94,6 +94,7 @@ static const String g_vkgenExtensions[] = {
     string_static("VK_EXT_memory_budget"),
     string_static("VK_EXT_robustness2"),
     string_static("VK_EXT_validation_features"),
+    string_static("VK_KHR_calibrated_timestamps"),
     string_static("VK_KHR_driver_properties"),
     string_static("VK_KHR_maintenance4"),
     string_static("VK_KHR_pipeline_executable_properties"),

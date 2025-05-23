@@ -41,6 +41,7 @@
 #define VK_EXT_memory_budget "VK_EXT_memory_budget"
 #define VK_EXT_robustness2 "VK_EXT_robustness2"
 #define VK_EXT_validation_features "VK_EXT_validation_features"
+#define VK_KHR_calibrated_timestamps "VK_KHR_calibrated_timestamps"
 #define VK_KHR_driver_properties "VK_KHR_driver_properties"
 #define VK_KHR_maintenance4 "VK_KHR_maintenance4"
 #define VK_KHR_pipeline_executable_properties "VK_KHR_pipeline_executable_properties"
@@ -244,6 +245,7 @@ typedef enum {
   VK_STRUCTURE_TYPE_BIND_IMAGE_MEMORY_INFO = 1000157001,
   VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_3_PROPERTIES = 1000168000,
   VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_SUPPORT = 1000168001,
+  VK_STRUCTURE_TYPE_CALIBRATED_TIMESTAMP_INFO_KHR = 1000184000,
   VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DRIVER_PROPERTIES = 1000196000,
   VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_BUDGET_PROPERTIES_EXT = 1000237000,
   VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT = 1000247000,
@@ -3062,6 +3064,19 @@ typedef struct VkValidationFeaturesEXT {
 } VkValidationFeaturesEXT;
 
 typedef enum {
+  VK_TIME_DOMAIN_DEVICE_KHR = 0,
+  VK_TIME_DOMAIN_CLOCK_MONOTONIC_KHR = 1,
+  VK_TIME_DOMAIN_CLOCK_MONOTONIC_RAW_KHR = 2,
+  VK_TIME_DOMAIN_QUERY_PERFORMANCE_COUNTER_KHR = 3,
+} VkTimeDomainKHR;
+
+typedef struct VkCalibratedTimestampInfoKHR {
+  VkStructureType sType;
+  const void* pNext;
+  VkTimeDomainKHR timeDomain;
+} VkCalibratedTimestampInfoKHR;
+
+typedef enum {
   VK_DRIVER_ID_AMD_PROPRIETARY = 1,
   VK_DRIVER_ID_AMD_OPEN_SOURCE = 2,
   VK_DRIVER_ID_MESA_RADV = 3,
@@ -3436,6 +3451,7 @@ typedef struct VkInterfaceInstance {
   VkResult (SYS_DECL* createDebugUtilsMessengerEXT)(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pMessenger);
   void (SYS_DECL* destroyDebugUtilsMessengerEXT)(VkInstance instance, VkDebugUtilsMessengerEXT messenger, const VkAllocationCallbacks* pAllocator);
   void (SYS_DECL* submitDebugUtilsMessageEXT)(VkInstance instance, VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageTypes, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData);
+  VkResult (SYS_DECL* getPhysicalDeviceCalibrateableTimeDomainsKHR)(VkPhysicalDevice physicalDevice, u32* pTimeDomainCount, VkTimeDomainKHR* pTimeDomains);
   void (SYS_DECL* destroySurfaceKHR)(VkInstance instance, VkSurfaceKHR surface, const VkAllocationCallbacks* pAllocator);
   VkResult (SYS_DECL* getPhysicalDeviceSurfaceSupportKHR)(VkPhysicalDevice physicalDevice, u32 queueFamilyIndex, VkSurfaceKHR surface, VkBool32* pSupported);
   VkResult (SYS_DECL* getPhysicalDeviceSurfaceCapabilitiesKHR)(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, VkSurfaceCapabilitiesKHR* pSurfaceCapabilities);
@@ -3587,6 +3603,7 @@ typedef struct VkInterfaceDevice {
   void (SYS_DECL* destroyDescriptorUpdateTemplate)(VkDevice device, VkDescriptorUpdateTemplate descriptorUpdateTemplate, const VkAllocationCallbacks* pAllocator);
   void (SYS_DECL* updateDescriptorSetWithTemplate)(VkDevice device, VkDescriptorSet descriptorSet, VkDescriptorUpdateTemplate descriptorUpdateTemplate, const void* pData);
   void (SYS_DECL* getDescriptorSetLayoutSupport)(VkDevice device, const VkDescriptorSetLayoutCreateInfo* pCreateInfo, VkDescriptorSetLayoutSupport* pSupport);
+  VkResult (SYS_DECL* getCalibratedTimestampsKHR)(VkDevice device, u32 timestampCount, const VkCalibratedTimestampInfoKHR* pTimestampInfos, u64* pTimestamps, u64* pMaxDeviation);
   void (SYS_DECL* getDeviceBufferMemoryRequirements)(VkDevice device, const VkDeviceBufferMemoryRequirements* pInfo, VkMemoryRequirements2* pMemoryRequirements);
   void (SYS_DECL* getDeviceImageMemoryRequirements)(VkDevice device, const VkDeviceImageMemoryRequirements* pInfo, VkMemoryRequirements2* pMemoryRequirements);
   void (SYS_DECL* getDeviceImageSparseMemoryRequirements)(VkDevice device, const VkDeviceImageMemoryRequirements* pInfo, u32* pSparseMemoryRequirementCount, VkSparseImageMemoryRequirements2* pSparseMemoryRequirements);
