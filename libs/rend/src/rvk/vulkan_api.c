@@ -844,6 +844,7 @@ VkResult vkLoadInstance(VkInstance inst, const VkInterfaceLoader* src, VkInterfa
   out->createDebugUtilsMessengerEXT = (Symbol)src->getInstanceProcAddr(inst, "vkCreateDebugUtilsMessengerEXT");
   out->destroyDebugUtilsMessengerEXT = (Symbol)src->getInstanceProcAddr(inst, "vkDestroyDebugUtilsMessengerEXT");
   out->submitDebugUtilsMessageEXT = (Symbol)src->getInstanceProcAddr(inst, "vkSubmitDebugUtilsMessageEXT");
+  out->getPhysicalDeviceCalibrateableTimeDomainsKHR = (Symbol)src->getInstanceProcAddr(inst, "vkGetPhysicalDeviceCalibrateableTimeDomainsKHR");
   out->destroySurfaceKHR = (Symbol)src->getInstanceProcAddr(inst, "vkDestroySurfaceKHR");
   out->getPhysicalDeviceSurfaceSupportKHR = (Symbol)src->getInstanceProcAddr(inst, "vkGetPhysicalDeviceSurfaceSupportKHR");
   out->getPhysicalDeviceSurfaceCapabilitiesKHR = (Symbol)src->getInstanceProcAddr(inst, "vkGetPhysicalDeviceSurfaceCapabilitiesKHR");
@@ -994,6 +995,7 @@ VkResult vkLoadDevice(VkDevice dev, const VkInterfaceInstance* src, VkInterfaceD
   out->destroyDescriptorUpdateTemplate = (Symbol)src->getDeviceProcAddr(dev, "vkDestroyDescriptorUpdateTemplate");
   out->updateDescriptorSetWithTemplate = (Symbol)src->getDeviceProcAddr(dev, "vkUpdateDescriptorSetWithTemplate");
   out->getDescriptorSetLayoutSupport = (Symbol)src->getDeviceProcAddr(dev, "vkGetDescriptorSetLayoutSupport");
+  out->getCalibratedTimestampsKHR = (Symbol)src->getDeviceProcAddr(dev, "vkGetCalibratedTimestampsKHR");
   out->getDeviceBufferMemoryRequirements = (Symbol)src->getDeviceProcAddr(dev, "vkGetDeviceBufferMemoryRequirements");
   out->getDeviceImageMemoryRequirements = (Symbol)src->getDeviceProcAddr(dev, "vkGetDeviceImageMemoryRequirements");
   out->getDeviceImageSparseMemoryRequirements = (Symbol)src->getDeviceProcAddr(dev, "vkGetDeviceImageSparseMemoryRequirements");
