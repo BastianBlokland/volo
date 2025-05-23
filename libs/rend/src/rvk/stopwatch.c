@@ -66,7 +66,6 @@ static bool rvk_stopwatch_can_calibrate(RvkStopwatch* sw) {
 
 static void rvk_stopwatch_calibrate(RvkStopwatch* sw) {
   if (!(sw->flags & RvkStopwatch_CanCalibrate)) {
-    sw->calibrationHost = sw->calibrationDevice = 0;
     sw->flags &= ~RvkStopwatch_HasCalibration;
     return; // Calibration not supported.
   }
@@ -96,14 +95,16 @@ Retry:
       &maxDeviation);
 
   if (maxDeviation > rvk_stopwatch_calibration_max_deviation) {
+    // Calibration too imprecise; attempt to get a more accurate calibration.
     if (numTries++ <= rvk_stopwatch_calibration_max_tries) {
       goto Retry;
     }
     log_w("GPU stopwatch calibration failed", log_param("deviation", fmt_int(maxDeviation)));
 
-    sw->calibrationHost = sw->calibrationDevice = 0;
+    sw->calibrationHost   = time_steady_clock(); // Mark the timestamp of the calibration attempt.
+    sw->calibrationDevice = 0;
     sw->flags &= ~RvkStopwatch_HasCalibration;
-    return; // Calibration too imprecise.
+    return;
   }
 
   sw->calibrationDevice = (TimeSteady)timestamps[0];
