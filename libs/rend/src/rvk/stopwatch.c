@@ -18,6 +18,7 @@
 
 #define rvk_stopwatch_timestamps_max 64
 #define rvk_stopwatch_max_calibration_deviation time_microseconds(100)
+#define rvk_stopwatch_calibration_timeout time_minutes(30)
 
 typedef enum {
   RvkStopwatch_Supported      = 1 << 0,
@@ -64,6 +65,7 @@ static bool rvk_stopwatch_can_calibrate(RvkStopwatch* sw) {
 
 static void rvk_stopwatch_calibrate(RvkStopwatch* sw) {
   if (!(sw->flags & RvkStopwatch_CanCalibrate)) {
+    sw->calibrationHost = sw->calibrationDevice = 0;
     sw->flags &= ~RvkStopwatch_HasCalibration;
     return; // Calibration not supported.
   }
@@ -91,6 +93,7 @@ static void rvk_stopwatch_calibrate(RvkStopwatch* sw) {
       &maxDeviation);
 
   if (maxDeviation > rvk_stopwatch_max_calibration_deviation) {
+    sw->calibrationHost = sw->calibrationDevice = 0;
     sw->flags &= ~RvkStopwatch_HasCalibration;
     return; // Calibration too imprecise.
   }
@@ -173,6 +176,11 @@ void rvk_stopwatch_reset(RvkStopwatch* sw, VkCommandBuffer vkCmdBuf) {
   }
   sw->counter = 0;
   sw->flags &= ~RvkStopwatch_HasResults;
+
+  const TimeDuration calibrationAge = time_steady_clock() - sw->calibrationHost;
+  if (sw->flags & RvkStopwatch_CanCalibrate && calibrationAge > rvk_stopwatch_calibration_timeout) {
+    rvk_stopwatch_calibrate(sw);
+  }
 }
 
 TimeSteady rvk_stopwatch_query(const RvkStopwatch* sw, const RvkStopwatchRecord record) {
