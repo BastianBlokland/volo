@@ -1,4 +1,5 @@
 #include "core_alloc.h"
+#include "core_array.h"
 #include "core_diag.h"
 #include "core_thread.h"
 #include "log_logger.h"
@@ -10,8 +11,9 @@
 #define rvk_stopwatch_timestamps_max 64
 
 typedef enum {
-  RvkStopwatch_Supported  = 1 << 0,
-  RvkStopwatch_HasResults = 1 << 1,
+  RvkStopwatch_Supported          = 1 << 0,
+  RvkStopwatch_HasResults         = 1 << 1,
+  RvkStopwatch_CanCalibrateToHost = 1 << 2,
 } RvkStopwatchFlags;
 
 struct sRvkStopwatch {
@@ -22,6 +24,37 @@ struct sRvkStopwatch {
   RvkStopwatchFlags flags;
   u64               results[rvk_stopwatch_timestamps_max];
 };
+
+static VkTimeDomainKHR rvk_timedomain_host_steady(void) {
+#if defined(VOLO_LINUX)
+  return VK_TIME_DOMAIN_CLOCK_MONOTONIC_KHR;
+#elif defined(VOLO_WIN32)
+  return VK_TIME_DOMAIN_QUERY_PERFORMANCE_COUNTER_KHR;
+#else
+#error Unsupported platform
+#endif
+}
+
+static bool rvk_timedomain_can_calibrate(RvkDevice* dev, const VkTimeDomainKHR domain) {
+  if (!(dev->flags & RvkDeviceFlags_SupportCalibratedTimestamps)) {
+    return false;
+  }
+  VkTimeDomainKHR supportedDomains[8];
+  u32             supportedDomainCount = array_elems(supportedDomains);
+  rvk_call_checked(
+      dev->lib,
+      getPhysicalDeviceCalibrateableTimeDomainsKHR,
+      dev->vkPhysDev,
+      &supportedDomainCount,
+      supportedDomains);
+
+  for (u32 i = 0; i != supportedDomainCount; ++i) {
+    if (supportedDomains[i] == domain) {
+      return true;
+    }
+  }
+  return false;
+}
 
 static VkQueryPool rvk_querypool_create(RvkDevice* dev) {
   const VkQueryPoolCreateInfo createInfo = {
@@ -67,6 +100,11 @@ RvkStopwatch* rvk_stopwatch_create(RvkDevice* dev) {
   } else {
     log_w("Vulkan device does not support timestamps");
   }
+
+  if (rvk_timedomain_can_calibrate(dev, rvk_timedomain_host_steady())) {
+    sw->flags |= RvkStopwatch_CanCalibrateToHost;
+  }
+
   return sw;
 }
 
