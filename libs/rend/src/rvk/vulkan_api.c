@@ -12,9 +12,6 @@ String vkResultStr(const VkResult v) {
   switch (v) {
     case VK_ERROR_INVALID_EXTERNAL_HANDLE: return string_lit("error_invalid_external_handle");
     case VK_ERROR_OUT_OF_POOL_MEMORY: return string_lit("error_out_of_pool_memory");
-    case VK_ERROR_OUT_OF_DATE_KHR: return string_lit("error_out_of_date_khr");
-    case VK_ERROR_NATIVE_WINDOW_IN_USE_KHR: return string_lit("error_native_window_in_use_khr");
-    case VK_ERROR_SURFACE_LOST_KHR: return string_lit("error_surface_lost_khr");
     case VK_ERROR_UNKNOWN: return string_lit("error_unknown");
     case VK_ERROR_FRAGMENTED_POOL: return string_lit("error_fragmented_pool");
     case VK_ERROR_FORMAT_NOT_SUPPORTED: return string_lit("error_format_not_supported");
@@ -34,7 +31,6 @@ String vkResultStr(const VkResult v) {
     case VK_EVENT_SET: return string_lit("event_set");
     case VK_EVENT_RESET: return string_lit("event_reset");
     case VK_INCOMPLETE: return string_lit("incomplete");
-    case VK_SUBOPTIMAL_KHR: return string_lit("suboptimal_khr");
     default: return string_lit("unknown");
   }
 }

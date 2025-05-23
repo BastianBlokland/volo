@@ -611,6 +611,73 @@ static void vkgen_collect_enum_extensions(
       }
       const String aliasName = xml_attr_get(ctx->schemaDoc, entry, g_hash_alias);
       if (!string_is_empty(aliasName)) {
+        continue; // Alias another enum extension, not an enum entry itself.
+      }
+      const String bitPosStr = xml_attr_get(ctx->schemaDoc, entry, g_hash_bitpos);
+      if (!string_is_empty(bitPosStr)) {
+        const VkGenEnumEntry entryRes = {
+            .key      = enumKey,
+            .optional = optional,
+            .name     = name,
+            .value    = u64_lit(1) << vkgen_to_int(bitPosStr),
+        };
+        vkgen_enum_entry_push(ctx, entryRes);
+        continue;
+      }
+      const bool   invert   = xml_attr_has(ctx->schemaDoc, entry, g_hash_dir);
+      const String valueStr = xml_attr_get(ctx->schemaDoc, entry, g_hash_value);
+      if (!string_is_empty(valueStr)) {
+        const VkGenEnumEntry entryRes = {
+            .key      = enumKey,
+            .optional = optional,
+            .name     = name,
+            .value    = vkgen_to_int(valueStr) * (invert ? -1 : 1),
+        };
+        vkgen_enum_entry_push(ctx, entryRes);
+        continue;
+      }
+      const String offsetStr = xml_attr_get(ctx->schemaDoc, entry, g_hash_offset);
+      if (!string_is_empty(offsetStr)) {
+        const String extnumStr = xml_attr_get(ctx->schemaDoc, entry, g_hash_extnumber);
+        if (!string_is_empty(extnumStr)) {
+          extNumber = vkgen_to_int(extnumStr);
+        }
+        if (extNumber < 0) {
+          log_w("Missing extension number");
+          continue;
+        }
+        const i64            value = 1000000000 + (extNumber - 1) * 1000 + vkgen_to_int(offsetStr);
+        const VkGenEnumEntry entryRes = {
+            .key      = enumKey,
+            .optional = optional,
+            .name     = name,
+            .value    = value * (invert ? -1 : 1),
+        };
+        vkgen_enum_entry_push(ctx, entryRes);
+        continue;
+      }
+    }
+  }
+}
+
+static void vkgen_collect_enum_extensions(
+    VkGenContext* ctx, const XmlNode node, i64 extNumber, const bool optional) {
+  xml_for_children(ctx->schemaDoc, node, child) {
+    if (xml_name_hash(ctx->schemaDoc, child) != g_hash_require) {
+      continue; // Not a require element.
+    }
+    xml_for_children(ctx->schemaDoc, child, entry) {
+      const StringHash entryNameHash = xml_name_hash(ctx->schemaDoc, entry);
+      if (entryNameHash != g_hash_enum) {
+        continue; // Not an enum.
+      }
+      const StringHash enumKey = xml_attr_get_hash(ctx->schemaDoc, entry, g_hash_extends);
+      const String     name    = xml_attr_get(ctx->schemaDoc, entry, g_hash_name);
+      if (!enumKey || string_is_empty(name)) {
+        continue; // Enum or name missing.
+      }
+      const String aliasName = xml_attr_get(ctx->schemaDoc, entry, g_hash_alias);
+      if (!string_is_empty(aliasName)) {
         VkGenEnumEntries existingEntries = vkgen_enum_entries_find(ctx, enumKey);
         for (VkGenEnumEntry* itr = existingEntries.begin; itr != existingEntries.end; ++itr) {
           if (string_eq(itr->name, aliasName)) {
