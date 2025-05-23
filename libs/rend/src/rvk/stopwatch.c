@@ -8,12 +8,22 @@
 #include "lib_internal.h"
 #include "stopwatch_internal.h"
 
+#if defined(VOLO_LINUX)
+#define rvk_timedomain_host VK_TIME_DOMAIN_CLOCK_MONOTONIC_KHR
+#elif defined(VOLO_WIN32)
+#define rvk_timedomain_host VK_TIME_DOMAIN_QUERY_PERFORMANCE_COUNTER_KHR
+#else
+#error Unsupported platform
+#endif
+
 #define rvk_stopwatch_timestamps_max 64
+#define rvk_stopwatch_max_calibration_deviation time_microseconds(250)
 
 typedef enum {
-  RvkStopwatch_Supported          = 1 << 0,
-  RvkStopwatch_HasResults         = 1 << 1,
-  RvkStopwatch_CanCalibrateToHost = 1 << 2,
+  RvkStopwatch_Supported      = 1 << 0,
+  RvkStopwatch_HasResults     = 1 << 1,
+  RvkStopwatch_CanCalibrate   = 1 << 2,
+  RvkStopwatch_HasCalibration = 1 << 3,
 } RvkStopwatchFlags;
 
 struct sRvkStopwatch {
@@ -22,43 +32,72 @@ struct sRvkStopwatch {
   VkQueryPool       vkQueryPool;
   u32               counter;
   RvkStopwatchFlags flags;
+  TimeSteady        calibrationDevice, calibrationHost;
   u64               results[rvk_stopwatch_timestamps_max];
 };
 
-static VkTimeDomainKHR rvk_timedomain_host_steady(void) {
-#if defined(VOLO_LINUX)
-  return VK_TIME_DOMAIN_CLOCK_MONOTONIC_KHR;
-#elif defined(VOLO_WIN32)
-  return VK_TIME_DOMAIN_QUERY_PERFORMANCE_COUNTER_KHR;
-#else
-#error Unsupported platform
-#endif
-}
-
-static bool rvk_timedomain_can_calibrate(RvkDevice* dev, const VkTimeDomainKHR target) {
-  if (!(dev->flags & RvkDeviceFlags_SupportCalibratedTimestamps)) {
+static bool rvk_stopwatch_can_calibrate(RvkStopwatch* sw) {
+  if (!(sw->dev->flags & RvkDeviceFlags_SupportCalibratedTimestamps)) {
     return false;
   }
   VkTimeDomainKHR supportedDomains[8];
   u32             supportedDomainCount = array_elems(supportedDomains);
   rvk_call_checked(
-      dev->lib,
+      sw->dev->lib,
       getPhysicalDeviceCalibrateableTimeDomainsKHR,
-      dev->vkPhysDev,
+      sw->dev->vkPhysDev,
       &supportedDomainCount,
       supportedDomains);
 
-  bool supportDevice = false, supportTarget = false;
+  bool supportDevice = false, supportHost = false;
   for (u32 i = 0; i != supportedDomainCount; ++i) {
     if (supportedDomains[i] == VK_TIME_DOMAIN_DEVICE_KHR) {
       supportDevice = true;
     }
-    if (supportedDomains[i] == target) {
-      supportTarget = true;
+    if (supportedDomains[i] == rvk_timedomain_host) {
+      supportHost = true;
     }
   }
 
-  return supportDevice && supportTarget;
+  return supportDevice && supportHost;
+}
+
+static void rvk_stopwatch_calibrate(RvkStopwatch* sw) {
+  if (!(sw->flags & RvkStopwatch_CanCalibrate)) {
+    sw->flags &= ~RvkStopwatch_HasCalibration;
+    return; // Calibration not supported.
+  }
+
+  const VkCalibratedTimestampInfoKHR timestampInfos[2] = {
+      {
+          .sType      = VK_STRUCTURE_TYPE_CALIBRATED_TIMESTAMP_INFO_KHR,
+          .timeDomain = VK_TIME_DOMAIN_DEVICE_KHR,
+      },
+      {
+          .sType      = VK_STRUCTURE_TYPE_CALIBRATED_TIMESTAMP_INFO_KHR,
+          .timeDomain = rvk_timedomain_host,
+      },
+  };
+  u64 timestamps[2];
+  u64 maxDeviation = 0;
+
+  rvk_call_checked(
+      sw->dev,
+      getCalibratedTimestampsKHR,
+      sw->dev->vkDev,
+      array_elems(timestamps),
+      timestampInfos,
+      timestamps,
+      &maxDeviation);
+
+  if (maxDeviation > rvk_stopwatch_max_calibration_deviation) {
+    sw->flags &= ~RvkStopwatch_HasCalibration;
+    return; // Calibration too imprecise.
+  }
+
+  sw->calibrationDevice = (TimeSteady)timestamps[0];
+  sw->calibrationHost   = (TimeSteady)timestamps[1];
+  sw->flags |= RvkStopwatch_HasCalibration;
 }
 
 static VkQueryPool rvk_querypool_create(RvkDevice* dev) {
@@ -106,8 +145,9 @@ RvkStopwatch* rvk_stopwatch_create(RvkDevice* dev) {
     log_w("Vulkan device does not support timestamps");
   }
 
-  if (rvk_timedomain_can_calibrate(dev, rvk_timedomain_host_steady())) {
-    sw->flags |= RvkStopwatch_CanCalibrateToHost;
+  if (rvk_stopwatch_can_calibrate(sw)) {
+    sw->flags |= RvkStopwatch_CanCalibrate;
+    rvk_stopwatch_calibrate(sw);
   }
 
   return sw;
