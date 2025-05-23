@@ -17,7 +17,8 @@
 #endif
 
 #define rvk_stopwatch_timestamps_max 64
-#define rvk_stopwatch_max_calibration_deviation time_microseconds(100)
+#define rvk_stopwatch_calibration_max_deviation time_microseconds(50)
+#define rvk_stopwatch_calibration_max_tries 3
 #define rvk_stopwatch_calibration_timeout time_minutes(30)
 
 typedef enum {
@@ -82,7 +83,9 @@ static void rvk_stopwatch_calibrate(RvkStopwatch* sw) {
   };
   u64 timestamps[2];
   u64 maxDeviation = 0;
+  u32 numTries     = 1;
 
+Retry:
   rvk_call_checked(
       sw->dev,
       getCalibratedTimestampsKHR,
@@ -92,7 +95,12 @@ static void rvk_stopwatch_calibrate(RvkStopwatch* sw) {
       timestamps,
       &maxDeviation);
 
-  if (maxDeviation > rvk_stopwatch_max_calibration_deviation) {
+  if (maxDeviation > rvk_stopwatch_calibration_max_deviation) {
+    if (numTries++ <= rvk_stopwatch_calibration_max_tries) {
+      goto Retry;
+    }
+    log_w("GPU stopwatch calibration failed", log_param("deviation", fmt_int(maxDeviation)));
+
     sw->calibrationHost = sw->calibrationDevice = 0;
     sw->flags &= ~RvkStopwatch_HasCalibration;
     return; // Calibration too imprecise.
