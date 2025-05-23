@@ -17,7 +17,7 @@
 #endif
 
 #define rvk_stopwatch_timestamps_max 64
-#define rvk_stopwatch_max_calibration_deviation time_microseconds(250)
+#define rvk_stopwatch_max_calibration_deviation time_microseconds(100)
 
 typedef enum {
   RvkStopwatch_Supported      = 1 << 0,
@@ -186,7 +186,15 @@ TimeSteady rvk_stopwatch_query(const RvkStopwatch* sw, const RvkStopwatchRecord 
     rvk_stopwatch_retrieve_results(swMutable);
   }
 
-  return (TimeSteady)(sw->results[record] * (f64)sw->dev->vkProperties.limits.timestampPeriod);
+  const f64 timestampPeriod = sw->dev->vkProperties.limits.timestampPeriod;
+
+  if (sw->flags & RvkStopwatch_HasCalibration) {
+    const TimeDuration offsetRaw = sw->results[record] - sw->calibrationDevice;
+    const TimeDuration offset    = (TimeDuration)(offsetRaw * timestampPeriod);
+    return sw->calibrationHost + offset;
+  }
+
+  return (TimeSteady)(sw->results[record] * timestampPeriod);
 }
 
 RvkStopwatchRecord rvk_stopwatch_mark(RvkStopwatch* sw, VkCommandBuffer vkCmdBuf) {
