@@ -169,6 +169,10 @@ bool rvk_stopwatch_is_supported(const RvkStopwatch* sw) {
   return (sw->flags & RvkStopwatch_Supported) != 0;
 }
 
+bool rvk_stopwatch_calibrated(const RvkStopwatch* sw) {
+  return (sw->flags & RvkStopwatch_HasCalibration) != 0;
+}
+
 void rvk_stopwatch_reset(RvkStopwatch* sw, VkCommandBuffer vkCmdBuf) {
   RvkDevice* dev = sw->dev;
   if (LIKELY(sw->flags & RvkStopwatch_Supported)) {

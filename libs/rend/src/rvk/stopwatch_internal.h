@@ -17,15 +17,20 @@ void          rvk_stopwatch_destroy(RvkStopwatch*);
 bool          rvk_stopwatch_is_supported(const RvkStopwatch*);
 
 /**
+ * Check if the stopwatch has been calibrated.
+ * Timestamps from a calibrated stopwatch can be compared to the host-time.
+ */
+bool rvk_stopwatch_calibrated(const RvkStopwatch*);
+
+/**
  * Reset all timestamps.
  * NOTE: Call this before marking new timestamps.
  */
 void rvk_stopwatch_reset(RvkStopwatch*, VkCommandBuffer);
-
 /**
  * Retrieve the result of a previously marked timestamp (in nanoseconds).
  * NOTE: Make sure the gpu work has finished before calling this.
- * NOTE: Time-stamp is related the gpu timer, cannot be compared to cpu time.
+ * NOTE: Time-stamp can only be compared to the host-time if the stopwatch is calibrated.
  */
 TimeSteady rvk_stopwatch_query(const RvkStopwatch*, RvkStopwatchRecord);
 
