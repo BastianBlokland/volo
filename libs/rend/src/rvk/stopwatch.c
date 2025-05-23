@@ -35,7 +35,7 @@ static VkTimeDomainKHR rvk_timedomain_host_steady(void) {
 #endif
 }
 
-static bool rvk_timedomain_can_calibrate(RvkDevice* dev, const VkTimeDomainKHR domain) {
+static bool rvk_timedomain_can_calibrate(RvkDevice* dev, const VkTimeDomainKHR target) {
   if (!(dev->flags & RvkDeviceFlags_SupportCalibratedTimestamps)) {
     return false;
   }
@@ -48,12 +48,17 @@ static bool rvk_timedomain_can_calibrate(RvkDevice* dev, const VkTimeDomainKHR d
       &supportedDomainCount,
       supportedDomains);
 
+  bool supportDevice = false, supportTarget = false;
   for (u32 i = 0; i != supportedDomainCount; ++i) {
-    if (supportedDomains[i] == domain) {
-      return true;
+    if (supportedDomains[i] == VK_TIME_DOMAIN_DEVICE_KHR) {
+      supportDevice = true;
+    }
+    if (supportedDomains[i] == target) {
+      supportTarget = true;
     }
   }
-  return false;
+
+  return supportDevice && supportTarget;
 }
 
 static VkQueryPool rvk_querypool_create(RvkDevice* dev) {
