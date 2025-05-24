@@ -132,6 +132,8 @@ static void trace_data_focus(DevTracePanelComp* panel, const TraceStoreEvent* ev
 
 NO_INLINE_HINT static DevTraceData*
 trace_data_stream_register(DevTracePanelComp* panel, const i32 id, const String name) {
+  diag_assert(id >= 0);
+
   for (u32 streamIdx = 0; streamIdx != dev_trace_max_streams; ++streamIdx) {
     DevTraceData* streamData = &panel->streams[streamIdx];
     if (streamData->id < 0) {
@@ -145,6 +147,8 @@ trace_data_stream_register(DevTracePanelComp* panel, const i32 id, const String 
 }
 
 static DevTraceData* trace_data_get(DevTracePanelComp* panel, const i32 id, const String name) {
+  diag_assert(id >= 0);
+
   for (u32 streamIdx = 0; streamIdx != dev_trace_max_streams; ++streamIdx) {
     DevTraceData* streamData = &panel->streams[streamIdx];
     if (streamData->id == id) {
