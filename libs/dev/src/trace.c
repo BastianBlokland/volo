@@ -37,7 +37,7 @@ static const String g_messageNoStoreSink  = string_static("No store trace-sink f
 
 #define dev_trace_max_name_length 15
 #define dev_trace_max_streams 16
-#define dev_trace_default_depth 4
+#define dev_trace_default_depth 3
 
 typedef struct {
   i32      id;
