@@ -216,11 +216,12 @@ static void trace_buffer_advance(TraceBuffer* b) {
   b->eventCursor = (b->eventCursor + 1) & (trace_store_buffer_events - 1);
 }
 
-static void trace_sink_store_event_begin(
-    TraceSink* sink, const String id, const TraceColor color, const String msg) {
-  TraceSinkStore* s = (TraceSinkStore*)sink;
-  TraceBuffer*    b = trace_thread_register(s, g_threadTid);
-
+static void trace_buffer_begin(
+    TraceBuffer*     b,
+    const u8         id,
+    const TraceColor color,
+    const String     msg,
+    const TimeSteady timeStart) {
   /**
    * Check that the current thread is not visiting, this could cause a deadlock when trying to reuse
    * a buffer that we are currently inspecting (holding the 'resetLock').
@@ -234,8 +235,8 @@ static void trace_sink_store_event_begin(
   thread_spinlock_lock(&evt->lock);
   {
     evt->timeDur    = 0;
-    evt->timeStart  = time_steady_clock();
-    evt->id         = trace_id_register(s, id);
+    evt->timeStart  = timeStart;
+    evt->id         = id;
     evt->stackDepth = b->stackCount;
     evt->color      = (u8)color;
     evt->msgLength  = (u8)math_min(msg.size, array_elems(evt->msgData));
@@ -251,6 +252,14 @@ static void trace_sink_store_event_begin(
 
   // Advance the cursor.
   trace_buffer_advance(b);
+}
+
+static void trace_sink_store_event_begin(
+    TraceSink* sink, const String id, const TraceColor color, const String msg) {
+  TraceSinkStore* s = (TraceSinkStore*)sink;
+  TraceBuffer*    b = trace_thread_register(s, g_threadTid);
+
+  trace_buffer_begin(b, trace_id_register(s, id), color, msg, time_steady_clock());
 }
 
 static void trace_sink_store_event_end(TraceSink* sink) {
@@ -281,21 +290,21 @@ static void trace_sink_store_custom_event_begin(
   TraceSinkStore* s = (TraceSinkStore*)sink;
   TraceBuffer*    b = trace_custom_register(s, stream);
 
-  (void)b;
-  (void)id;
-  (void)color;
-  (void)msg;
+  trace_buffer_begin(b, trace_id_register(s, id), color, msg, 0);
 }
 
 static void trace_sink_store_custom_event_end(
-    TraceSink* sink, const String stream, const TimeSteady begin, const TimeDuration dur) {
+    TraceSink* sink, const String stream, const TimeSteady time, const TimeDuration dur) {
   TraceSinkStore* s = (TraceSinkStore*)sink;
   TraceBuffer*    b = trace_custom_find(s, stream);
   diag_assert_msg(b && b->stackCount, "trace: Custom event ended that never started on the stream");
 
-  (void)b;
-  (void)begin;
-  (void)dur;
+  // Pop the top-most event from the stack.
+  TraceStoreEvent* evt = &b->events[b->stack[--b->stackCount]];
+  diag_assert_msg(!evt->timeDur, "trace: Event ended twice");
+
+  evt->timeStart = time;
+  evt->timeDur   = math_max((u32)dur, 1);
 }
 
 static void trace_sink_store_destroy(TraceSink* sink) {
