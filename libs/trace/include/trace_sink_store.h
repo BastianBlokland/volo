@@ -11,7 +11,7 @@
  */
 
 typedef struct sTraceStoreEvent {
-  ALIGNAS(64) // Align to cacheline on x66.
+  ALIGNAS(64) // Align to cacheline on x86.
   ThreadSpinLock lock;
   u32            timeDur;    // Duration in nano-seconds (limits the max event dur to 4 seconds).
   TimeSteady     timeStart;  // Nano-seconds since the start of the process steady clock.
