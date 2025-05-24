@@ -29,9 +29,15 @@ ASSERT(trace_store_buffer_events < u16_max, "Events have to be representable wit
 
 static THREAD_LOCAL bool g_traceStoreIsVisiting;
 
+typedef enum {
+  TraceBufferType_Thread,
+  TraceBufferType_Custom,
+} TraceBufferType;
+
 typedef struct {
-  String streamName;
-  i32    streamId;
+  String          streamName;
+  i32             streamId;
+  TraceBufferType type;
 
   ThreadMutex resetLock; // Lock to avoid observing a buffer while its being reset.
 
@@ -134,7 +140,7 @@ NO_INLINE_HINT static TraceBuffer* trace_thread_add(TraceSinkStore* s, const Thr
 
   // Check if there's a thread that has exited, if so we can re-use its buffer.
   for (u32 i = 0; i != s->bufferCount; ++i) {
-    if (!thread_exists(s->bufferThreadIds[i])) {
+    if (s->buffers[i]->type == TraceBufferType_Thread && !thread_exists(s->bufferThreadIds[i])) {
       /**
        * TODO: The nested locks are not very elegant (and can stall all events while a potential
        * slow visit is happening), at the moment we assume that starting / stopping threads is rare.
@@ -163,6 +169,7 @@ NO_INLINE_HINT static TraceBuffer* trace_thread_add(TraceSinkStore* s, const Thr
       diag_crash_msg("trace: Maximum stream-count exceeded");
     }
     result              = alloc_alloc_t(s->alloc, TraceBuffer);
+    result->type        = TraceBufferType_Thread;
     result->streamId    = thread_atomic_add_i32(&s->streamCounter, 1);
     result->streamName  = string_maybe_dup(s->alloc, g_threadName);
     result->resetLock   = thread_mutex_create(s->alloc);
