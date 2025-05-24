@@ -696,8 +696,8 @@ ecs_module_init(dev_trace_module) {
 
 EcsEntityId
 dev_trace_panel_open(EcsWorld* world, const EcsEntityId window, const DevPanelType type) {
-  const u32 expectedEntryCount = g_jobsWorkerCount + 1 /* gpu */;
-  const u32 panelHeight = math_min(100 + 20 * dev_trace_default_depth * expectedEntryCount, 675);
+  const u32 expectedEntryCount = dev_trace_default_depth * (g_jobsWorkerCount + 1) /* gpu */;
+  const f32 panelHeight        = math_min(100 + 20.5f * expectedEntryCount, 675);
 
   const EcsEntityId  panelEntity = dev_panel_create(world, window, type);
   DevTracePanelComp* tracePanel  = ecs_world_add_t(

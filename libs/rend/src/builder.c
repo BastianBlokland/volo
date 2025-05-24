@@ -87,12 +87,16 @@ RendBuilder* rend_builder(const RendBuilderContainer* container) {
 }
 
 bool rend_builder_canvas_push(
-    RendBuilder* b, RvkCanvas* canvas, const RendSettingsComp* settings, const RvkSize windowSize) {
+    RendBuilder*            b,
+    RvkCanvas*              canvas,
+    const RendSettingsComp* settings,
+    const u64               frameIdx,
+    const RvkSize           windowSize) {
   diag_assert_msg(!b->canvas, "RendBuilder: Canvas already active");
 
   trace_begin("rend_builder_canvas", TraceColor_Red);
 
-  if (!rvk_canvas_begin(canvas, settings, windowSize)) {
+  if (!rvk_canvas_begin(canvas, settings, frameIdx, windowSize)) {
     trace_end();
     return false; // Canvas not ready for rendering.
   }

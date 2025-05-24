@@ -3,6 +3,7 @@
 #include "ecs_module.h"
 
 ecs_comp_extern_public(SceneTimeComp) {
+  u64          frameIdx;         // Current frame index.
   TimeDuration time, realTime;   // Real time is unaffected by scaling.
   TimeDuration delta, realDelta; // Real delta is unaffected by scaling.
   u64          ticks;
