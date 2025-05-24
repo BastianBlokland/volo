@@ -121,24 +121,12 @@ static u8 trace_id_register(TraceSinkStore* s, const String str) {
   return trace_id_add(s, hash, str);
 }
 
-static TraceBuffer* trace_thread_find(TraceSinkStore* s, const ThreadId tid) {
-  for (u32 i = 0; i != s->bufferCount; ++i) {
-    if (s->bufferThreadIds[i] == tid) {
-      diag_assert(s->buffers[i]->type == TraceBufferType_Thread);
-      return s->buffers[i];
-    }
-  }
-  return null;
-}
-
-NO_INLINE_HINT static TraceBuffer* trace_thread_add(TraceSinkStore* s, const ThreadId tid) {
+NO_INLINE_HINT static TraceBuffer* trace_buffer_add(
+    TraceSinkStore* s, const TraceBufferType type, const ThreadId tid, const String name) {
   thread_mutex_lock(s->storeLock);
   TraceBuffer* result = null;
 
-  // NOTE: We access thread-local data from the thread so we need to be called from that thread.
-  diag_assert(tid == g_threadTid);
-
-  // Check if there's a thread that has exited, if so we can re-use its buffer.
+  // Check if there's a buffer for a thread that has exited, if so we can re-use its buffer.
   for (u32 i = 0; i != s->bufferCount; ++i) {
     if (s->buffers[i]->type == TraceBufferType_Thread && !thread_exists(s->bufferThreadIds[i])) {
       /**
@@ -147,14 +135,15 @@ NO_INLINE_HINT static TraceBuffer* trace_thread_add(TraceSinkStore* s, const Thr
        */
       thread_mutex_lock(s->buffers[i]->resetLock);
       {
-        s->bufferThreadIds[i] = tid;
+        s->bufferThreadIds[i] = type == TraceBufferType_Thread ? tid : 0;
         result                = s->buffers[i];
 
         diag_assert(result->stackCount == 0);
         string_maybe_free(s->alloc, result->streamName);
 
+        result->type        = type;
         result->streamId    = s->streamCounter++;
-        result->streamName  = string_maybe_dup(s->alloc, g_threadName);
+        result->streamName  = string_maybe_dup(s->alloc, name);
         result->eventCursor = 0;
         mem_set(array_mem(result->events), 0);
       }
@@ -169,14 +158,14 @@ NO_INLINE_HINT static TraceBuffer* trace_thread_add(TraceSinkStore* s, const Thr
       diag_crash_msg("trace: Maximum stream-count exceeded");
     }
     result              = alloc_alloc_t(s->alloc, TraceBuffer);
-    result->type        = TraceBufferType_Thread;
+    result->type        = type;
     result->streamId    = s->streamCounter++;
     result->streamName  = string_maybe_dup(s->alloc, g_threadName);
     result->resetLock   = thread_mutex_create(s->alloc);
     result->eventCursor = result->stackCount = 0;
     mem_set(array_mem(result->events), 0);
 
-    s->bufferThreadIds[s->bufferCount] = tid;
+    s->bufferThreadIds[s->bufferCount] = type == TraceBufferType_Thread ? tid : 0;
     s->buffers[s->bufferCount]         = result;
     ++s->bufferCount;
   }
@@ -185,12 +174,22 @@ NO_INLINE_HINT static TraceBuffer* trace_thread_add(TraceSinkStore* s, const Thr
   return result;
 }
 
+static TraceBuffer* trace_thread_find(TraceSinkStore* s, const ThreadId tid) {
+  for (u32 i = 0; i != s->bufferCount; ++i) {
+    if (s->bufferThreadIds[i] == tid) {
+      diag_assert(s->buffers[i]->type == TraceBufferType_Thread);
+      return s->buffers[i];
+    }
+  }
+  return null;
+}
+
 static TraceBuffer* trace_thread_register(TraceSinkStore* s, const ThreadId tid) {
   TraceBuffer* result = trace_thread_find(s, tid);
   if (LIKELY(result)) {
     return result;
   }
-  return trace_thread_add(s, tid);
+  return trace_buffer_add(s, TraceBufferType_Thread, tid, g_threadName);
 }
 
 static void trace_buffer_advance(TraceBuffer* b) {
