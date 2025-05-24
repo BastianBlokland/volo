@@ -370,7 +370,7 @@ bool rvk_canvas_wait_for_prev_present(const RvkCanvas* canvas) {
    * Wait for the previous frame to be rendered and presented.
    */
 
-  trace_begin("rend_wait_job", TraceColor_White);
+  trace_begin_msg("rend_wait_job", TraceColor_White, "rend_wait_{}", fmt_int(frame->frameIdx));
   rvk_job_wait_for_done(frame->job);
   trace_end();
 
