@@ -595,7 +595,7 @@ static bool rend_canvas_paint_2d(
     EcsView*                resView) {
 
   RendBuilder* b = rend_builder(platform->builderContainer);
-  if (!rend_builder_canvas_push(b, painter->canvas, set, painter_win_size(win))) {
+  if (!rend_builder_canvas_push(b, painter->canvas, set, time->ticks, painter_win_size(win))) {
     return false; // Canvas not ready for rendering.
   }
 
@@ -638,7 +638,7 @@ static bool rend_canvas_paint_3d(
   const f32     winAspect = winSize.height ? ((f32)winSize.width / (f32)winSize.height) : 1.0f;
 
   RendBuilder* b = rend_builder(platform->builderContainer);
-  if (!rend_builder_canvas_push(b, painter->canvas, set, winSize)) {
+  if (!rend_builder_canvas_push(b, painter->canvas, set, time->ticks, winSize)) {
     return false; // Canvas not ready for rendering.
   }
   const GeoMatrix camMat   = camTrans ? scene_transform_matrix(camTrans) : geo_matrix_ident();

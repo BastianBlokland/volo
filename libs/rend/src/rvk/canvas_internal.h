@@ -34,7 +34,7 @@ RvkJob*              rvk_canvas_job(RvkCanvas*);
 void rvk_canvas_stats(const RvkCanvas*, RvkCanvasStats* out);
 void rvk_canvas_push_traces(const RvkCanvas*);
 
-bool rvk_canvas_begin(RvkCanvas*, const RendSettingsComp*, RvkSize);
+bool rvk_canvas_begin(RvkCanvas*, const RendSettingsComp*, u64 tick, RvkSize);
 
 void rvk_canvas_pass_push(RvkCanvas*, RvkPass* pass);
 

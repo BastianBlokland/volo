@@ -22,7 +22,7 @@ void                  rend_builder_container_destroy(RendBuilderContainer*);
 RendBuilder* rend_builder(const RendBuilderContainer*);
 
 bool rend_builder_canvas_push(
-    RendBuilder*, RvkCanvas*, const RendSettingsComp*, RvkSize windowSize);
+    RendBuilder*, RvkCanvas*, const RendSettingsComp*, u64 tick, RvkSize windowSize);
 void rend_builder_canvas_flush(RendBuilder*);
 
 const RvkRepository* rend_builder_repository(RendBuilder*);
