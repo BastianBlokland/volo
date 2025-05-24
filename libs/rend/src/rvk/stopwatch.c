@@ -154,12 +154,14 @@ RvkStopwatch* rvk_stopwatch_create(RvkDevice* dev) {
     sw->vkQueryPool = rvk_querypool_create(dev);
     sw->flags |= RvkStopwatch_Supported;
   } else {
-    log_w("Vulkan device does not support timestamps");
+    log_w("Vulkan device no timestamp support");
   }
 
   if (rvk_stopwatch_can_calibrate(sw)) {
     sw->flags |= RvkStopwatch_CanCalibrate;
     rvk_stopwatch_calibrate(sw);
+  } else {
+    log_w("Vulkan device no calibrated timestamp support");
   }
 
   return sw;
