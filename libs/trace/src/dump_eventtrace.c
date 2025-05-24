@@ -19,7 +19,7 @@
 typedef struct {
   DynString* out;
   ThreadId   pid;
-  u64        processedThreads; // bit[64], indicates is the thread has been processed.
+  u64        processedStreams; // bit[64], indicates is the stream has been processed.
 } DumpEventTraceCtx;
 
 static void dump_eventtrace_init(DumpEventTraceCtx* ctx) {
@@ -75,26 +75,26 @@ static void dump_eventtrace_visitor(
     const TraceSink*       sink,
     void*                  userCtx,
     const u32              bufferIdx,
-    const ThreadId         threadId,
-    const String           threadName,
+    const i32              streamId,
+    const String           streamName,
     const TraceStoreEvent* evt) {
   DumpEventTraceCtx* ctx = userCtx;
 
   if (UNLIKELY(bufferIdx > 64)) {
-    diag_crash_msg("trace: Maximum thread-count exceeded");
+    diag_crash_msg("trace: Maximum stream-count exceeded");
   }
-  if ((ctx->processedThreads & (u64_lit(1) << bufferIdx)) == 0) {
+  if ((ctx->processedStreams & (u64_lit(1) << bufferIdx)) == 0) {
 
-    // Provide the thread-name as a meta-data event.
+    // Provide the stream-name as a meta-data event.
     dynstring_append(ctx->out, string_lit("{\"name\":\"thread_name\",\"ph\":\"M\",\"pid\":"));
     format_write_u64(ctx->out, ctx->pid, &format_opts_int());
     dynstring_append(ctx->out, string_lit(",\"tid\":"));
-    format_write_u64(ctx->out, threadId, &format_opts_int());
+    format_write_u64(ctx->out, streamId, &format_opts_int());
     dynstring_append(ctx->out, string_lit(",\"args\":{\"name\":\""));
-    dynstring_append(ctx->out, threadName);
+    dynstring_append(ctx->out, streamName);
     dynstring_append(ctx->out, string_lit("\"}},"));
 
-    ctx->processedThreads |= u64_lit(1) << bufferIdx;
+    ctx->processedStreams |= u64_lit(1) << bufferIdx;
   }
 
   const String id  = trace_sink_store_id(sink, evt->id);
@@ -121,7 +121,7 @@ static void dump_eventtrace_visitor(
   dynstring_append(ctx->out, string_lit(",\"pid\":"));
   format_write_u64(ctx->out, ctx->pid, &format_opts_int());
   dynstring_append(ctx->out, string_lit(",\"tid\":"));
-  format_write_u64(ctx->out, threadId, &format_opts_int());
+  format_write_u64(ctx->out, streamId, &format_opts_int());
   dynstring_append(ctx->out, string_lit(",\"cname\":"));
   dump_eventtrace_color_write(ctx, evt->color);
   dynstring_append(ctx->out, string_lit("},"));

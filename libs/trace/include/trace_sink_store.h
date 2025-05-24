@@ -26,10 +26,10 @@ ASSERT(sizeof(TraceStoreEvent) == 64, "Unexpected event size")
 
 typedef void (*TraceStoreVisitor)(
     const TraceSink*,
-    void*    userCtx,
-    u32      bufferIdx,
-    ThreadId threadId,
-    String   threadName,
+    void*  userCtx,
+    u32    bufferIdx,
+    i32    streamId,
+    String streamName,
     const TraceStoreEvent*);
 
 /**

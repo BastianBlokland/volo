@@ -8,8 +8,8 @@
 #define test_visitor_max_entries 8
 
 typedef struct {
-  ThreadId        threadId;
-  String          threadName;
+  i32             streamId;
+  String          streamName;
   String          evtId;
   TraceStoreEvent evt;
 } TestVisitorEntry;
@@ -23,8 +23,8 @@ static void trace_sink_store_test_visitor(
     const TraceSink*       sink,
     void*                  userCtx,
     const u32              bufferIdx,
-    const ThreadId         threadId,
-    const String           threadName,
+    const i32              streamId,
+    const String           streamName,
     const TraceStoreEvent* evt) {
   TestVisitorCtx* ctx = userCtx;
   diag_assert(ctx->entryCount != test_visitor_max_entries);
@@ -32,8 +32,8 @@ static void trace_sink_store_test_visitor(
   (void)bufferIdx;
 
   ctx->entries[ctx->entryCount++] = (TestVisitorEntry){
-      .threadId   = threadId,
-      .threadName = threadName,
+      .streamId   = streamId,
+      .streamName = streamName,
       .evtId      = trace_sink_store_id(sink, evt->id),
       .evt        = *evt,
   };
@@ -58,8 +58,8 @@ spec(sink_store) {
 
     check_eq_int(ctx.entryCount, 1);
     TestVisitorEntry* entry = &ctx.entries[0];
-    check_eq_int(entry->threadId, g_threadTid);
-    check_eq_string(entry->threadName, g_threadName);
+    check_eq_int(entry->streamId, 0);
+    check_eq_string(entry->streamName, g_threadName);
     check(entry->evt.timeDur != 0);
     check_eq_int(entry->evt.color, TraceColor_Red);
     check_eq_string(entry->evtId, string_lit("testEvt"));
@@ -79,8 +79,8 @@ spec(sink_store) {
 
     check_eq_int(ctx.entryCount, 1);
     TestVisitorEntry* entry = &ctx.entries[0];
-    check_eq_int(entry->threadId, g_threadTid);
-    check_eq_string(entry->threadName, g_threadName);
+    check_eq_int(entry->streamId, 0);
+    check_eq_string(entry->streamName, g_threadName);
     check(entry->evt.timeDur != 0);
     check_eq_int(entry->evt.color, TraceColor_Blue);
     check_eq_string(entry->evtId, string_lit("testEvt"));

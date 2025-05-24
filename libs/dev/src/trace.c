@@ -39,7 +39,7 @@ static const String g_messageNoStoreSink  = string_static("No store trace-sink f
 #define dev_trace_default_depth 4
 
 typedef struct {
-  ThreadId tid;
+  i32      streamId;
   u8       nameLength;
   u8       nameBuffer[dev_trace_max_name_length];
   DynArray events; // TraceStoreEvent[]
@@ -118,7 +118,7 @@ static UiColor trace_event_color(const TraceColor col) {
 static void trace_data_clear(DevTracePanelComp* panel) {
   for (u32 threadIdx = 0; threadIdx != dev_trace_max_threads; ++threadIdx) {
     DevTraceData* threadData = &panel->threads[threadIdx];
-    threadData->tid          = 0;
+    threadData->streamId     = -1;
     threadData->nameLength   = 0;
     dynarray_clear(&threadData->events);
   }
@@ -134,8 +134,8 @@ static void trace_data_visitor(
     const TraceSink*       sink,
     void*                  userCtx,
     const u32              bufferIdx,
-    const ThreadId         threadId,
-    const String           threadName,
+    const i32              streamId,
+    const String           streamName,
     const TraceStoreEvent* evt) {
   (void)sink;
   DevTracePanelComp* panel = userCtx;
@@ -143,10 +143,10 @@ static void trace_data_visitor(
     diag_crash_msg("dev: Trace threads exceeds maximum");
   }
   DevTraceData* threadData = &panel->threads[bufferIdx];
-  if (!threadData->tid) {
-    threadData->tid        = threadId;
-    threadData->nameLength = (u8)math_min(threadName.size, dev_trace_max_name_length);
-    mem_cpy(array_mem(threadData->nameBuffer), mem_slice(threadName, 0, threadData->nameLength));
+  if (UNLIKELY(threadData->streamId != streamId)) {
+    threadData->streamId   = streamId;
+    threadData->nameLength = (u8)math_min(streamName.size, dev_trace_max_name_length);
+    mem_cpy(array_mem(threadData->nameBuffer), mem_slice(streamName, 0, threadData->nameLength));
   }
   *((TraceStoreEvent*)dynarray_push(&threadData->events, 1).ptr) = *evt;
 
@@ -518,7 +518,7 @@ trace_panel_draw(UiCanvasComp* c, DevTracePanelComp* panel, const TraceSink* sin
 
     for (u32 threadIdx = 0; threadIdx != dev_trace_max_threads; ++threadIdx) {
       DevTraceData* data = &panel->threads[threadIdx];
-      if (!data->tid) {
+      if (data->streamId < 0) {
         continue; // Unused thread slot.
       }
       ui_table_next_row(c, &table);
@@ -653,6 +653,7 @@ dev_trace_panel_open(EcsWorld* world, const EcsEntityId window, const DevPanelTy
   tracePanel->threads = alloc_array_t(g_allocHeap, DevTraceData, dev_trace_max_threads);
   for (u32 threadIdx = 0; threadIdx != dev_trace_max_threads; ++threadIdx) {
     DevTraceData* threadData = &tracePanel->threads[threadIdx];
+    threadData->streamId     = -1;
     threadData->events       = dynarray_create_t(g_allocHeap, TraceStoreEvent, 0);
   }
 
