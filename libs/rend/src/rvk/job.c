@@ -145,15 +145,6 @@ static void rvk_job_phase_submit(RvkJob* job) {
   thread_mutex_unlock(job->dev->queueSubmitMutex);
 }
 
-static TimeDuration rvk_job_stopwatch_duration(
-    const RvkJob* job, const RvkStopwatchRecord begin, const RvkStopwatchRecord end) {
-  diag_assert(rvk_job_is_done(job));
-
-  const TimeSteady timestampBegin = rvk_stopwatch_query(job->stopwatch, begin);
-  const TimeSteady timestampEnd   = rvk_stopwatch_query(job->stopwatch, end);
-  return time_steady_duration(timestampBegin, timestampEnd);
-}
-
 RvkJob* rvk_job_create(RvkDevice* dev, const u32 jobId) {
   RvkJob* job = alloc_alloc_t(g_allocHeap, RvkJob);
 
@@ -212,17 +203,11 @@ bool rvk_job_calibrated_timestamps(const RvkJob* job) {
 void rvk_job_stats(const RvkJob* job, RvkJobStats* out) {
   diag_assert(rvk_job_is_done(job));
 
+  out->cpuWaitDur   = job->cpuWaitDur;
   out->gpuTimeBegin = rvk_stopwatch_query(job->stopwatch, job->gpuTimeBegin);
   out->gpuTimeEnd   = rvk_stopwatch_query(job->stopwatch, job->gpuTimeEnd);
   out->gpuWaitBegin = rvk_stopwatch_query(job->stopwatch, job->gpuWaitBegin);
   out->gpuWaitEnd   = rvk_stopwatch_query(job->stopwatch, job->gpuWaitEnd);
-
-  out->cpuWaitDur = job->cpuWaitDur;
-  out->gpuWaitDur = rvk_job_stopwatch_duration(job, job->gpuWaitBegin, job->gpuWaitEnd);
-  out->gpuExecDur = rvk_job_stopwatch_duration(job, job->gpuTimeBegin, job->gpuTimeEnd);
-
-  // NOTE: Consider the wait-time as non-executing.
-  out->gpuExecDur = math_max(out->gpuExecDur - out->gpuWaitDur, 0);
 }
 
 void rvk_job_begin(RvkJob* job, const RvkJobPhase firstPhase) {

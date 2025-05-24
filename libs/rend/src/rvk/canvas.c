@@ -1,6 +1,7 @@
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_diag.h"
+#include "core_math.h"
 #include "log_logger.h"
 #include "trace_tracer.h"
 
@@ -124,8 +125,11 @@ void rvk_canvas_stats(const RvkCanvas* canvas, RvkCanvasStats* out) {
   rvk_job_stats(frame->job, &jobStats);
 
   out->waitForGpuDur = jobStats.cpuWaitDur;
-  out->gpuWaitDur    = jobStats.gpuWaitDur;
-  out->gpuExecDur    = jobStats.gpuExecDur;
+  out->gpuWaitDur    = time_steady_duration(jobStats.gpuWaitBegin, jobStats.gpuWaitEnd);
+  out->gpuExecDur    = time_steady_duration(jobStats.gpuTimeBegin, jobStats.gpuTimeEnd);
+
+  // NOTE: Consider the wait-time as non-executing.
+  out->gpuExecDur = math_max(out->gpuExecDur - out->gpuWaitDur, 0);
 
   out->passCount = 0;
   for (u32 passIdx = 0; passIdx != rvk_canvas_max_passes; ++passIdx) {

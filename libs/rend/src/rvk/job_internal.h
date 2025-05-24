@@ -17,12 +17,9 @@ typedef enum eRvkJobPhase {
 } RvkJobPhase;
 
 typedef struct {
-  TimeSteady gpuTimeBegin, gpuTimeEnd;
-  TimeSteady gpuWaitBegin, gpuWaitEnd;
-
   TimeDuration cpuWaitDur; // Time the cpu was blocked waiting for the gpu.
-  TimeDuration gpuWaitDur; // Time the gpu was blocked waiting for the target.
-  TimeDuration gpuExecDur;
+  TimeSteady   gpuTimeBegin, gpuTimeEnd;
+  TimeSteady   gpuWaitBegin, gpuWaitEnd;
 } RvkJobStats;
 
 typedef struct sRvkJob RvkJob;
