@@ -205,6 +205,10 @@ void rvk_job_wait_for_done(const RvkJob* job) {
   ((RvkJob*)job)->cpuWaitDur += time_steady_duration(waitStart, time_steady_clock());
 }
 
+bool rvk_job_calibrated_timestamps(const RvkJob* job) {
+  return rvk_stopwatch_calibrated(job->stopwatch);
+}
+
 void rvk_job_stats(const RvkJob* job, RvkJobStats* out) {
   diag_assert(rvk_job_is_done(job));
 

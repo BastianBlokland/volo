@@ -160,6 +160,9 @@ void rvk_canvas_push_traces(const RvkCanvas* canvas) {
   if (!(canvas->flags & RvkCanvasFlags_Submitted)) {
     return;
   }
+  if (!rvk_job_calibrated_timestamps(frame->job)) {
+    return; // GPU traces require a calibrated timestamps.
+  }
 
   // TODO: Push GPU traces.
 }
