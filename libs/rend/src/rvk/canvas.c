@@ -164,7 +164,12 @@ void rvk_canvas_push_traces(const RvkCanvas* canvas) {
     return; // GPU traces require a calibrated timestamps.
   }
 
-  // TODO: Push GPU traces.
+  RvkJobStats jobStats;
+  rvk_job_stats(frame->job, &jobStats);
+  const TimeDuration jobDur = time_steady_duration(jobStats.gpuTimeBegin, jobStats.gpuTimeEnd);
+
+  trace_custom_begin_msg("gpu", "job", TraceColor_Blue, "job-{}", fmt_int(canvas->jobIdx));
+  trace_custom_end("gpu", jobStats.gpuTimeBegin, jobDur);
 }
 
 bool rvk_canvas_begin(RvkCanvas* canvas, const RendSettingsComp* settings, const RvkSize size) {
