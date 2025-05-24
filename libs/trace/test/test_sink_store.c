@@ -22,14 +22,11 @@ typedef struct {
 static void trace_sink_store_test_visitor(
     const TraceSink*       sink,
     void*                  userCtx,
-    const u32              bufferIdx,
     const i32              streamId,
     const String           streamName,
     const TraceStoreEvent* evt) {
   TestVisitorCtx* ctx = userCtx;
   diag_assert(ctx->entryCount != test_visitor_max_entries);
-
-  (void)bufferIdx;
 
   ctx->entries[ctx->entryCount++] = (TestVisitorEntry){
       .streamId   = streamId,

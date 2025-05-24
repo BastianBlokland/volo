@@ -98,11 +98,9 @@ static bool dump_eventtrace_register_stream(DumpEventTraceCtx* ctx, const i32 st
 static void dump_eventtrace_visitor(
     const TraceSink*       sink,
     void*                  userCtx,
-    const u32              bufferIdx,
     const i32              streamId,
     const String           streamName,
     const TraceStoreEvent* evt) {
-  (void)bufferIdx;
   DumpEventTraceCtx* ctx = userCtx;
 
   if (dump_eventtrace_register_stream(ctx, streamId)) {

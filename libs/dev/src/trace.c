@@ -161,12 +161,10 @@ static DevTraceData* trace_data_get(DevTracePanelComp* panel, const i32 id, cons
 static void trace_data_visitor(
     const TraceSink*       sink,
     void*                  userCtx,
-    const u32              bufferIdx,
     const i32              streamId,
     const String           streamName,
     const TraceStoreEvent* evt) {
   (void)sink;
-  (void)bufferIdx;
 
   DevTracePanelComp* panel      = userCtx;
   DevTraceData*      streamData = trace_data_get(panel, streamId, streamName);
