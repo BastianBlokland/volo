@@ -153,6 +153,17 @@ void rvk_canvas_stats(const RvkCanvas* canvas, RvkCanvasStats* out) {
   }
 }
 
+void rvk_canvas_push_traces(const RvkCanvas* canvas) {
+  const RvkCanvasFrame* frame = &canvas->frames[canvas->jobIdx];
+  diag_assert(rvk_job_is_done(frame->job));
+
+  if (!(canvas->flags & RvkCanvasFlags_Submitted)) {
+    return;
+  }
+
+  // TODO: Push GPU traces.
+}
+
 bool rvk_canvas_begin(RvkCanvas* canvas, const RendSettingsComp* settings, const RvkSize size) {
   diag_assert_msg(!(canvas->flags & RvkCanvasFlags_Active), "Canvas already active");
 
