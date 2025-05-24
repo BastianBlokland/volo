@@ -12,6 +12,7 @@ struct sTraceSink {
   /**
    * Called when a custom (non-cpu) event begins / ends.
    * NOTE: Can be 'null' when the sink doesn't support custom events.
+   * NOTE: Events for a single stream cannot be pushed in parallel, different streams can.
    */
   void (*eventCustomBegin)(TraceSink*, String stream, String id, TraceColor, String msg);
   void (*eventCustomEnd)(TraceSink*, String stream, TimeSteady begin, TimeDuration dur);
