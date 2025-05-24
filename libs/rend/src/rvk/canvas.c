@@ -166,9 +166,14 @@ void rvk_canvas_push_traces(const RvkCanvas* canvas) {
 
   RvkJobStats jobStats;
   rvk_job_stats(frame->job, &jobStats);
-  const TimeDuration jobDur = time_steady_duration(jobStats.gpuTimeBegin, jobStats.gpuTimeEnd);
 
   trace_custom_begin_msg("gpu", "job", TraceColor_Blue, "job-{}", fmt_int(canvas->jobIdx));
+  {
+    trace_custom_begin("gpu", "wait", TraceColor_White);
+    const TimeDuration waitDur = time_steady_duration(jobStats.gpuWaitBegin, jobStats.gpuWaitEnd);
+    trace_custom_end("gpu", jobStats.gpuWaitBegin, waitDur);
+  }
+  const TimeDuration jobDur = time_steady_duration(jobStats.gpuTimeBegin, jobStats.gpuTimeEnd);
   trace_custom_end("gpu", jobStats.gpuTimeBegin, jobDur);
 }
 

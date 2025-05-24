@@ -214,6 +214,8 @@ void rvk_job_stats(const RvkJob* job, RvkJobStats* out) {
 
   out->gpuTimeBegin = rvk_stopwatch_query(job->stopwatch, job->gpuTimeBegin);
   out->gpuTimeEnd   = rvk_stopwatch_query(job->stopwatch, job->gpuTimeEnd);
+  out->gpuWaitBegin = rvk_stopwatch_query(job->stopwatch, job->gpuWaitBegin);
+  out->gpuWaitEnd   = rvk_stopwatch_query(job->stopwatch, job->gpuWaitEnd);
 
   out->cpuWaitDur = job->cpuWaitDur;
   out->gpuWaitDur = rvk_job_stopwatch_duration(job, job->gpuWaitBegin, job->gpuWaitEnd);
