@@ -8,6 +8,10 @@
 #include "lib_internal.h"
 #include "stopwatch_internal.h"
 
+#if defined(VOLO_WIN32)
+#include <Windows.h>
+#endif
+
 #if defined(VOLO_LINUX)
 #define rvk_timedomain_host VK_TIME_DOMAIN_CLOCK_MONOTONIC_KHR
 #elif defined(VOLO_WIN32)
@@ -107,8 +111,20 @@ Retry:
     return;
   }
 
-  sw->calibrationDevice = (TimeSteady)timestamps[0];
-  sw->calibrationHost   = (TimeSteady)timestamps[1];
+  const f64 devicePeriod = sw->dev->vkProperties.limits.timestampPeriod;
+  sw->calibrationDevice  = (TimeSteady)(timestamps[0] * devicePeriod);
+
+#if defined(VOLO_WIN32)
+  LARGE_INTEGER hostFreq;
+  if (LIKELY(QueryPerformanceFrequency(&hostFreq))) {
+    sw->calibrationHost = ((timestamps[1] * i64_lit(1000000) / hostFreq.QuadPart)) * i64_lit(1000);
+  } else {
+    sw->calibrationHost = (TimeSteady)timestamps[1];
+  }
+#else
+  sw->calibrationHost = (TimeSteady)timestamps[1];
+#endif
+
   sw->flags |= RvkStopwatch_HasCalibration;
 }
 
@@ -209,15 +225,14 @@ TimeSteady rvk_stopwatch_query(const RvkStopwatch* sw, const RvkStopwatchRecord 
     rvk_stopwatch_retrieve_results(swMutable);
   }
 
-  const f64 timestampPeriod = sw->dev->vkProperties.limits.timestampPeriod;
+  const f64  timestampPeriod = sw->dev->vkProperties.limits.timestampPeriod;
+  TimeSteady result          = (TimeSteady)(sw->results[record] * timestampPeriod);
 
   if (sw->flags & RvkStopwatch_HasCalibration) {
-    const TimeDuration offsetRaw = sw->results[record] - sw->calibrationDevice;
-    const TimeDuration offset    = (TimeDuration)(offsetRaw * timestampPeriod);
-    return sw->calibrationHost + offset;
+    result += sw->calibrationHost - sw->calibrationDevice;
   }
 
-  return (TimeSteady)(sw->results[record] * timestampPeriod);
+  return result;
 }
 
 RvkStopwatchRecord rvk_stopwatch_mark(RvkStopwatch* sw, VkCommandBuffer vkCmdBuf) {
