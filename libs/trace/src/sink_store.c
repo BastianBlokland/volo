@@ -192,6 +192,26 @@ static TraceBuffer* trace_thread_register(TraceSinkStore* s, const ThreadId tid)
   return trace_buffer_add(s, TraceBufferType_Thread, tid, g_threadName);
 }
 
+static TraceBuffer* trace_custom_find(TraceSinkStore* s, const String name) {
+  for (u32 i = 0; i != s->bufferCount; ++i) {
+    if (s->buffers[i]->type != TraceBufferType_Custom) {
+      continue; // Not a custom buffer.
+    }
+    if (string_eq(s->buffers[i]->streamName, name)) {
+      return s->buffers[i];
+    }
+  }
+  return null;
+}
+
+static TraceBuffer* trace_custom_register(TraceSinkStore* s, const String name) {
+  TraceBuffer* result = trace_custom_find(s, name);
+  if (LIKELY(result)) {
+    return result;
+  }
+  return trace_buffer_add(s, TraceBufferType_Custom, 0 /* tid */, name);
+}
+
 static void trace_buffer_advance(TraceBuffer* b) {
   b->eventCursor = (b->eventCursor + 1) & (trace_store_buffer_events - 1);
 }
@@ -258,8 +278,10 @@ static void trace_sink_store_custom_event_begin(
     const String     id,
     const TraceColor color,
     const String     msg) {
-  (void)sink;
-  (void)stream;
+  TraceSinkStore* s = (TraceSinkStore*)sink;
+  TraceBuffer*    b = trace_custom_register(s, stream);
+
+  (void)b;
   (void)id;
   (void)color;
   (void)msg;
@@ -267,8 +289,11 @@ static void trace_sink_store_custom_event_begin(
 
 static void trace_sink_store_custom_event_end(
     TraceSink* sink, const String stream, const TimeSteady begin, const TimeDuration dur) {
-  (void)sink;
-  (void)stream;
+  TraceSinkStore* s = (TraceSinkStore*)sink;
+  TraceBuffer*    b = trace_custom_find(s, stream);
+  diag_assert_msg(b && b->stackCount, "trace: Custom event ended that never started on the stream");
+
+  (void)b;
   (void)begin;
   (void)dur;
 }
