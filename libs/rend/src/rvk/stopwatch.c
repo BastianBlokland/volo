@@ -22,7 +22,7 @@
 #endif
 
 #define rvk_stopwatch_timestamps_max 64
-#define rvk_stopwatch_calibration_max_deviation time_microseconds(50)
+#define rvk_stopwatch_calibration_max_deviation time_microseconds(100)
 #define rvk_stopwatch_calibration_max_tries 3
 
 typedef enum {
