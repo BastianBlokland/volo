@@ -86,6 +86,7 @@ void trace_event_begin_msg(
     const String     msg,
     const FormatArg* args) {
   diag_assert_msg(tracer, "Tracer not initialized");
+  diag_assert_msg(!string_is_empty(id), "Trace event-id cannot be empty");
   if (!tracer->sinkCount) {
     return;
   }
@@ -105,5 +106,60 @@ void trace_event_end(Tracer* tracer) {
   // No need to take the 'sinksLock' lock as sinks can only be added, never removed.
   for (u32 i = 0; i != tracer->sinkCount; ++i) {
     tracer->sinks[i]->eventEnd(tracer->sinks[i]);
+  }
+}
+
+void trace_event_custom_begin(
+    Tracer* tracer, const String stream, const String id, const TraceColor color) {
+  diag_assert_msg(tracer, "Tracer not initialized");
+  diag_assert_msg(!string_is_empty(stream), "Trace stream cannot be empty");
+  diag_assert_msg(!string_is_empty(id), "Trace event-id cannot be empty");
+
+  // No need to take the 'sinksLock' lock as sinks can only be added, never removed.
+  for (u32 i = 0; i != tracer->sinkCount; ++i) {
+    TraceSink* sink = tracer->sinks[i];
+    if (sink->customBegin) {
+      sink->customBegin(sink, stream, id, color, string_empty);
+    }
+  }
+}
+
+void trace_event_custom_begin_msg(
+    Tracer*          tracer,
+    const String     stream,
+    const String     id,
+    const TraceColor color,
+    const String     msg,
+    const FormatArg* args) {
+  diag_assert_msg(tracer, "Tracer not initialized");
+  diag_assert_msg(!string_is_empty(stream), "Trace stream cannot be empty");
+  diag_assert_msg(!string_is_empty(id), "Trace event-id cannot be empty");
+  if (!tracer->sinkCount) {
+    return;
+  }
+
+  DynString formatBuffer = dynstring_create_over(mem_stack(trace_message_max));
+  format_write_formatted(&formatBuffer, msg, args);
+
+  // No need to take the 'sinksLock' lock as sinks can only be added, never removed.
+  for (u32 i = 0; i != tracer->sinkCount; ++i) {
+    TraceSink* sink = tracer->sinks[i];
+    if (sink->customBegin) {
+      sink->customBegin(sink, stream, id, color, dynstring_view(&formatBuffer));
+    }
+  }
+}
+
+void trace_event_custom_end(
+    Tracer* tracer, const String stream, const TimeSteady time, const TimeDuration dur) {
+  diag_assert_msg(tracer, "Tracer not initialized");
+  diag_assert_msg(!string_is_empty(stream), "Trace stream cannot be empty");
+
+  // No need to take the 'sinksLock' lock as sinks can only be added, never removed.
+  for (u32 i = 0; i != tracer->sinkCount; ++i) {
+    TraceSink* sink = tracer->sinks[i];
+    if (sink->customEnd) {
+      sink->customEnd(sink, stream, time, dur);
+    }
   }
 }
