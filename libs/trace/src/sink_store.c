@@ -53,8 +53,7 @@ typedef struct {
   TraceSink   api;
   Allocator*  alloc;
   ThreadMutex storeLock;
-
-  i32 streamCounter;
+  i32         streamCounter;
 
   ALIGNAS(16)
   StringHash idHashes[trace_store_max_ids];
@@ -153,7 +152,7 @@ NO_INLINE_HINT static TraceBuffer* trace_thread_add(TraceSinkStore* s, const Thr
         diag_assert(result->stackCount == 0);
         string_maybe_free(s->alloc, result->streamName);
 
-        result->streamId    = thread_atomic_add_i32(&s->streamCounter, 1);
+        result->streamId    = s->streamCounter++;
         result->streamName  = string_maybe_dup(s->alloc, g_threadName);
         result->eventCursor = 0;
         mem_set(array_mem(result->events), 0);
@@ -170,7 +169,7 @@ NO_INLINE_HINT static TraceBuffer* trace_thread_add(TraceSinkStore* s, const Thr
     }
     result              = alloc_alloc_t(s->alloc, TraceBuffer);
     result->type        = TraceBufferType_Thread;
-    result->streamId    = thread_atomic_add_i32(&s->streamCounter, 1);
+    result->streamId    = s->streamCounter++;
     result->streamName  = string_maybe_dup(s->alloc, g_threadName);
     result->resetLock   = thread_mutex_create(s->alloc);
     result->eventCursor = result->stackCount = 0;
