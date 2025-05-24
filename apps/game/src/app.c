@@ -673,4 +673,9 @@ void app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
   scene_product_init(world, string_lit("global/game.products"));
 }
 
-bool app_ecs_should_quit(EcsWorld* world) { return !ecs_utils_any(world, MainWindowView); }
+u64 app_ecs_query_tick(EcsWorld* world) {
+  (void)world;
+  return 0;
+}
+
+bool app_ecs_query_quit(EcsWorld* world) { return !ecs_utils_any(world, MainWindowView); }

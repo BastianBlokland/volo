@@ -30,7 +30,8 @@ void app_ecs_register(EcsDef*, const CliInvocation*);
 void app_ecs_init(EcsWorld*, const CliInvocation*);
 
 /**
- * Check if the application should quit.
+ * Query application state.
  * NOTE: Runs outside of the Ecs update loop so any view can be used to observe the state.
  */
-bool app_ecs_should_quit(EcsWorld*);
+u64  app_ecs_query_tick(EcsWorld*);
+bool app_ecs_query_quit(EcsWorld*);
