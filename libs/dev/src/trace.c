@@ -130,6 +130,30 @@ static void trace_data_focus(DevTracePanelComp* panel, const TraceStoreEvent* ev
   panel->freeze     = true;
 }
 
+NO_INLINE_HINT static DevTraceData*
+trace_data_stream_register(DevTracePanelComp* panel, const i32 id, const String name) {
+  for (u32 streamIdx = 0; streamIdx != dev_trace_max_streams; ++streamIdx) {
+    DevTraceData* streamData = &panel->streams[streamIdx];
+    if (streamData->id < 0) {
+      streamData->id         = id;
+      streamData->nameLength = (u8)math_min(name.size, dev_trace_max_name_length);
+      mem_cpy(array_mem(streamData->nameBuffer), mem_slice(name, 0, streamData->nameLength));
+      return streamData;
+    }
+  }
+  diag_crash_msg("dev: Trace stream count exceeds maximum");
+}
+
+static DevTraceData* trace_data_get(DevTracePanelComp* panel, const i32 id, const String name) {
+  for (u32 streamIdx = 0; streamIdx != dev_trace_max_streams; ++streamIdx) {
+    DevTraceData* streamData = &panel->streams[streamIdx];
+    if (streamData->id == id) {
+      return streamData;
+    }
+  }
+  return trace_data_stream_register(panel, id, name);
+}
+
 static void trace_data_visitor(
     const TraceSink*       sink,
     void*                  userCtx,
@@ -138,16 +162,10 @@ static void trace_data_visitor(
     const String           streamName,
     const TraceStoreEvent* evt) {
   (void)sink;
-  DevTracePanelComp* panel = userCtx;
-  if (UNLIKELY(bufferIdx >= dev_trace_max_streams)) {
-    diag_crash_msg("dev: Trace streams exceeds maximum");
-  }
-  DevTraceData* streamData = &panel->streams[bufferIdx];
-  if (UNLIKELY(streamData->id != streamId)) {
-    streamData->id         = streamId;
-    streamData->nameLength = (u8)math_min(streamName.size, dev_trace_max_name_length);
-    mem_cpy(array_mem(streamData->nameBuffer), mem_slice(streamName, 0, streamData->nameLength));
-  }
+  (void)bufferIdx;
+
+  DevTracePanelComp* panel      = userCtx;
+  DevTraceData*      streamData = trace_data_get(panel, streamId, streamName);
   *((TraceStoreEvent*)dynarray_push(&streamData->events, 1).ptr) = *evt;
 
   if (UNLIKELY(trace_trigger_match(&panel->trigger, evt))) {
@@ -578,7 +596,11 @@ ecs_system_define(DevTracePanelQuerySys) {
     if (!panel->freeze || panel->refresh) {
       trace_data_clear(panel);
       panel->timeHead = time_steady_clock();
+
+      trace_begin("sink_store_visit", TraceColor_Red);
       trace_sink_store_visit(sinkStore, trace_data_visitor, panel);
+      trace_end();
+
       panel->refresh = false;
     }
   }
