@@ -11,7 +11,7 @@
  */
 
 typedef struct sTraceStoreEvent {
-  ALIGNAS(64) // Align to cacheline on x66.
+  ALIGNAS(64) // Align to cacheline on x86.
   ThreadSpinLock lock;
   u32            timeDur;    // Duration in nano-seconds (limits the max event dur to 4 seconds).
   TimeSteady     timeStart;  // Nano-seconds since the start of the process steady clock.
@@ -25,12 +25,7 @@ typedef struct sTraceStoreEvent {
 ASSERT(sizeof(TraceStoreEvent) == 64, "Unexpected event size")
 
 typedef void (*TraceStoreVisitor)(
-    const TraceSink*,
-    void*    userCtx,
-    u32      bufferIdx,
-    ThreadId threadId,
-    String   threadName,
-    const TraceStoreEvent*);
+    const TraceSink*, void* userCtx, i32 streamId, String streamName, const TraceStoreEvent*);
 
 /**
  * Visit all the stored events.

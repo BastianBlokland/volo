@@ -32,6 +32,7 @@ RvkJob*              rvk_canvas_job(RvkCanvas*);
  * Query statistics about the previous submitted draw.
  */
 void rvk_canvas_stats(const RvkCanvas*, RvkCanvasStats* out);
+void rvk_canvas_push_traces(const RvkCanvas*);
 
 bool rvk_canvas_begin(RvkCanvas*, const RendSettingsComp*, RvkSize);
 

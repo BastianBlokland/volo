@@ -1,4 +1,5 @@
 #include "core_alloc.h"
+#include "core_array.h"
 #include "core_diag.h"
 #include "core_dynstring.h"
 #include "core_file.h"
@@ -10,6 +11,8 @@
 #include "trace_sink_store.h"
 #include "trace_tracer.h"
 
+#define trace_max_streams 64
+
 /**
  * Dump all trace events in the Google EventTrace format.
  *
@@ -19,7 +22,7 @@
 typedef struct {
   DynString* out;
   ThreadId   pid;
-  u64        processedThreads; // bit[64], indicates is the thread has been processed.
+  i32        streams[trace_max_streams]; // Array of stream-ids that have been added.
 } DumpEventTraceCtx;
 
 static void dump_eventtrace_init(DumpEventTraceCtx* ctx) {
@@ -71,30 +74,44 @@ static void dump_eventtrace_color_write(DumpEventTraceCtx* ctx, const TraceColor
   diag_crash();
 }
 
+static bool dump_eventtrace_register_stream(DumpEventTraceCtx* ctx, const i32 streamId) {
+  diag_assert(streamId >= 0);
+
+  // Check if the stream has been registered before.
+  for (u32 i = 0; i != trace_max_streams; ++i) {
+    if (ctx->streams[i] == streamId) {
+      return false;
+    }
+  }
+
+  // Register the stream.
+  for (u32 i = 0; i != trace_max_streams; ++i) {
+    if (ctx->streams[i] < 0) {
+      ctx->streams[i] = streamId;
+      return true;
+    }
+  }
+
+  diag_crash_msg("trace: Maximum stream-count exceeded");
+}
+
 static void dump_eventtrace_visitor(
     const TraceSink*       sink,
     void*                  userCtx,
-    const u32              bufferIdx,
-    const ThreadId         threadId,
-    const String           threadName,
+    const i32              streamId,
+    const String           streamName,
     const TraceStoreEvent* evt) {
   DumpEventTraceCtx* ctx = userCtx;
 
-  if (UNLIKELY(bufferIdx > 64)) {
-    diag_crash_msg("trace: Maximum thread-count exceeded");
-  }
-  if ((ctx->processedThreads & (u64_lit(1) << bufferIdx)) == 0) {
-
-    // Provide the thread-name as a meta-data event.
+  if (dump_eventtrace_register_stream(ctx, streamId)) {
+    // Provide the stream-name as a meta-data event.
     dynstring_append(ctx->out, string_lit("{\"name\":\"thread_name\",\"ph\":\"M\",\"pid\":"));
     format_write_u64(ctx->out, ctx->pid, &format_opts_int());
     dynstring_append(ctx->out, string_lit(",\"tid\":"));
-    format_write_u64(ctx->out, threadId, &format_opts_int());
+    format_write_u64(ctx->out, streamId, &format_opts_int());
     dynstring_append(ctx->out, string_lit(",\"args\":{\"name\":\""));
-    dynstring_append(ctx->out, threadName);
+    dynstring_append(ctx->out, streamName);
     dynstring_append(ctx->out, string_lit("\"}},"));
-
-    ctx->processedThreads |= u64_lit(1) << bufferIdx;
   }
 
   const String id  = trace_sink_store_id(sink, evt->id);
@@ -121,7 +138,7 @@ static void dump_eventtrace_visitor(
   dynstring_append(ctx->out, string_lit(",\"pid\":"));
   format_write_u64(ctx->out, ctx->pid, &format_opts_int());
   dynstring_append(ctx->out, string_lit(",\"tid\":"));
-  format_write_u64(ctx->out, threadId, &format_opts_int());
+  format_write_u64(ctx->out, streamId, &format_opts_int());
   dynstring_append(ctx->out, string_lit(",\"cname\":"));
   dump_eventtrace_color_write(ctx, evt->color);
   dynstring_append(ctx->out, string_lit("},"));
@@ -132,6 +149,7 @@ void trace_dump_eventtrace(const TraceSink* storeSink, DynString* out) {
       .out = out,
       .pid = g_threadPid,
   };
+  mem_set(array_mem(ctx.streams), 0xFF);
 
   dump_eventtrace_init(&ctx);
   trace_sink_store_visit(storeSink, dump_eventtrace_visitor, &ctx);

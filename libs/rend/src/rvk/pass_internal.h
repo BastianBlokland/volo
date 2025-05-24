@@ -98,6 +98,8 @@ u16          rvk_pass_stat_invocations(const RvkPass*, RvkPassHandle);
 u16          rvk_pass_stat_draws(const RvkPass*, RvkPassHandle);
 u32          rvk_pass_stat_instances(const RvkPass*, RvkPassHandle);
 RvkSize      rvk_pass_stat_size_max(const RvkPass*, RvkPassHandle);
+TimeSteady   rvk_pass_stat_time_begin(const RvkPass*, RvkPassHandle);
+TimeSteady   rvk_pass_stat_time_end(const RvkPass*, RvkPassHandle);
 TimeDuration rvk_pass_stat_duration(const RvkPass*, RvkPassHandle);
 u64          rvk_pass_stat_pipeline(const RvkPass*, RvkPassHandle, RvkStat);
 

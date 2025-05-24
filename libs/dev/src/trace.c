@@ -5,6 +5,7 @@
 #include "core_float.h"
 #include "core_format.h"
 #include "core_math.h"
+#include "core_sort.h"
 #include "dev_panel.h"
 #include "dev_register.h"
 #include "dev_trace.h"
@@ -35,11 +36,11 @@ static const String g_messageNoStoreSink  = string_static("No store trace-sink f
 // clang-format on
 
 #define dev_trace_max_name_length 15
-#define dev_trace_max_threads 8
-#define dev_trace_default_depth 4
+#define dev_trace_max_streams 16
+#define dev_trace_default_depth 3
 
 typedef struct {
-  ThreadId tid;
+  i32      id;
   u8       nameLength;
   u8       nameBuffer[dev_trace_max_name_length];
   DynArray events; // TraceStoreEvent[]
@@ -61,18 +62,19 @@ ecs_comp_define(DevTracePanelComp) {
   TimeSteady      timeHead;
   TimeDuration    timeWindow;
   DevTraceTrigger trigger;
-  DevTraceData*   threads; // DevTraceData[dev_trace_max_threads];
+  DevTraceData*   streams;                              // DevTraceData[dev_trace_max_streams].
+  u8              streamSorting[dev_trace_max_streams]; // streamIdx[].
 };
 
 static void ecs_destruct_trace_panel(void* data) {
   DevTracePanelComp* comp = data;
   dynstring_destroy(&comp->trigger.msgFilter);
 
-  for (u32 threadIdx = 0; threadIdx != dev_trace_max_threads; ++threadIdx) {
-    DevTraceData* threadData = &comp->threads[threadIdx];
-    dynarray_destroy(&threadData->events);
+  for (u32 streamIdx = 0; streamIdx != dev_trace_max_streams; ++streamIdx) {
+    DevTraceData* streamData = &comp->streams[streamIdx];
+    dynarray_destroy(&streamData->events);
   }
-  alloc_free_array_t(g_allocHeap, comp->threads, dev_trace_max_threads);
+  alloc_free_array_t(g_allocHeap, comp->streams, dev_trace_max_streams);
 }
 
 static void trace_trigger_set(DevTraceTrigger* t, const u8 eventId) {
@@ -116,11 +118,11 @@ static UiColor trace_event_color(const TraceColor col) {
 }
 
 static void trace_data_clear(DevTracePanelComp* panel) {
-  for (u32 threadIdx = 0; threadIdx != dev_trace_max_threads; ++threadIdx) {
-    DevTraceData* threadData = &panel->threads[threadIdx];
-    threadData->tid          = 0;
-    threadData->nameLength   = 0;
-    dynarray_clear(&threadData->events);
+  for (u32 streamIdx = 0; streamIdx != dev_trace_max_streams; ++streamIdx) {
+    DevTraceData* streamData = &panel->streams[streamIdx];
+    streamData->id           = -1;
+    streamData->nameLength   = 0;
+    dynarray_clear(&streamData->events);
   }
 }
 
@@ -130,29 +132,84 @@ static void trace_data_focus(DevTracePanelComp* panel, const TraceStoreEvent* ev
   panel->freeze     = true;
 }
 
+NO_INLINE_HINT static DevTraceData*
+trace_data_stream_register(DevTracePanelComp* panel, const i32 id, const String name) {
+  diag_assert(id >= 0);
+
+  for (u32 streamIdx = 0; streamIdx != dev_trace_max_streams; ++streamIdx) {
+    DevTraceData* streamData = &panel->streams[streamIdx];
+    if (streamData->id < 0) {
+      streamData->id         = id;
+      streamData->nameLength = (u8)math_min(name.size, dev_trace_max_name_length);
+      mem_cpy(array_mem(streamData->nameBuffer), mem_slice(name, 0, streamData->nameLength));
+      return streamData;
+    }
+  }
+  diag_crash_msg("dev: Trace stream count exceeds maximum");
+}
+
+static DevTraceData* trace_data_get(DevTracePanelComp* panel, const i32 id, const String name) {
+  diag_assert(id >= 0);
+
+  for (u32 streamIdx = 0; streamIdx != dev_trace_max_streams; ++streamIdx) {
+    DevTraceData* streamData = &panel->streams[streamIdx];
+    if (streamData->id == id) {
+      return streamData;
+    }
+  }
+  return trace_data_stream_register(panel, id, name);
+}
+
 static void trace_data_visitor(
     const TraceSink*       sink,
     void*                  userCtx,
-    const u32              bufferIdx,
-    const ThreadId         threadId,
-    const String           threadName,
+    const i32              streamId,
+    const String           streamName,
     const TraceStoreEvent* evt) {
   (void)sink;
-  DevTracePanelComp* panel = userCtx;
-  if (UNLIKELY(bufferIdx >= dev_trace_max_threads)) {
-    diag_crash_msg("dev: Trace threads exceeds maximum");
-  }
-  DevTraceData* threadData = &panel->threads[bufferIdx];
-  if (!threadData->tid) {
-    threadData->tid        = threadId;
-    threadData->nameLength = (u8)math_min(threadName.size, dev_trace_max_name_length);
-    mem_cpy(array_mem(threadData->nameBuffer), mem_slice(threadName, 0, threadData->nameLength));
-  }
-  *((TraceStoreEvent*)dynarray_push(&threadData->events, 1).ptr) = *evt;
+
+  DevTracePanelComp* panel      = userCtx;
+  DevTraceData*      streamData = trace_data_get(panel, streamId, streamName);
+  *((TraceStoreEvent*)dynarray_push(&streamData->events, 1).ptr) = *evt;
 
   if (UNLIKELY(trace_trigger_match(&panel->trigger, evt))) {
     trace_data_focus(panel, evt);
   }
+}
+
+/**
+ * HACK: We currently have no way to pass a context to a compare function, so we temporarily store
+ * it in a thread-local global variable.
+ */
+static THREAD_LOCAL const DevTraceData* g_devTraceSortStreams;
+
+static i8 trace_stream_compare(const void* a, const void* b) {
+  diag_assert(g_devTraceSortStreams);
+  const DevTraceData* streamA = &g_devTraceSortStreams[*((const u8*)a)];
+  const DevTraceData* streamB = &g_devTraceSortStreams[*((const u8*)b)];
+
+  if (streamA->id < 0 || streamB->id < 0) {
+    return compare_i32(&streamA->id, &streamB->id);
+  }
+
+  const String streamNameA = mem_create(streamA->nameBuffer, streamA->nameLength);
+  const String streamNameB = mem_create(streamB->nameBuffer, streamB->nameLength);
+
+  return compare_string_reverse(&streamNameA, &streamNameB);
+}
+
+static void trace_stream_sort(DevTracePanelComp* panel) {
+  // Initialize the sorting to identity.
+  for (u32 streamIdx = 0; streamIdx != dev_trace_max_streams; ++streamIdx) {
+    diag_assert(streamIdx < u8_max);
+    panel->streamSorting[streamIdx] = (u8)streamIdx;
+  }
+
+  // Sort the stream indices based on their name.
+  g_devTraceSortStreams = panel->streams;
+  sort_quicksort_t(
+      panel->streamSorting, panel->streamSorting + dev_trace_max_streams, u8, trace_stream_compare);
+  g_devTraceSortStreams = null;
 }
 
 static UiColor trace_trigger_button_color(const DevTraceTrigger* t) {
@@ -501,8 +558,8 @@ trace_panel_draw(UiCanvasComp* c, DevTracePanelComp* panel, const TraceSink* sin
         c,
         &table,
         (const UiTableColumnName[]){
-            {string_lit("Thread"), string_lit("Name of the thread.")},
-            {string_lit("Events"), string_lit("Traced events on the thread.")},
+            {string_lit("Stream"), string_lit("Name of the stream.")},
+            {string_lit("Events"), string_lit("Traced events on the stream.")},
         });
 
     ui_layout_container_push(c, UiClip_None, UiLayer_Normal);
@@ -514,18 +571,18 @@ trace_panel_draw(UiCanvasComp* c, DevTracePanelComp* panel, const TraceSink* sin
     const f32 height = ui_table_height(&table, g_jobsWorkerCount);
     ui_scrollview_begin(c, &panel->scrollview, UiLayer_Normal, height);
 
-    const UiId threadsBeginId = ui_canvas_id_peek(c);
+    const UiId streamsBeginId = ui_canvas_id_peek(c);
 
-    for (u32 threadIdx = 0; threadIdx != dev_trace_max_threads; ++threadIdx) {
-      DevTraceData* data = &panel->threads[threadIdx];
-      if (!data->tid) {
-        continue; // Unused thread slot.
+    array_for_t(panel->streamSorting, u8, streamIdx) {
+      DevTraceData* data = &panel->streams[*streamIdx];
+      if (data->id < 0) {
+        continue; // Unused stream slot.
       }
       ui_table_next_row(c, &table);
       ui_table_draw_row_bg(c, &table, ui_color(48, 48, 48, 192));
 
-      const String threadName = mem_create(data->nameBuffer, data->nameLength);
-      ui_label(c, threadName, .selectable = true);
+      const String streamName = mem_create(data->nameBuffer, data->nameLength);
+      ui_label(c, streamName, .selectable = true);
 
       ui_table_next_column(c, &table);
       // NOTE: Counter the table padding so that events fill the whole cell horizontally.
@@ -538,8 +595,8 @@ trace_panel_draw(UiCanvasComp* c, DevTracePanelComp* panel, const TraceSink* sin
     ui_layout_container_pop(c);
     ui_layout_container_pop(c);
 
-    const UiId threadsLastId = ui_canvas_id_peek(c) - 1;
-    panel->hoverAny = ui_canvas_group_status(c, threadsBeginId, threadsLastId) == UiStatus_Hovered;
+    const UiId streamsLastId = ui_canvas_id_peek(c) - 1;
+    panel->hoverAny = ui_canvas_group_status(c, streamsBeginId, streamsLastId) == UiStatus_Hovered;
 
     if (panel->hoverAny) {
       panel->scrollview.flags |= UiScrollviewFlags_BlockInput;
@@ -578,7 +635,12 @@ ecs_system_define(DevTracePanelQuerySys) {
     if (!panel->freeze || panel->refresh) {
       trace_data_clear(panel);
       panel->timeHead = time_steady_clock();
+
+      trace_begin("sink_store_visit", TraceColor_Red);
       trace_sink_store_visit(sinkStore, trace_data_visitor, panel);
+      trace_end();
+
+      trace_stream_sort(panel);
       panel->refresh = false;
     }
   }
@@ -634,7 +696,8 @@ ecs_module_init(dev_trace_module) {
 
 EcsEntityId
 dev_trace_panel_open(EcsWorld* world, const EcsEntityId window, const DevPanelType type) {
-  const u32 panelHeight = math_min(100 + 20 * dev_trace_default_depth * g_jobsWorkerCount, 675);
+  const u32 expectedEntryCount = g_jobsWorkerCount + 1 /* gpu */;
+  const u32 panelHeight = math_min(100 + 20 * dev_trace_default_depth * expectedEntryCount, 675);
 
   const EcsEntityId  panelEntity = dev_panel_create(world, window, type);
   DevTracePanelComp* tracePanel  = ecs_world_add_t(
@@ -650,10 +713,11 @@ dev_trace_panel_open(EcsWorld* world, const EcsEntityId window, const DevPanelTy
       .trigger.msgFilter = dynstring_create(g_allocHeap, 0),
       .trigger.threshold = time_milliseconds(20));
 
-  tracePanel->threads = alloc_array_t(g_allocHeap, DevTraceData, dev_trace_max_threads);
-  for (u32 threadIdx = 0; threadIdx != dev_trace_max_threads; ++threadIdx) {
-    DevTraceData* threadData = &tracePanel->threads[threadIdx];
-    threadData->events       = dynarray_create_t(g_allocHeap, TraceStoreEvent, 0);
+  tracePanel->streams = alloc_array_t(g_allocHeap, DevTraceData, dev_trace_max_streams);
+  for (u32 streamIdx = 0; streamIdx != dev_trace_max_streams; ++streamIdx) {
+    DevTraceData* streamData = &tracePanel->streams[streamIdx];
+    streamData->id           = -1;
+    streamData->events       = dynarray_create_t(g_allocHeap, TraceStoreEvent, 0);
   }
 
   if (type == DevPanelType_Detached) {

@@ -149,6 +149,10 @@ ecs_system_define(RendUpdateCamStatsSys) {
       rvk_device_profile_trigger(plat->device);
       stats->profileTrigger = false;
     }
+
+#ifdef VOLO_TRACE
+    rvk_canvas_push_traces(painter->canvas);
+#endif
   }
 }
 

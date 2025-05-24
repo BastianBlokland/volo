@@ -1,7 +1,6 @@
 #pragma once
 #include "core_time.h"
 #include "geo.h"
-#include "vulkan_api.h"
 
 #include "forward_internal.h"
 #include "uniform_internal.h"
@@ -19,8 +18,8 @@ typedef enum eRvkJobPhase {
 
 typedef struct {
   TimeDuration cpuWaitDur; // Time the cpu was blocked waiting for the gpu.
-  TimeDuration gpuWaitDur; // Time the gpu was blocked waiting for the target.
-  TimeDuration gpuExecDur;
+  TimeSteady   gpuTimeBegin, gpuTimeEnd;
+  TimeSteady   gpuWaitBegin, gpuWaitEnd;
 } RvkJobStats;
 
 typedef struct sRvkJob RvkJob;
@@ -29,6 +28,7 @@ RvkJob* rvk_job_create(RvkDevice*, u32 jobId);
 void    rvk_job_destroy(RvkJob*);
 bool    rvk_job_is_done(const RvkJob*);
 void    rvk_job_wait_for_done(const RvkJob*);
+bool    rvk_job_calibrated_timestamps(const RvkJob*);
 void    rvk_job_stats(const RvkJob*, RvkJobStats* out);
 
 void rvk_job_begin(RvkJob*, RvkJobPhase firstPhase);

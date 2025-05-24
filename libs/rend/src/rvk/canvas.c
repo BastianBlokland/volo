@@ -1,6 +1,7 @@
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_diag.h"
+#include "core_math.h"
 #include "log_logger.h"
 #include "trace_tracer.h"
 
@@ -124,8 +125,11 @@ void rvk_canvas_stats(const RvkCanvas* canvas, RvkCanvasStats* out) {
   rvk_job_stats(frame->job, &jobStats);
 
   out->waitForGpuDur = jobStats.cpuWaitDur;
-  out->gpuWaitDur    = jobStats.gpuWaitDur;
-  out->gpuExecDur    = jobStats.gpuExecDur;
+  out->gpuWaitDur    = time_steady_duration(jobStats.gpuWaitBegin, jobStats.gpuWaitEnd);
+  out->gpuExecDur    = time_steady_duration(jobStats.gpuTimeBegin, jobStats.gpuTimeEnd);
+
+  // NOTE: Consider the wait-time as non-executing.
+  out->gpuExecDur = math_max(out->gpuExecDur - out->gpuWaitDur, 0);
 
   out->passCount = 0;
   for (u32 passIdx = 0; passIdx != rvk_canvas_max_passes; ++passIdx) {
@@ -151,6 +155,48 @@ void rvk_canvas_stats(const RvkCanvas* canvas, RvkCanvasStats* out) {
         .shadersFrag = rvk_pass_stat_pipeline(pass, passFrame, RvkStat_ShaderInvocationsFrag),
     };
   }
+}
+
+void rvk_canvas_push_traces(const RvkCanvas* canvas) {
+  const RvkCanvasFrame* frame = &canvas->frames[canvas->jobIdx];
+  diag_assert(rvk_job_is_done(frame->job));
+
+  if (!(canvas->flags & RvkCanvasFlags_Submitted)) {
+    return;
+  }
+  if (!rvk_job_calibrated_timestamps(frame->job)) {
+    return; // GPU traces require calibrated timestamps.
+  }
+
+  RvkJobStats jobStats;
+  rvk_job_stats(frame->job, &jobStats);
+
+  const TimeDuration waitDur = time_steady_duration(jobStats.gpuWaitBegin, jobStats.gpuWaitEnd);
+  const TimeDuration jobDur  = time_steady_duration(jobStats.gpuTimeBegin, jobStats.gpuTimeEnd);
+
+  trace_custom_begin_msg("gpu", "job", TraceColor_Blue, "job-{}", fmt_int(canvas->jobIdx));
+  {
+    for (u32 passIdx = 0; passIdx != rvk_canvas_max_passes; ++passIdx) {
+      const RvkPass* pass = frame->passes[passIdx];
+      if (!pass) {
+        break; // End of the used passes.
+      }
+      const RvkPassHandle passFrame = frame->passFrames[passIdx];
+      diag_assert(!sentinel_check(passFrame));
+
+      const String       passName  = rvk_pass_config(pass)->name;
+      const TimeSteady   passBegin = rvk_pass_stat_time_begin(pass, passFrame);
+      const TimeSteady   passEnd   = rvk_pass_stat_time_end(pass, passFrame);
+      const TimeDuration passDur   = time_steady_duration(passBegin, passEnd);
+
+      trace_custom_begin_msg("gpu", "pass", TraceColor_Green, "pass-{}", fmt_text(passName));
+      trace_custom_end("gpu", passBegin, passDur);
+    }
+
+    trace_custom_begin("gpu", "wait", TraceColor_White);
+    trace_custom_end("gpu", jobStats.gpuWaitBegin, waitDur);
+  }
+  trace_custom_end("gpu", jobStats.gpuTimeBegin, jobDur);
 }
 
 bool rvk_canvas_begin(RvkCanvas* canvas, const RendSettingsComp* settings, const RvkSize size) {
