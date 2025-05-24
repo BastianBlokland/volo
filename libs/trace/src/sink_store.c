@@ -246,6 +246,27 @@ static void trace_sink_store_event_end(TraceSink* sink) {
   evt->timeDur = dur > u32_max ? u32_max : math_max((u32)dur, 1);
 }
 
+static void trace_sink_store_custom_event_begin(
+    TraceSink*       sink,
+    const String     stream,
+    const String     id,
+    const TraceColor color,
+    const String     msg) {
+  (void)sink;
+  (void)stream;
+  (void)id;
+  (void)color;
+  (void)msg;
+}
+
+static void trace_sink_store_custom_event_end(
+    TraceSink* sink, const String stream, const TimeSteady begin, const TimeDuration dur) {
+  (void)sink;
+  (void)stream;
+  (void)begin;
+  (void)dur;
+}
+
 static void trace_sink_store_destroy(TraceSink* sink) {
   TraceSinkStore* s = (TraceSinkStore*)sink;
   for (u32 i = 0; i != s->bufferCount; ++i) {
@@ -319,9 +340,11 @@ TraceSink* trace_sink_store(Allocator* alloc) {
   *sink = (TraceSinkStore){
       .api =
           {
-              .eventBegin = trace_sink_store_event_begin,
-              .eventEnd   = trace_sink_store_event_end,
-              .destroy    = trace_sink_store_destroy,
+              .eventBegin       = trace_sink_store_event_begin,
+              .eventEnd         = trace_sink_store_event_end,
+              .eventCustomBegin = trace_sink_store_custom_event_begin,
+              .eventCustomEnd   = trace_sink_store_custom_event_end,
+              .destroy          = trace_sink_store_destroy,
           },
       .alloc     = alloc,
       .storeLock = thread_mutex_create(alloc),

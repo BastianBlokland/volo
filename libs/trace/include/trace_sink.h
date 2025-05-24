@@ -10,15 +10,15 @@ struct sTraceSink {
   void (*eventEnd)(TraceSink*);
 
   /**
-   * Function to call when the sink is destroyed.
-   * NOTE: Can be 'null' when the sink doesn't need special destruction logic.
-   */
-  void (*destroy)(TraceSink*);
-
-  /**
    * Called when a custom (non-cpu) event begins / ends.
    * NOTE: Can be 'null' when the sink doesn't support custom events.
    */
   void (*eventCustomBegin)(TraceSink*, String stream, String id, TraceColor, String msg);
   void (*eventCustomEnd)(TraceSink*, String stream, TimeSteady begin, TimeDuration dur);
+
+  /**
+   * Function to call when the sink is destroyed.
+   * NOTE: Can be 'null' when the sink doesn't need special destruction logic.
+   */
+  void (*destroy)(TraceSink*);
 };
