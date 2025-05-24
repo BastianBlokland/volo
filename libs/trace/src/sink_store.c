@@ -261,6 +261,10 @@ void trace_sink_store_visit(const TraceSink* sink, const TraceStoreVisitor visit
   diag_assert_msg(trace_sink_is_store(sink), "Given sink is not a store-sink");
   const TraceSinkStore* s = (const TraceSinkStore*)sink;
 
+  if (UNLIKELY(g_traceStoreIsVisiting)) {
+    diag_crash_msg("trace: Unable to perform nested visits");
+  }
+
   g_traceStoreIsVisiting = true;
 
   TraceStoreEvent evt;
