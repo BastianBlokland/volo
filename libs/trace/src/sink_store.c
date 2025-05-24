@@ -124,6 +124,7 @@ static u8 trace_id_register(TraceSinkStore* s, const String str) {
 static TraceBuffer* trace_thread_find(TraceSinkStore* s, const ThreadId tid) {
   for (u32 i = 0; i != s->bufferCount; ++i) {
     if (s->bufferThreadIds[i] == tid) {
+      diag_assert(s->buffers[i]->type == TraceBufferType_Thread);
       return s->buffers[i];
     }
   }
