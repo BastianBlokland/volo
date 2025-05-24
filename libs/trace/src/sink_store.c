@@ -160,7 +160,7 @@ NO_INLINE_HINT static TraceBuffer* trace_buffer_add(
     result              = alloc_alloc_t(s->alloc, TraceBuffer);
     result->type        = type;
     result->streamId    = s->streamCounter++;
-    result->streamName  = string_maybe_dup(s->alloc, g_threadName);
+    result->streamName  = string_maybe_dup(s->alloc, name);
     result->resetLock   = thread_mutex_create(s->alloc);
     result->eventCursor = result->stackCount = 0;
     mem_set(array_mem(result->events), 0);
