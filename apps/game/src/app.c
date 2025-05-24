@@ -433,6 +433,8 @@ static void app_action_bar_draw(UiCanvasComp* canvas, const AppActionContext* ct
   }
 }
 
+ecs_view_define(AppTimeView) { ecs_access_read(SceneTimeComp); }
+
 ecs_view_define(AppUpdateGlobalView) {
   ecs_access_write(AppComp);
   ecs_access_write(CmdControllerComp);
@@ -440,8 +442,8 @@ ecs_view_define(AppUpdateGlobalView) {
   ecs_access_write(InputManagerComp);
   ecs_access_write(RendSettingsGlobalComp);
   ecs_access_write(SceneTimeSettingsComp);
-  ecs_access_write(SndMixerComp);
   ecs_access_write(SceneVisibilityEnvComp);
+  ecs_access_write(SndMixerComp);
   ecs_access_maybe_write(DevStatsGlobalComp);
 }
 
@@ -564,6 +566,7 @@ ecs_module_init(game_app_module) {
   ecs_register_comp(AppComp);
   ecs_register_comp(AppMainWindowComp);
 
+  ecs_register_view(AppTimeView);
   ecs_register_view(AppUpdateGlobalView);
   ecs_register_view(MainWindowView);
   ecs_register_view(UiCanvasView);
@@ -674,8 +677,8 @@ void app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
 }
 
 u64 app_ecs_query_tick(EcsWorld* world) {
-  (void)world;
-  return 0;
+  const SceneTimeComp* time = ecs_utils_read_first_t(world, AppTimeView, SceneTimeComp);
+  return time ? time->ticks : sentinel_u64;
 }
 
 bool app_ecs_query_quit(EcsWorld* world) { return !ecs_utils_any(world, MainWindowView); }
