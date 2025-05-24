@@ -5,6 +5,7 @@
 #include "core_float.h"
 #include "core_format.h"
 #include "core_math.h"
+#include "core_sort.h"
 #include "dev_panel.h"
 #include "dev_register.h"
 #include "dev_trace.h"
@@ -61,7 +62,8 @@ ecs_comp_define(DevTracePanelComp) {
   TimeSteady      timeHead;
   TimeDuration    timeWindow;
   DevTraceTrigger trigger;
-  DevTraceData*   streams; // DevTraceData[dev_trace_max_streams];
+  DevTraceData*   streams;                              // DevTraceData[dev_trace_max_streams].
+  u8              streamSorting[dev_trace_max_streams]; // streamIdx[].
 };
 
 static void ecs_destruct_trace_panel(void* data) {
@@ -173,6 +175,41 @@ static void trace_data_visitor(
   if (UNLIKELY(trace_trigger_match(&panel->trigger, evt))) {
     trace_data_focus(panel, evt);
   }
+}
+
+/**
+ * HACK: We currently have no way to pass a context to a compare function, so we temporarily store
+ * it in a thread-local global variable.
+ */
+static THREAD_LOCAL const DevTraceData* g_devTraceSortStreams;
+
+static i8 trace_stream_compare(const void* a, const void* b) {
+  diag_assert(g_devTraceSortStreams);
+  const DevTraceData* streamA = &g_devTraceSortStreams[*((const u8*)a)];
+  const DevTraceData* streamB = &g_devTraceSortStreams[*((const u8*)b)];
+
+  if (streamA->id < 0 || streamB->id < 0) {
+    return compare_i32(&streamA->id, &streamB->id);
+  }
+
+  const String streamNameA = mem_create(streamA->nameBuffer, streamA->nameLength);
+  const String streamNameB = mem_create(streamB->nameBuffer, streamB->nameLength);
+
+  return compare_string_reverse(&streamNameA, &streamNameB);
+}
+
+static void trace_stream_sort(DevTracePanelComp* panel) {
+  // Initialize the sorting to identity.
+  for (u32 streamIdx = 0; streamIdx != dev_trace_max_streams; ++streamIdx) {
+    diag_assert(streamIdx < u8_max);
+    panel->streamSorting[streamIdx] = (u8)streamIdx;
+  }
+
+  // Sort the stream indices based on their name.
+  g_devTraceSortStreams = panel->streams;
+  sort_quicksort_t(
+      panel->streamSorting, panel->streamSorting + dev_trace_max_streams, u8, trace_stream_compare);
+  g_devTraceSortStreams = null;
 }
 
 static UiColor trace_trigger_button_color(const DevTraceTrigger* t) {
@@ -536,8 +573,8 @@ trace_panel_draw(UiCanvasComp* c, DevTracePanelComp* panel, const TraceSink* sin
 
     const UiId streamsBeginId = ui_canvas_id_peek(c);
 
-    for (u32 streamIdx = 0; streamIdx != dev_trace_max_streams; ++streamIdx) {
-      DevTraceData* data = &panel->streams[streamIdx];
+    array_for_t(panel->streamSorting, u8, streamIdx) {
+      DevTraceData* data = &panel->streams[*streamIdx];
       if (data->id < 0) {
         continue; // Unused stream slot.
       }
@@ -603,6 +640,7 @@ ecs_system_define(DevTracePanelQuerySys) {
       trace_sink_store_visit(sinkStore, trace_data_visitor, panel);
       trace_end();
 
+      trace_stream_sort(panel);
       panel->refresh = false;
     }
   }
