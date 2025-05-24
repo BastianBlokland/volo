@@ -3,6 +3,7 @@
 #include "core_diag.h"
 #include "core_thread.h"
 #include "log_logger.h"
+#include "trace_tracer.h"
 
 #include "device_internal.h"
 #include "lib_internal.h"
@@ -23,7 +24,6 @@
 #define rvk_stopwatch_timestamps_max 64
 #define rvk_stopwatch_calibration_max_deviation time_microseconds(50)
 #define rvk_stopwatch_calibration_max_tries 3
-#define rvk_stopwatch_calibration_timeout time_minutes(30)
 
 typedef enum {
   RvkStopwatch_Supported      = 1 << 0,
@@ -208,9 +208,11 @@ void rvk_stopwatch_reset(RvkStopwatch* sw, VkCommandBuffer vkCmdBuf) {
   sw->counter = 0;
   sw->flags &= ~RvkStopwatch_HasResults;
 
-  const TimeDuration calibrationAge = time_steady_clock() - sw->calibrationHost;
-  if (sw->flags & RvkStopwatch_CanCalibrate && calibrationAge > rvk_stopwatch_calibration_timeout) {
+  if (sw->flags & RvkStopwatch_CanCalibrate) {
+    // Calibration between host and device can drift quickly, hence we re-calibrate every frame.
+    trace_begin("rend_calibrate", TraceColor_Blue);
     rvk_stopwatch_calibrate(sw);
+    trace_end();
   }
 }
 
