@@ -14,8 +14,8 @@ struct sTraceSink {
    * NOTE: Can be 'null' when the sink doesn't support custom events.
    * NOTE: Events for a single stream cannot be pushed in parallel, different streams can.
    */
-  void (*eventCustomBegin)(TraceSink*, String stream, String id, TraceColor, String msg);
-  void (*eventCustomEnd)(TraceSink*, String stream, TimeSteady time, TimeDuration dur);
+  void (*customBegin)(TraceSink*, String stream, String id, TraceColor, String msg);
+  void (*customEnd)(TraceSink*, String stream, TimeSteady time, TimeDuration dur);
 
   /**
    * Function to call when the sink is destroyed.
