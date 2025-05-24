@@ -28,7 +28,7 @@ typedef enum {
 
 typedef struct {
   RvkJob*         job;
-  u64             tick;
+  u64             frameIdx;
   VkSemaphore     swapchainAvailable, swapchainPresent;
   RvkSwapchainIdx swapchainIdx;      // sentinel_u32 when not acquired yet or failed to acquire.
   RvkImage*       swapchainFallback; // Only used when the preferred format is not available.
@@ -175,7 +175,7 @@ void rvk_canvas_push_traces(const RvkCanvas* canvas) {
   const TimeDuration waitDur = time_steady_duration(jobStats.gpuWaitBegin, jobStats.gpuWaitEnd);
   const TimeDuration jobDur  = time_steady_duration(jobStats.gpuTimeBegin, jobStats.gpuTimeEnd);
 
-  trace_custom_begin_msg("gpu", "frame", TraceColor_Blue, "frame-{}", fmt_int(frame->tick));
+  trace_custom_begin_msg("gpu", "frame", TraceColor_Blue, "frame-{}", fmt_int(frame->frameIdx));
   {
     for (u32 passIdx = 0; passIdx != rvk_canvas_max_passes; ++passIdx) {
       const RvkPass* pass = frame->passes[passIdx];
@@ -201,13 +201,13 @@ void rvk_canvas_push_traces(const RvkCanvas* canvas) {
 }
 
 bool rvk_canvas_begin(
-    RvkCanvas* canvas, const RendSettingsComp* settings, const u64 tick, const RvkSize size) {
+    RvkCanvas* canvas, const RendSettingsComp* settings, const u64 frameIdx, const RvkSize size) {
   diag_assert_msg(!(canvas->flags & RvkCanvasFlags_Active), "Canvas already active");
 
   RvkCanvasFrame* frame = &canvas->frames[canvas->jobIdx];
   diag_assert(rvk_job_is_done(frame->job));
 
-  frame->tick         = tick;
+  frame->frameIdx     = frameIdx;
   frame->swapchainIdx = sentinel_u32;
 
   if (!rvk_swapchain_prepare(canvas->swapchain, settings, size)) {

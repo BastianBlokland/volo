@@ -84,12 +84,16 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
 
   ecs_world_flush(world); // Flush any entity / component additions made during the init.
 
+  u64 frameIdx = 0;
   do {
-    trace_begin_msg("app_tick", TraceColor_Blue, "tick-{}", fmt_int(app_ecs_query_tick(world)));
+    trace_begin_msg("app_frame", TraceColor_Blue, "frame-{}", fmt_int(frameIdx));
 
+    app_ecs_set_frame(world, frameIdx);
     ecs_run_sync(runner);
 
     trace_end();
+
+    ++frameIdx;
   } while (!app_ecs_query_quit(world));
 
   ecs_runner_destroy(runner);

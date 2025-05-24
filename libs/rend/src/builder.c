@@ -90,13 +90,13 @@ bool rend_builder_canvas_push(
     RendBuilder*            b,
     RvkCanvas*              canvas,
     const RendSettingsComp* settings,
-    const u64               tick,
+    const u64               frameIdx,
     const RvkSize           windowSize) {
   diag_assert_msg(!b->canvas, "RendBuilder: Canvas already active");
 
   trace_begin("rend_builder_canvas", TraceColor_Red);
 
-  if (!rvk_canvas_begin(canvas, settings, tick, windowSize)) {
+  if (!rvk_canvas_begin(canvas, settings, frameIdx, windowSize)) {
     trace_end();
     return false; // Canvas not ready for rendering.
   }

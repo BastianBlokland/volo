@@ -33,5 +33,10 @@ void app_ecs_init(EcsWorld*, const CliInvocation*);
  * Query application state.
  * NOTE: Runs outside of the Ecs update loop so any view can be used to observe the state.
  */
-u64  app_ecs_query_tick(EcsWorld*);
 bool app_ecs_query_quit(EcsWorld*);
+
+/**
+ * Set application state.
+ * NOTE: Runs outside of the Ecs update loop so any view can be used to observe the state.
+ */
+void app_ecs_set_frame(EcsWorld*, u64 frameIdx);

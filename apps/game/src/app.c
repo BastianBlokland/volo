@@ -433,7 +433,7 @@ static void app_action_bar_draw(UiCanvasComp* canvas, const AppActionContext* ct
   }
 }
 
-ecs_view_define(AppTimeView) { ecs_access_read(SceneTimeComp); }
+ecs_view_define(AppTimeView) { ecs_access_write(SceneTimeComp); }
 
 ecs_view_define(AppUpdateGlobalView) {
   ecs_access_write(AppComp);
@@ -676,9 +676,11 @@ void app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
   scene_product_init(world, string_lit("global/game.products"));
 }
 
-u64 app_ecs_query_tick(EcsWorld* world) {
-  const SceneTimeComp* time = ecs_utils_read_first_t(world, AppTimeView, SceneTimeComp);
-  return time ? time->ticks : sentinel_u64;
+void app_ecs_set_frame(EcsWorld* world, const u64 frameIdx) {
+  SceneTimeComp* time = ecs_utils_write_first_t(world, AppTimeView, SceneTimeComp);
+  if (LIKELY(time)) {
+    time->frameIdx = frameIdx;
+  }
 }
 
 bool app_ecs_query_quit(EcsWorld* world) { return !ecs_utils_any(world, MainWindowView); }
