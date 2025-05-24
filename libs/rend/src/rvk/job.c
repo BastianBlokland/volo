@@ -212,6 +212,9 @@ bool rvk_job_calibrated_timestamps(const RvkJob* job) {
 void rvk_job_stats(const RvkJob* job, RvkJobStats* out) {
   diag_assert(rvk_job_is_done(job));
 
+  out->gpuTimeBegin = rvk_stopwatch_query(job->stopwatch, job->gpuTimeBegin);
+  out->gpuTimeEnd   = rvk_stopwatch_query(job->stopwatch, job->gpuTimeEnd);
+
   out->cpuWaitDur = job->cpuWaitDur;
   out->gpuWaitDur = rvk_job_stopwatch_duration(job, job->gpuWaitBegin, job->gpuWaitEnd);
   out->gpuExecDur = rvk_job_stopwatch_duration(job, job->gpuTimeBegin, job->gpuTimeEnd);
