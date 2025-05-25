@@ -50,7 +50,7 @@ static bool rvk_stopwatch_can_calibrate(RvkStopwatch* sw) {
   u32             supportedDomainCount = array_elems(supportedDomains);
   rvk_call_checked(
       sw->dev->lib,
-      getPhysicalDeviceCalibrateableTimeDomainsKHR,
+      getPhysicalDeviceCalibrateableTimeDomainsEXT,
       sw->dev->vkPhysDev,
       &supportedDomainCount,
       supportedDomains);
@@ -91,7 +91,7 @@ static void rvk_stopwatch_calibrate(RvkStopwatch* sw) {
 Retry:
   rvk_call_checked(
       sw->dev,
-      getCalibratedTimestampsKHR,
+      getCalibratedTimestampsEXT,
       sw->dev->vkDev,
       array_elems(timestamps),
       timestampInfos,
