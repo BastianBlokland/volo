@@ -312,6 +312,7 @@ typedef enum {
 } VkGenInterfaceCat;
 
 typedef struct {
+  String            name; // Allocated in the schema document.
   VkGenInterfaceCat cat;
   u32               cmdIndex;
 } VkGenInterface;
@@ -846,7 +847,8 @@ static void vkgen_collect_required_interfaces(
       if (xml_name_hash(ctx->schemaDoc, entry) != g_hash_command) {
         continue; // Not a command element.
       }
-      const StringHash cmdKey   = xml_attr_get_hash(ctx->schemaDoc, entry, g_hash_name);
+      const String     name     = xml_attr_get(ctx->schemaDoc, entry, g_hash_name);
+      const StringHash cmdKey   = string_hash(name);
       const StringHash cmdAlias = vkgen_alias_find(ctx, cmdKey);
       const u32        cmdIndex = vkgen_command_find(ctx, cmdAlias ? cmdAlias : cmdKey);
       if (sentinel_check(cmdIndex)) {
@@ -878,6 +880,7 @@ static void vkgen_collect_required_interfaces(
       }
 
       *dynarray_push_t(&ctx->interfaces, VkGenInterface) = (VkGenInterface){
+          .name     = name,
           .cat      = cat,
           .cmdIndex = cmdIndex,
       };
@@ -1341,7 +1344,7 @@ static bool vkgen_write_interface(VkGenContext* ctx, const VkGenInterfaceCat cat
     }
     const VkGenCommand* cmd = vkgen_command_get(ctx, interface->cmdIndex);
 
-    String varName = cmd->name;
+    String varName = interface->name;
     if (string_starts_with(varName, string_lit("vk")) && varName.size >= 3) {
       varName = fmt_write_scratch(
           "{}{}",
@@ -1452,7 +1455,7 @@ static void vkgen_write_interface_load_def(VkGenContext* ctx, const VkGenInterfa
     if (cmd->key == instGetProcAddrHash) {
       continue; // Needs special handling to load directly from the library.
     }
-    String varName = cmd->name;
+    String varName = interface->name;
     if (string_starts_with(varName, string_lit("vk")) && varName.size >= 3) {
       varName = fmt_write_scratch(
           "{}{}",

@@ -996,9 +996,9 @@ VkResult vkLoadDevice(VkDevice dev, const VkInterfaceInstance* src, VkInterfaceD
   out->updateDescriptorSetWithTemplate = (Symbol)src->getDeviceProcAddr(dev, "vkUpdateDescriptorSetWithTemplate");
   out->getDescriptorSetLayoutSupport = (Symbol)src->getDeviceProcAddr(dev, "vkGetDescriptorSetLayoutSupport");
   out->getCalibratedTimestampsKHR = (Symbol)src->getDeviceProcAddr(dev, "vkGetCalibratedTimestampsKHR");
-  out->getDeviceBufferMemoryRequirements = (Symbol)src->getDeviceProcAddr(dev, "vkGetDeviceBufferMemoryRequirements");
-  out->getDeviceImageMemoryRequirements = (Symbol)src->getDeviceProcAddr(dev, "vkGetDeviceImageMemoryRequirements");
-  out->getDeviceImageSparseMemoryRequirements = (Symbol)src->getDeviceProcAddr(dev, "vkGetDeviceImageSparseMemoryRequirements");
+  out->getDeviceBufferMemoryRequirementsKHR = (Symbol)src->getDeviceProcAddr(dev, "vkGetDeviceBufferMemoryRequirements");
+  out->getDeviceImageMemoryRequirementsKHR = (Symbol)src->getDeviceProcAddr(dev, "vkGetDeviceImageMemoryRequirements");
+  out->getDeviceImageSparseMemoryRequirementsKHR = (Symbol)src->getDeviceProcAddr(dev, "vkGetDeviceImageSparseMemoryRequirements");
   out->getPipelineExecutablePropertiesKHR = (Symbol)src->getDeviceProcAddr(dev, "vkGetPipelineExecutablePropertiesKHR");
   out->getPipelineExecutableStatisticsKHR = (Symbol)src->getDeviceProcAddr(dev, "vkGetPipelineExecutableStatisticsKHR");
   out->getPipelineExecutableInternalRepresentationsKHR = (Symbol)src->getDeviceProcAddr(dev, "vkGetPipelineExecutableInternalRepresentationsKHR");
