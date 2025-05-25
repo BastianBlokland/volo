@@ -9,6 +9,7 @@
 #include <immintrin.h>
 
 #ifdef VOLO_MSVC
+#include <Windows.h>
 #include <intrin.h>
 #endif
 
@@ -166,8 +167,8 @@ void thread_spinlock_lock(ThreadSpinLock* lock) {
       _mm_pause();
     }
   }
-#elif defined(VOLO_MSVC
-  while (InterlockedExchangeAcquire(lock, 1)) {
+#elif defined(VOLO_MSVC)
+  while (InterlockedExchangeAcquire((LONG volatile*)lock, 1)) {
     while (*lock) {
       _mm_pause();
     }
