@@ -421,9 +421,9 @@ static VkDevice rvk_device_create_internal(RvkLib* lib, RvkDevice* dev) {
     dev->flags |= RvkDeviceFlags_SupportDriverProperties;
     extsToEnable[extsToEnableCount++] = VK_KHR_driver_properties;
   }
-  if (rvk_has_ext(supportedExts, string_lit(VK_KHR_calibrated_timestamps))) {
+  if (rvk_has_ext(supportedExts, string_lit(VK_EXT_calibrated_timestamps))) {
     dev->flags |= RvkDeviceFlags_SupportCalibratedTimestamps;
-    extsToEnable[extsToEnableCount++] = VK_KHR_calibrated_timestamps;
+    extsToEnable[extsToEnableCount++] = VK_EXT_calibrated_timestamps;
   }
 
   const VkDeviceCreateInfo createInfo = {
