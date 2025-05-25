@@ -174,7 +174,7 @@ NO_INLINE_HINT static TraceBuffer* trace_buffer_add(
   return result;
 }
 
-static TraceBuffer* trace_thread_find(TraceSinkStore* s, const ThreadId tid) {
+INLINE_HINT static TraceBuffer* trace_thread_find(TraceSinkStore* s, const ThreadId tid) {
   for (u32 i = 0; i != s->bufferCount; ++i) {
     if (s->bufferThreadIds[i] == tid) {
       diag_assert(s->buffers[i]->type == TraceBufferType_Thread);
@@ -184,7 +184,7 @@ static TraceBuffer* trace_thread_find(TraceSinkStore* s, const ThreadId tid) {
   return null;
 }
 
-static TraceBuffer* trace_thread_register(TraceSinkStore* s, const ThreadId tid) {
+INLINE_HINT static TraceBuffer* trace_thread_register(TraceSinkStore* s, const ThreadId tid) {
   TraceBuffer* result = trace_thread_find(s, tid);
   if (LIKELY(result)) {
     return result;
@@ -212,11 +212,11 @@ static TraceBuffer* trace_custom_register(TraceSinkStore* s, const String name) 
   return trace_buffer_add(s, TraceBufferType_Custom, 0 /* tid */, name);
 }
 
-static void trace_buffer_advance(TraceBuffer* b) {
+INLINE_HINT static void trace_buffer_advance(TraceBuffer* b) {
   b->eventCursor = (b->eventCursor + 1) & (trace_store_buffer_events - 1);
 }
 
-static void trace_buffer_begin(
+INLINE_HINT static void trace_buffer_begin(
     TraceBuffer*     b,
     const u8         id,
     const TraceColor color,
