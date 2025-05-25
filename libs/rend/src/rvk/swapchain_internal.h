@@ -24,6 +24,7 @@ void          rvk_swapchain_stats(const RvkSwapchain*, RvkSwapchainStats*);
 RvkSize       rvk_swapchain_size(const RvkSwapchain*);
 void          rvk_swapchain_invalidate(RvkSwapchain*);
 RvkImage*     rvk_swapchain_image(RvkSwapchain*, RvkSwapchainIdx);
+VkSemaphore   rvk_swapchain_semaphore(RvkSwapchain*, RvkSwapchainIdx);
 
 /**
  * Prepare the swapchain to be acquired.
@@ -39,9 +40,9 @@ RvkSwapchainIdx rvk_swapchain_acquire(RvkSwapchain*, VkSemaphore);
 
 /**
  * Enqueue an image to be presented to the surface.
- * Image is presented when the provided semaphore is signaled.
+ * Image is presented when the 'rvk_swapchain_semaphore(idx)' is signaled.
  */
-bool rvk_swapchain_enqueue_present(RvkSwapchain*, VkSemaphore, RvkSwapchainIdx);
+bool rvk_swapchain_enqueue_present(RvkSwapchain*, RvkSwapchainIdx);
 
 /**
  * Wait for a previously enqueued presentation to be shown to the user.
