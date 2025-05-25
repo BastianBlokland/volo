@@ -9,8 +9,11 @@
 #include <immintrin.h>
 
 #ifdef VOLO_MSVC
+#include <Windows.h>
 #include <intrin.h>
 #endif
+
+#define VOLO_THREAD_X86
 
 typedef struct {
   String         threadName;
@@ -155,10 +158,35 @@ void thread_sleep(const TimeDuration duration) { thread_pal_sleep(duration); }
 
 bool thread_exists(const ThreadId tid) { return thread_pal_exists(tid); }
 
+#if defined(VOLO_THREAD_X86)
+
+void thread_spinlock_lock(ThreadSpinLock* lock) {
+#if defined(VOLO_GCC) || defined(VOLO_CLANG)
+  while (__atomic_exchange_n(lock, 1, __ATOMIC_ACQUIRE)) {
+    while (*lock) {
+      _mm_pause();
+    }
+  }
+#elif defined(VOLO_MSVC)
+  while (InterlockedExchangeAcquire((LONG volatile*)lock, 1)) {
+    while (*lock) {
+      _mm_pause();
+    }
+  }
+#else
+#error Unsupported compiler
+#endif
+}
+
+void thread_spinlock_unlock(ThreadSpinLock* lock) {
+  COMPILER_BARRIER();
+  *lock = 0;
+}
+
+#else // !VOLO_THREAD_X86
+
 void thread_spinlock_lock(ThreadSpinLock* lock) {
   /**
-   * Naive implementation of a general-purpose spin-lock using atomic operations.
-   *
    * Includes a general memory barrier that synchronizes with 'thread_spinlock_unlock' because both
    * write to the same memory with sequentially-consistent ordering semantics.
    */
@@ -176,3 +204,5 @@ void thread_spinlock_unlock(ThreadSpinLock* lock) {
    */
   thread_atomic_store_i32(lock, 0);
 }
+
+#endif // !VOLO_THREAD_X86

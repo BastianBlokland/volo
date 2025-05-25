@@ -267,9 +267,11 @@ void rvk_canvas_phase_output(RvkCanvas* canvas) {
   if (rvk_job_phase(frame->job) == RvkJobPhase_Output) {
     return;
   }
+  trace_begin("rend_submit", TraceColor_Blue);
   rvk_job_advance(frame->job); // Submit the previous phase.
+  trace_end();
 
-  trace_begin("rend_swapchain_acquire", TraceColor_White);
+  trace_begin("rend_swapchain_acquire", TraceColor_Blue);
   frame->swapchainIdx = rvk_swapchain_acquire(canvas->swapchain, frame->outputAvailable);
   trace_end();
 }
@@ -334,7 +336,7 @@ void rvk_canvas_end(RvkCanvas* canvas) {
     rvk_job_img_transition(frame->job, swapchainImage, RvkImagePhase_Present);
   }
 
-  trace_begin("rend_submit", TraceColor_White);
+  trace_begin("rend_submit", TraceColor_Blue);
   if (hasSwapchain) {
     const VkSemaphore waitSignal   = frame->outputAvailable;
     const VkSemaphore endSignals[] = {
@@ -347,7 +349,7 @@ void rvk_canvas_end(RvkCanvas* canvas) {
   trace_end();
 
   if (hasSwapchain) {
-    trace_begin("rend_present_enqueue", TraceColor_White);
+    trace_begin("rend_present_enqueue", TraceColor_Blue);
     rvk_swapchain_enqueue_present(canvas->swapchain, frame->swapchainIdx);
     trace_end();
   }
