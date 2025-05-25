@@ -769,6 +769,7 @@ static void vkgen_collect_features(VkGenContext* ctx) {
 static void vkgen_collect_extensions(VkGenContext* ctx) {
   mem_set(array_mem(ctx->extensionNodes), 0xFF);
 
+  // Collect all enum extensions.
   const XmlNode extensionsNode = xml_child_get(ctx->schemaDoc, ctx->schemaRoot, g_hash_extensions);
   xml_for_children(ctx->schemaDoc, extensionsNode, child) {
     if (xml_name_hash(ctx->schemaDoc, child) != g_hash_extension) {
@@ -782,7 +783,17 @@ static void vkgen_collect_extensions(VkGenContext* ctx) {
       continue;
     }
     vkgen_collect_enum_extensions(ctx, child, vkgen_to_int(numberStr));
+  }
 
+  // Mark the required enum extensions.
+  // NOTE: Split into two passes to support extensions that are aliases to later extensions.
+  xml_for_children(ctx->schemaDoc, extensionsNode, child) {
+    if (xml_name_hash(ctx->schemaDoc, child) != g_hash_extension) {
+      continue; // Not an extension.
+    }
+    if (!vkgen_is_supported(ctx, child)) {
+      continue; // Not supported.
+    }
     const StringHash nameHash = xml_attr_get_hash(ctx->schemaDoc, child, g_hash_name);
     const u32        extIndex = vkgen_ext_find(nameHash);
     if (!sentinel_check(extIndex)) {
@@ -790,6 +801,7 @@ static void vkgen_collect_extensions(VkGenContext* ctx) {
       vkgen_collect_enum_extensions_required(ctx, child);
     }
   }
+
   log_i("Collected extensions");
 }
 
