@@ -41,7 +41,7 @@
 #define VK_EXT_memory_budget "VK_EXT_memory_budget"
 #define VK_EXT_robustness2 "VK_EXT_robustness2"
 #define VK_EXT_validation_features "VK_EXT_validation_features"
-#define VK_KHR_calibrated_timestamps "VK_KHR_calibrated_timestamps"
+#define VK_EXT_calibrated_timestamps "VK_EXT_calibrated_timestamps"
 #define VK_KHR_driver_properties "VK_KHR_driver_properties"
 #define VK_KHR_maintenance4 "VK_KHR_maintenance4"
 #define VK_KHR_pipeline_executable_properties "VK_KHR_pipeline_executable_properties"
@@ -3451,7 +3451,7 @@ typedef struct VkInterfaceInstance {
   VkResult (SYS_DECL* createDebugUtilsMessengerEXT)(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pMessenger);
   void (SYS_DECL* destroyDebugUtilsMessengerEXT)(VkInstance instance, VkDebugUtilsMessengerEXT messenger, const VkAllocationCallbacks* pAllocator);
   void (SYS_DECL* submitDebugUtilsMessageEXT)(VkInstance instance, VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageTypes, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData);
-  VkResult (SYS_DECL* getPhysicalDeviceCalibrateableTimeDomainsKHR)(VkPhysicalDevice physicalDevice, u32* pTimeDomainCount, VkTimeDomainKHR* pTimeDomains);
+  VkResult (SYS_DECL* getPhysicalDeviceCalibrateableTimeDomainsEXT)(VkPhysicalDevice physicalDevice, u32* pTimeDomainCount, VkTimeDomainKHR* pTimeDomains);
   void (SYS_DECL* destroySurfaceKHR)(VkInstance instance, VkSurfaceKHR surface, const VkAllocationCallbacks* pAllocator);
   VkResult (SYS_DECL* getPhysicalDeviceSurfaceSupportKHR)(VkPhysicalDevice physicalDevice, u32 queueFamilyIndex, VkSurfaceKHR surface, VkBool32* pSupported);
   VkResult (SYS_DECL* getPhysicalDeviceSurfaceCapabilitiesKHR)(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, VkSurfaceCapabilitiesKHR* pSurfaceCapabilities);
@@ -3603,7 +3603,7 @@ typedef struct VkInterfaceDevice {
   void (SYS_DECL* destroyDescriptorUpdateTemplate)(VkDevice device, VkDescriptorUpdateTemplate descriptorUpdateTemplate, const VkAllocationCallbacks* pAllocator);
   void (SYS_DECL* updateDescriptorSetWithTemplate)(VkDevice device, VkDescriptorSet descriptorSet, VkDescriptorUpdateTemplate descriptorUpdateTemplate, const void* pData);
   void (SYS_DECL* getDescriptorSetLayoutSupport)(VkDevice device, const VkDescriptorSetLayoutCreateInfo* pCreateInfo, VkDescriptorSetLayoutSupport* pSupport);
-  VkResult (SYS_DECL* getCalibratedTimestampsKHR)(VkDevice device, u32 timestampCount, const VkCalibratedTimestampInfoKHR* pTimestampInfos, u64* pTimestamps, u64* pMaxDeviation);
+  VkResult (SYS_DECL* getCalibratedTimestampsEXT)(VkDevice device, u32 timestampCount, const VkCalibratedTimestampInfoKHR* pTimestampInfos, u64* pTimestamps, u64* pMaxDeviation);
   void (SYS_DECL* getDeviceBufferMemoryRequirementsKHR)(VkDevice device, const VkDeviceBufferMemoryRequirements* pInfo, VkMemoryRequirements2* pMemoryRequirements);
   void (SYS_DECL* getDeviceImageMemoryRequirementsKHR)(VkDevice device, const VkDeviceImageMemoryRequirements* pInfo, VkMemoryRequirements2* pMemoryRequirements);
   void (SYS_DECL* getDeviceImageSparseMemoryRequirementsKHR)(VkDevice device, const VkDeviceImageMemoryRequirements* pInfo, u32* pSparseMemoryRequirementCount, VkSparseImageMemoryRequirements2* pSparseMemoryRequirements);
