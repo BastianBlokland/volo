@@ -593,8 +593,7 @@ static void vkgen_collect_enums(VkGenContext* ctx) {
       log_param("entries", fmt_int(ctx->enumEntries.size)));
 }
 
-static void vkgen_collect_enum_extensions(
-    VkGenContext* ctx, const XmlNode node, i64 extNumber, const bool optional) {
+static void vkgen_collect_enum_extensions(VkGenContext* ctx, const XmlNode node, i64 extNumber) {
   xml_for_children(ctx->schemaDoc, node, child) {
     if (xml_name_hash(ctx->schemaDoc, child) != g_hash_require) {
       continue; // Not a require element.
@@ -609,24 +608,11 @@ static void vkgen_collect_enum_extensions(
       if (!enumKey || string_is_empty(name)) {
         continue; // Enum or name missing.
       }
-      const String aliasName = xml_attr_get(ctx->schemaDoc, entry, g_hash_alias);
-      if (!string_is_empty(aliasName)) {
-        VkGenEnumEntries existingEntries = vkgen_enum_entries_find(ctx, enumKey);
-        for (VkGenEnumEntry* itr = existingEntries.begin; itr != existingEntries.end; ++itr) {
-          if (string_eq(itr->name, aliasName)) {
-            itr->optional = false;
-            goto AliasResolved;
-          }
-        }
-        log_w("Unable to resolve enum alias", log_param("name", fmt_text(aliasName)));
-      AliasResolved:
-        continue;
-      }
       const String bitPosStr = xml_attr_get(ctx->schemaDoc, entry, g_hash_bitpos);
       if (!string_is_empty(bitPosStr)) {
         const VkGenEnumEntry entryRes = {
             .key      = enumKey,
-            .optional = optional,
+            .optional = true,
             .name     = name,
             .value    = u64_lit(1) << vkgen_to_int(bitPosStr),
         };
@@ -638,7 +624,7 @@ static void vkgen_collect_enum_extensions(
       if (!string_is_empty(valueStr)) {
         const VkGenEnumEntry entryRes = {
             .key      = enumKey,
-            .optional = optional,
+            .optional = true,
             .name     = name,
             .value    = vkgen_to_int(valueStr) * (invert ? -1 : 1),
         };
@@ -658,13 +644,45 @@ static void vkgen_collect_enum_extensions(
         const i64            value = 1000000000 + (extNumber - 1) * 1000 + vkgen_to_int(offsetStr);
         const VkGenEnumEntry entryRes = {
             .key      = enumKey,
-            .optional = optional,
+            .optional = true,
             .name     = name,
             .value    = value * (invert ? -1 : 1),
         };
         vkgen_enum_entry_push(ctx, entryRes);
         continue;
       }
+    }
+  }
+}
+
+static void vkgen_collect_enum_extensions_required(VkGenContext* ctx, const XmlNode node) {
+  xml_for_children(ctx->schemaDoc, node, child) {
+    if (xml_name_hash(ctx->schemaDoc, child) != g_hash_require) {
+      continue; // Not a require element.
+    }
+    xml_for_children(ctx->schemaDoc, child, entry) {
+      const StringHash entryNameHash = xml_name_hash(ctx->schemaDoc, entry);
+      if (entryNameHash != g_hash_enum) {
+        continue; // Not an enum.
+      }
+      const StringHash enumKey = xml_attr_get_hash(ctx->schemaDoc, entry, g_hash_extends);
+      String           name    = xml_attr_get(ctx->schemaDoc, entry, g_hash_name);
+      if (!enumKey || string_is_empty(name)) {
+        continue; // Enum or name missing.
+      }
+      const String aliasName = xml_attr_get(ctx->schemaDoc, entry, g_hash_alias);
+      if (!string_is_empty(aliasName)) {
+        name = aliasName;
+      }
+      VkGenEnumEntries entries = vkgen_enum_entries_find(ctx, enumKey);
+      for (VkGenEnumEntry* itr = entries.begin; itr != entries.end; ++itr) {
+        if (string_eq(itr->name, name)) {
+          itr->optional = false;
+          goto Resolved;
+        }
+      }
+      log_w("Unable to resolve enum", log_param("name", fmt_text(name)));
+    Resolved:;
     }
   }
 }
@@ -736,13 +754,14 @@ static void vkgen_collect_features(VkGenContext* ctx) {
     if (!vkgen_is_supported_api(ctx, child)) {
       continue; // Not supported.
     }
+    vkgen_collect_enum_extensions(ctx, child, -1);
+
     const StringHash nameHash  = xml_attr_get_hash(ctx->schemaDoc, child, g_hash_name);
     const u32        featIndex = vkgen_feat_find(nameHash);
-    const bool       optional  = sentinel_check(featIndex);
-    if (!optional) {
+    if (!sentinel_check(featIndex)) {
       ctx->featureNodes[featIndex] = child;
+      vkgen_collect_enum_extensions_required(ctx, child);
     }
-    vkgen_collect_enum_extensions(ctx, child, -1, optional);
   }
   log_i("Collected features");
 }
@@ -758,17 +777,18 @@ static void vkgen_collect_extensions(VkGenContext* ctx) {
     if (!vkgen_is_supported(ctx, child)) {
       continue; // Not supported.
     }
-    const StringHash nameHash = xml_attr_get_hash(ctx->schemaDoc, child, g_hash_name);
-    const u32        extIndex = vkgen_ext_find(nameHash);
-    if (sentinel_check(extIndex)) {
-      continue; // Not a required extension.
-    }
     const String numberStr = xml_attr_get(ctx->schemaDoc, child, g_hash_number);
     if (string_is_empty(numberStr)) {
       continue;
     }
-    vkgen_collect_enum_extensions(ctx, child, vkgen_to_int(numberStr), false /* optional */);
-    ctx->extensionNodes[extIndex] = child;
+    vkgen_collect_enum_extensions(ctx, child, vkgen_to_int(numberStr));
+
+    const StringHash nameHash = xml_attr_get_hash(ctx->schemaDoc, child, g_hash_name);
+    const u32        extIndex = vkgen_ext_find(nameHash);
+    if (!sentinel_check(extIndex)) {
+      ctx->extensionNodes[extIndex] = child;
+      vkgen_collect_enum_extensions_required(ctx, child);
+    }
   }
   log_i("Collected extensions");
 }
@@ -1596,7 +1616,7 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
       .constants    = dynarray_create_t(g_allocHeap, VkGenConstant, 64),
       .types        = dynarray_create_t(g_allocHeap, VkGenType, 4096),
       .typesWritten = dynbitset_create(g_allocHeap, 4096),
-      .enumEntries  = dynarray_create_t(g_allocHeap, VkGenEnumEntry, 2048),
+      .enumEntries  = dynarray_create_t(g_allocHeap, VkGenEnumEntry, 4096),
       .commands     = dynarray_create_t(g_allocHeap, VkGenCommand, 1024),
       .interfaces   = dynarray_create_t(g_allocHeap, VkGenInterface, 512),
       .formats      = dynarray_create_t(g_allocHeap, VkGenFormat, 512),
