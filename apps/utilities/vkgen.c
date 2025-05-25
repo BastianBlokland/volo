@@ -1468,7 +1468,7 @@ static void vkgen_write_interface_load_def(VkGenContext* ctx, const VkGenInterfa
         fmt_text(varName),
         fmt_text(loadFunc),
         fmt_text(dep),
-        fmt_text(cmd->name));
+        fmt_text(interface->name));
   }
 
   fmt_write(&ctx->out, "  return VK_SUCCESS;\n}\n\n", fmt_text(catName));

@@ -37,11 +37,11 @@
 
 #define VK_LAYER_KHRONOS_validation "VK_LAYER_KHRONOS_validation"
 
+#define VK_EXT_calibrated_timestamps "VK_EXT_calibrated_timestamps"
 #define VK_EXT_debug_utils "VK_EXT_debug_utils"
 #define VK_EXT_memory_budget "VK_EXT_memory_budget"
 #define VK_EXT_robustness2 "VK_EXT_robustness2"
 #define VK_EXT_validation_features "VK_EXT_validation_features"
-#define VK_EXT_calibrated_timestamps "VK_EXT_calibrated_timestamps"
 #define VK_KHR_driver_properties "VK_KHR_driver_properties"
 #define VK_KHR_maintenance4 "VK_KHR_maintenance4"
 #define VK_KHR_pipeline_executable_properties "VK_KHR_pipeline_executable_properties"
@@ -2939,6 +2939,19 @@ typedef struct VkPhysicalDeviceShaderDrawParametersFeatures {
 } VkPhysicalDeviceShaderDrawParametersFeatures;
 
 typedef enum {
+  VK_TIME_DOMAIN_DEVICE_KHR = 0,
+  VK_TIME_DOMAIN_CLOCK_MONOTONIC_KHR = 1,
+  VK_TIME_DOMAIN_CLOCK_MONOTONIC_RAW_KHR = 2,
+  VK_TIME_DOMAIN_QUERY_PERFORMANCE_COUNTER_KHR = 3,
+} VkTimeDomainKHR;
+
+typedef struct VkCalibratedTimestampInfoKHR {
+  VkStructureType sType;
+  const void* pNext;
+  VkTimeDomainKHR timeDomain;
+} VkCalibratedTimestampInfoKHR;
+
+typedef enum {
   VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT = 1,
   VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT = 16,
   VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT = 256,
@@ -3062,19 +3075,6 @@ typedef struct VkValidationFeaturesEXT {
   u32 disabledValidationFeatureCount;
   const VkValidationFeatureDisableEXT* pDisabledValidationFeatures;
 } VkValidationFeaturesEXT;
-
-typedef enum {
-  VK_TIME_DOMAIN_DEVICE_KHR = 0,
-  VK_TIME_DOMAIN_CLOCK_MONOTONIC_KHR = 1,
-  VK_TIME_DOMAIN_CLOCK_MONOTONIC_RAW_KHR = 2,
-  VK_TIME_DOMAIN_QUERY_PERFORMANCE_COUNTER_KHR = 3,
-} VkTimeDomainKHR;
-
-typedef struct VkCalibratedTimestampInfoKHR {
-  VkStructureType sType;
-  const void* pNext;
-  VkTimeDomainKHR timeDomain;
-} VkCalibratedTimestampInfoKHR;
 
 typedef enum {
   VK_DRIVER_ID_AMD_PROPRIETARY = 1,
@@ -3440,6 +3440,7 @@ typedef struct VkInterfaceInstance {
   void (SYS_DECL* getPhysicalDeviceExternalBufferProperties)(VkPhysicalDevice physicalDevice, const VkPhysicalDeviceExternalBufferInfo* pExternalBufferInfo, VkExternalBufferProperties* pExternalBufferProperties);
   void (SYS_DECL* getPhysicalDeviceExternalFenceProperties)(VkPhysicalDevice physicalDevice, const VkPhysicalDeviceExternalFenceInfo* pExternalFenceInfo, VkExternalFenceProperties* pExternalFenceProperties);
   void (SYS_DECL* getPhysicalDeviceExternalSemaphoreProperties)(VkPhysicalDevice physicalDevice, const VkPhysicalDeviceExternalSemaphoreInfo* pExternalSemaphoreInfo, VkExternalSemaphoreProperties* pExternalSemaphoreProperties);
+  VkResult (SYS_DECL* getPhysicalDeviceCalibrateableTimeDomainsEXT)(VkPhysicalDevice physicalDevice, u32* pTimeDomainCount, VkTimeDomainKHR* pTimeDomains);
   VkResult (SYS_DECL* setDebugUtilsObjectNameEXT)(VkDevice device, const VkDebugUtilsObjectNameInfoEXT* pNameInfo);
   VkResult (SYS_DECL* setDebugUtilsObjectTagEXT)(VkDevice device, const VkDebugUtilsObjectTagInfoEXT* pTagInfo);
   void (SYS_DECL* queueBeginDebugUtilsLabelEXT)(VkQueue queue, const VkDebugUtilsLabelEXT* pLabelInfo);
@@ -3451,7 +3452,6 @@ typedef struct VkInterfaceInstance {
   VkResult (SYS_DECL* createDebugUtilsMessengerEXT)(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pMessenger);
   void (SYS_DECL* destroyDebugUtilsMessengerEXT)(VkInstance instance, VkDebugUtilsMessengerEXT messenger, const VkAllocationCallbacks* pAllocator);
   void (SYS_DECL* submitDebugUtilsMessageEXT)(VkInstance instance, VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageTypes, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData);
-  VkResult (SYS_DECL* getPhysicalDeviceCalibrateableTimeDomainsEXT)(VkPhysicalDevice physicalDevice, u32* pTimeDomainCount, VkTimeDomainKHR* pTimeDomains);
   void (SYS_DECL* destroySurfaceKHR)(VkInstance instance, VkSurfaceKHR surface, const VkAllocationCallbacks* pAllocator);
   VkResult (SYS_DECL* getPhysicalDeviceSurfaceSupportKHR)(VkPhysicalDevice physicalDevice, u32 queueFamilyIndex, VkSurfaceKHR surface, VkBool32* pSupported);
   VkResult (SYS_DECL* getPhysicalDeviceSurfaceCapabilitiesKHR)(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, VkSurfaceCapabilitiesKHR* pSurfaceCapabilities);
