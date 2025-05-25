@@ -27,10 +27,22 @@ struct sRvkSwapchain {
   RvkSize            size;
   u32                imgCount;
   RvkImage           imgs[swapchain_images_max];
+  VkSemaphore        semaphores[swapchain_images_max]; // Semaphore to signal presentation.
 
   TimeDuration lastAcquireDur, lastPresentEnqueueDur, lastPresentWaitDur;
   u64          curPresentId; // NOTE: Present-id zero is unused.
 };
+
+static VkSemaphore rvk_semaphore_create(RvkDevice* dev) {
+  VkSemaphoreCreateInfo semaphoreInfo = {.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
+  VkSemaphore           result;
+  rvk_call_checked(dev, createSemaphore, dev->vkDev, &semaphoreInfo, &dev->vkAlloc, &result);
+  return result;
+}
+
+static void rvk_semaphore_destroy(RvkDevice* dev, const VkSemaphore sema) {
+  rvk_call(dev, destroySemaphore, dev->vkDev, sema, &dev->vkAlloc);
+}
 
 static RvkSize rvk_surface_clamp_size(RvkSize size, const VkSurfaceCapabilitiesKHR* vkCaps) {
   if (size.width < vkCaps->minImageExtent.width) {
@@ -217,6 +229,11 @@ static bool rvk_swapchain_init(RvkSwapchain* swap, const RendSettingsComp* setti
   for (u32 i = 0; i != swap->imgCount; ++i) {
     swap->imgs[i] = rvk_image_create_swapchain(swap->dev, vkImgs[i], format, size);
     rvk_debug_name_img(swap->dev, vkImgs[i], "swapchain_{}", fmt_int(i));
+
+    if (!swap->semaphores[i]) {
+      swap->semaphores[i] = rvk_semaphore_create(swap->dev);
+      rvk_debug_name_semaphore(swap->dev, swap->semaphores[i], "swapchain_{}", fmt_int(i));
+    }
   }
 
   swap->flags &= ~RvkSwapchainFlags_OutOfDate;
@@ -263,6 +280,7 @@ RvkSwapchain* rvk_swapchain_create(RvkLib* lib, RvkDevice* dev, const GapWindowC
 void rvk_swapchain_destroy(RvkSwapchain* swap) {
   for (u32 i = 0; i != swap->imgCount; ++i) {
     rvk_image_destroy(&swap->imgs[i], swap->dev);
+    rvk_semaphore_destroy(swap->dev, swap->semaphores[i]);
   }
   if (swap->vkSwap) {
     rvk_call(swap->dev, destroySwapchainKHR, swap->dev->vkDev, swap->vkSwap, &swap->dev->vkAlloc);
@@ -289,6 +307,11 @@ void rvk_swapchain_invalidate(RvkSwapchain* swap) { swap->flags |= RvkSwapchainF
 RvkImage* rvk_swapchain_image(RvkSwapchain* swap, const RvkSwapchainIdx idx) {
   diag_assert_msg(idx < swap->imgCount, "Swapchain index {} is out of bounds", fmt_int(idx));
   return &swap->imgs[idx];
+}
+
+VkSemaphore rvk_swapchain_semaphore(RvkSwapchain* swap, const RvkSwapchainIdx idx) {
+  diag_assert_msg(idx < swap->imgCount, "Swapchain index {} is out of bounds", fmt_int(idx));
+  return swap->semaphores[idx];
 }
 
 bool rvk_swapchain_prepare(
@@ -349,8 +372,7 @@ RvkSwapchainIdx rvk_swapchain_acquire(RvkSwapchain* swap, VkSemaphore available)
   }
 }
 
-bool rvk_swapchain_enqueue_present(
-    RvkSwapchain* swap, VkSemaphore ready, const RvkSwapchainIdx idx) {
+bool rvk_swapchain_enqueue_present(RvkSwapchain* swap, const RvkSwapchainIdx idx) {
   RvkImage* image = rvk_swapchain_image(swap, idx);
   rvk_image_assert_phase(image, RvkImagePhase_Present);
 
@@ -372,7 +394,7 @@ bool rvk_swapchain_enqueue_present(
       .sType              = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
       .pNext              = nextPresentData,
       .waitSemaphoreCount = 1,
-      .pWaitSemaphores    = &ready,
+      .pWaitSemaphores    = &swap->semaphores[idx],
       .swapchainCount     = 1,
       .pSwapchains        = &swap->vkSwap,
       .pImageIndices      = &idx,

@@ -29,7 +29,7 @@ typedef enum {
 typedef struct {
   RvkJob*         job;
   u64             frameIdx;
-  VkSemaphore     swapchainAvailable, swapchainPresent;
+  VkSemaphore     outputAvailable;
   RvkSwapchainIdx swapchainIdx;      // sentinel_u32 when not acquired yet or failed to acquire.
   RvkImage*       swapchainFallback; // Only used when the preferred format is not available.
   RvkPass*        passes[rvk_canvas_max_passes];
@@ -67,15 +67,13 @@ RvkCanvas* rvk_canvas_create(RvkLib* lib, RvkDevice* dev, const GapWindowComp* w
     RvkCanvasFrame* frame = &canvas->frames[i];
 
     *frame = (RvkCanvasFrame){
-        .job                = rvk_job_create(dev, i),
-        .swapchainAvailable = rvk_semaphore_create(dev),
-        .swapchainPresent   = rvk_semaphore_create(dev),
-        .swapchainIdx       = sentinel_u32,
+        .job             = rvk_job_create(dev, i),
+        .outputAvailable = rvk_semaphore_create(dev),
+        .swapchainIdx    = sentinel_u32,
     };
     mem_set(array_mem(frame->passFrames), 0xFF);
 
-    rvk_debug_name_semaphore(dev, frame->swapchainAvailable, "swapchainAvailable_{}", fmt_int(i));
-    rvk_debug_name_semaphore(dev, frame->swapchainPresent, "swapchainPresent_{}", fmt_int(i));
+    rvk_debug_name_semaphore(dev, frame->outputAvailable, "canvas_output_{}", fmt_int(i));
   }
 
   log_d(
@@ -90,8 +88,7 @@ void rvk_canvas_destroy(RvkCanvas* canvas) {
 
   array_for_t(canvas->frames, RvkCanvasFrame, frame) {
     rvk_job_destroy(frame->job);
-    rvk_semaphore_destroy(canvas->dev, frame->swapchainAvailable);
-    rvk_semaphore_destroy(canvas->dev, frame->swapchainPresent);
+    rvk_semaphore_destroy(canvas->dev, frame->outputAvailable);
   }
 
   rvk_swapchain_destroy(canvas->swapchain);
@@ -273,7 +270,7 @@ void rvk_canvas_phase_output(RvkCanvas* canvas) {
   rvk_job_advance(frame->job); // Submit the previous phase.
 
   trace_begin("rend_swapchain_acquire", TraceColor_White);
-  frame->swapchainIdx = rvk_swapchain_acquire(canvas->swapchain, frame->swapchainAvailable);
+  frame->swapchainIdx = rvk_swapchain_acquire(canvas->swapchain, frame->outputAvailable);
   trace_end();
 }
 
@@ -339,8 +336,10 @@ void rvk_canvas_end(RvkCanvas* canvas) {
 
   trace_begin("rend_submit", TraceColor_White);
   if (hasSwapchain) {
-    const VkSemaphore waitSignal   = frame->swapchainAvailable;
-    const VkSemaphore endSignals[] = {frame->swapchainPresent /* Trigger the present. */};
+    const VkSemaphore waitSignal   = frame->outputAvailable;
+    const VkSemaphore endSignals[] = {
+        rvk_swapchain_semaphore(canvas->swapchain, frame->swapchainIdx), // Trigger present.
+    };
     rvk_job_end(frame->job, waitSignal, endSignals, array_elems(endSignals));
   } else {
     rvk_job_end(frame->job, null, null, 0);
@@ -349,7 +348,7 @@ void rvk_canvas_end(RvkCanvas* canvas) {
 
   if (hasSwapchain) {
     trace_begin("rend_present_enqueue", TraceColor_White);
-    rvk_swapchain_enqueue_present(canvas->swapchain, frame->swapchainPresent, frame->swapchainIdx);
+    rvk_swapchain_enqueue_present(canvas->swapchain, frame->swapchainIdx);
     trace_end();
   }
 
