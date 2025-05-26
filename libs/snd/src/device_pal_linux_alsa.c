@@ -16,13 +16,10 @@
 /**
  * 'Advanced Linux Sound Architecture' (ALSA) PCM playback sound device (https://alsa-project.org/).
  * For debian based systems: apt install libasound2
- *
- * Use a simple double-buffering strategy where we use (at least) two periods, one playing on the
- * device and one being recorded.
  */
 
 #define snd_alsa_device_name "default"
-#define snd_alsa_period_desired_count 2
+#define snd_alsa_period_desired_count 3 /* triple buffering */
 #define snd_alsa_period_frames 2048
 #define snd_alsa_period_samples (snd_alsa_period_frames * SndChannel_Count)
 #define snd_alsa_period_time (snd_alsa_period_frames * time_second / snd_frame_rate)

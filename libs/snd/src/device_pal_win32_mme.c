@@ -14,12 +14,9 @@
 
 /**
  * Win32 Multimedia 'WaveOut' sound device implementation.
- *
- * Use a simple double-buffering strategy where we use two periods, one playing on the device and
- * one being recorded.
  */
 
-#define snd_mme_period_count 2
+#define snd_mme_period_count 3 /* triple buffering */
 #define snd_mme_period_frames 2048
 #define snd_mme_period_samples (snd_mme_period_frames * SndChannel_Count)
 #define snd_mme_period_time (snd_mme_period_frames * time_second / snd_frame_rate)
