@@ -3,10 +3,15 @@
 #include "core_diag.h"
 #include "core_thread.h"
 #include "log_logger.h"
+#include "trace_tracer.h"
 
 #include "device_internal.h"
 #include "lib_internal.h"
 #include "stopwatch_internal.h"
+
+#if defined(VOLO_WIN32)
+#include <Windows.h>
+#endif
 
 #if defined(VOLO_LINUX)
 #define rvk_timedomain_host VK_TIME_DOMAIN_CLOCK_MONOTONIC_KHR
@@ -17,9 +22,8 @@
 #endif
 
 #define rvk_stopwatch_timestamps_max 64
-#define rvk_stopwatch_calibration_max_deviation time_microseconds(50)
+#define rvk_stopwatch_calibration_max_deviation time_microseconds(100)
 #define rvk_stopwatch_calibration_max_tries 3
-#define rvk_stopwatch_calibration_timeout time_minutes(30)
 
 typedef enum {
   RvkStopwatch_Supported      = 1 << 0,
@@ -46,7 +50,7 @@ static bool rvk_stopwatch_can_calibrate(RvkStopwatch* sw) {
   u32             supportedDomainCount = array_elems(supportedDomains);
   rvk_call_checked(
       sw->dev->lib,
-      getPhysicalDeviceCalibrateableTimeDomainsKHR,
+      getPhysicalDeviceCalibrateableTimeDomainsEXT,
       sw->dev->vkPhysDev,
       &supportedDomainCount,
       supportedDomains);
@@ -87,7 +91,7 @@ static void rvk_stopwatch_calibrate(RvkStopwatch* sw) {
 Retry:
   rvk_call_checked(
       sw->dev,
-      getCalibratedTimestampsKHR,
+      getCalibratedTimestampsEXT,
       sw->dev->vkDev,
       array_elems(timestamps),
       timestampInfos,
@@ -107,8 +111,20 @@ Retry:
     return;
   }
 
-  sw->calibrationDevice = (TimeSteady)timestamps[0];
-  sw->calibrationHost   = (TimeSteady)timestamps[1];
+  const f64 devicePeriod = sw->dev->vkProperties.limits.timestampPeriod;
+  sw->calibrationDevice  = (TimeSteady)(timestamps[0] * devicePeriod);
+
+#if defined(VOLO_WIN32)
+  LARGE_INTEGER hostFreq;
+  if (LIKELY(QueryPerformanceFrequency(&hostFreq))) {
+    sw->calibrationHost = ((timestamps[1] * i64_lit(1000000) / hostFreq.QuadPart)) * i64_lit(1000);
+  } else {
+    sw->calibrationHost = (TimeSteady)timestamps[1];
+  }
+#else
+  sw->calibrationHost = (TimeSteady)timestamps[1];
+#endif
+
   sw->flags |= RvkStopwatch_HasCalibration;
 }
 
@@ -192,9 +208,11 @@ void rvk_stopwatch_reset(RvkStopwatch* sw, VkCommandBuffer vkCmdBuf) {
   sw->counter = 0;
   sw->flags &= ~RvkStopwatch_HasResults;
 
-  const TimeDuration calibrationAge = time_steady_clock() - sw->calibrationHost;
-  if (sw->flags & RvkStopwatch_CanCalibrate && calibrationAge > rvk_stopwatch_calibration_timeout) {
+  if (sw->flags & RvkStopwatch_CanCalibrate) {
+    // Calibration between host and device can drift quickly, hence we re-calibrate every frame.
+    trace_begin("rend_calibrate", TraceColor_Blue);
     rvk_stopwatch_calibrate(sw);
+    trace_end();
   }
 }
 
@@ -209,15 +227,14 @@ TimeSteady rvk_stopwatch_query(const RvkStopwatch* sw, const RvkStopwatchRecord 
     rvk_stopwatch_retrieve_results(swMutable);
   }
 
-  const f64 timestampPeriod = sw->dev->vkProperties.limits.timestampPeriod;
+  const f64  timestampPeriod = sw->dev->vkProperties.limits.timestampPeriod;
+  TimeSteady result          = (TimeSteady)(sw->results[record] * timestampPeriod);
 
   if (sw->flags & RvkStopwatch_HasCalibration) {
-    const TimeDuration offsetRaw = sw->results[record] - sw->calibrationDevice;
-    const TimeDuration offset    = (TimeDuration)(offsetRaw * timestampPeriod);
-    return sw->calibrationHost + offset;
+    result += sw->calibrationHost - sw->calibrationDevice;
   }
 
-  return (TimeSteady)(sw->results[record] * timestampPeriod);
+  return result;
 }
 
 RvkStopwatchRecord rvk_stopwatch_mark(RvkStopwatch* sw, VkCommandBuffer vkCmdBuf) {

@@ -28,7 +28,8 @@ typedef enum {
 
 typedef struct {
   RvkJob*         job;
-  VkSemaphore     swapchainAvailable, swapchainPresent;
+  u64             frameIdx;
+  VkSemaphore     outputAvailable;
   RvkSwapchainIdx swapchainIdx;      // sentinel_u32 when not acquired yet or failed to acquire.
   RvkImage*       swapchainFallback; // Only used when the preferred format is not available.
   RvkPass*        passes[rvk_canvas_max_passes];
@@ -66,15 +67,13 @@ RvkCanvas* rvk_canvas_create(RvkLib* lib, RvkDevice* dev, const GapWindowComp* w
     RvkCanvasFrame* frame = &canvas->frames[i];
 
     *frame = (RvkCanvasFrame){
-        .job                = rvk_job_create(dev, i),
-        .swapchainAvailable = rvk_semaphore_create(dev),
-        .swapchainPresent   = rvk_semaphore_create(dev),
-        .swapchainIdx       = sentinel_u32,
+        .job             = rvk_job_create(dev, i),
+        .outputAvailable = rvk_semaphore_create(dev),
+        .swapchainIdx    = sentinel_u32,
     };
     mem_set(array_mem(frame->passFrames), 0xFF);
 
-    rvk_debug_name_semaphore(dev, frame->swapchainAvailable, "swapchainAvailable_{}", fmt_int(i));
-    rvk_debug_name_semaphore(dev, frame->swapchainPresent, "swapchainPresent_{}", fmt_int(i));
+    rvk_debug_name_semaphore(dev, frame->outputAvailable, "canvas_output_{}", fmt_int(i));
   }
 
   log_d(
@@ -89,8 +88,7 @@ void rvk_canvas_destroy(RvkCanvas* canvas) {
 
   array_for_t(canvas->frames, RvkCanvasFrame, frame) {
     rvk_job_destroy(frame->job);
-    rvk_semaphore_destroy(canvas->dev, frame->swapchainAvailable);
-    rvk_semaphore_destroy(canvas->dev, frame->swapchainPresent);
+    rvk_semaphore_destroy(canvas->dev, frame->outputAvailable);
   }
 
   rvk_swapchain_destroy(canvas->swapchain);
@@ -174,7 +172,7 @@ void rvk_canvas_push_traces(const RvkCanvas* canvas) {
   const TimeDuration waitDur = time_steady_duration(jobStats.gpuWaitBegin, jobStats.gpuWaitEnd);
   const TimeDuration jobDur  = time_steady_duration(jobStats.gpuTimeBegin, jobStats.gpuTimeEnd);
 
-  trace_custom_begin_msg("gpu", "job", TraceColor_Blue, "job-{}", fmt_int(canvas->jobIdx));
+  trace_custom_begin_msg("gpu", "frame", TraceColor_Blue, "frame-{}", fmt_int(frame->frameIdx));
   {
     for (u32 passIdx = 0; passIdx != rvk_canvas_max_passes; ++passIdx) {
       const RvkPass* pass = frame->passes[passIdx];
@@ -199,12 +197,14 @@ void rvk_canvas_push_traces(const RvkCanvas* canvas) {
   trace_custom_end("gpu", jobStats.gpuTimeBegin, jobDur);
 }
 
-bool rvk_canvas_begin(RvkCanvas* canvas, const RendSettingsComp* settings, const RvkSize size) {
+bool rvk_canvas_begin(
+    RvkCanvas* canvas, const RendSettingsComp* settings, const u64 frameIdx, const RvkSize size) {
   diag_assert_msg(!(canvas->flags & RvkCanvasFlags_Active), "Canvas already active");
 
   RvkCanvasFrame* frame = &canvas->frames[canvas->jobIdx];
   diag_assert(rvk_job_is_done(frame->job));
 
+  frame->frameIdx     = frameIdx;
   frame->swapchainIdx = sentinel_u32;
 
   if (!rvk_swapchain_prepare(canvas->swapchain, settings, size)) {
@@ -267,10 +267,12 @@ void rvk_canvas_phase_output(RvkCanvas* canvas) {
   if (rvk_job_phase(frame->job) == RvkJobPhase_Output) {
     return;
   }
+  trace_begin("rend_submit", TraceColor_Blue);
   rvk_job_advance(frame->job); // Submit the previous phase.
+  trace_end();
 
-  trace_begin("rend_swapchain_acquire", TraceColor_White);
-  frame->swapchainIdx = rvk_swapchain_acquire(canvas->swapchain, frame->swapchainAvailable);
+  trace_begin("rend_swapchain_acquire", TraceColor_Blue);
+  frame->swapchainIdx = rvk_swapchain_acquire(canvas->swapchain, frame->outputAvailable);
   trace_end();
 }
 
@@ -334,10 +336,12 @@ void rvk_canvas_end(RvkCanvas* canvas) {
     rvk_job_img_transition(frame->job, swapchainImage, RvkImagePhase_Present);
   }
 
-  trace_begin("rend_submit", TraceColor_White);
+  trace_begin("rend_submit", TraceColor_Blue);
   if (hasSwapchain) {
-    const VkSemaphore waitSignal   = frame->swapchainAvailable;
-    const VkSemaphore endSignals[] = {frame->swapchainPresent /* Trigger the present. */};
+    const VkSemaphore waitSignal   = frame->outputAvailable;
+    const VkSemaphore endSignals[] = {
+        rvk_swapchain_semaphore(canvas->swapchain, frame->swapchainIdx), // Trigger present.
+    };
     rvk_job_end(frame->job, waitSignal, endSignals, array_elems(endSignals));
   } else {
     rvk_job_end(frame->job, null, null, 0);
@@ -345,8 +349,8 @@ void rvk_canvas_end(RvkCanvas* canvas) {
   trace_end();
 
   if (hasSwapchain) {
-    trace_begin("rend_present_enqueue", TraceColor_White);
-    rvk_swapchain_enqueue_present(canvas->swapchain, frame->swapchainPresent, frame->swapchainIdx);
+    trace_begin("rend_present_enqueue", TraceColor_Blue);
+    rvk_swapchain_enqueue_present(canvas->swapchain, frame->swapchainIdx);
     trace_end();
   }
 
@@ -367,7 +371,7 @@ bool rvk_canvas_wait_for_prev_present(const RvkCanvas* canvas) {
    * Wait for the previous frame to be rendered and presented.
    */
 
-  trace_begin("rend_wait_job", TraceColor_White);
+  trace_begin_msg("rend_wait_job", TraceColor_White, "rend_wait_{}", fmt_int(frame->frameIdx));
   rvk_job_wait_for_done(frame->job);
   trace_end();
 

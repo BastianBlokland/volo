@@ -493,9 +493,10 @@ static void trace_data_events_draw(
     ui_style_color_with_mult(c, trace_event_color(evt->color), barHovered ? 2.0f : 1.0f);
     ui_canvas_draw_glyph(c, UiShape_Square, 5, UiFlags_Interactable);
 
-    const String id  = trace_sink_store_id(sinkStore, evt->id);
-    const String msg = mem_create(evt->msgData, evt->msgLength);
     if (barHovered && panel->freeze) {
+      const String id  = trace_sink_store_id(sinkStore, evt->id);
+      const String msg = mem_create(evt->msgData, evt->msgLength);
+
       ui_canvas_interact_type(c, UiInteractType_Action);
       if (!panel->panAny && barStatus == UiStatus_Activated) {
         ui_canvas_sound(c, UiSoundType_Click);
@@ -518,6 +519,9 @@ static void trace_data_events_draw(
 
     static const f32 g_minWidthForLabel = 100.0f;
     if (fracWidth * bgRect.width > g_minWidthForLabel) {
+      const String id  = trace_sink_store_id(sinkStore, evt->id);
+      const String msg = mem_create(evt->msgData, evt->msgLength);
+
       ui_style_outline(c, 1);
       ui_style_color(c, ui_color_white);
       ui_canvas_draw_text(c, msg.size ? msg : id, 12, UiAlign_MiddleCenter, UiFlags_None);
@@ -696,8 +700,8 @@ ecs_module_init(dev_trace_module) {
 
 EcsEntityId
 dev_trace_panel_open(EcsWorld* world, const EcsEntityId window, const DevPanelType type) {
-  const u32 expectedEntryCount = g_jobsWorkerCount + 1 /* gpu */;
-  const u32 panelHeight = math_min(100 + 20 * dev_trace_default_depth * expectedEntryCount, 675);
+  const u32 expectedEntryCount = dev_trace_default_depth * (g_jobsWorkerCount + 1) /* gpu */;
+  const f32 panelHeight        = math_min(100 + 20.5f * expectedEntryCount, 675);
 
   const EcsEntityId  panelEntity = dev_panel_create(world, window, type);
   DevTracePanelComp* tracePanel  = ecs_world_add_t(
