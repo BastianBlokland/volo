@@ -34,7 +34,7 @@ ASSERT(
     "Sound buffers should be cache-line aligned");
 
 #define snd_mixer_buffer_count 3
-#define snd_mixer_gain_adjust_per_frame 0.00075f
+#define snd_mixer_gain_adjust_per_frame 0.00025f
 #define snd_mixer_pitch_adjust_per_frame 0.00025f
 #define snd_mixer_pitch_min 0.1f
 #define snd_mixer_limiter_release_per_frame 0.000025f
