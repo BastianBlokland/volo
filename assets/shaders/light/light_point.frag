@@ -1,5 +1,6 @@
 #include "binding.glsl"
 #include "global.glsl"
+#include "march.glsl"
 #include "pbr.glsl"
 #include "texture.glsl"
 
@@ -28,6 +29,11 @@ void main() {
 
   const f32v3 radiance  = in_radianceAndRadiusInv.rgb;
   const f32   radiusInv = in_radianceAndRadiusInv.a;
+
+  if (march_test(u_global, u_texGeoDepth, worldPos, in_position)) {
+    out_color = f32v3(0);
+    return;
+  }
 
   PbrSurface surf;
   surf.position  = worldPos;

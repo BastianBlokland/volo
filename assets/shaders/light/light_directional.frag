@@ -5,6 +5,7 @@
 #include "pbr.glsl"
 #include "rand.glsl"
 #include "texture.glsl"
+#include "march.glsl"
 
 bind_spec(0) const f32 s_coverageScale     = 100;
 bind_spec(1) const f32 s_coveragePanSpeedX = 1.5;
@@ -113,6 +114,11 @@ void main() {
   if ((lightFlags & c_lightFlagsShadows) != 0) {
     effectiveRadiance *= 1.0 - shadow_frac(worldPos);
   }
+
+  if(mod(u_global.time.y, 2) > 1) {
+  if (shadow_contact(u_global, u_texGeoDepth, worldPos, -in_direction)) {
+    effectiveRadiance *= 0.5;
+  }}
 
   PbrSurface surf;
   surf.position  = worldPos;
