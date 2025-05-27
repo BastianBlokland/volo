@@ -42,6 +42,10 @@ f32v2 world_to_clip_pos(const GlobalData data, const f32v3 worldPos) {
   return v.xy / v.w;
 }
 
+f32v3 world_to_view_pos(const GlobalData data, const f32v3 worldPos) {
+  return (data.view * f32v4(worldPos, 1)).xyz;
+}
+
 f32v3 world_to_view_dir(const GlobalData data, const f32v3 worldDir) {
   return (data.view * f32v4(worldDir, 0)).xyz;
 }
