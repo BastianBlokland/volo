@@ -196,6 +196,15 @@ void rvk_canvas_push_traces(const RvkCanvas* canvas) {
       }
     }
 
+    const u32 copyStatsCount = math_min(jobStats.copyCount, rvk_job_copy_stats_max);
+    for (u32 copyIdx = 0; copyIdx != copyStatsCount; ++copyIdx) {
+      trace_custom_begin("gpu", "copy", TraceColor_Red);
+      const TimeDuration copyBegin = jobStats.copyStats[copyIdx].gpuTimeBegin;
+      const TimeDuration copyEnd   = jobStats.copyStats[copyIdx].gpuTimeEnd;
+      const TimeDuration copyDur   = time_steady_duration(copyBegin, copyEnd);
+      trace_custom_end("gpu", copyBegin, copyDur);
+    }
+
     trace_custom_begin("gpu", "wait", TraceColor_White);
     const TimeDuration waitDur = time_steady_duration(jobStats.gpuWaitBegin, jobStats.gpuWaitEnd);
     trace_custom_end("gpu", jobStats.gpuWaitBegin, waitDur);
