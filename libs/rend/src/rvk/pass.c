@@ -747,28 +747,24 @@ RvkSize rvk_pass_stat_size_max(const RvkPass* pass, const RvkPassHandle frameHan
   return size;
 }
 
-TimeSteady rvk_pass_stat_time_begin(const RvkPass* pass, const RvkPassHandle frameHandle) {
+TimeSteady
+rvk_pass_stat_time_begin(const RvkPass* pass, const RvkPassHandle frameHandle, const u16 invocIdx) {
   const RvkPassFrame* frame = rvk_pass_frame_get(pass, frameHandle);
   diag_assert_msg(frame->state == RvkPassFrameState_Reserved, "Pass frame already released");
+  diag_assert_msg(invocIdx < frame->invocations.size, "Invalid invocation");
 
-  TimeSteady res = i64_max;
-  dynarray_for_t(&frame->invocations, RvkPassInvoc, invoc) {
-    const TimeSteady timestampBegin = rvk_stopwatch_query(frame->stopwatch, invoc->timeRecBegin);
-    res                             = math_min(res, timestampBegin);
-  }
-  return res;
+  RvkPassInvoc* invoc = dynarray_at_t(&frame->invocations, invocIdx, RvkPassInvoc);
+  return rvk_stopwatch_query(frame->stopwatch, invoc->timeRecBegin);
 }
 
-TimeSteady rvk_pass_stat_time_end(const RvkPass* pass, const RvkPassHandle frameHandle) {
+TimeSteady
+rvk_pass_stat_time_end(const RvkPass* pass, const RvkPassHandle frameHandle, const u16 invocIdx) {
   const RvkPassFrame* frame = rvk_pass_frame_get(pass, frameHandle);
   diag_assert_msg(frame->state == RvkPassFrameState_Reserved, "Pass frame already released");
+  diag_assert_msg(invocIdx < frame->invocations.size, "Invalid invocation");
 
-  TimeSteady res = i64_min;
-  dynarray_for_t(&frame->invocations, RvkPassInvoc, invoc) {
-    const TimeSteady timestampEnd = rvk_stopwatch_query(frame->stopwatch, invoc->timeRecEnd);
-    res                           = math_max(res, timestampEnd);
-  }
-  return res;
+  RvkPassInvoc* invoc = dynarray_at_t(&frame->invocations, invocIdx, RvkPassInvoc);
+  return rvk_stopwatch_query(frame->stopwatch, invoc->timeRecEnd);
 }
 
 TimeDuration rvk_pass_stat_duration(const RvkPass* pass, const RvkPassHandle frameHandle) {
