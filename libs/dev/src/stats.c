@@ -45,8 +45,8 @@ static const UiColor g_statsChartColors[] = {
     {128, 128, 0, 255},
     {128, 0, 128, 255},
     {128, 128, 0, 255},
+    {78, 0, 0, 255},
     {0, 128, 0, 255},
-    {128, 0, 0, 255},
     {255, 0, 255, 255},
     {0, 0, 255, 255},
 };
@@ -547,14 +547,14 @@ stats_draw_gpu_chart(UiCanvasComp* c, const DevStatsComp* st, const RendStatsCom
   Mem       tooltipBuffer = alloc_alloc(g_allocScratch, 4 * usize_kibibyte, 1);
   DynString tooltip       = dynstring_create_over(tooltipBuffer);
 
-  f32 otherFrac = st->gpuExecFrac - st->gpuCopyFrac;
+  f32 otherFrac = st->gpuExecFrac;
   for (u32 passIdx = 0; passIdx != rendSt->passCount; ++passIdx) {
     const String       passName     = rendSt->passes[passIdx].name;
     const TimeDuration passDuration = rendSt->passes[passIdx].gpuExecDur;
     const UiColor      passColor    = g_statsChartColors[passIdx % array_elems(g_statsChartColors)];
     const f32          passFrac     = st->gpuPassFrac[passIdx];
 
-    if (passFrac > 0.005f) {
+    if (passFrac > 0.01f) {
       entries[entryCount++] = (StatChartEntry){
           .frac  = passFrac,
           .color = ui_color(passColor.r, passColor.g, passColor.b, 178),
@@ -569,17 +569,20 @@ stats_draw_gpu_chart(UiCanvasComp* c, const DevStatsComp* st, const RendStatsCom
         fmt_text(passName),
         fmt_duration(passDuration, .minDecDigits = 1, .maxDecDigits = 1));
   }
-  entries[entryCount++] = (StatChartEntry){
-      .frac  = st->gpuCopyFrac,
-      .color = ui_color(178, 0, 0, 178),
-  };
-  if (otherFrac > 0.005f) {
+  if (st->gpuCopyFrac > 0.01f) {
+    entries[entryCount++] = (StatChartEntry){
+        .frac  = st->gpuCopyFrac,
+        .color = ui_color(178, 0, 0, 178),
+    };
+    otherFrac -= st->gpuCopyFrac;
+  }
+  if (otherFrac > 0.01f) {
     entries[entryCount++] = (StatChartEntry){
         .frac  = otherFrac,
         .color = ui_color(128, 128, 128, 178),
     };
   }
-  if (st->gpuWaitFrac > 0.005f) {
+  if (st->gpuWaitFrac > 0.01f) {
     entries[entryCount++] = (StatChartEntry){
         .frac  = st->gpuWaitFrac,
         .color = ui_color(0, 128, 128, 64),
