@@ -78,6 +78,14 @@ typedef struct sRvkPassDraw {
   u32               vertexCountOverride;
 } RvkPassDraw;
 
+typedef struct {
+  u16          invocationCount;
+  u16          drawCount;
+  u32          instanceCount;
+  TimeDuration duration;
+  RvkSize      sizeMax;
+} RvkPassStats;
+
 RvkPass* rvk_pass_create(RvkDevice*, const RvkPassConfig* /* Needs to be persistently allocated */);
 void     rvk_pass_destroy(RvkPass*);
 
@@ -94,14 +102,11 @@ RvkPassHandle rvk_pass_frame_begin(RvkPass*, RvkJob*);
 void          rvk_pass_frame_end(RvkPass*, RvkPassHandle);
 void          rvk_pass_frame_release(RvkPass*, RvkPassHandle);
 
-u16          rvk_pass_stat_invocations(const RvkPass*, RvkPassHandle);
-u16          rvk_pass_stat_draws(const RvkPass*, RvkPassHandle);
-u32          rvk_pass_stat_instances(const RvkPass*, RvkPassHandle);
-RvkSize      rvk_pass_stat_size_max(const RvkPass*, RvkPassHandle);
-TimeSteady   rvk_pass_stat_time_begin(const RvkPass*, RvkPassHandle, u16 invocIdx);
-TimeSteady   rvk_pass_stat_time_end(const RvkPass*, RvkPassHandle, u16 invocIdx);
-TimeDuration rvk_pass_stat_duration(const RvkPass*, RvkPassHandle);
-u64          rvk_pass_stat_pipeline(const RvkPass*, RvkPassHandle, RvkStat);
+void rvk_pass_stats(const RvkPass*, RvkPassHandle, RvkPassStats* out);
+u64  rvk_pass_stats_pipeline(const RvkPass*, RvkPassHandle, RvkStat);
+
+TimeSteady rvk_pass_stat_time_begin(const RvkPass*, RvkPassHandle, u16 invocIdx);
+TimeSteady rvk_pass_stat_time_end(const RvkPass*, RvkPassHandle, u16 invocIdx);
 
 u32 rvk_pass_batch_size(RvkPass*, u32 instanceDataSize);
 

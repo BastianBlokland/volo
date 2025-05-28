@@ -138,19 +138,21 @@ void rvk_canvas_stats(const RvkCanvas* canvas, RvkCanvasStats* out) {
     const RvkPassHandle passFrame = frame->passFrames[passIdx];
     diag_assert(!sentinel_check(passFrame));
 
-    const RvkSize sizeMax         = rvk_pass_stat_size_max(pass, passFrame);
+    RvkPassStats passStats;
+    rvk_pass_stats(pass, passFrame, &passStats);
+
     out->passes[out->passCount++] = (RendStatsPass){
         .name        = rvk_pass_config(pass)->name, // Persistently allocated.
-        .gpuExecDur  = rvk_pass_stat_duration(pass, passFrame),
-        .sizeMax[0]  = sizeMax.width,
-        .sizeMax[1]  = sizeMax.height,
-        .invocations = rvk_pass_stat_invocations(pass, passFrame),
-        .draws       = rvk_pass_stat_draws(pass, passFrame),
-        .instances   = rvk_pass_stat_instances(pass, passFrame),
-        .vertices    = rvk_pass_stat_pipeline(pass, passFrame, RvkStat_InputAssemblyVertices),
-        .primitives  = rvk_pass_stat_pipeline(pass, passFrame, RvkStat_InputAssemblyPrimitives),
-        .shadersVert = rvk_pass_stat_pipeline(pass, passFrame, RvkStat_ShaderInvocationsVert),
-        .shadersFrag = rvk_pass_stat_pipeline(pass, passFrame, RvkStat_ShaderInvocationsFrag),
+        .gpuExecDur  = passStats.duration,
+        .sizeMax[0]  = passStats.sizeMax.width,
+        .sizeMax[1]  = passStats.sizeMax.height,
+        .invocations = passStats.invocationCount,
+        .draws       = passStats.drawCount,
+        .instances   = passStats.instanceCount,
+        .vertices    = rvk_pass_stats_pipeline(pass, passFrame, RvkStat_InputAssemblyVertices),
+        .primitives  = rvk_pass_stats_pipeline(pass, passFrame, RvkStat_InputAssemblyPrimitives),
+        .shadersVert = rvk_pass_stats_pipeline(pass, passFrame, RvkStat_ShaderInvocationsVert),
+        .shadersFrag = rvk_pass_stats_pipeline(pass, passFrame, RvkStat_ShaderInvocationsFrag),
     };
   }
 }
@@ -181,8 +183,10 @@ void rvk_canvas_push_traces(const RvkCanvas* canvas) {
 
       const String passName = rvk_pass_config(pass)->name;
 
-      const u16 numInvoc = rvk_pass_stat_invocations(pass, passFrame);
-      for (u16 invocIdx = 0; invocIdx != numInvoc; ++invocIdx) {
+      RvkPassStats passStats;
+      rvk_pass_stats(pass, passFrame, &passStats);
+
+      for (u16 invocIdx = 0; invocIdx != passStats.invocationCount; ++invocIdx) {
         trace_custom_begin_msg("gpu", "pass", TraceColor_Green, "pass-{}", fmt_text(passName));
         const TimeSteady   passBegin = rvk_pass_stat_time_begin(pass, passFrame, invocIdx);
         const TimeSteady   passEnd   = rvk_pass_stat_time_end(pass, passFrame, invocIdx);
