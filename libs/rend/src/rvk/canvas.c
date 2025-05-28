@@ -187,11 +187,12 @@ void rvk_canvas_push_traces(const RvkCanvas* canvas) {
       rvk_pass_stats(pass, passFrame, &passStats);
 
       for (u16 invocIdx = 0; invocIdx != passStats.invocationCount; ++invocIdx) {
+        RvkPassStatsInvoc invocStats;
+        rvk_pass_stats_invoc(pass, passFrame, invocIdx, &invocStats);
+
         trace_custom_begin_msg("gpu", "pass", TraceColor_Green, "pass-{}", fmt_text(passName));
-        const TimeSteady   passBegin = rvk_pass_stat_time_begin(pass, passFrame, invocIdx);
-        const TimeSteady   passEnd   = rvk_pass_stat_time_end(pass, passFrame, invocIdx);
-        const TimeDuration passDur   = time_steady_duration(passBegin, passEnd);
-        trace_custom_end("gpu", passBegin, passDur);
+        const TimeDuration passDur = time_steady_duration(invocStats.timeBegin, invocStats.timeEnd);
+        trace_custom_end("gpu", invocStats.timeBegin, passDur);
       }
     }
 

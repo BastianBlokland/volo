@@ -86,6 +86,10 @@ typedef struct {
   RvkSize      sizeMax;
 } RvkPassStats;
 
+typedef struct {
+  TimeSteady timeBegin, timeEnd;
+} RvkPassStatsInvoc;
+
 RvkPass* rvk_pass_create(RvkDevice*, const RvkPassConfig* /* Needs to be persistently allocated */);
 void     rvk_pass_destroy(RvkPass*);
 
@@ -104,9 +108,7 @@ void          rvk_pass_frame_release(RvkPass*, RvkPassHandle);
 
 void rvk_pass_stats(const RvkPass*, RvkPassHandle, RvkPassStats* out);
 u64  rvk_pass_stats_pipeline(const RvkPass*, RvkPassHandle, RvkStat);
-
-TimeSteady rvk_pass_stat_time_begin(const RvkPass*, RvkPassHandle, u16 invocIdx);
-TimeSteady rvk_pass_stat_time_end(const RvkPass*, RvkPassHandle, u16 invocIdx);
+void rvk_pass_stats_invoc(const RvkPass*, RvkPassHandle, u16 invocIdx, RvkPassStatsInvoc* out);
 
 u32 rvk_pass_batch_size(RvkPass*, u32 instanceDataSize);
 

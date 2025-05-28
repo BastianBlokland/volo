@@ -746,24 +746,18 @@ u64 rvk_pass_stats_pipeline(
   return res;
 }
 
-TimeSteady
-rvk_pass_stat_time_begin(const RvkPass* pass, const RvkPassHandle frameHandle, const u16 invocIdx) {
+void rvk_pass_stats_invoc(
+    const RvkPass*      pass,
+    const RvkPassHandle frameHandle,
+    const u16           invocIdx,
+    RvkPassStatsInvoc*  out) {
   const RvkPassFrame* frame = rvk_pass_frame_get(pass, frameHandle);
   diag_assert_msg(frame->state == RvkPassFrameState_Reserved, "Pass frame already released");
   diag_assert_msg(invocIdx < frame->invocations.size, "Invalid invocation");
 
   RvkPassInvoc* invoc = dynarray_at_t(&frame->invocations, invocIdx, RvkPassInvoc);
-  return rvk_stopwatch_query(frame->stopwatch, invoc->timeRecBegin);
-}
-
-TimeSteady
-rvk_pass_stat_time_end(const RvkPass* pass, const RvkPassHandle frameHandle, const u16 invocIdx) {
-  const RvkPassFrame* frame = rvk_pass_frame_get(pass, frameHandle);
-  diag_assert_msg(frame->state == RvkPassFrameState_Reserved, "Pass frame already released");
-  diag_assert_msg(invocIdx < frame->invocations.size, "Invalid invocation");
-
-  RvkPassInvoc* invoc = dynarray_at_t(&frame->invocations, invocIdx, RvkPassInvoc);
-  return rvk_stopwatch_query(frame->stopwatch, invoc->timeRecEnd);
+  out->timeBegin      = rvk_stopwatch_query(frame->stopwatch, invoc->timeRecBegin);
+  out->timeEnd        = rvk_stopwatch_query(frame->stopwatch, invoc->timeRecEnd);
 }
 
 u32 rvk_pass_batch_size(RvkPass* pass, const u32 instanceDataSize) {
