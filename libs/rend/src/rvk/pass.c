@@ -756,8 +756,8 @@ void rvk_pass_stats_invoc(
   diag_assert_msg(invocIdx < frame->invocations.size, "Invalid invocation");
 
   RvkPassInvoc* invoc = dynarray_at_t(&frame->invocations, invocIdx, RvkPassInvoc);
-  out->timeBegin      = rvk_stopwatch_query(frame->stopwatch, invoc->timeRecBegin);
-  out->timeEnd        = rvk_stopwatch_query(frame->stopwatch, invoc->timeRecEnd);
+  out->gpuTimeBegin   = rvk_stopwatch_query(frame->stopwatch, invoc->timeRecBegin);
+  out->gpuTimeEnd     = rvk_stopwatch_query(frame->stopwatch, invoc->timeRecEnd);
 }
 
 u32 rvk_pass_batch_size(RvkPass* pass, const u32 instanceDataSize) {

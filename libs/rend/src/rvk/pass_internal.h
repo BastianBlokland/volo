@@ -87,7 +87,7 @@ typedef struct {
 } RvkPassStats;
 
 typedef struct {
-  TimeSteady timeBegin, timeEnd;
+  TimeSteady gpuTimeBegin, gpuTimeEnd;
 } RvkPassStatsInvoc;
 
 RvkPass* rvk_pass_create(RvkDevice*, const RvkPassConfig* /* Needs to be persistently allocated */);
