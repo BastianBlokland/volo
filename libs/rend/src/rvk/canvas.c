@@ -138,19 +138,21 @@ void rvk_canvas_stats(const RvkCanvas* canvas, RvkCanvasStats* out) {
     const RvkPassHandle passFrame = frame->passFrames[passIdx];
     diag_assert(!sentinel_check(passFrame));
 
-    const RvkSize sizeMax         = rvk_pass_stat_size_max(pass, passFrame);
+    RvkPassStats passStats;
+    rvk_pass_stats(pass, passFrame, &passStats);
+
     out->passes[out->passCount++] = (RendStatsPass){
         .name        = rvk_pass_config(pass)->name, // Persistently allocated.
-        .gpuExecDur  = rvk_pass_stat_duration(pass, passFrame),
-        .sizeMax[0]  = sizeMax.width,
-        .sizeMax[1]  = sizeMax.height,
-        .invocations = rvk_pass_stat_invocations(pass, passFrame),
-        .draws       = rvk_pass_stat_draws(pass, passFrame),
-        .instances   = rvk_pass_stat_instances(pass, passFrame),
-        .vertices    = rvk_pass_stat_pipeline(pass, passFrame, RvkStat_InputAssemblyVertices),
-        .primitives  = rvk_pass_stat_pipeline(pass, passFrame, RvkStat_InputAssemblyPrimitives),
-        .shadersVert = rvk_pass_stat_pipeline(pass, passFrame, RvkStat_ShaderInvocationsVert),
-        .shadersFrag = rvk_pass_stat_pipeline(pass, passFrame, RvkStat_ShaderInvocationsFrag),
+        .gpuExecDur  = passStats.duration,
+        .sizeMax[0]  = passStats.sizeMax.width,
+        .sizeMax[1]  = passStats.sizeMax.height,
+        .invocations = passStats.invocationCount,
+        .draws       = passStats.drawCount,
+        .instances   = passStats.instanceCount,
+        .vertices    = rvk_pass_stats_pipeline(pass, passFrame, RvkStat_InputAssemblyVertices),
+        .primitives  = rvk_pass_stats_pipeline(pass, passFrame, RvkStat_InputAssemblyPrimitives),
+        .shadersVert = rvk_pass_stats_pipeline(pass, passFrame, RvkStat_ShaderInvocationsVert),
+        .shadersFrag = rvk_pass_stats_pipeline(pass, passFrame, RvkStat_ShaderInvocationsFrag),
     };
   }
 }
@@ -169,9 +171,6 @@ void rvk_canvas_push_traces(const RvkCanvas* canvas) {
   RvkJobStats jobStats;
   rvk_job_stats(frame->job, &jobStats);
 
-  const TimeDuration waitDur = time_steady_duration(jobStats.gpuWaitBegin, jobStats.gpuWaitEnd);
-  const TimeDuration jobDur  = time_steady_duration(jobStats.gpuTimeBegin, jobStats.gpuTimeEnd);
-
   trace_custom_begin_msg("gpu", "frame", TraceColor_Blue, "frame-{}", fmt_int(frame->frameIdx));
   {
     for (u32 passIdx = 0; passIdx != rvk_canvas_max_passes; ++passIdx) {
@@ -182,18 +181,35 @@ void rvk_canvas_push_traces(const RvkCanvas* canvas) {
       const RvkPassHandle passFrame = frame->passFrames[passIdx];
       diag_assert(!sentinel_check(passFrame));
 
-      const String       passName  = rvk_pass_config(pass)->name;
-      const TimeSteady   passBegin = rvk_pass_stat_time_begin(pass, passFrame);
-      const TimeSteady   passEnd   = rvk_pass_stat_time_end(pass, passFrame);
-      const TimeDuration passDur   = time_steady_duration(passBegin, passEnd);
+      const String passName = rvk_pass_config(pass)->name;
 
-      trace_custom_begin_msg("gpu", "pass", TraceColor_Green, "pass-{}", fmt_text(passName));
-      trace_custom_end("gpu", passBegin, passDur);
+      RvkPassStats passStats;
+      rvk_pass_stats(pass, passFrame, &passStats);
+
+      for (u16 invocIdx = 0; invocIdx != passStats.invocationCount; ++invocIdx) {
+        RvkPassStatsInvoc stats;
+        rvk_pass_stats_invoc(pass, passFrame, invocIdx, &stats);
+
+        trace_custom_begin_msg("gpu", "pass", TraceColor_Green, "pass-{}", fmt_text(passName));
+        const TimeDuration dur = time_steady_duration(stats.gpuTimeBegin, stats.gpuTimeEnd);
+        trace_custom_end("gpu", stats.gpuTimeBegin, dur);
+      }
+    }
+
+    const u32 copyStatsCount = math_min(jobStats.copyCount, rvk_job_copy_stats_max);
+    for (u32 copyIdx = 0; copyIdx != copyStatsCount; ++copyIdx) {
+      trace_custom_begin("gpu", "copy", TraceColor_Red);
+      const TimeDuration copyBegin = jobStats.copyStats[copyIdx].gpuTimeBegin;
+      const TimeDuration copyEnd   = jobStats.copyStats[copyIdx].gpuTimeEnd;
+      const TimeDuration copyDur   = time_steady_duration(copyBegin, copyEnd);
+      trace_custom_end("gpu", copyBegin, copyDur);
     }
 
     trace_custom_begin("gpu", "wait", TraceColor_White);
+    const TimeDuration waitDur = time_steady_duration(jobStats.gpuWaitBegin, jobStats.gpuWaitEnd);
     trace_custom_end("gpu", jobStats.gpuWaitBegin, waitDur);
   }
+  const TimeDuration jobDur = time_steady_duration(jobStats.gpuTimeBegin, jobStats.gpuTimeEnd);
   trace_custom_end("gpu", jobStats.gpuTimeBegin, jobDur);
 }
 

@@ -710,81 +710,31 @@ void rvk_pass_frame_release(RvkPass* pass, const RvkPassHandle frameHandle) {
   rvk_pass_frame_reset(pass, frame);
 }
 
-u16 rvk_pass_stat_invocations(const RvkPass* pass, const RvkPassHandle frameHandle) {
+void rvk_pass_stats(const RvkPass* pass, const RvkPassHandle frameHandle, RvkPassStats* out) {
   const RvkPassFrame* frame = rvk_pass_frame_get(pass, frameHandle);
   diag_assert_msg(frame->state == RvkPassFrameState_Reserved, "Pass frame already released");
 
-  return (u16)dynarray_size(&frame->invocations);
-}
+  out->invocationCount = (u16)dynarray_size(&frame->invocations);
+  out->drawCount       = 0;
+  out->instanceCount   = 0;
+  out->duration        = 0;
+  out->sizeMax         = (RvkSize){0};
 
-u16 rvk_pass_stat_draws(const RvkPass* pass, const RvkPassHandle frameHandle) {
-  const RvkPassFrame* frame = rvk_pass_frame_get(pass, frameHandle);
-  diag_assert_msg(frame->state == RvkPassFrameState_Reserved, "Pass frame already released");
-
-  u16 draws = 0;
-  dynarray_for_t(&frame->invocations, RvkPassInvoc, invoc) { draws += invoc->drawCount; }
-  return draws;
-}
-
-u32 rvk_pass_stat_instances(const RvkPass* pass, const RvkPassHandle frameHandle) {
-  const RvkPassFrame* frame = rvk_pass_frame_get(pass, frameHandle);
-  diag_assert_msg(frame->state == RvkPassFrameState_Reserved, "Pass frame already released");
-
-  u32 draws = 0;
-  dynarray_for_t(&frame->invocations, RvkPassInvoc, invoc) { draws += invoc->instanceCount; }
-  return draws;
-}
-
-RvkSize rvk_pass_stat_size_max(const RvkPass* pass, const RvkPassHandle frameHandle) {
-  const RvkPassFrame* frame = rvk_pass_frame_get(pass, frameHandle);
-  diag_assert_msg(frame->state == RvkPassFrameState_Reserved, "Pass frame already released");
-
-  RvkSize size = {0};
   dynarray_for_t(&frame->invocations, RvkPassInvoc, invoc) {
-    size.width  = math_max(size.width, invoc->size.width);
-    size.height = math_max(size.height, invoc->size.height);
+    out->drawCount += invoc->drawCount;
+    out->instanceCount += invoc->instanceCount;
+
+    const TimeSteady timeBegin = rvk_stopwatch_query(frame->stopwatch, invoc->timeRecBegin);
+    const TimeSteady timeEnd   = rvk_stopwatch_query(frame->stopwatch, invoc->timeRecEnd);
+
+    out->duration += time_steady_duration(timeBegin, timeEnd);
+
+    out->sizeMax.width  = math_max(out->sizeMax.width, invoc->size.width);
+    out->sizeMax.height = math_max(out->sizeMax.height, invoc->size.height);
   }
-  return size;
 }
 
-TimeSteady rvk_pass_stat_time_begin(const RvkPass* pass, const RvkPassHandle frameHandle) {
-  const RvkPassFrame* frame = rvk_pass_frame_get(pass, frameHandle);
-  diag_assert_msg(frame->state == RvkPassFrameState_Reserved, "Pass frame already released");
-
-  TimeSteady res = i64_max;
-  dynarray_for_t(&frame->invocations, RvkPassInvoc, invoc) {
-    const TimeSteady timestampBegin = rvk_stopwatch_query(frame->stopwatch, invoc->timeRecBegin);
-    res                             = math_min(res, timestampBegin);
-  }
-  return res;
-}
-
-TimeSteady rvk_pass_stat_time_end(const RvkPass* pass, const RvkPassHandle frameHandle) {
-  const RvkPassFrame* frame = rvk_pass_frame_get(pass, frameHandle);
-  diag_assert_msg(frame->state == RvkPassFrameState_Reserved, "Pass frame already released");
-
-  TimeSteady res = i64_min;
-  dynarray_for_t(&frame->invocations, RvkPassInvoc, invoc) {
-    const TimeSteady timestampEnd = rvk_stopwatch_query(frame->stopwatch, invoc->timeRecEnd);
-    res                           = math_max(res, timestampEnd);
-  }
-  return res;
-}
-
-TimeDuration rvk_pass_stat_duration(const RvkPass* pass, const RvkPassHandle frameHandle) {
-  const RvkPassFrame* frame = rvk_pass_frame_get(pass, frameHandle);
-  diag_assert_msg(frame->state == RvkPassFrameState_Reserved, "Pass frame already released");
-
-  TimeDuration dur = 0;
-  dynarray_for_t(&frame->invocations, RvkPassInvoc, invoc) {
-    const TimeSteady timestampBegin = rvk_stopwatch_query(frame->stopwatch, invoc->timeRecBegin);
-    const TimeSteady timestampEnd   = rvk_stopwatch_query(frame->stopwatch, invoc->timeRecEnd);
-    dur += time_steady_duration(timestampBegin, timestampEnd);
-  }
-  return dur;
-}
-
-u64 rvk_pass_stat_pipeline(
+u64 rvk_pass_stats_pipeline(
     const RvkPass* pass, const RvkPassHandle frameHandle, const RvkStat stat) {
   const RvkPassFrame* frame = rvk_pass_frame_get(pass, frameHandle);
   diag_assert_msg(frame->state == RvkPassFrameState_Reserved, "Pass frame already released");
@@ -794,6 +744,20 @@ u64 rvk_pass_stat_pipeline(
     res += rvk_statrecorder_query(frame->statrecorder, invoc->statsRecord, stat);
   }
   return res;
+}
+
+void rvk_pass_stats_invoc(
+    const RvkPass*      pass,
+    const RvkPassHandle frameHandle,
+    const u16           invocIdx,
+    RvkPassStatsInvoc*  out) {
+  const RvkPassFrame* frame = rvk_pass_frame_get(pass, frameHandle);
+  diag_assert_msg(frame->state == RvkPassFrameState_Reserved, "Pass frame already released");
+  diag_assert_msg(invocIdx < frame->invocations.size, "Invalid invocation");
+
+  RvkPassInvoc* invoc = dynarray_at_t(&frame->invocations, invocIdx, RvkPassInvoc);
+  out->gpuTimeBegin   = rvk_stopwatch_query(frame->stopwatch, invoc->timeRecBegin);
+  out->gpuTimeEnd     = rvk_stopwatch_query(frame->stopwatch, invoc->timeRecEnd);
 }
 
 u32 rvk_pass_batch_size(RvkPass* pass, const u32 instanceDataSize) {
