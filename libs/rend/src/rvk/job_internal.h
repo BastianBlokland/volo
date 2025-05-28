@@ -7,6 +7,8 @@
 
 #include "vulkan_api.h"
 
+#define rvk_job_copy_stats_max 8
+
 typedef enum eRvkJobPhase {
   RvkJobPhase_Main,
   RvkJobPhase_Output, // Work that can only be done when the output is available.
@@ -17,9 +19,16 @@ typedef enum eRvkJobPhase {
 } RvkJobPhase;
 
 typedef struct {
+  TimeSteady gpuTimeBegin, gpuTimeEnd;
+} RvkJobCopyStats;
+
+typedef struct {
   TimeDuration cpuWaitDur; // Time the cpu was blocked waiting for the gpu.
   TimeSteady   gpuTimeBegin, gpuTimeEnd;
   TimeSteady   gpuWaitBegin, gpuWaitEnd;
+
+  u32             copyCount;
+  RvkJobCopyStats copyStats[rvk_job_copy_stats_max];
 } RvkJobStats;
 
 typedef struct sRvkJob RvkJob;
