@@ -129,6 +129,14 @@ void rvk_canvas_stats(const RvkCanvas* canvas, RvkCanvasStats* out) {
   // NOTE: Consider the wait-time as non-executing.
   out->gpuExecDur = math_max(out->gpuExecDur - out->gpuWaitDur, 0);
 
+  const u32 copyStatsCount = math_min(jobStats.copyCount, rvk_job_copy_stats_max);
+  out->gpuCopyDur          = 0;
+  for (u32 copyIdx = 0; copyIdx != copyStatsCount; ++copyIdx) {
+    const TimeDuration copyBegin = jobStats.copyStats[copyIdx].gpuTimeBegin;
+    const TimeDuration copyEnd   = jobStats.copyStats[copyIdx].gpuTimeEnd;
+    out->gpuCopyDur += time_steady_duration(copyBegin, copyEnd);
+  }
+
   out->passCount = 0;
   for (u32 passIdx = 0; passIdx != rvk_canvas_max_passes; ++passIdx) {
     const RvkPass* pass = frame->passes[passIdx];
