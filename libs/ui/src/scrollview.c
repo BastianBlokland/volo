@@ -201,8 +201,8 @@ void ui_scrollview_end(UiCanvasComp* canvas, UiScrollview* scrollview) {
 }
 
 UiScrollviewCull ui_scrollview_cull(UiScrollview* scrollview, const f32 y, const f32 height) {
-  (void)scrollview;
-  (void)y;
-  (void)height;
+  if ((y + height) < scrollview->offset) {
+    return UiScrollviewCull_Before;
+  }
   return UiScrollviewCull_Inside;
 }
