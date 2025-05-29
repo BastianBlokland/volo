@@ -353,10 +353,20 @@ static void comp_panel_tab_draw(UiCanvasComp* canvas, DevEcsPanelComp* panelComp
   ui_scrollview_begin(canvas, &panelComp->scrollview, UiLayer_Normal, height);
 
   ui_canvas_id_block_next(canvas); // Start the list of components on its own id block.
-  dynarray_for_t(&panelComp->components, DevEcsCompInfo, compInfo) {
+  for (u32 compIdx = 0; compIdx != numComps; ++compIdx) {
     ui_table_next_row(canvas, &table);
-    ui_table_draw_row_bg(canvas, &table, comp_info_bg_color(compInfo));
 
+    const DevEcsCompInfo* compInfo = dynarray_at_t(&panelComp->components, compIdx, DevEcsCompInfo);
+    const f32             y        = ui_table_height(&table, compIdx);
+    const UiScrollviewCull cull    = ui_scrollview_cull(&panelComp->scrollview, y, table.rowHeight);
+    if (cull == UiScrollviewCull_After) {
+      break;
+    }
+    if (cull == UiScrollviewCull_Before) {
+      continue;
+    }
+
+    ui_table_draw_row_bg(canvas, &table, comp_info_bg_color(compInfo));
     ui_canvas_id_block_index(canvas, compInfo->id * 10); // Set a stable id based on the comp id.
 
     ui_label(canvas, fmt_write_scratch("{}", fmt_int(compInfo->id)));
@@ -450,10 +460,20 @@ static void view_panel_tab_draw(UiCanvasComp* canvas, DevEcsPanelComp* panelComp
   ui_scrollview_begin(canvas, &panelComp->scrollview, UiLayer_Normal, height);
 
   ui_canvas_id_block_next(canvas); // Start the list of views on its own id block.
-  dynarray_for_t(&panelComp->views, DevEcsViewInfo, viewInfo) {
+  for (u32 viewIdx = 0; viewIdx != numViews; ++viewIdx) {
     ui_table_next_row(canvas, &table);
-    ui_table_draw_row_bg(canvas, &table, ui_color(48, 48, 48, 192));
 
+    const DevEcsViewInfo*  viewInfo = dynarray_at_t(&panelComp->views, viewIdx, DevEcsViewInfo);
+    const f32              y        = ui_table_height(&table, viewIdx);
+    const UiScrollviewCull cull = ui_scrollview_cull(&panelComp->scrollview, y, table.rowHeight);
+    if (cull == UiScrollviewCull_After) {
+      break;
+    }
+    if (cull == UiScrollviewCull_Before) {
+      continue;
+    }
+
+    ui_table_draw_row_bg(canvas, &table, ui_color(48, 48, 48, 192));
     ui_canvas_id_block_index(canvas, viewInfo->id * 10); // Set a stable id based on the view id.
 
     ui_label(canvas, fmt_write_scratch("{}", fmt_int(viewInfo->id)));
@@ -577,10 +597,21 @@ arch_panel_tab_draw(UiCanvasComp* canvas, DevEcsPanelComp* panelComp, const EcsD
   ui_scrollview_begin(canvas, &panelComp->scrollview, UiLayer_Normal, height);
 
   ui_canvas_id_block_next(canvas); // Start the list of archetypes on its own id block.
-  dynarray_for_t(&panelComp->archetypes, DevEcsArchetypeInfo, archInfo) {
+  for (u32 archIdx = 0; archIdx != numArchetypes; ++archIdx) {
     ui_table_next_row(canvas, &table);
-    ui_table_draw_row_bg(canvas, &table, ui_color(48, 48, 48, 192));
 
+    const DevEcsArchetypeInfo* archInfo =
+        dynarray_at_t(&panelComp->archetypes, archIdx, DevEcsArchetypeInfo);
+    const f32              y    = ui_table_height(&table, archIdx);
+    const UiScrollviewCull cull = ui_scrollview_cull(&panelComp->scrollview, y, table.rowHeight);
+    if (cull == UiScrollviewCull_After) {
+      break;
+    }
+    if (cull == UiScrollviewCull_Before) {
+      continue;
+    }
+
+    ui_table_draw_row_bg(canvas, &table, ui_color(48, 48, 48, 192));
     ui_canvas_id_block_index(canvas, archInfo->id * 10); // Set a stable id based on the arch id.
 
     ui_label(canvas, fmt_write_scratch("{}", fmt_int(archInfo->id)));
@@ -744,10 +775,20 @@ sys_panel_tab_draw(UiCanvasComp* canvas, DevEcsPanelComp* panelComp, const EcsDe
   const bool hasMultipleWorkers = g_jobsWorkerCount > 1;
 
   ui_canvas_id_block_next(canvas); // Start the list of systems on its own id block.
-  dynarray_for_t(&panelComp->systems, DevEcsSysInfo, sysInfo) {
+  for (u32 sysIdx = 0; sysIdx != numSystems; ++sysIdx) {
     ui_table_next_row(canvas, &table);
-    ui_table_draw_row_bg(canvas, &table, sys_info_bg_color(sysInfo));
 
+    const DevEcsSysInfo*   sysInfo = dynarray_at_t(&panelComp->systems, sysIdx, DevEcsSysInfo);
+    const f32              y       = ui_table_height(&table, sysIdx);
+    const UiScrollviewCull cull    = ui_scrollview_cull(&panelComp->scrollview, y, table.rowHeight);
+    if (cull == UiScrollviewCull_After) {
+      break;
+    }
+    if (cull == UiScrollviewCull_Before) {
+      continue;
+    }
+
+    ui_table_draw_row_bg(canvas, &table, sys_info_bg_color(sysInfo));
     ui_canvas_id_block_index(canvas, sysInfo->id * 10); // Set a stable id based on the comp id.
 
     ui_label(canvas, fmt_write_scratch("{}", fmt_int(sysInfo->id)));
