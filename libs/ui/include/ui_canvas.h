@@ -67,7 +67,7 @@ typedef enum eUiFlags {
   UiFlags_SingleLine          = 1 << 7,  // Only draw the first line of the text.
   UiFlags_NoLineBreaks        = 1 << 8,  // Ignore line breaks.
   UiFlags_TightTextRect       = 1 << 9,  // Clamp the rectangle to the text size.
-  UiFlags_Square              = 1 << 10, // Fit a square inside the current rectangle.
+  UiFlags_SquareAspect        = 1 << 10, // Fit a square inside the current rectangle.
 } UiFlags;
 
 typedef enum eUiPersistentFlags {

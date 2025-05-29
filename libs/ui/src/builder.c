@@ -159,7 +159,7 @@ static f32 ui_build_angle_rad_to_frac(const f32 angle) {
 static UiRect ui_build_rect(UiBuildState* state, const UiFlags flags) {
   UiRect res = *ui_build_rect_current(state);
 
-  if (flags & UiFlags_Square) {
+  if (flags & UiFlags_SquareAspect) {
     const f32 size = math_min(res.width, res.height);
     res.x += (res.width - size) * 0.5f;
     res.y += (res.height - size) * 0.5f;
