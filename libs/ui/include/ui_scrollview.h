@@ -30,3 +30,11 @@ typedef enum eUiScrollviewOutput {
  */
 UiScrollviewOutput ui_scrollview_begin(UiCanvasComp*, UiScrollview*, UiLayer, f32 height);
 void               ui_scrollview_end(UiCanvasComp*, UiScrollview*);
+
+typedef enum {
+  UiScrollviewCull_Inside,
+  UiScrollviewCull_Before,
+  UiScrollviewCull_After,
+} UiScrollviewCull;
+
+UiScrollviewCull ui_scrollview_cull(UiScrollview*, f32 y, f32 height);

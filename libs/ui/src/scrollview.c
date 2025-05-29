@@ -199,3 +199,10 @@ void ui_scrollview_end(UiCanvasComp* canvas, UiScrollview* scrollview) {
   ui_layout_container_pop(canvas);
   ui_layout_container_pop(canvas);
 }
+
+UiScrollviewCull ui_scrollview_cull(UiScrollview* scrollview, const f32 y, const f32 height) {
+  (void)scrollview;
+  (void)y;
+  (void)height;
+  return UiScrollviewCull_Inside;
+}
