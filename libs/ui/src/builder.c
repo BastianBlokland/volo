@@ -156,6 +156,20 @@ static f32 ui_build_angle_rad_to_frac(const f32 angle) {
   return frac < 0.0f ? (1.0f + frac) : frac;
 }
 
+static UiRect ui_build_rect(UiBuildState* state, const UiFlags flags) {
+  UiRect res = *ui_build_rect_current(state);
+
+  if (flags & UiFlags_SquareAspect) {
+    const f32 size = math_min(res.width, res.height);
+    res.x += (res.width - size) * 0.5f;
+    res.y += (res.height - size) * 0.5f;
+    res.width  = size;
+    res.height = size;
+  }
+
+  return res;
+}
+
 static void ui_build_atom_glyph(
     UiBuildState*      state,
     const Unicode      cp,
@@ -318,7 +332,7 @@ static bool ui_build_is_hovered(
 }
 
 static void ui_build_draw_text(UiBuildState* state, const UiDrawText* cmd) {
-  UiRect                 rect      = *ui_build_rect_current(state);
+  UiRect                 rect      = ui_build_rect(state, cmd->flags);
   const UiBuildStyle     style     = *ui_build_style_current(state);
   const UiBuildContainer container = *ui_build_container_current(state, style.layer);
 
@@ -375,7 +389,7 @@ static void ui_build_draw_text(UiBuildState* state, const UiDrawText* cmd) {
 }
 
 static void ui_build_draw_glyph(UiBuildState* state, const UiDrawGlyph* cmd) {
-  const UiRect           rect      = *ui_build_rect_current(state);
+  const UiRect           rect      = ui_build_rect(state, cmd->flags);
   const UiBuildStyle     style     = *ui_build_style_current(state);
   const UiBuildContainer container = *ui_build_container_current(state, style.layer);
 
@@ -405,7 +419,7 @@ static void ui_build_draw_glyph(UiBuildState* state, const UiDrawGlyph* cmd) {
 }
 
 static void ui_build_draw_image(UiBuildState* state, const UiDrawImage* cmd) {
-  const UiRect           rect      = *ui_build_rect_current(state);
+  const UiRect           rect      = ui_build_rect(state, cmd->flags);
   const UiBuildStyle     style     = *ui_build_style_current(state);
   const UiBuildContainer container = *ui_build_container_current(state, style.layer);
   const u8               clipId    = container.clipId;
@@ -453,7 +467,7 @@ static void ui_build_debug_inspector(
     const UiFlags    flags,
     const f32        angleRad,
     const UiAtomType atomType) {
-  const UiRect           rect      = *ui_build_rect_current(state);
+  const UiRect           rect      = ui_build_rect(state, flags);
   const UiBuildStyle     style     = *ui_build_style_current(state);
   const UiBuildContainer container = *ui_build_container_current(state, style.layer);
 
