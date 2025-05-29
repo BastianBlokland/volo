@@ -178,6 +178,8 @@ UiScrollviewOutput ui_scrollview_begin(
   }
   ui_layout_container_push(canvas, UiClip_None, layer);
 
+  scrollview->lastViewportHeight = status.viewport.height;
+
   UiScrollviewOutput output = 0;
   if (status.flags & UiScrollviewStatus_HoveringViewport) {
     output |= UiScrollviewOutput_Hovering;
@@ -198,4 +200,14 @@ void ui_scrollview_end(UiCanvasComp* canvas, UiScrollview* scrollview) {
 
   ui_layout_container_pop(canvas);
   ui_layout_container_pop(canvas);
+}
+
+UiScrollviewCull ui_scrollview_cull(UiScrollview* scrollview, const f32 y, const f32 height) {
+  if ((y + height) < scrollview->offset) {
+    return UiScrollviewCull_Before;
+  }
+  if (y > (scrollview->offset + scrollview->lastViewportHeight)) {
+    return UiScrollviewCull_After;
+  }
+  return UiScrollviewCull_Inside;
 }

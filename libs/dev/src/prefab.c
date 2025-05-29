@@ -439,6 +439,12 @@ static void prefab_panel_normal_draw(UiCanvasComp* canvas, const PrefabPanelCont
     ++ctx->panelComp->totalRows;
 
     ui_table_next_row(canvas, &table);
+
+    const f32 y = ui_table_height(&table, userIndex);
+    if (ui_scrollview_cull(&ctx->panelComp->scrollview, y, table.rowHeight)) {
+      continue;
+    }
+
     ui_table_draw_row_bg(canvas, &table, ui_color(48, 48, 48, 192));
 
     const String nameTooltip = fmt_write_scratch(

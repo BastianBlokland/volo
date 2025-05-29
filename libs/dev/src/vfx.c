@@ -250,10 +250,20 @@ vfx_panel_draw(UiCanvasComp* canvas, DevVfxPanelComp* panelComp, SceneSetEnvComp
   ui_scrollview_begin(canvas, &panelComp->scrollview, UiLayer_Normal, height);
 
   ui_canvas_id_block_next(canvas); // Start the list of objects on its own id block.
-  dynarray_for_t(&panelComp->objects, DevVfxInfo, info) {
+  for (u32 objIdx = 0; objIdx != numObjects; ++objIdx) {
     ui_table_next_row(canvas, &table);
-    ui_table_draw_row_bg(canvas, &table, ui_color(48, 48, 48, 192));
 
+    const DevVfxInfo*      info = dynarray_at_t(&panelComp->objects, objIdx, DevVfxInfo);
+    const f32              y    = ui_table_height(&table, objIdx);
+    const UiScrollviewCull cull = ui_scrollview_cull(&panelComp->scrollview, y, table.rowHeight);
+    if (cull == UiScrollviewCull_After) {
+      break;
+    }
+    if (cull == UiScrollviewCull_Before) {
+      continue;
+    }
+
+    ui_table_draw_row_bg(canvas, &table, ui_color(48, 48, 48, 192));
     ui_canvas_id_block_index(canvas, ecs_entity_id_index(info->entity) * 10); // Set a stable id.
 
     ui_label(canvas, vfx_entity_name(info->nameHash), .selectable = true);
