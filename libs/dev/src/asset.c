@@ -278,7 +278,17 @@ static void asset_panel_draw(UiCanvasComp* canvas, DevAssetPanelComp* panelComp,
   ui_scrollview_begin(canvas, &panelComp->scrollview, UiLayer_Normal, height);
 
   ui_canvas_id_block_next(canvas); // Start the list of assets on its own id block.
-  dynarray_for_t(&panelComp->assets, DevAssetInfo, asset) {
+  for (u32 assetIdx = 0; assetIdx != numAssets; ++assetIdx) {
+    const DevAssetInfo*    asset = dynarray_at_t(&panelComp->assets, assetIdx, DevAssetInfo);
+    const f32              y     = ui_table_height(&table, assetIdx);
+    const UiScrollviewCull cull  = ui_scrollview_cull(&panelComp->scrollview, y, table.rowHeight);
+    if (cull == UiScrollviewCull_After) {
+      break;
+    }
+    if (cull == UiScrollviewCull_Before) {
+      continue;
+    }
+
     ui_table_next_row(canvas, &table);
     ui_table_draw_row_bg(canvas, &table, asset_info_bg_color(asset));
 
