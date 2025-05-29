@@ -9,6 +9,7 @@ typedef enum eUiScrollviewFlags {
 typedef struct sUiScrollview {
   UiScrollviewFlags flags;
   f32               offset;
+  f32               lastViewportHeight;
   UiId              lastContentId;
 } UiScrollview;
 
