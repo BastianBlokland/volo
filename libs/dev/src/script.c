@@ -692,6 +692,13 @@ static void output_panel_tab_draw(
     }
 
     ui_table_next_row(c, &table);
+    const f32 y = ui_table_height(&table, panelComp->lastRowCount);
+    ++panelComp->lastRowCount;
+
+    if (ui_scrollview_cull(&panelComp->scrollview, y, table.rowHeight)) {
+      continue;
+    }
+
     ui_table_draw_row_bg(c, &table, output_entry_bg_color(entry));
 
     ui_label_entity(c, entry->entity);
@@ -734,7 +741,6 @@ static void output_panel_tab_draw(
       panelComp->editorReq =
           (DevEditorRequest){.scriptId = entry->scriptId, .pos = entry->range.start};
     }
-    ++panelComp->lastRowCount;
   }
   ui_canvas_id_block_next(c);
 
