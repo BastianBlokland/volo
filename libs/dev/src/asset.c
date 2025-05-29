@@ -279,6 +279,8 @@ static void asset_panel_draw(UiCanvasComp* canvas, DevAssetPanelComp* panelComp,
 
   ui_canvas_id_block_next(canvas); // Start the list of assets on its own id block.
   for (u32 assetIdx = 0; assetIdx != numAssets; ++assetIdx) {
+    ui_table_next_row(canvas, &table);
+
     const DevAssetInfo*    asset = dynarray_at_t(&panelComp->assets, assetIdx, DevAssetInfo);
     const f32              y     = ui_table_height(&table, assetIdx);
     const UiScrollviewCull cull  = ui_scrollview_cull(&panelComp->scrollview, y, table.rowHeight);
@@ -289,9 +291,7 @@ static void asset_panel_draw(UiCanvasComp* canvas, DevAssetPanelComp* panelComp,
       continue;
     }
 
-    ui_table_next_row(canvas, &table);
     ui_table_draw_row_bg(canvas, &table, asset_info_bg_color(asset));
-
     ui_canvas_id_block_string(canvas, asset->id); // Set a stable id based on the asset id.
 
     ui_label(canvas, asset->id, .selectable = true);
