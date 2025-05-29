@@ -834,10 +834,20 @@ static void rend_obj_tab_draw(UiCanvasComp* canvas, DevRendPanelComp* panelComp)
   ui_scrollview_begin(canvas, &panelComp->scrollview, UiLayer_Normal, height);
 
   ui_canvas_id_block_next(canvas); // Start the list of objects on its own id block.
-  dynarray_for_t(&panelComp->objects, DevObjInfo, objInfo) {
+  for (u32 objIdx = 0; objIdx != numObjects; ++objIdx) {
     ui_table_next_row(canvas, &table);
-    ui_table_draw_row_bg(canvas, &table, rend_obj_bg_color(objInfo));
 
+    const DevObjInfo*      objInfo = dynarray_at_t(&panelComp->objects, objIdx, DevObjInfo);
+    const f32              y       = ui_table_height(&table, objIdx);
+    const UiScrollviewCull cull    = ui_scrollview_cull(&panelComp->scrollview, y, table.rowHeight);
+    if (cull == UiScrollviewCull_After) {
+      break;
+    }
+    if (cull == UiScrollviewCull_Before) {
+      continue;
+    }
+
+    ui_table_draw_row_bg(canvas, &table, rend_obj_bg_color(objInfo));
     ui_canvas_id_block_string(canvas, objInfo->graphicName); // Set a stable canvas id.
 
     ui_label(canvas, objInfo->graphicName, .selectable = true);
@@ -1019,10 +1029,20 @@ static void rend_resource_tab_draw(
   ui_scrollview_begin(canvas, &panelComp->scrollview, UiLayer_Normal, height);
 
   ui_canvas_id_block_next(canvas); // Start the list of resources on its own id block.
-  dynarray_for_t(&panelComp->resources, DevResourceInfo, resInfo) {
+  for (u32 resIdx = 0; resIdx != numResources; ++resIdx) {
     ui_table_next_row(canvas, &table);
-    ui_table_draw_row_bg(canvas, &table, rend_resource_bg_color(resInfo));
 
+    const DevResourceInfo* resInfo = dynarray_at_t(&panelComp->resources, resIdx, DevResourceInfo);
+    const f32              y       = ui_table_height(&table, resIdx);
+    const UiScrollviewCull cull    = ui_scrollview_cull(&panelComp->scrollview, y, table.rowHeight);
+    if (cull == UiScrollviewCull_After) {
+      break;
+    }
+    if (cull == UiScrollviewCull_Before) {
+      continue;
+    }
+
+    ui_table_draw_row_bg(canvas, &table, rend_resource_bg_color(resInfo));
     ui_canvas_id_block_string(canvas, resInfo->name); // Set a stable canvas id.
 
     ui_label(canvas, resInfo->name, .selectable = true);
