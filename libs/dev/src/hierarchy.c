@@ -16,14 +16,9 @@
 #include "ui_panel.h"
 #include "ui_scrollview.h"
 #include "ui_shape.h"
+#include "ui_style.h"
 #include "ui_table.h"
 #include "ui_widget.h"
-
-// clang-format off
-
-static const String g_tooltipSelectEntity = string_static("Select the entity.");
-
-// clang-format on
 
 typedef struct {
   EcsEntityId entity;
@@ -93,7 +88,7 @@ static String hierarchy_name(const StringHash nameHash) {
 static UiColor hierarchy_bg_color(const HierarchyEntry* entry, const bool selected) {
   (void)entry;
   if (selected) {
-    return ui_color(48, 128, 48, 192);
+    return ui_color(48, 48, 178, 192);
   }
   return ui_color(48, 48, 48, 192);
 }
@@ -102,7 +97,8 @@ static void hierarchy_panel_draw(
     UiCanvasComp*           canvas,
     DevHierarchyPanelComp*  panelComp,
     SceneSetEnvComp*        setEnv,
-    const InputManagerComp* input) {
+    const InputManagerComp* input,
+    EcsWorld*               world) {
   const String title = fmt_write_scratch("{} Hierarchy Panel", fmt_ui_shape(Tree));
   ui_panel_begin(
       canvas, &panelComp->panel, .title = title, .topBarColor = ui_color(100, 0, 0, 192));
@@ -136,7 +132,12 @@ static void hierarchy_panel_draw(
     const bool selected = scene_set_contains(setEnv, g_sceneSetSelected, entry->entity);
 
     ui_table_draw_row_bg(canvas, &table, hierarchy_bg_color(entry, selected));
+    ui_style_push(canvas);
+    if (selected) {
+      ui_style_outline(canvas, 2);
+    }
     ui_label(canvas, hierarchy_name(entry->nameHash), .selectable = true);
+    ui_style_pop(canvas);
 
     ui_layout_push(canvas);
     ui_layout_inner(
@@ -144,9 +145,9 @@ static void hierarchy_panel_draw(
     if (ui_button(
             canvas,
             .label      = ui_shape_scratch(UiShape_SelectAll),
-            .frameColor = selected ? ui_color(8, 128, 8, 192) : ui_color(32, 32, 32, 192),
             .fontSize   = 18,
-            .tooltip    = g_tooltipSelectEntity)) {
+            .frameColor = ui_color(0, 16, 255, 192),
+            .tooltip    = string_static("Select the entity."))) {
       const InputModifier modifiers = input_modifiers(input);
       if (!(modifiers & (InputModifier_Control | InputModifier_Shift))) {
         scene_set_clear(setEnv, g_sceneSetSelected);
@@ -156,6 +157,15 @@ static void hierarchy_panel_draw(
       } else {
         scene_set_add(setEnv, g_sceneSetSelected, entry->entity, SceneSetFlags_None);
       }
+    }
+    ui_layout_next(canvas, Ui_Left, 10);
+    if (ui_button(
+            canvas,
+            .label      = ui_shape_scratch(UiShape_Delete),
+            .fontSize   = 18,
+            .frameColor = ui_color(255, 16, 0, 192),
+            .tooltip    = string_lit("Destroy the entity."))) {
+      ecs_world_entity_destroy(world, entry->entity);
     }
     ui_layout_pop(canvas);
   }
@@ -190,7 +200,7 @@ ecs_system_define(DevHierarchyUpdatePanelSys) {
       panelComp->focusRequest = panelComp->lastMainSelection = mainSelection;
     }
     hierarchy_query(panelComp, world);
-    hierarchy_panel_draw(canvas, panelComp, setEnv, input);
+    hierarchy_panel_draw(canvas, panelComp, setEnv, input, world);
 
     if (ui_panel_closed(&panelComp->panel)) {
       ecs_world_entity_destroy(world, entity);
