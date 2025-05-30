@@ -4,6 +4,7 @@
 #include "core_stringtable.h"
 #include "dev_hierarchy.h"
 #include "dev_panel.h"
+#include "ecs_entity.h"
 #include "ecs_view.h"
 #include "ecs_world.h"
 #include "scene.h"
@@ -55,6 +56,12 @@ ecs_view_define(PanelUpdateView) {
   ecs_access_write(UiCanvasComp);
 }
 
+static i8 hierarchy_compare_entry(const void* a, const void* b) {
+  const u32 serialA = ecs_entity_id_serial(((const HierarchyEntry*)a)->entity);
+  const u32 serialB = ecs_entity_id_serial(((const HierarchyEntry*)b)->entity);
+  return serialA < serialB ? -1 : serialA > serialB ? 1 : 0;
+}
+
 static void hierarchy_query(DevHierarchyPanelComp* panelComp, EcsWorld* world) {
   dynarray_clear(&panelComp->entries);
 
@@ -67,6 +74,8 @@ static void hierarchy_query(DevHierarchyPanelComp* panelComp, EcsWorld* world) {
     entry->entity         = entity;
     entry->nameHash       = nameComp->name;
   }
+
+  dynarray_sort(&panelComp->entries, hierarchy_compare_entry);
 }
 
 static String hierarchy_name(const StringHash nameHash) {
