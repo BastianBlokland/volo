@@ -35,6 +35,9 @@ ecs_comp_define(DevHierarchyPanelComp) {
   u32          panelRowCount;
   UiScrollview scrollview;
   DynArray     entries; // HierarchyEntry[]
+
+  EcsEntityId lastMainSelection;
+  EcsEntityId focusRequest;
 };
 
 static void ecs_destruct_hierarchy_panel(void* data) {
@@ -117,8 +120,17 @@ static void hierarchy_panel_draw(
 
     ui_table_next_row(canvas, &table);
 
-    const f32 y = ui_table_height(&table, panelComp->panelRowCount++);
-    if (ui_scrollview_cull(&panelComp->scrollview, y, table.rowHeight)) {
+    const f32              y    = ui_table_height(&table, panelComp->panelRowCount++);
+    const UiScrollviewCull cull = ui_scrollview_cull(&panelComp->scrollview, y, table.rowHeight);
+
+    const bool focus = entry->entity == panelComp->focusRequest;
+    if (focus) {
+      panelComp->focusRequest = 0;
+    }
+    if (focus && cull) {
+      panelComp->scrollview.offset = y;
+    }
+    if (cull) {
       continue;
     }
     const bool selected = scene_set_contains(setEnv, g_sceneSetSelected, entry->entity);
@@ -172,6 +184,10 @@ ecs_system_define(DevHierarchyUpdatePanelSys) {
     const bool pinned = ui_panel_pinned(&panelComp->panel);
     if (dev_panel_hidden(ecs_view_read_t(itr, DevPanelComp)) && !pinned) {
       continue;
+    }
+    const EcsEntityId mainSelection = scene_set_main(setEnv, g_sceneSetSelected);
+    if (panelComp->lastMainSelection != mainSelection) {
+      panelComp->focusRequest = panelComp->lastMainSelection = mainSelection;
     }
     hierarchy_query(panelComp, world);
     hierarchy_panel_draw(canvas, panelComp, setEnv, input);
