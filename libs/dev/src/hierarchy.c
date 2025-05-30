@@ -8,12 +8,20 @@
 #include "ecs_world.h"
 #include "scene.h"
 #include "scene_name.h"
+#include "scene_set.h"
 #include "ui_canvas.h"
+#include "ui_layout.h"
 #include "ui_panel.h"
 #include "ui_scrollview.h"
 #include "ui_shape.h"
 #include "ui_table.h"
 #include "ui_widget.h"
+
+// clang-format off
+
+static const String g_tooltipSelectEntity = string_static("Select the entity.");
+
+// clang-format on
 
 typedef struct {
   EcsEntityId entity;
@@ -36,6 +44,8 @@ ecs_view_define(HierarchyEntryView) {
   ecs_access_with(SceneLevelInstanceComp);
   ecs_access_read(SceneNameComp);
 }
+
+ecs_view_define(PanelUpdateGlobalView) { ecs_access_write(SceneSetEnvComp); }
 
 ecs_view_define(PanelUpdateView) {
   ecs_view_flags(EcsViewFlags_Exclusive); // DevHierarchyPanelComp's are exclusively managed here.
@@ -64,12 +74,16 @@ static String hierarchy_name(const StringHash nameHash) {
   return string_is_empty(name) ? string_lit("<unnamed>") : name;
 }
 
-static UiColor hierarchy_bg_color(const HierarchyEntry* entry) {
+static UiColor hierarchy_bg_color(const HierarchyEntry* entry, const bool selected) {
   (void)entry;
+  if (selected) {
+    return ui_color(48, 128, 48, 192);
+  }
   return ui_color(48, 48, 48, 192);
 }
 
-static void hierarchy_panel_draw(UiCanvasComp* canvas, DevHierarchyPanelComp* panelComp) {
+static void hierarchy_panel_draw(
+    UiCanvasComp* canvas, DevHierarchyPanelComp* panelComp, SceneSetEnvComp* setEnv) {
   const String title = fmt_write_scratch("{} Hierarchy Panel", fmt_ui_shape(Tree));
   ui_panel_begin(
       canvas, &panelComp->panel, .title = title, .topBarColor = ui_color(100, 0, 0, 192));
@@ -91,9 +105,24 @@ static void hierarchy_panel_draw(UiCanvasComp* canvas, DevHierarchyPanelComp* pa
     if (ui_scrollview_cull(&panelComp->scrollview, y, table.rowHeight)) {
       continue;
     }
+    const bool selected = scene_set_contains(setEnv, g_sceneSetSelected, entry->entity);
 
-    ui_table_draw_row_bg(canvas, &table, hierarchy_bg_color(entry));
+    ui_table_draw_row_bg(canvas, &table, hierarchy_bg_color(entry, selected));
     ui_label(canvas, hierarchy_name(entry->nameHash), .selectable = true);
+
+    ui_layout_push(canvas);
+    ui_layout_inner(
+        canvas, UiBase_Current, UiAlign_MiddleRight, ui_vector(25, 25), UiBase_Absolute);
+    if (ui_button(
+            canvas,
+            .label      = ui_shape_scratch(UiShape_SelectAll),
+            .frameColor = selected ? ui_color(8, 128, 8, 192) : ui_color(32, 32, 32, 192),
+            .fontSize   = 18,
+            .tooltip    = g_tooltipSelectEntity)) {
+      scene_set_clear(setEnv, g_sceneSetSelected);
+      scene_set_add(setEnv, g_sceneSetSelected, entry->entity, SceneSetFlags_None);
+    }
+    ui_layout_pop(canvas);
   }
   ui_canvas_id_block_next(canvas);
 
@@ -102,6 +131,13 @@ static void hierarchy_panel_draw(UiCanvasComp* canvas, DevHierarchyPanelComp* pa
 }
 
 ecs_system_define(DevHierarchyUpdatePanelSys) {
+  EcsView*     globalView = ecs_world_view_t(world, PanelUpdateGlobalView);
+  EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
+  if (!globalItr) {
+    return;
+  }
+  SceneSetEnvComp* setEnv = ecs_view_write_t(globalItr, SceneSetEnvComp);
+
   EcsView* panelView = ecs_world_view_t(world, PanelUpdateView);
   for (EcsIterator* itr = ecs_view_itr(panelView); ecs_view_walk(itr);) {
     const EcsEntityId      entity    = ecs_view_entity(itr);
@@ -114,7 +150,7 @@ ecs_system_define(DevHierarchyUpdatePanelSys) {
       continue;
     }
     hierarchy_query(panelComp, world);
-    hierarchy_panel_draw(canvas, panelComp);
+    hierarchy_panel_draw(canvas, panelComp, setEnv);
 
     if (ui_panel_closed(&panelComp->panel)) {
       ecs_world_entity_destroy(world, entity);
@@ -130,6 +166,7 @@ ecs_module_init(dev_hierarchy_module) {
 
   ecs_register_system(
       DevHierarchyUpdatePanelSys,
+      ecs_register_view(PanelUpdateGlobalView),
       ecs_register_view(PanelUpdateView),
       ecs_register_view(HierarchyEntryView));
 }
