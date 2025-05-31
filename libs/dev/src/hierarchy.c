@@ -36,7 +36,7 @@ typedef enum {
 
 typedef struct {
   HierarchyLinkMask mask;
-  HierarchyLinkId   linkNext;
+  HierarchyLinkId   next;
   EcsEntityId       entity;
 } HierarchyLink;
 
@@ -94,12 +94,6 @@ typedef struct {
   EcsEntityId             focusEntity;
 } HierarchyContext;
 
-static i8 hierarchy_compare_entry(const void* a, const void* b) {
-  const EcsEntityId entityA = ((const HierarchyEntry*)a)->entity;
-  const EcsEntityId entityB = ((const HierarchyEntry*)b)->entity;
-  return entityA < entityB ? -1 : entityA > entityB ? 1 : 0;
-}
-
 static bool hierarchy_open(HierarchyContext* ctx, const EcsEntityId e) {
   return dynbitset_test(&ctx->panel->openEntities, ecs_entity_id_index(e));
 }
@@ -110,6 +104,12 @@ static void hierarchy_open_update(HierarchyContext* ctx, const EcsEntityId e, co
   } else {
     dynbitset_clear(&ctx->panel->openEntities, ecs_entity_id_index(e));
   }
+}
+
+static i8 hierarchy_compare_entry(const void* a, const void* b) {
+  const EcsEntityId entityA = ((const HierarchyEntry*)a)->entity;
+  const EcsEntityId entityB = ((const HierarchyEntry*)b)->entity;
+  return entityA < entityB ? -1 : entityA > entityB ? 1 : 0;
 }
 
 static HierarchyEntry* hierarchy_find(HierarchyContext* ctx, const EcsEntityId entity) {
@@ -145,16 +145,36 @@ static bool hierarchy_link_add(
       link->mask |= type;
       return true;
     }
-    linkTail = &link->linkNext;
+    linkTail = &link->next;
   }
+
   // Add a new link.
   *linkTail                                           = (HierarchyLinkId)ctx->panel->links.size;
   *dynarray_push_t(&ctx->panel->links, HierarchyLink) = (HierarchyLink){
-      .mask     = type,
-      .entity   = child,
-      .linkNext = sentinel_u32,
+      .mask   = type,
+      .entity = child,
+      .next   = sentinel_u32,
   };
+
   return true;
+}
+
+static EcsEntityId hierarchy_link_entity(HierarchyContext* ctx, const HierarchyLinkId id) {
+  return dynarray_at_t(&ctx->panel->links, id, HierarchyLink)->entity;
+}
+
+static HierarchyLinkId hierarchy_link_next(HierarchyContext* ctx, const HierarchyLinkId id) {
+  return dynarray_at_t(&ctx->panel->links, id, HierarchyLink)->next;
+}
+
+static u32 hierarchy_next_root(HierarchyContext* ctx, u32 entryIdx) {
+  for (; entryIdx != ctx->panel->entries.size; ++entryIdx) {
+    HierarchyEntry* entry = dynarray_at_t(&ctx->panel->entries, entryIdx, HierarchyEntry);
+    if (!entry->childMask) {
+      break;
+    }
+  }
+  return entryIdx;
 }
 
 static void hierarchy_query(HierarchyContext* ctx) {
@@ -204,24 +224,6 @@ static String hierarchy_name(const StringHash nameHash) {
   return string_is_empty(name) ? string_lit("<unnamed>") : name;
 }
 
-static EcsEntityId hierarchy_link_entity(HierarchyContext* ctx, const HierarchyLinkId id) {
-  return dynarray_at_t(&ctx->panel->links, id, HierarchyLink)->entity;
-}
-
-static HierarchyLinkId hierarchy_link_next(HierarchyContext* ctx, const HierarchyLinkId id) {
-  return dynarray_at_t(&ctx->panel->links, id, HierarchyLink)->linkNext;
-}
-
-static u32 hierarchy_next_root(HierarchyContext* ctx, u32 entryIdx) {
-  for (; entryIdx != ctx->panel->entries.size; ++entryIdx) {
-    HierarchyEntry* entry = dynarray_at_t(&ctx->panel->entries, entryIdx, HierarchyEntry);
-    if (!entry->childMask) {
-      break;
-    }
-  }
-  return entryIdx;
-}
-
 static Unicode hierarchy_icon(HierarchyContext* ctx, const EcsEntityId e) {
   if (ecs_world_has_t(ctx->world, e, SceneScriptComp)) {
     return UiShape_Description;
@@ -268,9 +270,8 @@ static void hierarchy_entry_draw(
     UiTable*              table,
     const HierarchyEntry* entry,
     const u32             depth) {
-  const bool selected = scene_set_contains(ctx->setEnv, g_sceneSetSelected, entry->entity);
-
-  const UiColor color = selected ? ui_color(48, 48, 178, 192) : ui_color(48, 48, 48, 192);
+  const bool    selected = scene_set_contains(ctx->setEnv, g_sceneSetSelected, entry->entity);
+  const UiColor color    = selected ? ui_color(48, 48, 178, 192) : ui_color(48, 48, 48, 192);
   ui_table_draw_row_bg(canvas, table, color);
 
   if (depth) {
@@ -329,7 +330,8 @@ static void hierarchy_entry_draw(
 }
 
 static void hierarchy_panel_draw(HierarchyContext* ctx, UiCanvasComp* canvas) {
-  const String title = fmt_write_scratch("{} Hierarchy Panel", fmt_ui_shape(Tree));
+  const String title = fmt_write_scratch(
+      "{} Hierarchy Panel ({})", fmt_ui_shape(Tree), fmt_int(ctx->panel->entries.size));
   ui_panel_begin(
       canvas, &ctx->panel->panel, .title = title, .topBarColor = ui_color(100, 0, 0, 192));
 
