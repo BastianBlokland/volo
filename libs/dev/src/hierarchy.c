@@ -76,27 +76,35 @@ ecs_view_define(PanelUpdateView) {
   ecs_access_write(UiCanvasComp);
 }
 
+typedef struct {
+  EcsWorld*               world;
+  SceneSetEnvComp*        setEnv;
+  const InputManagerComp* input;
+  DevHierarchyPanelComp*  panel;
+  EcsEntityId             focusEntity;
+} HierarchyContext;
+
 static i8 hierarchy_compare_entry(const void* a, const void* b) {
   const EcsEntityId entityA = ((const HierarchyEntry*)a)->entity;
   const EcsEntityId entityB = ((const HierarchyEntry*)b)->entity;
   return entityA < entityB ? -1 : entityA > entityB ? 1 : 0;
 }
 
-static HierarchyEntry* hierarchy_find(DevHierarchyPanelComp* panelComp, const EcsEntityId entity) {
+static HierarchyEntry* hierarchy_find(HierarchyContext* ctx, const EcsEntityId entity) {
   const HierarchyEntry tgt = {.entity = entity};
-  return dynarray_search_binary(&panelComp->entries, hierarchy_compare_entry, &tgt);
+  return dynarray_search_binary(&ctx->panel->entries, hierarchy_compare_entry, &tgt);
 }
 
 static bool hierarchy_link_add(
-    DevHierarchyPanelComp*  panelComp,
+    HierarchyContext*       ctx,
     const EcsEntityId       parent,
     const EcsEntityId       child,
     const HierarchyLinkMask type) {
-  HierarchyEntry* parentEntry = hierarchy_find(panelComp, parent);
+  HierarchyEntry* parentEntry = hierarchy_find(ctx, parent);
   if (!parentEntry) {
     return false;
   }
-  HierarchyEntry* childEntry = hierarchy_find(panelComp, child);
+  HierarchyEntry* childEntry = hierarchy_find(ctx, child);
   if (!childEntry) {
     return false;
   }
@@ -106,7 +114,7 @@ static bool hierarchy_link_add(
   // Walk the existing links.
   HierarchyLinkId* linkTail = &parentEntry->linkHead;
   while (!sentinel_check(*linkTail)) {
-    HierarchyLink* link = dynarray_at_t(&panelComp->links, *linkTail, HierarchyLink);
+    HierarchyLink* link = dynarray_at_t(&ctx->panel->links, *linkTail, HierarchyLink);
     if (link->entity == child) {
       link->mask |= type;
       return true;
@@ -114,8 +122,8 @@ static bool hierarchy_link_add(
     linkTail = &link->linkNext;
   }
   // Add a new link.
-  *linkTail                                          = (HierarchyLinkId)panelComp->links.size;
-  *dynarray_push_t(&panelComp->links, HierarchyLink) = (HierarchyLink){
+  *linkTail                                           = (HierarchyLinkId)ctx->panel->links.size;
+  *dynarray_push_t(&ctx->panel->links, HierarchyLink) = (HierarchyLink){
       .mask     = type,
       .entity   = child,
       .linkNext = sentinel_u32,
@@ -123,22 +131,22 @@ static bool hierarchy_link_add(
   return true;
 }
 
-static void hierarchy_query(DevHierarchyPanelComp* panelComp, EcsWorld* world) {
-  dynarray_clear(&panelComp->entries);
+static void hierarchy_query(HierarchyContext* ctx) {
+  dynarray_clear(&ctx->panel->entries);
 
-  EcsView*     entryView = ecs_world_view_t(world, HierarchyEntryView);
+  EcsView*     entryView = ecs_world_view_t(ctx->world, HierarchyEntryView);
   EcsIterator* entryItr  = ecs_view_itr(entryView);
 
   // Add entries.
   for (EcsIterator* itr = ecs_view_itr_reset(entryItr); ecs_view_walk(itr);) {
-    HierarchyEntry* entry = dynarray_push_t(&panelComp->entries, HierarchyEntry);
+    HierarchyEntry* entry = dynarray_push_t(&ctx->panel->entries, HierarchyEntry);
     entry->parentMask     = 0;
     entry->childMask      = 0;
     entry->entity         = ecs_view_entity(itr);
     entry->nameHash       = ecs_view_read_t(itr, SceneNameComp)->name;
     entry->linkHead       = sentinel_u32; // No links.
   }
-  dynarray_sort(&panelComp->entries, hierarchy_compare_entry);
+  dynarray_sort(&ctx->panel->entries, hierarchy_compare_entry);
 
   // Add links.
   for (EcsIterator* itr = ecs_view_itr_reset(entryItr); ecs_view_walk(itr);) {
@@ -148,7 +156,7 @@ static void hierarchy_query(DevHierarchyPanelComp* panelComp, EcsWorld* world) {
       for (u32 ownerIdx = 0; ownerIdx != scene_lifetime_owners_max; ++ownerIdx) {
         const EcsEntityId owner = ownerComp->owners[ownerIdx];
         if (owner) {
-          hierarchy_link_add(panelComp, owner, entity, HierarchyLinkMask_Lifetime);
+          hierarchy_link_add(ctx, owner, entity, HierarchyLinkMask_Lifetime);
         }
       }
     }
@@ -168,42 +176,37 @@ static UiColor hierarchy_bg_color(const HierarchyEntry* entry, const bool select
   return ui_color(48, 48, 48, 192);
 }
 
-static void hierarchy_panel_draw(
-    UiCanvasComp*           canvas,
-    DevHierarchyPanelComp*  panelComp,
-    SceneSetEnvComp*        setEnv,
-    const InputManagerComp* input,
-    EcsWorld*               world,
-    const EcsEntityId       focusEntity) {
+static void hierarchy_panel_draw(HierarchyContext* ctx, UiCanvasComp* canvas) {
   const String title = fmt_write_scratch("{} Hierarchy Panel", fmt_ui_shape(Tree));
   ui_panel_begin(
-      canvas, &panelComp->panel, .title = title, .topBarColor = ui_color(100, 0, 0, 192));
+      canvas, &ctx->panel->panel, .title = title, .topBarColor = ui_color(100, 0, 0, 192));
 
   UiTable table = ui_table(.spacing = ui_vector(10, 5));
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
-  const f32 height = ui_table_height(&table, panelComp->panelRowCount);
-  ui_scrollview_begin(canvas, &panelComp->scrollview, UiLayer_Normal, height);
+  const f32 height = ui_table_height(&table, ctx->panel->panelRowCount);
+  ui_scrollview_begin(canvas, &ctx->panel->scrollview, UiLayer_Normal, height);
   ui_canvas_id_block_next(canvas); // Start the list of entities on its own id block.
 
-  panelComp->panelRowCount = 0;
-  for (u32 entryIdx = 0; entryIdx != panelComp->entries.size; ++entryIdx) {
-    const HierarchyEntry* entry = dynarray_at_t(&panelComp->entries, entryIdx, HierarchyEntry);
+  ctx->panel->panelRowCount = 0;
+  for (u32 entryIdx = 0; entryIdx != ctx->panel->entries.size; ++entryIdx) {
+    const HierarchyEntry* entry = dynarray_at_t(&ctx->panel->entries, entryIdx, HierarchyEntry);
     if (entry->childMask) {
       continue; // Not a root entry.
     }
     ui_table_next_row(canvas, &table);
 
-    const f32              y    = ui_table_height(&table, panelComp->panelRowCount++);
-    const UiScrollviewCull cull = ui_scrollview_cull(&panelComp->scrollview, y, table.rowHeight);
+    const f32              y    = ui_table_height(&table, ctx->panel->panelRowCount++);
+    const UiScrollviewCull cull = ui_scrollview_cull(&ctx->panel->scrollview, y, table.rowHeight);
 
-    if (focusEntity == entry->entity && cull) {
-      panelComp->scrollview.offset = y;
+    if (ctx->focusEntity == entry->entity && cull) {
+      ctx->panel->scrollview.offset = y;
+      ctx->focusEntity              = 0;
     }
     if (cull) {
       continue;
     }
-    const bool selected = scene_set_contains(setEnv, g_sceneSetSelected, entry->entity);
+    const bool selected = scene_set_contains(ctx->setEnv, g_sceneSetSelected, entry->entity);
 
     ui_table_draw_row_bg(canvas, &table, hierarchy_bg_color(entry, selected));
     ui_style_push(canvas);
@@ -222,14 +225,14 @@ static void hierarchy_panel_draw(
             .fontSize   = 18,
             .frameColor = ui_color(0, 16, 255, 192),
             .tooltip    = string_static("Select the entity."))) {
-      const InputModifier modifiers = input_modifiers(input);
+      const InputModifier modifiers = input_modifiers(ctx->input);
       if (!(modifiers & (InputModifier_Control | InputModifier_Shift))) {
-        scene_set_clear(setEnv, g_sceneSetSelected);
+        scene_set_clear(ctx->setEnv, g_sceneSetSelected);
       }
       if (modifiers & InputModifier_Shift) {
-        scene_set_remove(setEnv, g_sceneSetSelected, entry->entity);
+        scene_set_remove(ctx->setEnv, g_sceneSetSelected, entry->entity);
       } else {
-        scene_set_add(setEnv, g_sceneSetSelected, entry->entity, SceneSetFlags_None);
+        scene_set_add(ctx->setEnv, g_sceneSetSelected, entry->entity, SceneSetFlags_None);
       }
     }
     ui_layout_next(canvas, Ui_Left, 10);
@@ -239,14 +242,14 @@ static void hierarchy_panel_draw(
             .fontSize   = 18,
             .frameColor = ui_color(255, 16, 0, 192),
             .tooltip    = string_lit("Destroy the entity."))) {
-      ecs_world_entity_destroy(world, entry->entity);
+      ecs_world_entity_destroy(ctx->world, entry->entity);
     }
     ui_layout_pop(canvas);
   }
   ui_canvas_id_block_next(canvas);
 
-  ui_scrollview_end(canvas, &panelComp->scrollview);
-  ui_panel_end(canvas, &panelComp->panel);
+  ui_scrollview_end(canvas, &ctx->panel->scrollview);
+  ui_panel_end(canvas, &ctx->panel->panel);
 }
 
 ecs_system_define(DevHierarchyUpdatePanelSys) {
@@ -255,29 +258,32 @@ ecs_system_define(DevHierarchyUpdatePanelSys) {
   if (!globalItr) {
     return;
   }
-  SceneSetEnvComp*        setEnv = ecs_view_write_t(globalItr, SceneSetEnvComp);
-  const InputManagerComp* input  = ecs_view_read_t(globalItr, InputManagerComp);
+  HierarchyContext ctx = {
+      .world  = world,
+      .setEnv = ecs_view_write_t(globalItr, SceneSetEnvComp),
+      .input  = ecs_view_read_t(globalItr, InputManagerComp),
+  };
 
   EcsView* panelView = ecs_world_view_t(world, PanelUpdateView);
   for (EcsIterator* itr = ecs_view_itr(panelView); ecs_view_walk(itr);) {
-    const EcsEntityId      entity    = ecs_view_entity(itr);
-    DevHierarchyPanelComp* panelComp = ecs_view_write_t(itr, DevHierarchyPanelComp);
-    UiCanvasComp*          canvas    = ecs_view_write_t(itr, UiCanvasComp);
+    const EcsEntityId entity = ecs_view_entity(itr);
+    UiCanvasComp*     canvas = ecs_view_write_t(itr, UiCanvasComp);
+
+    ctx.panel = ecs_view_write_t(itr, DevHierarchyPanelComp);
 
     ui_canvas_reset(canvas);
-    const bool pinned = ui_panel_pinned(&panelComp->panel);
+    const bool pinned = ui_panel_pinned(&ctx.panel->panel);
     if (dev_panel_hidden(ecs_view_read_t(itr, DevPanelComp)) && !pinned) {
       continue;
     }
-    EcsEntityId focusEntity = 0;
-    if (panelComp->lastMainSelection != scene_set_main(setEnv, g_sceneSetSelected)) {
-      panelComp->lastMainSelection = scene_set_main(setEnv, g_sceneSetSelected);
-      focusEntity                  = panelComp->lastMainSelection;
+    if (ctx.panel->lastMainSelection != scene_set_main(ctx.setEnv, g_sceneSetSelected)) {
+      ctx.panel->lastMainSelection = scene_set_main(ctx.setEnv, g_sceneSetSelected);
+      ctx.focusEntity              = ctx.panel->lastMainSelection;
     }
-    hierarchy_query(panelComp, world);
-    hierarchy_panel_draw(canvas, panelComp, setEnv, input, world, focusEntity);
+    hierarchy_query(&ctx);
+    hierarchy_panel_draw(&ctx, canvas);
 
-    if (ui_panel_closed(&panelComp->panel)) {
+    if (ui_panel_closed(&ctx.panel->panel)) {
       ecs_world_entity_destroy(world, entity);
     }
     if (ui_canvas_status(canvas) >= UiStatus_Pressed) {
