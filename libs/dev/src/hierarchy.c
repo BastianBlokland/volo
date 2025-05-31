@@ -156,24 +156,26 @@ static void hierarchy_query(HierarchyContext* ctx) {
   dynarray_sort(&ctx->panel->entries, hierarchy_compare_entry);
 
   // Add links.
-  for (EcsIterator* itr = ecs_view_itr_reset(entryItr); ecs_view_walk(itr);) {
-    const EcsEntityId             entity    = ecs_view_entity(itr);
+  for (u32 entryIdx = 0; entryIdx != ctx->panel->entries.size; ++entryIdx) {
+    HierarchyEntry* entry = dynarray_at_t(&ctx->panel->entries, entryIdx, HierarchyEntry);
+    EcsIterator*    itr   = ecs_view_jump(entryItr, entry->entity);
+
     const SceneLifetimeOwnerComp* ownerComp = ecs_view_read_t(itr, SceneLifetimeOwnerComp);
     if (ownerComp) {
       for (u32 ownerIdx = 0; ownerIdx != scene_lifetime_owners_max; ++ownerIdx) {
         const EcsEntityId owner = ownerComp->owners[ownerIdx];
         if (owner) {
-          hierarchy_link_add(ctx, owner, entity, HierarchyLinkMask_Lifetime);
+          hierarchy_link_add(ctx, owner, entry->entity, HierarchyLinkMask_Lifetime);
         }
       }
     }
     const SceneAttachmentComp* attachComp = ecs_view_read_t(itr, SceneAttachmentComp);
     if (attachComp && attachComp->target) {
-      hierarchy_link_add(ctx, attachComp->target, entity, HierarchyLinkMask_Attachment);
+      hierarchy_link_add(ctx, attachComp->target, entry->entity, HierarchyLinkMask_Attachment);
     }
     const SceneProjectileComp* projComp = ecs_view_read_t(itr, SceneProjectileComp);
     if (projComp && projComp->instigator) {
-      hierarchy_link_add(ctx, projComp->instigator, entity, HierarchyLinkMask_Instigator);
+      hierarchy_link_add(ctx, projComp->instigator, entry->entity, HierarchyLinkMask_Instigator);
     }
   }
 }
