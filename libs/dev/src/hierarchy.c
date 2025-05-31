@@ -100,6 +100,18 @@ static i8 hierarchy_compare_entry(const void* a, const void* b) {
   return entityA < entityB ? -1 : entityA > entityB ? 1 : 0;
 }
 
+static bool hierarchy_open(HierarchyContext* ctx, const EcsEntityId e) {
+  return dynbitset_test(&ctx->panel->openEntities, ecs_entity_id_index(e));
+}
+
+static void hierarchy_open_update(HierarchyContext* ctx, const EcsEntityId e, const bool open) {
+  if (open) {
+    dynbitset_set(&ctx->panel->openEntities, ecs_entity_id_index(e));
+  } else {
+    dynbitset_clear(&ctx->panel->openEntities, ecs_entity_id_index(e));
+  }
+}
+
 static HierarchyEntry* hierarchy_find(HierarchyContext* ctx, const EcsEntityId entity) {
   const HierarchyEntry tgt = {.entity = entity};
   return dynarray_search_binary(&ctx->panel->entries, hierarchy_compare_entry, &tgt);
@@ -120,6 +132,10 @@ static bool hierarchy_link_add(
   }
   parentEntry->parentMask |= type;
   childEntry->childMask |= type;
+
+  if (ctx->focusEntity == child) {
+    hierarchy_open_update(ctx, parent, true);
+  }
 
   // Walk the existing links.
   HierarchyLinkId* linkTail = &parentEntry->linkHead;
@@ -204,18 +220,6 @@ static u32 hierarchy_next_root(HierarchyContext* ctx, u32 entryIdx) {
     }
   }
   return entryIdx;
-}
-
-static bool hierarchy_open(HierarchyContext* ctx, const EcsEntityId e) {
-  return dynbitset_test(&ctx->panel->openEntities, ecs_entity_id_index(e));
-}
-
-static void hierarchy_open_update(HierarchyContext* ctx, const EcsEntityId e, const bool open) {
-  if (open) {
-    dynbitset_set(&ctx->panel->openEntities, ecs_entity_id_index(e));
-  } else {
-    dynbitset_clear(&ctx->panel->openEntities, ecs_entity_id_index(e));
-  }
 }
 
 static Unicode hierarchy_icon(HierarchyContext* ctx, const EcsEntityId e) {
