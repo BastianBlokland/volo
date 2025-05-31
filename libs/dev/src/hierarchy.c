@@ -1,6 +1,7 @@
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_dynarray.h"
+#include "core_dynbitset.h"
 #include "core_format.h"
 #include "core_stringtable.h"
 #include "dev_hierarchy.h"
@@ -52,6 +53,7 @@ ecs_comp_define(DevHierarchyPanelComp) {
   UiScrollview scrollview;
   DynArray     entries; // HierarchyEntry[]
   DynArray     links;   // HierarchyLink[]
+  DynBitSet    openEntities;
 
   EcsEntityId lastMainSelection;
 };
@@ -60,6 +62,7 @@ static void ecs_destruct_hierarchy_panel(void* data) {
   DevHierarchyPanelComp* comp = data;
   dynarray_destroy(&comp->entries);
   dynarray_destroy(&comp->links);
+  dynbitset_destroy(&comp->openEntities);
 }
 
 ecs_view_define(HierarchyEntryView) {
@@ -185,6 +188,36 @@ static String hierarchy_name(const StringHash nameHash) {
   return string_is_empty(name) ? string_lit("<unnamed>") : name;
 }
 
+static EcsEntityId hierarchy_link_entity(HierarchyContext* ctx, const HierarchyLinkId id) {
+  return dynarray_at_t(&ctx->panel->links, id, HierarchyLink)->entity;
+}
+
+static HierarchyLinkId hierarchy_link_next(HierarchyContext* ctx, const HierarchyLinkId id) {
+  return dynarray_at_t(&ctx->panel->links, id, HierarchyLink)->linkNext;
+}
+
+static u32 hierarchy_next_root(HierarchyContext* ctx, u32 entryIdx) {
+  for (; entryIdx != ctx->panel->entries.size; ++entryIdx) {
+    HierarchyEntry* entry = dynarray_at_t(&ctx->panel->entries, entryIdx, HierarchyEntry);
+    if (!entry->childMask) {
+      break;
+    }
+  }
+  return entryIdx;
+}
+
+static bool hierarchy_open(HierarchyContext* ctx, const EcsEntityId e) {
+  return dynbitset_test(&ctx->panel->openEntities, ecs_entity_id_index(e));
+}
+
+static void hierarchy_open_update(HierarchyContext* ctx, const EcsEntityId e, const bool open) {
+  if (open) {
+    dynbitset_set(&ctx->panel->openEntities, ecs_entity_id_index(e));
+  } else {
+    dynbitset_clear(&ctx->panel->openEntities, ecs_entity_id_index(e));
+  }
+}
+
 static void hierarchy_entry_draw(
     HierarchyContext*     ctx,
     UiCanvasComp*         canvas,
@@ -195,11 +228,23 @@ static void hierarchy_entry_draw(
 
   const UiColor color = selected ? ui_color(48, 48, 178, 192) : ui_color(48, 48, 48, 192);
   ui_table_draw_row_bg(canvas, table, color);
+
+  if (depth) {
+    const f32 inset = -25.0f * depth;
+    ui_layout_grow(canvas, UiAlign_MiddleRight, ui_vector(inset, 0), UiBase_Absolute, Ui_X);
+  }
+  if (entry->parentMask) {
+    bool isOpen = hierarchy_open(ctx, entry->entity);
+    if (ui_fold(canvas, &isOpen)) {
+      hierarchy_open_update(ctx, entry->entity, isOpen);
+    }
+  }
+
+  ui_layout_grow(canvas, UiAlign_MiddleRight, ui_vector(-20.0f, 0), UiBase_Absolute, Ui_X);
   ui_style_push(canvas);
   if (selected) {
     ui_style_outline(canvas, 2);
   }
-  ui_layout_grow(canvas, UiAlign_MiddleRight, ui_vector(-25.0f * depth, 0), UiBase_Absolute, Ui_X);
   ui_label(canvas, hierarchy_name(entry->nameHash), .selectable = true);
   ui_style_pop(canvas);
 
@@ -231,24 +276,6 @@ static void hierarchy_entry_draw(
     ecs_world_entity_destroy(ctx->world, entry->entity);
   }
   ui_layout_pop(canvas);
-}
-
-static EcsEntityId hierarchy_link_entity(HierarchyContext* ctx, const HierarchyLinkId id) {
-  return dynarray_at_t(&ctx->panel->links, id, HierarchyLink)->entity;
-}
-
-static HierarchyLinkId hierarchy_link_next(HierarchyContext* ctx, const HierarchyLinkId id) {
-  return dynarray_at_t(&ctx->panel->links, id, HierarchyLink)->linkNext;
-}
-
-static u32 hierarchy_next_root(HierarchyContext* ctx, u32 entryIdx) {
-  for (; entryIdx != ctx->panel->entries.size; ++entryIdx) {
-    HierarchyEntry* entry = dynarray_at_t(&ctx->panel->entries, entryIdx, HierarchyEntry);
-    if (!entry->childMask) {
-      break;
-    }
-  }
-  return entryIdx;
 }
 
 static void hierarchy_panel_draw(HierarchyContext* ctx, UiCanvasComp* canvas) {
@@ -299,8 +326,10 @@ static void hierarchy_panel_draw(HierarchyContext* ctx, UiCanvasComp* canvas) {
     }
 
     // Push children.
-    if (!sentinel_check(entry->linkHead) && childItrQueueSize != array_elems(childItrQueue)) {
-      childItrQueue[childItrQueueSize++] = entry->linkHead;
+    if (hierarchy_open(ctx, entry->entity)) {
+      if (!sentinel_check(entry->linkHead) && childItrQueueSize != array_elems(childItrQueue)) {
+        childItrQueue[childItrQueueSize++] = entry->linkHead;
+      }
     }
   }
   ui_canvas_id_block_next(canvas);
@@ -366,10 +395,11 @@ dev_hierarchy_panel_open(EcsWorld* world, const EcsEntityId window, const DevPan
       world,
       panelEntity,
       DevHierarchyPanelComp,
-      .panel      = ui_panel(.position = ui_vector(1.0f, 0.0f), .size = ui_vector(500, 350)),
-      .scrollview = ui_scrollview(),
-      .entries    = dynarray_create_t(g_allocHeap, HierarchyEntry, 1024),
-      .links      = dynarray_create_t(g_allocHeap, HierarchyLink, 1024));
+      .panel        = ui_panel(.position = ui_vector(1.0f, 0.0f), .size = ui_vector(500, 350)),
+      .scrollview   = ui_scrollview(),
+      .entries      = dynarray_create_t(g_allocHeap, HierarchyEntry, 1024),
+      .links        = dynarray_create_t(g_allocHeap, HierarchyLink, 1024),
+      .openEntities = dynbitset_create(g_allocHeap, 0));
 
   if (type == DevPanelType_Detached) {
     ui_panel_maximize(&hierarchyPanel->panel);
