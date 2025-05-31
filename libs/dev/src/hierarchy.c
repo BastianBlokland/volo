@@ -185,14 +185,6 @@ static String hierarchy_name(const StringHash nameHash) {
   return string_is_empty(name) ? string_lit("<unnamed>") : name;
 }
 
-static UiColor hierarchy_bg_color(const HierarchyEntry* entry, const bool selected) {
-  (void)entry;
-  if (selected) {
-    return ui_color(48, 48, 178, 192);
-  }
-  return ui_color(48, 48, 48, 192);
-}
-
 static void hierarchy_entry_draw(
     HierarchyContext*     ctx,
     UiCanvasComp*         canvas,
@@ -201,7 +193,8 @@ static void hierarchy_entry_draw(
     const u32             depth) {
   const bool selected = scene_set_contains(ctx->setEnv, g_sceneSetSelected, entry->entity);
 
-  ui_table_draw_row_bg(canvas, table, hierarchy_bg_color(entry, selected));
+  const UiColor color = selected ? ui_color(48, 48, 178, 192) : ui_color(48, 48, 48, 192);
+  ui_table_draw_row_bg(canvas, table, color);
   ui_style_push(canvas);
   if (selected) {
     ui_style_outline(canvas, 2);
