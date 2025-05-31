@@ -267,6 +267,7 @@ ecs_view_define(GlobalVisDrawView) {
 }
 
 ecs_view_define(SubjectView) {
+  ecs_access_with(SceneLevelInstanceComp);
   ecs_access_maybe_read(SceneAttackTraceComp);
   ecs_access_maybe_read(SceneDebugComp);
   ecs_access_maybe_read(SceneLifetimeDurationComp);
@@ -299,9 +300,9 @@ ecs_view_define(SubjectView) {
   ecs_access_maybe_write(SceneScaleComp);
   ecs_access_maybe_write(SceneTagComp);
   ecs_access_maybe_write(SceneTargetFinderComp);
+  ecs_access_maybe_write(SceneTransformComp);
   ecs_access_maybe_write(SceneVfxDecalComp);
   ecs_access_maybe_write(SceneVfxSystemComp);
-  ecs_access_write(SceneTransformComp);
 }
 
 ecs_view_define(TransformView) { ecs_access_read(SceneTransformComp); }
@@ -1820,6 +1821,9 @@ static GeoVector inspector_tool_pivot(EcsWorld* w, const SceneSetEnvComp* setEnv
   for (const EcsEntityId* e = scene_set_begin(setEnv, s); e != scene_set_end(setEnv, s); ++e) {
     if (ecs_view_maybe_jump(itr, *e)) {
       const SceneTransformComp* transComp = ecs_view_read_t(itr, SceneTransformComp);
+      if (!transComp) {
+        continue;
+      }
       pivot = count ? geo_vector_add(pivot, transComp->position) : transComp->position;
       ++count;
     }
@@ -1837,7 +1841,10 @@ static void inspector_tool_group_update(
     return; // No main selected entity or its missing required components.
   }
   const SceneTransformComp* mainTrans = ecs_view_read_t(itr, SceneTransformComp);
-  const SceneScaleComp*     mainScale = ecs_view_read_t(itr, SceneScaleComp);
+  if (!mainTrans) {
+    return; // Main selected entity has no transform.
+  }
+  const SceneScaleComp* mainScale = ecs_view_read_t(itr, SceneScaleComp);
 
   const GeoVector pos   = inspector_tool_pivot(w, setEnv);
   const f32       scale = mainScale ? mainScale->scale : 1.0f;
@@ -2428,7 +2435,7 @@ static void inspector_vis_draw_subject(
       dev_arrow(shape, transformComp->position, posOneSecAway, 0.15f, geo_color_green);
     }
   }
-  if (nameComp && set->visFlags & (1 << DevInspectorVis_Name)) {
+  if (transformComp && nameComp && set->visFlags & (1 << DevInspectorVis_Name)) {
     const String    name = stringtable_lookup(g_stringtable, nameComp->name);
     const GeoVector pos  = geo_vector_add(transformComp->position, geo_vector_mul(geo_up, 0.1f));
     dev_text(text, pos, name);
@@ -2575,9 +2582,12 @@ static void inspector_vis_draw_collision_bounds(DevShapeComp* shape, const GeoQu
 
 static void inspector_vis_draw_icon(EcsWorld* w, DevTextComp* text, EcsIterator* subject) {
   const SceneTransformComp* transformComp = ecs_view_read_t(subject, SceneTransformComp);
-  const SceneSetMemberComp* setMember     = ecs_view_read_t(subject, SceneSetMemberComp);
-  const SceneScriptComp*    scriptComp    = ecs_view_read_t(subject, SceneScriptComp);
-  const EcsEntityId         e             = ecs_view_entity(subject);
+  if (!transformComp) {
+    return;
+  }
+  const SceneSetMemberComp* setMember  = ecs_view_read_t(subject, SceneSetMemberComp);
+  const SceneScriptComp*    scriptComp = ecs_view_read_t(subject, SceneScriptComp);
+  const EcsEntityId         e          = ecs_view_entity(subject);
 
   Unicode  icon;
   GeoColor color;
