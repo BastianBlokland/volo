@@ -58,9 +58,9 @@ ecs_view_define(PanelUpdateView) {
 }
 
 static i8 hierarchy_compare_entry(const void* a, const void* b) {
-  const u32 serialA = ecs_entity_id_serial(((const HierarchyEntry*)a)->entity);
-  const u32 serialB = ecs_entity_id_serial(((const HierarchyEntry*)b)->entity);
-  return serialA < serialB ? -1 : serialA > serialB ? 1 : 0;
+  const EcsEntityId entityA = ((const HierarchyEntry*)a)->entity;
+  const EcsEntityId entityB = ((const HierarchyEntry*)b)->entity;
+  return entityA < entityB ? -1 : entityA > entityB ? 1 : 0;
 }
 
 static void hierarchy_query(DevHierarchyPanelComp* panelComp, EcsWorld* world) {
