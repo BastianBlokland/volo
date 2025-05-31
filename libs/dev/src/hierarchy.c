@@ -176,6 +176,48 @@ static UiColor hierarchy_bg_color(const HierarchyEntry* entry, const bool select
   return ui_color(48, 48, 48, 192);
 }
 
+static void hierarchy_entry_draw(
+    HierarchyContext* ctx, UiCanvasComp* canvas, UiTable* table, const HierarchyEntry* entry) {
+  const bool selected = scene_set_contains(ctx->setEnv, g_sceneSetSelected, entry->entity);
+
+  ui_table_draw_row_bg(canvas, table, hierarchy_bg_color(entry, selected));
+  ui_style_push(canvas);
+  if (selected) {
+    ui_style_outline(canvas, 2);
+  }
+  ui_label(canvas, hierarchy_name(entry->nameHash), .selectable = true);
+  ui_style_pop(canvas);
+
+  ui_layout_push(canvas);
+  ui_layout_inner(canvas, UiBase_Current, UiAlign_MiddleRight, ui_vector(25, 25), UiBase_Absolute);
+  if (ui_button(
+          canvas,
+          .label      = ui_shape_scratch(UiShape_SelectAll),
+          .fontSize   = 18,
+          .frameColor = ui_color(0, 16, 255, 192),
+          .tooltip    = string_static("Select the entity."))) {
+    const InputModifier modifiers = input_modifiers(ctx->input);
+    if (!(modifiers & (InputModifier_Control | InputModifier_Shift))) {
+      scene_set_clear(ctx->setEnv, g_sceneSetSelected);
+    }
+    if (modifiers & InputModifier_Shift) {
+      scene_set_remove(ctx->setEnv, g_sceneSetSelected, entry->entity);
+    } else {
+      scene_set_add(ctx->setEnv, g_sceneSetSelected, entry->entity, SceneSetFlags_None);
+    }
+  }
+  ui_layout_next(canvas, Ui_Left, 10);
+  if (ui_button(
+          canvas,
+          .label      = ui_shape_scratch(UiShape_Delete),
+          .fontSize   = 18,
+          .frameColor = ui_color(255, 16, 0, 192),
+          .tooltip    = string_lit("Destroy the entity."))) {
+    ecs_world_entity_destroy(ctx->world, entry->entity);
+  }
+  ui_layout_pop(canvas);
+}
+
 static void hierarchy_panel_draw(HierarchyContext* ctx, UiCanvasComp* canvas) {
   const String title = fmt_write_scratch("{} Hierarchy Panel", fmt_ui_shape(Tree));
   ui_panel_begin(
@@ -195,56 +237,15 @@ static void hierarchy_panel_draw(HierarchyContext* ctx, UiCanvasComp* canvas) {
       continue; // Not a root entry.
     }
     ui_table_next_row(canvas, &table);
-
-    const f32              y    = ui_table_height(&table, ctx->panel->panelRowCount++);
-    const UiScrollviewCull cull = ui_scrollview_cull(&ctx->panel->scrollview, y, table.rowHeight);
-
-    if (ctx->focusEntity == entry->entity && cull) {
-      ctx->panel->scrollview.offset = y;
-      ctx->focusEntity              = 0;
-    }
-    if (cull) {
-      continue;
-    }
-    const bool selected = scene_set_contains(ctx->setEnv, g_sceneSetSelected, entry->entity);
-
-    ui_table_draw_row_bg(canvas, &table, hierarchy_bg_color(entry, selected));
-    ui_style_push(canvas);
-    if (selected) {
-      ui_style_outline(canvas, 2);
-    }
-    ui_label(canvas, hierarchy_name(entry->nameHash), .selectable = true);
-    ui_style_pop(canvas);
-
-    ui_layout_push(canvas);
-    ui_layout_inner(
-        canvas, UiBase_Current, UiAlign_MiddleRight, ui_vector(25, 25), UiBase_Absolute);
-    if (ui_button(
-            canvas,
-            .label      = ui_shape_scratch(UiShape_SelectAll),
-            .fontSize   = 18,
-            .frameColor = ui_color(0, 16, 255, 192),
-            .tooltip    = string_static("Select the entity."))) {
-      const InputModifier modifiers = input_modifiers(ctx->input);
-      if (!(modifiers & (InputModifier_Control | InputModifier_Shift))) {
-        scene_set_clear(ctx->setEnv, g_sceneSetSelected);
+    const f32 y = ui_table_height(&table, ctx->panel->panelRowCount++);
+    if (ui_scrollview_cull(&ctx->panel->scrollview, y, table.rowHeight)) {
+      if (ctx->focusEntity == entry->entity) {
+        ctx->panel->scrollview.offset = y;
+        ctx->focusEntity              = 0;
       }
-      if (modifiers & InputModifier_Shift) {
-        scene_set_remove(ctx->setEnv, g_sceneSetSelected, entry->entity);
-      } else {
-        scene_set_add(ctx->setEnv, g_sceneSetSelected, entry->entity, SceneSetFlags_None);
-      }
+    } else {
+      hierarchy_entry_draw(ctx, canvas, &table, entry);
     }
-    ui_layout_next(canvas, Ui_Left, 10);
-    if (ui_button(
-            canvas,
-            .label      = ui_shape_scratch(UiShape_Delete),
-            .fontSize   = 18,
-            .frameColor = ui_color(255, 16, 0, 192),
-            .tooltip    = string_lit("Destroy the entity."))) {
-      ecs_world_entity_destroy(ctx->world, entry->entity);
-    }
-    ui_layout_pop(canvas);
   }
   ui_canvas_id_block_next(canvas);
 
