@@ -13,6 +13,7 @@
 #include "scene_attachment.h"
 #include "scene_lifetime.h"
 #include "scene_name.h"
+#include "scene_projectile.h"
 #include "scene_set.h"
 #include "ui_canvas.h"
 #include "ui_layout.h"
@@ -29,6 +30,7 @@ typedef enum {
   HierarchyLinkMask_None       = 0,
   HierarchyLinkMask_Lifetime   = 1 << 0,
   HierarchyLinkMask_Attachment = 1 << 1,
+  HierarchyLinkMask_Instigator = 1 << 2,
 } HierarchyLinkMask;
 
 typedef struct {
@@ -65,6 +67,7 @@ ecs_view_define(HierarchyEntryView) {
   ecs_access_read(SceneNameComp);
   ecs_access_maybe_read(SceneLifetimeOwnerComp);
   ecs_access_maybe_read(SceneAttachmentComp);
+  ecs_access_maybe_read(SceneProjectileComp);
 }
 
 ecs_view_define(PanelUpdateGlobalView) {
@@ -167,6 +170,10 @@ static void hierarchy_query(HierarchyContext* ctx) {
     const SceneAttachmentComp* attachComp = ecs_view_read_t(itr, SceneAttachmentComp);
     if (attachComp && attachComp->target) {
       hierarchy_link_add(ctx, attachComp->target, entity, HierarchyLinkMask_Attachment);
+    }
+    const SceneProjectileComp* projComp = ecs_view_read_t(itr, SceneProjectileComp);
+    if (projComp && projComp->instigator) {
+      hierarchy_link_add(ctx, projComp->instigator, entity, HierarchyLinkMask_Instigator);
     }
   }
 }
