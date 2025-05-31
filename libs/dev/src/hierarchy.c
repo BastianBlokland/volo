@@ -218,6 +218,46 @@ static void hierarchy_open_update(HierarchyContext* ctx, const EcsEntityId e, co
   }
 }
 
+static Unicode hierarchy_icon(HierarchyContext* ctx, const EcsEntityId e) {
+  if (ecs_world_has_t(ctx->world, e, SceneScriptComp)) {
+    return UiShape_Description;
+  }
+  if (ecs_world_has_t(ctx->world, e, ScenePropertyComp)) {
+    return UiShape_Description;
+  }
+  if (ecs_world_has_t(ctx->world, e, SceneVfxDecalComp)) {
+    return UiShape_Image;
+  }
+  if (ecs_world_has_t(ctx->world, e, SceneVfxSystemComp)) {
+    return UiShape_Grain;
+  }
+  if (ecs_world_has_t(ctx->world, e, SceneLightPointComp)) {
+    return UiShape_Light;
+  }
+  if (ecs_world_has_t(ctx->world, e, SceneLightSpotComp)) {
+    return UiShape_Light;
+  }
+  if (ecs_world_has_t(ctx->world, e, SceneLightLineComp)) {
+    return UiShape_Light;
+  }
+  if (ecs_world_has_t(ctx->world, e, SceneLightDirComp)) {
+    return UiShape_Light;
+  }
+  if (ecs_world_has_t(ctx->world, e, SceneLightAmbientComp)) {
+    return UiShape_Light;
+  }
+  if (ecs_world_has_t(ctx->world, e, SceneSoundComp)) {
+    return UiShape_MusicNote;
+  }
+  if (ecs_world_has_t(ctx->world, e, SceneRenderableComp)) {
+    return UiShape_WebAsset;
+  }
+  if (ecs_world_has_t(ctx->world, e, SceneCollisionComp)) {
+    return UiShape_Dashboard;
+  }
+  return '?';
+}
+
 static void hierarchy_entry_draw(
     HierarchyContext*     ctx,
     UiCanvasComp*         canvas,
@@ -239,6 +279,12 @@ static void hierarchy_entry_draw(
       hierarchy_open_update(ctx, entry->entity, isOpen);
     }
   }
+
+  ui_layout_grow(canvas, UiAlign_MiddleRight, ui_vector(-17.0f, 0), UiBase_Absolute, Ui_X);
+  ui_layout_push(canvas);
+  ui_layout_inner(canvas, UiBase_Current, UiAlign_MiddleLeft, ui_vector(15, 15), UiBase_Absolute);
+  ui_canvas_draw_glyph(canvas, hierarchy_icon(ctx, entry->entity), 0, UiFlags_None);
+  ui_layout_pop(canvas);
 
   ui_layout_grow(canvas, UiAlign_MiddleRight, ui_vector(-20.0f, 0), UiBase_Absolute, Ui_X);
   ui_style_push(canvas);
