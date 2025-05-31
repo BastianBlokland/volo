@@ -7,6 +7,7 @@
 
 // clang-format off
 
+bool dev_widget_fold(UiCanvasComp*, bool*);
 bool dev_widget_f32(UiCanvasComp*, f32* val, UiWidgetFlags);
 bool dev_widget_f32_limit(UiCanvasComp*, f32* val, f32 min, f32 max, UiWidgetFlags);
 bool dev_widget_f32_many(UiCanvasComp*, f32* val, u32 count, UiWidgetFlags);

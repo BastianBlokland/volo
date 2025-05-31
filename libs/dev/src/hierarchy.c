@@ -2,6 +2,7 @@
 #include "core_array.h"
 #include "core_dynarray.h"
 #include "core_format.h"
+#include "core_math.h"
 #include "core_stringtable.h"
 #include "dev_hierarchy.h"
 #include "dev_panel.h"
@@ -195,11 +196,23 @@ static void hierarchy_entry_draw(
 
   const UiColor color = selected ? ui_color(48, 48, 178, 192) : ui_color(48, 48, 48, 192);
   ui_table_draw_row_bg(canvas, table, color);
+
+  ui_layout_push(canvas);
+  ui_layout_inner(canvas, UiBase_Current, UiAlign_MiddleLeft, ui_vector(10, 10), UiBase_Absolute);
+  ui_style_push(canvas);
+  ui_style_color(canvas, ui_color_gray);
+  ui_style_outline(canvas, 3);
+  ui_canvas_draw_glyph_rotated(
+      canvas, UiShape_Triangle, 0, math_pi_f32 * 0.5f, UiFlags_SquareAspect);
+  ui_style_pop(canvas);
+  ui_layout_pop(canvas);
+
   ui_style_push(canvas);
   if (selected) {
     ui_style_outline(canvas, 2);
   }
-  ui_layout_grow(canvas, UiAlign_MiddleRight, ui_vector(-25.0f * depth, 0), UiBase_Absolute, Ui_X);
+  ui_layout_grow(
+      canvas, UiAlign_MiddleRight, ui_vector(-25.0f * (depth + 1), 0), UiBase_Absolute, Ui_X);
   ui_label(canvas, hierarchy_name(entry->nameHash), .selectable = true);
   ui_style_pop(canvas);
 
