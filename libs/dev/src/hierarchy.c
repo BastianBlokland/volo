@@ -10,6 +10,7 @@
 #include "ecs_world.h"
 #include "input_manager.h"
 #include "scene.h"
+#include "scene_attachment.h"
 #include "scene_lifetime.h"
 #include "scene_name.h"
 #include "scene_set.h"
@@ -25,8 +26,9 @@
 typedef u32 HierarchyLinkId;
 
 typedef enum {
-  HierarchyLinkMask_None     = 0,
-  HierarchyLinkMask_Lifetime = 1 << 0,
+  HierarchyLinkMask_None       = 0,
+  HierarchyLinkMask_Lifetime   = 1 << 0,
+  HierarchyLinkMask_Attachment = 1 << 1,
 } HierarchyLinkMask;
 
 typedef struct {
@@ -62,6 +64,7 @@ ecs_view_define(HierarchyEntryView) {
   ecs_access_with(SceneLevelInstanceComp);
   ecs_access_read(SceneNameComp);
   ecs_access_maybe_read(SceneLifetimeOwnerComp);
+  ecs_access_maybe_read(SceneAttachmentComp);
 }
 
 ecs_view_define(PanelUpdateGlobalView) {
@@ -160,6 +163,10 @@ static void hierarchy_query(HierarchyContext* ctx) {
           hierarchy_link_add(ctx, owner, entity, HierarchyLinkMask_Lifetime);
         }
       }
+    }
+    const SceneAttachmentComp* attachComp = ecs_view_read_t(itr, SceneAttachmentComp);
+    if (attachComp && attachComp->target) {
+      hierarchy_link_add(ctx, attachComp->target, entity, HierarchyLinkMask_Attachment);
     }
   }
 }
