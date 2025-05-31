@@ -1,4 +1,5 @@
 #include "core_alloc.h"
+#include "core_array.h"
 #include "core_dynarray.h"
 #include "core_format.h"
 #include "core_stringtable.h"
@@ -177,7 +178,11 @@ static UiColor hierarchy_bg_color(const HierarchyEntry* entry, const bool select
 }
 
 static void hierarchy_entry_draw(
-    HierarchyContext* ctx, UiCanvasComp* canvas, UiTable* table, const HierarchyEntry* entry) {
+    HierarchyContext*     ctx,
+    UiCanvasComp*         canvas,
+    UiTable*              table,
+    const HierarchyEntry* entry,
+    const u32             depth) {
   const bool selected = scene_set_contains(ctx->setEnv, g_sceneSetSelected, entry->entity);
 
   ui_table_draw_row_bg(canvas, table, hierarchy_bg_color(entry, selected));
@@ -185,6 +190,7 @@ static void hierarchy_entry_draw(
   if (selected) {
     ui_style_outline(canvas, 2);
   }
+  ui_layout_grow(canvas, UiAlign_MiddleRight, ui_vector(-25.0f * depth, 0), UiBase_Absolute, Ui_X);
   ui_label(canvas, hierarchy_name(entry->nameHash), .selectable = true);
   ui_style_pop(canvas);
 
@@ -218,6 +224,24 @@ static void hierarchy_entry_draw(
   ui_layout_pop(canvas);
 }
 
+static EcsEntityId hierarchy_link_entity(HierarchyContext* ctx, const HierarchyLinkId id) {
+  return dynarray_at_t(&ctx->panel->links, id, HierarchyLink)->entity;
+}
+
+static HierarchyLinkId hierarchy_link_next(HierarchyContext* ctx, const HierarchyLinkId id) {
+  return dynarray_at_t(&ctx->panel->links, id, HierarchyLink)->linkNext;
+}
+
+static u32 hierarchy_next_root(HierarchyContext* ctx, u32 entryIdx) {
+  for (; entryIdx != ctx->panel->entries.size; ++entryIdx) {
+    HierarchyEntry* entry = dynarray_at_t(&ctx->panel->entries, entryIdx, HierarchyEntry);
+    if (!entry->childMask) {
+      break;
+    }
+  }
+  return entryIdx;
+}
+
 static void hierarchy_panel_draw(HierarchyContext* ctx, UiCanvasComp* canvas) {
   const String title = fmt_write_scratch("{} Hierarchy Panel", fmt_ui_shape(Tree));
   ui_panel_begin(
@@ -230,12 +254,30 @@ static void hierarchy_panel_draw(HierarchyContext* ctx, UiCanvasComp* canvas) {
   ui_scrollview_begin(canvas, &ctx->panel->scrollview, UiLayer_Normal, height);
   ui_canvas_id_block_next(canvas); // Start the list of entities on its own id block.
 
+  u32             rootIdx = hierarchy_next_root(ctx, 0);
+  HierarchyLinkId childItrQueue[64];
+  u32             childItrQueueSize = 0;
+
   ctx->panel->panelRowCount = 0;
-  for (u32 entryIdx = 0; entryIdx != ctx->panel->entries.size; ++entryIdx) {
-    const HierarchyEntry* entry = dynarray_at_t(&ctx->panel->entries, entryIdx, HierarchyEntry);
-    if (entry->childMask) {
-      continue; // Not a root entry.
+  while (childItrQueueSize || rootIdx != ctx->panel->entries.size) {
+    // Pop next entry from the queue.
+    const HierarchyEntry* entry;
+    u32                   entryDepth;
+    if (childItrQueueSize) {
+      HierarchyLinkId* linkItr = &childItrQueue[childItrQueueSize - 1];
+      entry                    = hierarchy_find(ctx, hierarchy_link_entity(ctx, *linkItr));
+      entryDepth               = childItrQueueSize;
+      *linkItr                 = hierarchy_link_next(ctx, *linkItr);
+      if (sentinel_check(*linkItr)) {
+        --childItrQueueSize;
+      }
+    } else {
+      entry      = dynarray_at_t(&ctx->panel->entries, rootIdx, HierarchyEntry);
+      entryDepth = 0;
+      rootIdx    = hierarchy_next_root(ctx, rootIdx + 1);
     }
+
+    // Draw entry.
     ui_table_next_row(canvas, &table);
     const f32 y = ui_table_height(&table, ctx->panel->panelRowCount++);
     if (ui_scrollview_cull(&ctx->panel->scrollview, y, table.rowHeight)) {
@@ -244,7 +286,12 @@ static void hierarchy_panel_draw(HierarchyContext* ctx, UiCanvasComp* canvas) {
         ctx->focusEntity              = 0;
       }
     } else {
-      hierarchy_entry_draw(ctx, canvas, &table, entry);
+      hierarchy_entry_draw(ctx, canvas, &table, entry, entryDepth);
+    }
+
+    // Push children.
+    if (!sentinel_check(entry->linkHead) && childItrQueueSize != array_elems(childItrQueue)) {
+      childItrQueue[childItrQueueSize++] = entry->linkHead;
     }
   }
   ui_canvas_id_block_next(canvas);
