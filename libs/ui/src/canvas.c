@@ -905,7 +905,6 @@ UiId ui_canvas_draw_glyph_rotated(
     const u16     maxCorner,
     const f32     angleRad,
     const UiFlags flags) {
-  diag_assert_msg(!(flags & UiFlags_Interactable), "Rotated glyphs cannot be interactable");
   diag_assert_msg(!(flags & UiFlags_TrackRect), "Rectangle cannot be tracked for rotated glyphs");
 
   const UiId id = comp->nextId++;

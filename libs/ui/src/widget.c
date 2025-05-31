@@ -362,6 +362,54 @@ bool ui_toggle_flag_with_opts(
   return false;
 }
 
+bool ui_fold_with_opts(UiCanvasComp* canvas, bool* value, const UiFoldOpts* opts) {
+  const UiId     id = ui_canvas_id_peek(canvas);
+  const UiStatus status =
+      opts->flags & UiWidget_Disabled ? UiStatus_Idle : ui_canvas_elem_status(canvas, id);
+  const UiVector size = {opts->size, opts->size};
+
+  if (status == UiStatus_Activated) {
+    *value ^= true;
+  }
+  ui_layout_push(canvas);
+  ui_layout_inner(canvas, UiBase_Current, UiAlign_MiddleLeft, size, UiBase_Absolute);
+
+  ui_style_push(canvas);
+  switch (status) {
+  case UiStatus_Hovered:
+    ui_style_color_with_mult(canvas, opts->color, 2);
+    ui_style_outline(canvas, 3);
+    break;
+  case UiStatus_Pressed:
+  case UiStatus_Activated:
+  case UiStatus_ActivatedAlt:
+    ui_style_color_with_mult(canvas, opts->color, 3);
+    ui_style_outline(canvas, 1);
+    break;
+  case UiStatus_Idle:
+    ui_style_color(canvas, opts->color);
+    ui_style_outline(canvas, 2);
+    break;
+  }
+  const f32 angle = *value ? math_pi_f32 : math_pi_f32 * 0.5f;
+  ui_canvas_draw_glyph_rotated(canvas, UiShape_Triangle, 0, angle, UiFlags_Interactable);
+  ui_style_pop(canvas);
+
+  if (status >= UiStatus_Hovered) {
+    ui_canvas_interact_type(canvas, UiInteractType_Action);
+  }
+  if (status == UiStatus_Activated) {
+    ui_canvas_sound(canvas, UiSoundType_Click);
+  }
+
+  if (!string_is_empty(opts->tooltip)) {
+    ui_tooltip(canvas, id, opts->tooltip);
+  }
+
+  ui_layout_pop(canvas);
+  return status == UiStatus_Activated;
+}
+
 static void ui_select_header(
     UiCanvasComp*       canvas,
     const String        label,
