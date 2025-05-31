@@ -32,7 +32,6 @@ ecs_comp_define(DevHierarchyPanelComp) {
   DynArray     entries; // HierarchyEntry[]
 
   EcsEntityId lastMainSelection;
-  EcsEntityId focusRequest;
 };
 
 static void ecs_destruct_hierarchy_panel(void* data) {
@@ -98,7 +97,8 @@ static void hierarchy_panel_draw(
     DevHierarchyPanelComp*  panelComp,
     SceneSetEnvComp*        setEnv,
     const InputManagerComp* input,
-    EcsWorld*               world) {
+    EcsWorld*               world,
+    const EcsEntityId       focusEntity) {
   const String title = fmt_write_scratch("{} Hierarchy Panel", fmt_ui_shape(Tree));
   ui_panel_begin(
       canvas, &panelComp->panel, .title = title, .topBarColor = ui_color(100, 0, 0, 192));
@@ -119,11 +119,7 @@ static void hierarchy_panel_draw(
     const f32              y    = ui_table_height(&table, panelComp->panelRowCount++);
     const UiScrollviewCull cull = ui_scrollview_cull(&panelComp->scrollview, y, table.rowHeight);
 
-    const bool focus = entry->entity == panelComp->focusRequest;
-    if (focus) {
-      panelComp->focusRequest = 0;
-    }
-    if (focus && cull) {
+    if (focusEntity == entry->entity && cull) {
       panelComp->scrollview.offset = y;
     }
     if (cull) {
@@ -195,12 +191,13 @@ ecs_system_define(DevHierarchyUpdatePanelSys) {
     if (dev_panel_hidden(ecs_view_read_t(itr, DevPanelComp)) && !pinned) {
       continue;
     }
-    const EcsEntityId mainSelection = scene_set_main(setEnv, g_sceneSetSelected);
-    if (panelComp->lastMainSelection != mainSelection) {
-      panelComp->focusRequest = panelComp->lastMainSelection = mainSelection;
+    EcsEntityId focusEntity = 0;
+    if (panelComp->lastMainSelection != scene_set_main(setEnv, g_sceneSetSelected)) {
+      panelComp->lastMainSelection = scene_set_main(setEnv, g_sceneSetSelected);
+      focusEntity                  = panelComp->lastMainSelection;
     }
     hierarchy_query(panelComp, world);
-    hierarchy_panel_draw(canvas, panelComp, setEnv, input, world);
+    hierarchy_panel_draw(canvas, panelComp, setEnv, input, world, focusEntity);
 
     if (ui_panel_closed(&panelComp->panel)) {
       ecs_world_entity_destroy(world, entity);
