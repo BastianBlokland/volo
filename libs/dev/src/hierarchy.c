@@ -318,11 +318,24 @@ static void hierarchy_filter(HierarchyContext* ctx) {
     for (HierarchyId id = 0; id != ctx->panel->entries.size; ++id) {
       const HierarchyEntry* entry = hierarchy_entry(ctx, id);
       const String          name  = stringtable_lookup(g_stringtable, entry->nameHash);
-      if (string_match_glob(name, filter, StringMatchFlags_IgnoreCase)) {
-        hierarchy_open_to_root(ctx, id);
-      } else {
+      if (!string_match_glob(name, filter, StringMatchFlags_IgnoreCase)) {
         dynbitset_set(&ctx->panel->filterResult, id);
         ctx->panel->filterActive = true;
+      }
+    }
+  }
+
+  // Make all filter results visible (by including and opening their parents).
+  if (ctx->panel->filterActive) {
+    for (HierarchyId id = 0; id != ctx->panel->entries.size; ++id) {
+      if (dynbitset_test(&ctx->panel->filterResult, id)) {
+        continue; // Filtered out.
+      }
+      for (HierarchyId p = hierarchy_entry(ctx, id)->firstParent; !sentinel_check(p);) {
+        HierarchyEntry* entry = hierarchy_entry(ctx, p);
+        hierarchy_open_update(ctx, entry, true);
+        dynbitset_clear(&ctx->panel->filterResult, p);
+        p = entry->firstParent;
       }
     }
   }
