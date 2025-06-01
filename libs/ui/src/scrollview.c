@@ -133,9 +133,13 @@ static void ui_scrollview_draw_bar(UiCanvasComp* canvas, const UiScrollviewStatu
   const f32 handleTopFrac = 1.0f - status->offsetFrac * offscreenFrac;
   const f32 handleInsetX  = hovered ? 4 : 6;
 
-  ui_layout_move(canvas, ui_vector(0, handleTopFrac), UiBase_Current, Ui_Y);
-  ui_layout_resize(
-      canvas, UiAlign_TopCenter, ui_vector(0, status->viewportFrac), UiBase_Current, Ui_Y);
+  const f32 minHandleSize  = 20.0f / math_max(status->viewport.height, 1);
+  const f32 additionalSize = math_max(minHandleSize - status->viewportFrac, 0.0f);
+  const f32 handlePos      = handleTopFrac + additionalSize * (1.0f - handleTopFrac);
+  const f32 handleSize     = status->viewportFrac + additionalSize;
+
+  ui_layout_move(canvas, ui_vector(0, handlePos), UiBase_Current, Ui_Y);
+  ui_layout_resize(canvas, UiAlign_TopCenter, ui_vector(0, handleSize), UiBase_Current, Ui_Y);
   ui_layout_grow(canvas, UiAlign_MiddleCenter, ui_vector(-handleInsetX, 0), UiBase_Absolute, Ui_X);
 
   ui_style_color(canvas, handleColor);

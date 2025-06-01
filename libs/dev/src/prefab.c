@@ -436,15 +436,13 @@ static void prefab_panel_normal_draw(UiCanvasComp* canvas, const PrefabPanelCont
     if (!prefab_filter(ctx, nameStr)) {
       continue;
     }
-    ++ctx->panelComp->totalRows;
 
-    ui_table_next_row(canvas, &table);
-
-    const f32 y = ui_table_height(&table, userIndex);
+    const f32 y = ui_table_height(&table, ctx->panelComp->totalRows++);
     if (ui_scrollview_cull(&ctx->panelComp->scrollview, y, table.rowHeight)) {
       continue;
     }
 
+    ui_table_jump_row(canvas, &table, ctx->panelComp->totalRows - 1);
     ui_table_draw_row_bg(canvas, &table, ui_color(48, 48, 48, 192));
 
     const String nameTooltip = fmt_write_scratch(
@@ -706,7 +704,7 @@ dev_prefab_panel_open(EcsWorld* world, const EcsEntityId window, const DevPanelT
       .createScale   = 1.0f,
       .idFilter      = dynstring_create(g_allocHeap, 32),
       .scrollview    = ui_scrollview(),
-      .panel         = ui_panel(.position = ui_vector(1.0f, 0.0f), .size = ui_vector(500, 350)));
+      .panel         = ui_panel(.size = ui_vector(500, 350)));
 
   if (type == DevPanelType_Detached) {
     ui_panel_maximize(&prefabPanel->panel);

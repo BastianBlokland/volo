@@ -403,9 +403,7 @@ static void sound_objects_draw(UiCanvasComp* c, DevSoundPanelComp* panelComp, Sn
       continue;
     }
     ui_table_next_row(c, &table);
-    const f32 y = ui_table_height(&table, panelComp->lastObjectRows);
-    ++panelComp->lastObjectRows;
-
+    const f32 y = ui_table_height(&table, panelComp->lastObjectRows++);
     if (ui_scrollview_cull(&panelComp->scrollview, y, table.rowHeight)) {
       continue;
     }
@@ -422,6 +420,7 @@ static void sound_objects_draw(UiCanvasComp* c, DevSoundPanelComp* panelComp, Sn
     const TimeDuration elapsed = frameCount ? (TimeDuration)(cursor * time_second / frameRate) : 0;
 
     ui_canvas_id_block_index(c, obj); // Set a stable canvas id.
+    ui_table_jump_row(c, &table, panelComp->lastObjectRows - 1);
     ui_table_draw_row_bg(c, &table, ui_color(48, 48, 48, 192));
 
     ui_label(c, path_stem(name), .selectable = true, .tooltip = name);

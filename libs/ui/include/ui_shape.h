@@ -52,6 +52,7 @@
   X(0xE8F4, Visibility)                                                                            \
   X(0xE92B, Delete)                                                                                \
   X(0xE92C, Body)                                                                                  \
+  X(0xE97A, Tree)                                                                                  \
   X(0xE9BA, Logout)                                                                                \
   X(0xE9FE, ViewInAr)                                                                              \
   X(0xEA3C, Construction)                                                                          \
@@ -63,6 +64,7 @@
   X(0xF003, Triangle)                                                                              \
   X(0xF016, Grid4x4)                                                                               \
   X(0xF053, Restart)                                                                               \
+  X(0xF102, Wire)                                                                                  \
   X(0xF10D, PushPin)                                                                               \
   X(0xF230, Default)
 

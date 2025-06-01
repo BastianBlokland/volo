@@ -251,8 +251,6 @@ vfx_panel_draw(UiCanvasComp* canvas, DevVfxPanelComp* panelComp, SceneSetEnvComp
 
   ui_canvas_id_block_next(canvas); // Start the list of objects on its own id block.
   for (u32 objIdx = 0; objIdx != numObjects; ++objIdx) {
-    ui_table_next_row(canvas, &table);
-
     const DevVfxInfo*      info = dynarray_at_t(&panelComp->objects, objIdx, DevVfxInfo);
     const f32              y    = ui_table_height(&table, objIdx);
     const UiScrollviewCull cull = ui_scrollview_cull(&panelComp->scrollview, y, table.rowHeight);
@@ -263,7 +261,11 @@ vfx_panel_draw(UiCanvasComp* canvas, DevVfxPanelComp* panelComp, SceneSetEnvComp
       continue;
     }
 
-    ui_table_draw_row_bg(canvas, &table, ui_color(48, 48, 48, 192));
+    ui_table_jump_row(canvas, &table, objIdx);
+
+    const bool    selected = scene_set_contains(setEnv, g_sceneSetSelected, info->entity);
+    const UiColor color    = selected ? ui_color(48, 48, 178, 192) : ui_color(48, 48, 48, 192);
+    ui_table_draw_row_bg(canvas, &table, color);
     ui_canvas_id_block_index(canvas, ecs_entity_id_index(info->entity) * 10); // Set a stable id.
 
     ui_label(canvas, vfx_entity_name(info->nameHash), .selectable = true);
@@ -273,11 +275,10 @@ vfx_panel_draw(UiCanvasComp* canvas, DevVfxPanelComp* panelComp, SceneSetEnvComp
     ui_layout_push(canvas);
     ui_layout_inner(
         canvas, UiBase_Current, UiAlign_MiddleRight, ui_vector(25, 25), UiBase_Absolute);
-    const bool selected = scene_set_contains(setEnv, g_sceneSetSelected, info->entity);
     if (ui_button(
             canvas,
             .label      = ui_shape_scratch(UiShape_SelectAll),
-            .frameColor = selected ? ui_color(8, 128, 8, 192) : ui_color(32, 32, 32, 192),
+            .frameColor = ui_color(0, 16, 255, 192),
             .fontSize   = 18,
             .tooltip    = g_tooltipSelectEntity)) {
       scene_set_clear(setEnv, g_sceneSetSelected);

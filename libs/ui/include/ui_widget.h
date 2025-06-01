@@ -54,6 +54,13 @@ typedef struct {
 } UiToggleOpts;
 
 typedef struct {
+  UiWidgetFlags flags;
+  f32           size;
+  UiColor       color;
+  String        tooltip;
+} UiFoldOpts;
+
+typedef struct {
   UiWidgetFlags flags : 8;
   bool          allowNone;
   u16           fontSize;
@@ -170,9 +177,20 @@ typedef struct {
  * NOTE: Its important that the widget has a stable identifier in the canvas.
  */
 #define ui_toggle_flag(_CANVAS_, _VALUE_, _FLAG_, ...) ui_toggle_flag_with_opts(                   \
-  (_CANVAS_), (_VALUE_), (_FLAG_), &((UiToggleOpts){                                                \
+  (_CANVAS_), (_VALUE_), (_FLAG_), &((UiToggleOpts){                                               \
     .size    = 20,                                                                                 \
     .bgColor = ui_color(32, 32, 32, 192),                                                          \
+    __VA_ARGS__}))
+
+/**
+ * Draw a fold arrow in the currently active canvas rectangle.
+ * Fold state is updated to the given bool pointer.
+ * NOTE: Its important that the widget has a stable identifier in the canvas.
+ */
+#define ui_fold(_CANVAS_, _VALUE_, ...) ui_fold_with_opts((_CANVAS_), (_VALUE_),                   \
+  &((UiFoldOpts){                                                                                  \
+    .size  = 12,                                                                                   \
+    .color = ui_color(178, 178, 178, 192),                                                         \
     __VA_ARGS__}))
 
 /**
@@ -270,6 +288,7 @@ bool ui_button_with_opts(UiCanvasComp*, const UiButtonOpts*);
 bool ui_slider_with_opts(UiCanvasComp*, f32* value, const UiSliderOpts*);
 bool ui_toggle_with_opts(UiCanvasComp*, bool* value, const UiToggleOpts*);
 bool ui_toggle_flag_with_opts(UiCanvasComp*, u32* value, u32 flag, const UiToggleOpts*);
+bool ui_fold_with_opts(UiCanvasComp*, bool* value, const UiFoldOpts*);
 bool ui_select_with_opts(
     UiCanvasComp*, i32* value, const String* options, u32 optionCount, const UiSelectOpts*);
 bool ui_tooltip_with_opts(UiCanvasComp*, UiId, String text, const UiTooltipOpts*);

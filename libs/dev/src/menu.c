@@ -7,6 +7,7 @@
 #include "dev_camera.h"
 #include "dev_ecs.h"
 #include "dev_grid.h"
+#include "dev_hierarchy.h"
 #include "dev_inspector.h"
 #include "dev_interface.h"
 #include "dev_level.h"
@@ -62,12 +63,20 @@ static const struct {
         .autoOpen     = true,
     },
     {
+        .name         = string_static("Hierarchy"),
+        .iconShape    = UiShape_Tree,
+        .detachedSize = {.x = 500, .y = 350},
+        .openFunc     = dev_hierarchy_panel_open,
+        .hotkeyName   = string_static("DevPanelHierarchy"),
+        .autoOpen     = true,
+    },
+    {
         .name         = string_static("Prefab"),
         .iconShape    = UiShape_Construction,
         .detachedSize = {.x = 500, .y = 350},
         .openFunc     = dev_prefab_panel_open,
         .hotkeyName   = string_static("DevPanelPrefab"),
-        .autoOpen     = true,
+        .autoOpen     = false,
     },
     {
         .name         = string_static("Level"),
@@ -295,8 +304,7 @@ static void menu_action_bar_draw(
   ui_table_draw_bg(canvas, &table, rows, ui_color(178, 0, 0, 192));
 
   ui_table_next_row(canvas, &table);
-  ui_canvas_draw_glyph(
-      canvas, UiShape_Construction, 0, UiFlags_Interactable | UiFlags_SquareAspect);
+  ui_canvas_draw_glyph(canvas, UiShape_Wire, 0, UiFlags_Interactable | UiFlags_SquareAspect);
 
   // Panel open / close.
   for (u32 childIndex = 0; childIndex != array_elems(g_menuChildConfig); ++childIndex) {

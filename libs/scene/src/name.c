@@ -3,6 +3,7 @@
 #include "core_stringtable.h"
 #include "ecs_view.h"
 #include "ecs_world.h"
+#include "scene_light.h"
 #include "scene_name.h"
 #include "scene_prefab.h"
 #include "scene_renderable.h"
@@ -28,7 +29,7 @@ static StringHash scene_debug_name_from_asset(const AssetComp* assetComp) {
   return stringtable_add(g_stringtable, nameStr);
 }
 
-static StringHash scene_debug_name_find(EcsIterator* entityItr, EcsIterator* assetItr) {
+static StringHash scene_name_find(EcsWorld* world, EcsIterator* entityItr, EcsIterator* assetItr) {
   const ScenePrefabInstanceComp* prefabInst = ecs_view_read_t(entityItr, ScenePrefabInstanceComp);
   if (prefabInst) {
     return prefabInst->prefabId;
@@ -49,6 +50,21 @@ static StringHash scene_debug_name_find(EcsIterator* entityItr, EcsIterator* ass
   if (soundComp && ecs_view_maybe_jump(assetItr, soundComp->asset)) {
     return scene_debug_name_from_asset(ecs_view_read_t(assetItr, AssetComp));
   }
+  if (ecs_world_has_t(world, ecs_view_entity(entityItr), SceneLightPointComp)) {
+    return stringtable_add(g_stringtable, string_lit("LightPoint"));
+  }
+  if (ecs_world_has_t(world, ecs_view_entity(entityItr), SceneLightSpotComp)) {
+    return stringtable_add(g_stringtable, string_lit("LightSpot"));
+  }
+  if (ecs_world_has_t(world, ecs_view_entity(entityItr), SceneLightLineComp)) {
+    return stringtable_add(g_stringtable, string_lit("LightLine"));
+  }
+  if (ecs_world_has_t(world, ecs_view_entity(entityItr), SceneLightDirComp)) {
+    return stringtable_add(g_stringtable, string_lit("LightDir"));
+  }
+  if (ecs_world_has_t(world, ecs_view_entity(entityItr), SceneCollisionComp)) {
+    return stringtable_add(g_stringtable, string_lit("Collision"));
+  }
   return stringtable_add(g_stringtable, string_lit("unnamed"));
 }
 
@@ -60,7 +76,7 @@ ecs_system_define(SceneNameInitSys) {
    */
   EcsView* initView = ecs_world_view_t(world, InitDebugView);
   for (EcsIterator* itr = ecs_view_itr(initView); ecs_view_walk(itr);) {
-    const StringHash debugName = scene_debug_name_find(itr, assetItr);
+    const StringHash debugName = scene_name_find(world, itr, assetItr);
     ecs_world_add_t(world, ecs_view_entity(itr), SceneNameComp, .name = debugName);
   }
 }

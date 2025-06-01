@@ -835,8 +835,6 @@ static void rend_obj_tab_draw(UiCanvasComp* canvas, DevRendPanelComp* panelComp)
 
   ui_canvas_id_block_next(canvas); // Start the list of objects on its own id block.
   for (u32 objIdx = 0; objIdx != numObjects; ++objIdx) {
-    ui_table_next_row(canvas, &table);
-
     const DevObjInfo*      objInfo = dynarray_at_t(&panelComp->objects, objIdx, DevObjInfo);
     const f32              y       = ui_table_height(&table, objIdx);
     const UiScrollviewCull cull    = ui_scrollview_cull(&panelComp->scrollview, y, table.rowHeight);
@@ -847,6 +845,7 @@ static void rend_obj_tab_draw(UiCanvasComp* canvas, DevRendPanelComp* panelComp)
       continue;
     }
 
+    ui_table_jump_row(canvas, &table, objIdx);
     ui_table_draw_row_bg(canvas, &table, rend_obj_bg_color(objInfo));
     ui_canvas_id_block_string(canvas, objInfo->graphicName); // Set a stable canvas id.
 
@@ -1030,8 +1029,6 @@ static void rend_resource_tab_draw(
 
   ui_canvas_id_block_next(canvas); // Start the list of resources on its own id block.
   for (u32 resIdx = 0; resIdx != numResources; ++resIdx) {
-    ui_table_next_row(canvas, &table);
-
     const DevResourceInfo* resInfo = dynarray_at_t(&panelComp->resources, resIdx, DevResourceInfo);
     const f32              y       = ui_table_height(&table, resIdx);
     const UiScrollviewCull cull    = ui_scrollview_cull(&panelComp->scrollview, y, table.rowHeight);
@@ -1042,6 +1039,7 @@ static void rend_resource_tab_draw(
       continue;
     }
 
+    ui_table_jump_row(canvas, &table, resIdx);
     ui_table_draw_row_bg(canvas, &table, rend_resource_bg_color(resInfo));
     ui_canvas_id_block_string(canvas, resInfo->name); // Set a stable canvas id.
 
