@@ -326,7 +326,7 @@ static void hierarchy_filter(HierarchyContext* ctx) {
     }
   }
 
-  // Make all filter results visible (by including and opening their parents).
+  // Make all results visible by including their parents.
   if (ctx->panel->filterActive) {
     for (HierarchyId id = 0; id != ctx->panel->entries.size; ++id) {
       if (dynbitset_test(&ctx->panel->filterResult, id)) {
@@ -334,7 +334,6 @@ static void hierarchy_filter(HierarchyContext* ctx) {
       }
       for (HierarchyId p = hierarchy_entry(ctx, id)->firstParent; !sentinel_check(p);) {
         HierarchyEntry* entry = hierarchy_entry(ctx, p);
-        hierarchy_open_update(ctx, entry, true);
         dynbitset_clear(&ctx->panel->filterResult, p);
         p = entry->firstParent;
       }
@@ -405,8 +404,9 @@ static void hierarchy_entry_draw(
     ui_layout_grow(canvas, UiAlign_MiddleRight, ui_vector(inset, 0), UiBase_Absolute, Ui_X);
   }
   if (entry->parentMask) {
-    bool isOpen = hierarchy_open(ctx, entry);
-    if (ui_fold(canvas, &isOpen)) {
+    const UiWidgetFlags foldFlags = ctx->panel->filterActive ? UiWidget_Disabled : UiWidget_Default;
+    bool                isOpen    = hierarchy_open(ctx, entry) || ctx->panel->filterActive;
+    if (ui_fold(canvas, &isOpen, .flags = foldFlags)) {
       hierarchy_open_update(ctx, entry, isOpen);
     }
   }
@@ -556,11 +556,12 @@ static void hierarchy_panel_draw(HierarchyContext* ctx, UiCanvasComp* canvas) {
     }
 
     // Push children.
-    const bool queueFull = childQueueSize == array_elems(childQueue);
-    if (entry->parentMask && !queueFull && hierarchy_open(ctx, entry)) {
-      childQueue[childQueueSize] = entry->linkHead;
-      childDepth[childQueueSize] = entryDepth + 1;
-      ++childQueueSize;
+    if (entry->parentMask && childQueueSize != array_elems(childQueue)) {
+      if (ctx->panel->filterActive || hierarchy_open(ctx, entry)) {
+        childQueue[childQueueSize] = entry->linkHead;
+        childDepth[childQueueSize] = entryDepth + 1;
+        ++childQueueSize;
+      }
     }
   }
   ui_canvas_id_block_next(canvas);
