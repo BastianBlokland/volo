@@ -12,6 +12,7 @@
 #include "geo_box_rotated.h"
 #include "geo_sphere.h"
 #include "log_logger.h"
+#include "scene_creator.h"
 #include "scene_faction.h"
 #include "scene_lifetime.h"
 #include "scene_nav.h"
@@ -317,6 +318,7 @@ static ProductResult product_queue_process_active_unit(ProductQueueContext* ctx)
     }
     ecs_world_add_t(ctx->world, e, SceneNavRequestComp, .targetPos = pos);
     ecs_world_add_t(ctx->world, e, SceneRenderableFadeinComp, .duration = time_milliseconds(500));
+    ecs_world_add_t(ctx->world, e, SceneCreatorComp, .creator = ecs_view_entity(ctx->itr));
   }
   return ProductResult_Success;
 }
@@ -335,6 +337,7 @@ static EcsEntityId product_placement_preview_create(ProductQueueContext* ctx) {
       });
 
   ecs_world_add_t(ctx->world, e, SceneProductPreviewComp, .instigator = instigator);
+  ecs_world_add_t(ctx->world, e, SceneCreatorComp, .creator = instigator);
 
   return e;
 }
@@ -412,6 +415,7 @@ static bool product_placement_blocked(ProductQueueContext* ctx) {
 }
 
 static ProductResult product_queue_process_active_placeable(ProductQueueContext* ctx) {
+  const EcsEntityId    creator = ecs_view_entity(ctx->itr);
   SceneProductionComp* prod    = ctx->production;
   const AssetProduct*  product = ctx->queue->product;
   diag_assert(product->type == AssetProduct_Placable);
@@ -431,16 +435,17 @@ static ProductResult product_queue_process_active_placeable(ProductQueueContext*
         prod->flags |= SceneProductFlags_PlacementBlockedWarned;
       }
     } else {
-      const SceneFactionComp* factionComp = ecs_view_read_t(ctx->itr, SceneFactionComp);
-      scene_prefab_spawn(
+      const SceneFactionComp* factionComp  = ecs_view_read_t(ctx->itr, SceneFactionComp);
+      const EcsEntityId       placedEntity = scene_prefab_spawn(
           ctx->world,
           &(ScenePrefabSpec){
-              .prefabId = product->data_placable.prefab,
-              .position = prod->placementPos,
-              .rotation = geo_quat_angle_axis(prod->placementAngle, geo_up),
-              .scale    = 1.0f,
-              .faction  = factionComp ? factionComp->id : SceneFaction_None,
+                    .prefabId = product->data_placable.prefab,
+                    .position = prod->placementPos,
+                    .rotation = geo_quat_angle_axis(prod->placementAngle, geo_up),
+                    .scale    = 1.0f,
+                    .faction  = factionComp ? factionComp->id : SceneFaction_None,
           });
+      ecs_world_add_t(ctx->world, placedEntity, SceneCreatorComp, .creator = creator);
       product_placement_preview_destroy(ctx);
       return ProductResult_Success;
     }
