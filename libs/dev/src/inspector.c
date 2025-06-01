@@ -1915,9 +1915,12 @@ static void inspector_tool_individual_update(
   bool rotActive = false;
   for (const EcsEntityId* e = scene_set_begin(setEnv, s); e != scene_set_end(setEnv, s); ++e) {
     if (ecs_view_maybe_jump(itr, *e)) {
-      const DevGizmoId    gizmoId   = (DevGizmoId)ecs_view_entity(itr);
-      SceneTransformComp* trans     = ecs_view_write_t(itr, SceneTransformComp);
-      SceneScaleComp*     scaleComp = ecs_view_write_t(itr, SceneScaleComp);
+      const DevGizmoId    gizmoId = (DevGizmoId)ecs_view_entity(itr);
+      SceneTransformComp* trans   = ecs_view_write_t(itr, SceneTransformComp);
+      if (!trans) {
+        continue; // Selected an entity without a transform.
+      }
+      SceneScaleComp* scaleComp = ecs_view_write_t(itr, SceneScaleComp);
 
       GeoQuat rotRef;
       if (set->space == DevInspectorSpace_Local) {
