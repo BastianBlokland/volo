@@ -8,6 +8,7 @@
 #include "core_stringtable.h"
 #include "dev_hierarchy.h"
 #include "dev_panel.h"
+#include "ecs_def.h"
 #include "ecs_entity.h"
 #include "ecs_view.h"
 #include "ecs_world.h"
@@ -408,6 +409,26 @@ static void hierarchy_entry_select(HierarchyContext* ctx, const HierarchyEntry* 
   }
 }
 
+static String hierarchy_entry_tooltip_scratch(HierarchyContext* ctx, const HierarchyEntry* entry) {
+  if (!entry->entity) {
+    return string_empty;
+  }
+  DynString str = dynstring_create_over(alloc_alloc(g_allocScratch, 8 * usize_kibibyte, 1));
+  fmt_write(&str, "Entity: {}\n", ecs_entity_fmt(entry->entity));
+
+  const EcsArchetypeId archetype = ecs_world_entity_archetype(ctx->world, entry->entity);
+  if (!sentinel_check(archetype)) {
+    const BitSet  compMask = ecs_world_component_mask(ctx->world, archetype);
+    const EcsDef* ecsDef   = ecs_world_def(ctx->world);
+    bitset_for(compMask, compId) {
+      const String compName = ecs_def_comp_name(ecsDef, (EcsCompId)compId);
+      fmt_write(&str, "- {}\n", fmt_text(compName));
+    }
+  }
+
+  return dynstring_view(&str);
+}
+
 static void hierarchy_entry_draw(
     HierarchyContext*     ctx,
     UiCanvasComp*         canvas,
@@ -419,10 +440,17 @@ static void hierarchy_entry_draw(
 
   ui_style_push(canvas);
   ui_style_mode(canvas, UiMode_Invisible);
-  const UiId bgId = ui_canvas_draw_glyph(canvas, UiShape_Square, 0, UiFlags_Interactable);
+  const UiId     bgId     = ui_canvas_draw_glyph(canvas, UiShape_Square, 0, UiFlags_Interactable);
+  const UiStatus bgStatus = ui_canvas_elem_status(canvas, bgId);
   ui_style_pop(canvas);
 
-  switch (ui_canvas_elem_status(canvas, bgId)) {
+  if (bgStatus == UiStatus_Hovered) {
+    ui_tooltip(canvas, bgId, hierarchy_entry_tooltip_scratch(ctx, entry));
+  } else {
+    ui_canvas_id_skip(canvas, 2);
+  }
+
+  switch (bgStatus) {
   case UiStatus_Hovered:
     bgColor = ui_color_mul(bgColor, 1.25f);
     break;
