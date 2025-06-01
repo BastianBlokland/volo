@@ -75,6 +75,7 @@ ecs_comp_define(DevHierarchyPanelComp) {
   bool      filterActive;
   DynString filterName;
   DynBitSet filterResult;
+  u32       filterMatches;
 
   DynArray  entries;      // HierarchyEntry[]
   DynArray  links;        // HierarchyLink[]
@@ -326,6 +327,9 @@ static void hierarchy_filter(HierarchyContext* ctx) {
     }
   }
 
+  // Count the results.
+  ctx->panel->filterMatches = ctx->panel->entries.size - dynbitset_count(&ctx->panel->filterResult);
+
   // Make all results visible by including their parents.
   if (ctx->panel->filterActive) {
     for (HierarchyId id = 0; id != ctx->panel->entries.size; ++id) {
@@ -492,7 +496,8 @@ static void hierarchy_bg_draw(UiCanvasComp* canvas) {
 }
 
 static void hierarchy_panel_draw(HierarchyContext* ctx, UiCanvasComp* canvas) {
-  const String title = fmt_write_scratch("{} Hierarchy Panel", fmt_ui_shape(Tree));
+  const String title = fmt_write_scratch(
+      "{} Hierarchy Panel ({})", fmt_ui_shape(Tree), fmt_int(ctx->panel->filterMatches));
   ui_panel_begin(
       canvas, &ctx->panel->panel, .title = title, .topBarColor = ui_color(100, 0, 0, 192));
 
