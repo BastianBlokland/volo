@@ -354,8 +354,6 @@ static void comp_panel_tab_draw(UiCanvasComp* canvas, DevEcsPanelComp* panelComp
 
   ui_canvas_id_block_next(canvas); // Start the list of components on its own id block.
   for (u32 compIdx = 0; compIdx != numComps; ++compIdx) {
-    ui_table_next_row(canvas, &table);
-
     const DevEcsCompInfo* compInfo = dynarray_at_t(&panelComp->components, compIdx, DevEcsCompInfo);
     const f32             y        = ui_table_height(&table, compIdx);
     const UiScrollviewCull cull    = ui_scrollview_cull(&panelComp->scrollview, y, table.rowHeight);
@@ -366,6 +364,7 @@ static void comp_panel_tab_draw(UiCanvasComp* canvas, DevEcsPanelComp* panelComp
       continue;
     }
 
+    ui_table_jump_row(canvas, &table, compIdx);
     ui_table_draw_row_bg(canvas, &table, comp_info_bg_color(compInfo));
     ui_canvas_id_block_index(canvas, compInfo->id * 10); // Set a stable id based on the comp id.
 
@@ -461,8 +460,6 @@ static void view_panel_tab_draw(UiCanvasComp* canvas, DevEcsPanelComp* panelComp
 
   ui_canvas_id_block_next(canvas); // Start the list of views on its own id block.
   for (u32 viewIdx = 0; viewIdx != numViews; ++viewIdx) {
-    ui_table_next_row(canvas, &table);
-
     const DevEcsViewInfo*  viewInfo = dynarray_at_t(&panelComp->views, viewIdx, DevEcsViewInfo);
     const f32              y        = ui_table_height(&table, viewIdx);
     const UiScrollviewCull cull = ui_scrollview_cull(&panelComp->scrollview, y, table.rowHeight);
@@ -473,6 +470,7 @@ static void view_panel_tab_draw(UiCanvasComp* canvas, DevEcsPanelComp* panelComp
       continue;
     }
 
+    ui_table_jump_row(canvas, &table, viewIdx);
     ui_table_draw_row_bg(canvas, &table, ui_color(48, 48, 48, 192));
     ui_canvas_id_block_index(canvas, viewInfo->id * 10); // Set a stable id based on the view id.
 
@@ -598,8 +596,6 @@ arch_panel_tab_draw(UiCanvasComp* canvas, DevEcsPanelComp* panelComp, const EcsD
 
   ui_canvas_id_block_next(canvas); // Start the list of archetypes on its own id block.
   for (u32 archIdx = 0; archIdx != numArchetypes; ++archIdx) {
-    ui_table_next_row(canvas, &table);
-
     const DevEcsArchetypeInfo* archInfo =
         dynarray_at_t(&panelComp->archetypes, archIdx, DevEcsArchetypeInfo);
     const f32              y    = ui_table_height(&table, archIdx);
@@ -611,6 +607,7 @@ arch_panel_tab_draw(UiCanvasComp* canvas, DevEcsPanelComp* panelComp, const EcsD
       continue;
     }
 
+    ui_table_jump_row(canvas, &table, archIdx);
     ui_table_draw_row_bg(canvas, &table, ui_color(48, 48, 48, 192));
     ui_canvas_id_block_index(canvas, archInfo->id * 10); // Set a stable id based on the arch id.
 
@@ -776,8 +773,6 @@ sys_panel_tab_draw(UiCanvasComp* canvas, DevEcsPanelComp* panelComp, const EcsDe
 
   ui_canvas_id_block_next(canvas); // Start the list of systems on its own id block.
   for (u32 sysIdx = 0; sysIdx != numSystems; ++sysIdx) {
-    ui_table_next_row(canvas, &table);
-
     const DevEcsSysInfo*   sysInfo = dynarray_at_t(&panelComp->systems, sysIdx, DevEcsSysInfo);
     const f32              y       = ui_table_height(&table, sysIdx);
     const UiScrollviewCull cull    = ui_scrollview_cull(&panelComp->scrollview, y, table.rowHeight);
@@ -788,6 +783,7 @@ sys_panel_tab_draw(UiCanvasComp* canvas, DevEcsPanelComp* panelComp, const EcsDe
       continue;
     }
 
+    ui_table_jump_row(canvas, &table, sysIdx);
     ui_table_draw_row_bg(canvas, &table, sys_info_bg_color(sysInfo));
     ui_canvas_id_block_index(canvas, sysInfo->id * 10); // Set a stable id based on the comp id.
 

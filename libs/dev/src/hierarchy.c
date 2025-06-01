@@ -364,7 +364,6 @@ static void hierarchy_panel_draw(HierarchyContext* ctx, UiCanvasComp* canvas) {
     }
 
     // Draw entry.
-    ui_table_next_row(canvas, &table);
     const f32 y = ui_table_height(&table, ctx->panel->panelRowCount++);
     if (ui_scrollview_cull(&ctx->panel->scrollview, y, table.rowHeight)) {
       if (ctx->focusEntity == entry->entity) {
@@ -372,6 +371,7 @@ static void hierarchy_panel_draw(HierarchyContext* ctx, UiCanvasComp* canvas) {
         ctx->focusEntity              = 0;
       }
     } else {
+      ui_table_jump_row(canvas, &table, ctx->panel->panelRowCount - 1);
       hierarchy_entry_draw(ctx, canvas, &table, entry, entryDepth);
     }
 
