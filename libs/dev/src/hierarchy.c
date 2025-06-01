@@ -425,7 +425,8 @@ static void hierarchy_panel_draw(HierarchyContext* ctx, UiCanvasComp* canvas) {
     const f32 y = ui_table_height(&table, ctx->panel->panelRowCount++);
     if (ui_scrollview_cull(&ctx->panel->scrollview, y, table.rowHeight)) {
       if (ctx->focusEntry == hierarchy_entry_id(ctx, entry)) {
-        ctx->panel->scrollview.offset = y;
+        const f32 viewportHalfHeight  = ctx->panel->scrollview.lastViewportHeight * 0.5f;
+        ctx->panel->scrollview.offset = y - viewportHalfHeight + table.rowHeight * 0.5f;
         ctx->focusEntry               = sentinel_u32;
       }
     } else {
