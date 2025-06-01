@@ -49,6 +49,7 @@ typedef struct {
   EcsEntityId       entity;
   StringHash        nameHash;
   HierarchyLinkId   linkHead;
+  HierarchyId       firstParent;
 } HierarchyEntry;
 
 typedef struct {
@@ -165,6 +166,10 @@ static bool hierarchy_link_add(
   parentEntry->parentMask |= type;
   childEntry->childMask |= type;
 
+  if (sentinel_check(childEntry->firstParent)) {
+    childEntry->firstParent = parent;
+  }
+
   // Walk the existing links.
   HierarchyLinkId* linkTail = &parentEntry->linkHead;
   while (!sentinel_check(*linkTail)) {
@@ -233,11 +238,12 @@ static void hierarchy_query(HierarchyContext* ctx) {
     const EcsEntityId entity = ecs_view_entity(itr);
 
     *dynarray_push_t(&ctx->panel->entries, HierarchyEntry) = (HierarchyEntry){
-        .parentMask = 0,
-        .childMask  = 0,
-        .entity     = entity,
-        .nameHash   = ecs_view_read_t(itr, SceneNameComp)->name,
-        .linkHead   = sentinel_u32,
+        .parentMask  = 0,
+        .childMask   = 0,
+        .entity      = entity,
+        .nameHash    = ecs_view_read_t(itr, SceneNameComp)->name,
+        .linkHead    = sentinel_u32,
+        .firstParent = sentinel_u32,
     };
 
     const SceneCreatorComp* creatorComp = ecs_view_read_t(itr, SceneCreatorComp);
@@ -441,6 +447,15 @@ static void hierarchy_panel_draw(HierarchyContext* ctx, UiCanvasComp* canvas) {
 
 static void hierarchy_focus_entity(HierarchyContext* ctx, const EcsEntityId entity) {
   ctx->focusEntry = hierarchy_find_entity(ctx, entity);
+  if (sentinel_check(ctx->focusEntry)) {
+    return; // Entity not found.
+  }
+
+  // Open the chain of parents to the root.
+  for (HierarchyId p = hierarchy_entry(ctx, ctx->focusEntry)->firstParent; !sentinel_check(p);) {
+    hierarchy_open_update(ctx, p, true);
+    p = hierarchy_entry(ctx, p)->firstParent;
+  }
 }
 
 ecs_system_define(DevHierarchyUpdatePanelSys) {
