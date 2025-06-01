@@ -57,6 +57,7 @@
   X(0xE9FE, ViewInAr)                                                                              \
   X(0xEA3C, Construction)                                                                          \
   X(0xEAD5, Diamond)                                                                               \
+  X(0xEB3B, Cool)                                                                                  \
   X(0xEF42, Article)                                                                               \
   X(0xF000, Square)                                                                                \
   X(0xF001, Circle)                                                                                \
