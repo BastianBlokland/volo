@@ -125,18 +125,6 @@ typedef struct {
   HierarchyId             focusEntry;
 } HierarchyContext;
 
-static bool hierarchy_open(HierarchyContext* ctx, const HierarchyEntry* e) {
-  return dynbitset_test(&ctx->panel->openEntries, e->stableId);
-}
-
-static void hierarchy_open_update(HierarchyContext* ctx, const HierarchyEntry* e, const bool open) {
-  if (open) {
-    dynbitset_set(&ctx->panel->openEntries, e->stableId);
-  } else {
-    dynbitset_clear(&ctx->panel->openEntries, e->stableId);
-  }
-}
-
 static HierarchyStableId hierarchy_stable_id_entity(const EcsEntityId e) {
   return ecs_entity_id_index(e);
 }
@@ -298,6 +286,26 @@ static void hierarchy_query(HierarchyContext* ctx) {
   trace_end();
 }
 
+static bool hierarchy_open(HierarchyContext* ctx, const HierarchyEntry* e) {
+  return dynbitset_test(&ctx->panel->openEntries, e->stableId);
+}
+
+static void hierarchy_open_update(HierarchyContext* ctx, const HierarchyEntry* e, const bool open) {
+  if (open) {
+    dynbitset_set(&ctx->panel->openEntries, e->stableId);
+  } else {
+    dynbitset_clear(&ctx->panel->openEntries, e->stableId);
+  }
+}
+
+static void hierarchy_open_to_root(HierarchyContext* ctx, const HierarchyId id) {
+  for (HierarchyId p = hierarchy_entry(ctx, id)->firstParent; !sentinel_check(p);) {
+    HierarchyEntry* entry = hierarchy_entry(ctx, p);
+    hierarchy_open_update(ctx, entry, true);
+    p = entry->firstParent;
+  }
+}
+
 static void hierarchy_filter(HierarchyContext* ctx) {
   ctx->panel->filterActive = false;
   dynbitset_clear_all(&ctx->panel->filterResult);
@@ -310,7 +318,9 @@ static void hierarchy_filter(HierarchyContext* ctx) {
     for (HierarchyId id = 0; id != ctx->panel->entries.size; ++id) {
       const HierarchyEntry* entry = hierarchy_entry(ctx, id);
       const String          name  = stringtable_lookup(g_stringtable, entry->nameHash);
-      if (!string_match_glob(name, filter, StringMatchFlags_IgnoreCase)) {
+      if (string_match_glob(name, filter, StringMatchFlags_IgnoreCase)) {
+        hierarchy_open_to_root(ctx, id);
+      } else {
         dynbitset_set(&ctx->panel->filterResult, id);
         ctx->panel->filterActive = true;
       }
@@ -543,15 +553,8 @@ static void hierarchy_panel_draw(HierarchyContext* ctx, UiCanvasComp* canvas) {
 
 static void hierarchy_focus_entity(HierarchyContext* ctx, const EcsEntityId entity) {
   ctx->focusEntry = hierarchy_find_entity(ctx, entity);
-  if (sentinel_check(ctx->focusEntry)) {
-    return; // Entity not found.
-  }
-
-  // Open the chain of parents to the root.
-  for (HierarchyId p = hierarchy_entry(ctx, ctx->focusEntry)->firstParent; !sentinel_check(p);) {
-    HierarchyEntry* entry = hierarchy_entry(ctx, p);
-    hierarchy_open_update(ctx, entry, true);
-    p = entry->firstParent;
+  if (!sentinel_check(ctx->focusEntry)) {
+    hierarchy_open_to_root(ctx, ctx->focusEntry);
   }
 }
 
