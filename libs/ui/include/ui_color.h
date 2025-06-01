@@ -51,6 +51,11 @@ ASSERT(sizeof(UiColor) == 4, "UiColor has to be 32 bits");
 UiColor ui_color_lerp(UiColor x, UiColor y, f32 t);
 
 /**
+ * Multiply the rgb components by the given scalar.
+ */
+UiColor ui_color_mul(UiColor, f32 scalar);
+
+/**
  * Create a formatting argument for a color.
  */
 #define ui_color_fmt(_VAL_) fmt_int((_VAL_).data, .base = 16, minDigits = 8)
