@@ -264,7 +264,7 @@ vfx_panel_draw(UiCanvasComp* canvas, DevVfxPanelComp* panelComp, SceneSetEnvComp
     ui_table_jump_row(canvas, &table, objIdx);
 
     const bool    selected = scene_set_contains(setEnv, g_sceneSetSelected, info->entity);
-    const UiColor color    = selected ? ui_color(48, 48, 178, 192) : ui_color(48, 48, 48, 192);
+    const UiColor color    = selected ? ui_color(32, 32, 255, 192) : ui_color(48, 48, 48, 192);
     ui_table_draw_row_bg(canvas, &table, color);
     ui_canvas_id_block_index(canvas, ecs_entity_id_index(info->entity) * 10); // Set a stable id.
 
