@@ -1,5 +1,6 @@
 #include "core_alloc.h"
 #include "core_array.h"
+#include "core_diag.h"
 #include "core_dynarray.h"
 #include "core_dynbitset.h"
 #include "core_format.h"
@@ -206,7 +207,12 @@ static void hierarchy_link_apply_requests(HierarchyContext* ctx) {
   dynarray_sort(&ctx->panel->linkRequests, hierarchy_compare_link_request);
   dynarray_for_t(&ctx->panel->linkRequests, HierarchyLinkRequest, req) {
     const HierarchyId parentId = hierarchy_find_entity(ctx, req->parent);
-    const HierarchyId childId  = hierarchy_find_entity(ctx, req->child);
+    if (sentinel_check(parentId)) {
+      continue; // Parent does not exist anymore.
+    }
+    const HierarchyId childId = hierarchy_find_entity(ctx, req->child);
+    diag_assert(!sentinel_check(childId)); // Child has to exist.
+
     hierarchy_link_add(ctx, parentId, childId, req->type);
   }
   dynarray_clear(&ctx->panel->linkRequests);
