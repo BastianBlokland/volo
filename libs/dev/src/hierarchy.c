@@ -25,6 +25,7 @@
 #include "ui_table.h"
 #include "ui_widget.h"
 
+typedef u32 HierarchyId;
 typedef u32 HierarchyLinkId;
 
 typedef enum {
@@ -37,7 +38,7 @@ typedef enum {
 typedef struct {
   HierarchyLinkMask mask;
   HierarchyLinkId   next;
-  EcsEntityId       entity;
+  HierarchyId       target;
 } HierarchyLink;
 
 typedef struct {
@@ -125,25 +126,34 @@ static i8 hierarchy_compare_link_request(const void* a, const void* b) {
   return reqA->child < reqB->child ? -1 : reqA->child > reqB->child ? 1 : 0;
 }
 
-static HierarchyEntry* hierarchy_find(HierarchyContext* ctx, const EcsEntityId entity) {
-  const HierarchyEntry tgt = {.entity = entity};
-  return dynarray_search_binary(&ctx->panel->entries, hierarchy_compare_entry, &tgt);
+static HierarchyEntry* hierarchy_entry(HierarchyContext* ctx, const HierarchyId id) {
+  return dynarray_at_t(&ctx->panel->entries, id, HierarchyEntry);
 }
 
 static HierarchyLink* hierarchy_link(HierarchyContext* ctx, const HierarchyLinkId id) {
   return dynarray_at_t(&ctx->panel->links, id, HierarchyLink);
 }
 
+static HierarchyId hierarchy_find_entity(HierarchyContext* ctx, const EcsEntityId entity) {
+  const HierarchyEntry tgt = {.entity = entity};
+  const void* res = dynarray_search_binary(&ctx->panel->entries, hierarchy_compare_entry, &tgt);
+  if (!res) {
+    return sentinel_u32;
+  }
+  const HierarchyEntry* first = dynarray_begin_t(&ctx->panel->entries, HierarchyEntry);
+  return (HierarchyId)((const HierarchyEntry*)res - first);
+}
+
 static bool hierarchy_link_add(
     HierarchyContext*       ctx,
-    const EcsEntityId       parent,
-    const EcsEntityId       child,
+    const HierarchyId       parent,
+    const HierarchyId       child,
     const HierarchyLinkMask type) {
-  HierarchyEntry* parentEntry = hierarchy_find(ctx, parent);
+  HierarchyEntry* parentEntry = hierarchy_entry(ctx, parent);
   if (!parentEntry) {
     return false;
   }
-  HierarchyEntry* childEntry = hierarchy_find(ctx, child);
+  HierarchyEntry* childEntry = hierarchy_entry(ctx, child);
   if (!childEntry) {
     return false;
   }
@@ -158,7 +168,7 @@ static bool hierarchy_link_add(
   HierarchyLinkId* linkTail = &parentEntry->linkHead;
   while (!sentinel_check(*linkTail)) {
     HierarchyLink* link = dynarray_at_t(&ctx->panel->links, *linkTail, HierarchyLink);
-    if (link->entity == child) {
+    if (link->target == child) {
       link->mask |= type;
       return true;
     }
@@ -169,7 +179,7 @@ static bool hierarchy_link_add(
   *linkTail                                           = (HierarchyLinkId)ctx->panel->links.size;
   *dynarray_push_t(&ctx->panel->links, HierarchyLink) = (HierarchyLink){
       .mask   = type,
-      .entity = child,
+      .target = child,
       .next   = sentinel_u32,
   };
 
@@ -191,7 +201,9 @@ static void hierarchy_link_request(
 static void hierarchy_link_apply_requests(HierarchyContext* ctx) {
   dynarray_sort(&ctx->panel->linkRequests, hierarchy_compare_link_request);
   dynarray_for_t(&ctx->panel->linkRequests, HierarchyLinkRequest, req) {
-    hierarchy_link_add(ctx, req->parent, req->child, req->type);
+    const HierarchyId parentId = hierarchy_find_entity(ctx, req->parent);
+    const HierarchyId childId  = hierarchy_find_entity(ctx, req->child);
+    hierarchy_link_add(ctx, parentId, childId, req->type);
   }
   dynarray_clear(&ctx->panel->linkRequests);
 }
@@ -208,6 +220,7 @@ static u32 hierarchy_next_root(HierarchyContext* ctx, u32 entryIdx) {
 
 static void hierarchy_query(HierarchyContext* ctx) {
   dynarray_clear(&ctx->panel->entries);
+  dynarray_clear(&ctx->panel->links);
 
   EcsView* entryView = ecs_world_view_t(ctx->world, HierarchyEntryView);
   for (EcsIterator* itr = ecs_view_itr(entryView); ecs_view_walk(itr);) {
@@ -378,7 +391,7 @@ static void hierarchy_panel_draw(HierarchyContext* ctx, UiCanvasComp* canvas) {
     u32                   entryDepth;
     if (childQueueSize) {
       HierarchyLink* link = hierarchy_link(ctx, childQueue[childQueueSize - 1]);
-      entry               = hierarchy_find(ctx, link->entity);
+      entry               = hierarchy_entry(ctx, link->target);
       entryDepth          = childQueueSize;
 
       if (sentinel_check(link->next)) {
