@@ -3,6 +3,7 @@
 #include "core_diag.h"
 #include "core_dynarray.h"
 #include "core_dynbitset.h"
+#include "core_dynstring.h"
 #include "core_format.h"
 #include "core_stringtable.h"
 #include "dev_hierarchy.h"
@@ -28,6 +29,7 @@
 
 // clang-format off
 
+static const String g_tooltipFilter = string_static("Filter entries by name.\nSupports glob characters \a.b*\ar and \a.b?\ar (\a.b!\ar prefix to invert).");
 static const String g_tooltipFreeze = string_static("Freeze the data set (halts data collection).");
 
 // clang-format on
@@ -67,7 +69,9 @@ ecs_comp_define(DevHierarchyPanelComp) {
   UiPanel      panel;
   u32          panelRowCount;
   UiScrollview scrollview;
-  bool         freeze;
+
+  bool      freeze;
+  DynString nameFilter;
 
   DynArray  entries;      // HierarchyEntry[]
   DynArray  links;        // HierarchyLink[]
@@ -79,6 +83,7 @@ ecs_comp_define(DevHierarchyPanelComp) {
 
 static void ecs_destruct_hierarchy_panel(void* data) {
   DevHierarchyPanelComp* comp = data;
+  dynstring_destroy(&comp->nameFilter);
   dynarray_destroy(&comp->entries);
   dynarray_destroy(&comp->links);
   dynarray_destroy(&comp->linkRequests);
@@ -399,10 +404,18 @@ static void hierarchy_options_draw(HierarchyContext* ctx, UiCanvasComp* canvas) 
   ui_layout_push(canvas);
 
   UiTable table = ui_table(.spacing = ui_vector(10, 5), .rowHeight = 20);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 55);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 150);
   ui_table_add_column(&table, UiTableColumn_Fixed, 70);
   ui_table_add_column(&table, UiTableColumn_Fixed, 50);
 
   ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Filter:"));
+  ui_table_next_column(canvas, &table);
+  ui_textbox(
+      canvas, &ctx->panel->nameFilter, .placeholder = string_lit("*"), .tooltip = g_tooltipFilter);
+  ui_table_next_column(canvas, &table);
+
   ui_label(canvas, string_lit("Freeze:"));
   ui_table_next_column(canvas, &table);
   ui_toggle(canvas, &ctx->panel->freeze, .tooltip = g_tooltipFreeze);
@@ -416,6 +429,16 @@ static void hierarchy_bg_draw(UiCanvasComp* canvas) {
   ui_style_outline(canvas, 4);
   ui_canvas_draw_glyph(canvas, UiShape_Square, 10, UiFlags_None);
   ui_style_pop(canvas);
+}
+
+static bool hierarchy_panel_filter(HierarchyContext* ctx, const HierarchyEntry* entry) {
+  if (!string_is_empty(ctx->panel->nameFilter)) {
+    const String rawFilter = dynstring_view(&ctx->panel->nameFilter);
+    const String filter    = fmt_write_scratch("*{}*", fmt_text(rawFilter));
+    const String name      = stringtable_lookup(g_stringtable, entry->nameHash);
+    return string_match_glob(name, filter, StringMatchFlags_IgnoreCase);
+  }
+  return true;
 }
 
 static void hierarchy_panel_draw(HierarchyContext* ctx, UiCanvasComp* canvas) {
@@ -459,6 +482,11 @@ static void hierarchy_panel_draw(HierarchyContext* ctx, UiCanvasComp* canvas) {
       entry      = dynarray_at_t(&ctx->panel->entries, rootIdx, HierarchyEntry);
       entryDepth = 0;
       rootIdx    = hierarchy_next_root(ctx, rootIdx + 1);
+    }
+
+    // Apply filter.
+    if (!hierarchy_panel_filter(ctx, entry)) {
+      continue;
     }
 
     // Draw entry.
@@ -568,6 +596,7 @@ dev_hierarchy_panel_open(EcsWorld* world, const EcsEntityId window, const DevPan
       DevHierarchyPanelComp,
       .panel        = ui_panel(.position = ui_vector(1.0f, 0.0f), .size = ui_vector(500, 350)),
       .scrollview   = ui_scrollview(),
+      .nameFilter   = dynstring_create(g_allocHeap, 32),
       .entries      = dynarray_create_t(g_allocHeap, HierarchyEntry, 1024),
       .links        = dynarray_create_t(g_allocHeap, HierarchyLink, 1024),
       .linkRequests = dynarray_create_t(g_allocHeap, HierarchyLinkRequest, 512),
