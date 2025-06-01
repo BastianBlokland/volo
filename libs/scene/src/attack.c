@@ -538,6 +538,7 @@ static EffectResult effect_update_vfx(
   }
   ecs_world_add_t(ctx->world, e, SceneLifetimeDurationComp, .duration = def->duration);
   ecs_world_add_t(ctx->world, e, SceneVisibilityComp); // Seeing attacks requires visibility.
+  ecs_world_add_t(ctx->world, e, SceneCreatorComp, .creator = ctx->instigator);
   ecs_world_add_t(
       ctx->world,
       e,
@@ -581,6 +582,7 @@ static EffectResult effect_update_sound(
   ecs_world_add_t(
       ctx->world, e, SceneSoundComp, .asset = def->asset.entity, .gain = gain, .pitch = pitch);
   ecs_world_add_t(ctx->world, e, SceneVisibilityComp); // Hearing attacks requires visibility.
+  ecs_world_add_t(ctx->world, e, SceneCreatorComp, .creator = ctx->instigator);
 
   return EffectResult_Done;
 }

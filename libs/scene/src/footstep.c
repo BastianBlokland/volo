@@ -4,6 +4,7 @@
 #include "ecs_world.h"
 #include "geo_matrix.h"
 #include "log_logger.h"
+#include "scene_creator.h"
 #include "scene_footstep.h"
 #include "scene_lifetime.h"
 #include "scene_renderable.h"
@@ -90,7 +91,8 @@ static void footstep_decal_spawn(
     EcsWorld*                 world,
     const SceneTransformComp* trans,
     const GeoVector           footPos,
-    const EcsEntityId         decalAsset) {
+    const EcsEntityId         decalAsset,
+    const EcsEntityId         instigator) {
 
   const EcsEntityId e = ecs_world_entity_create(world);
   ecs_world_add_empty_t(world, e, SceneLevelInstanceComp);
@@ -98,6 +100,7 @@ static void footstep_decal_spawn(
   ecs_world_add_t(world, e, SceneLifetimeDurationComp, .duration = scene_footstep_decal_lifetime);
   ecs_world_add_t(world, e, SceneVfxDecalComp, .asset = decalAsset, .alpha = 1.0f);
   ecs_world_add_t(world, e, SceneVisibilityComp); // Seeing footsteps requires visibility.
+  ecs_world_add_t(world, e, SceneCreatorComp, .creator = instigator);
 }
 
 ecs_system_define(SceneFootstepUpdateSys) {
@@ -105,6 +108,7 @@ ecs_system_define(SceneFootstepUpdateSys) {
 
   EcsView* updateView = ecs_world_view_t(world, UpdateView);
   for (EcsIterator* itr = ecs_view_itr_step(updateView, parCount, parIndex); ecs_view_walk(itr);) {
+    const EcsEntityId         e         = ecs_view_entity(itr);
     const SceneFootstepComp*  footstep  = ecs_view_read_t(itr, SceneFootstepComp);
     const SceneScaleComp*     scaleComp = ecs_view_read_t(itr, SceneScaleComp);
     const SceneTransformComp* transComp = ecs_view_read_t(itr, SceneTransformComp);
@@ -128,7 +132,7 @@ ecs_system_define(SceneFootstepUpdateSys) {
         const GeoMatrix localToWorld = scene_matrix_world(transComp, scaleComp);
         const GeoVector footLocalPos = geo_matrix_to_translation(jointLocalTrans);
         const GeoVector footWorldPos = geo_matrix_transform3_point(&localToWorld, footLocalPos);
-        footstep_decal_spawn(world, transComp, footWorldPos, footstep->decalAssets[footIdx]);
+        footstep_decal_spawn(world, transComp, footWorldPos, footstep->decalAssets[footIdx], e);
       } else if (footLifted && !footWasUp) {
         state->feetUpBits |= 1 << footIdx;
       }
