@@ -119,6 +119,12 @@ static i8 hierarchy_compare_entry(const void* a, const void* b) {
   return entityA < entityB ? -1 : entityA > entityB ? 1 : 0;
 }
 
+static i8 hierarchy_compare_link_request(const void* a, const void* b) {
+  const HierarchyLinkRequest* reqA = a;
+  const HierarchyLinkRequest* reqB = b;
+  return reqA->child < reqB->child ? -1 : reqA->child > reqB->child ? 1 : 0;
+}
+
 static HierarchyEntry* hierarchy_find(HierarchyContext* ctx, const EcsEntityId entity) {
   const HierarchyEntry tgt = {.entity = entity};
   return dynarray_search_binary(&ctx->panel->entries, hierarchy_compare_entry, &tgt);
@@ -183,6 +189,7 @@ static void hierarchy_link_request(
 }
 
 static void hierarchy_link_apply_requests(HierarchyContext* ctx) {
+  dynarray_sort(&ctx->panel->linkRequests, hierarchy_compare_link_request);
   dynarray_for_t(&ctx->panel->linkRequests, HierarchyLinkRequest, req) {
     hierarchy_link_add(ctx, req->parent, req->child, req->type);
   }
