@@ -18,6 +18,7 @@
 #include "scene_lifetime.h"
 #include "scene_name.h"
 #include "scene_set.h"
+#include "trace_tracer.h"
 #include "ui_canvas.h"
 #include "ui_layout.h"
 #include "ui_panel.h"
@@ -250,6 +251,7 @@ static void hierarchy_query(HierarchyContext* ctx) {
   dynarray_clear(&ctx->panel->entries);
   dynarray_clear(&ctx->panel->links);
 
+  trace_begin("find", TraceColor_Red);
   EcsView* entryView = ecs_world_view_t(ctx->world, HierarchyEntryView);
   for (EcsIterator* itr = ecs_view_itr(entryView); ecs_view_walk(itr);) {
     const EcsEntityId entity = ecs_view_entity(itr);
@@ -282,9 +284,15 @@ static void hierarchy_query(HierarchyContext* ctx) {
       hierarchy_link_request(ctx, attachComp->target, entity, HierarchyLinkMask_Attachment);
     }
   }
+  trace_end();
 
+  trace_begin("sort", TraceColor_Red);
   dynarray_sort(&ctx->panel->entries, hierarchy_compare_entry);
+  trace_end();
+
+  trace_begin("link", TraceColor_Red);
   hierarchy_link_apply_requests(ctx);
+  trace_end();
 }
 
 static String hierarchy_name(const StringHash nameHash) {
@@ -558,7 +566,9 @@ ecs_system_define(DevHierarchyUpdatePanelSys) {
       continue;
     }
     if (!ctx.panel->freeze) {
+      trace_begin("query", TraceColor_Blue);
       hierarchy_query(&ctx);
+      trace_end();
     }
 
     if (ctx.panel->lastMainSelection != mainSelection) {
@@ -566,7 +576,9 @@ ecs_system_define(DevHierarchyUpdatePanelSys) {
       hierarchy_focus_entity(&ctx, mainSelection);
     }
 
+    trace_begin("draw", TraceColor_Blue);
     hierarchy_panel_draw(&ctx, canvas);
+    trace_end();
 
     if (ui_panel_closed(&ctx.panel->panel)) {
       ecs_world_entity_destroy(world, entity);
