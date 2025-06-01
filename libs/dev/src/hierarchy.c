@@ -397,7 +397,8 @@ static void hierarchy_panel_draw(HierarchyContext* ctx, UiCanvasComp* canvas) {
   ui_canvas_id_block_next(canvas); // Start the list of entities on its own id block.
 
   u32             rootIdx = hierarchy_next_root(ctx, 0);
-  HierarchyLinkId childQueue[64];
+  HierarchyLinkId childQueue[16];
+  u32             childDepth[16];
   u32             childQueueSize = 0;
 
   ctx->panel->panelRowCount = 0;
@@ -408,7 +409,7 @@ static void hierarchy_panel_draw(HierarchyContext* ctx, UiCanvasComp* canvas) {
     if (childQueueSize) {
       HierarchyLink* link = hierarchy_link(ctx, childQueue[childQueueSize - 1]);
       entry               = hierarchy_entry(ctx, link->target);
-      entryDepth          = childQueueSize;
+      entryDepth          = childDepth[childQueueSize - 1];
 
       if (sentinel_check(link->next)) {
         --childQueueSize;
@@ -437,7 +438,9 @@ static void hierarchy_panel_draw(HierarchyContext* ctx, UiCanvasComp* canvas) {
     // Push children.
     const bool queueFull = childQueueSize == array_elems(childQueue);
     if (entry->parentMask && !queueFull && hierarchy_open(ctx, hierarchy_entry_id(ctx, entry))) {
-      childQueue[childQueueSize++] = entry->linkHead;
+      childQueue[childQueueSize] = entry->linkHead;
+      childDepth[childQueueSize] = entryDepth + 1;
+      ++childQueueSize;
     }
   }
   ui_canvas_id_block_next(canvas);
