@@ -109,6 +109,33 @@ void ui_table_next_row(UiCanvasComp* canvas, UiTable* table) {
   ui_table_next_column(canvas, table);
 }
 
+void ui_table_jump_row(UiCanvasComp* canvas, UiTable* table, const u32 row) {
+  const UiDir rowDir = ui_table_row_dir(table->align);
+
+  if (!ui_table_active(table)) {
+    /**
+     * First row: Initialize the position and cell height.
+     */
+    ui_layout_move_to(canvas, table->parent, table->align, Ui_Y);
+    ui_layout_resize(canvas, table->align, ui_vector(0, table->rowHeight), UiBase_Absolute, Ui_Y);
+    ui_layout_move_dir(canvas, rowDir, table->spacing.y, UiBase_Absolute);
+    table->row = 0;
+  }
+
+  /**
+   * Move to the specified row.
+   */
+  const f32 offset = ((f32)row - (f32)table->row) * (table->rowHeight + table->spacing.y);
+  ui_layout_move_dir(canvas, rowDir, offset, UiBase_Absolute);
+  table->row = row;
+
+  /**
+   * Initialize the first column.
+   */
+  table->column = sentinel_u32;
+  ui_table_next_column(canvas, table);
+}
+
 void ui_table_next_column(UiCanvasComp* canvas, UiTable* table) {
   diag_assert_msg(ui_table_active(table), "Column cannot be advanced: No row is active");
   const UiDir columnDir = ui_table_column_dir(table->align);

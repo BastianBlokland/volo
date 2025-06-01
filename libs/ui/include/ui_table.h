@@ -73,6 +73,7 @@ void ui_table_reset(UiTable*);
  * NOTE: If no row is currently active then the first row becomes the active row.
  */
 void ui_table_next_row(UiCanvasComp*, UiTable*);
+void ui_table_jump_row(UiCanvasComp*, UiTable*, u32 row);
 
 /**
  * Sets the active rectangle to the next column in the current row.
