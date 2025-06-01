@@ -328,7 +328,10 @@ static void hierarchy_filter(HierarchyContext* ctx) {
   }
 
   // Count the results.
-  ctx->panel->filterMatches = ctx->panel->entries.size - dynbitset_count(&ctx->panel->filterResult);
+  ctx->panel->filterMatches = (u32)ctx->panel->entries.size;
+  if (ctx->panel->filterActive) {
+    ctx->panel->filterMatches -= (u32)dynbitset_count(&ctx->panel->filterResult);
+  }
 
   // Make all results visible by including their parents.
   if (ctx->panel->filterActive) {
