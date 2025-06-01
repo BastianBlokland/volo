@@ -63,7 +63,7 @@ ecs_comp_define(DevHierarchyPanelComp) {
   DynArray     entries;      // HierarchyEntry[]
   DynArray     links;        // HierarchyLink[]
   DynArray     linkRequests; // HierarchyLinkRequest[]
-  DynBitSet    openEntities;
+  DynBitSet    openEntries;
 
   EcsEntityId lastMainSelection;
 };
@@ -73,7 +73,7 @@ static void ecs_destruct_hierarchy_panel(void* data) {
   dynarray_destroy(&comp->entries);
   dynarray_destroy(&comp->links);
   dynarray_destroy(&comp->linkRequests);
-  dynbitset_destroy(&comp->openEntities);
+  dynbitset_destroy(&comp->openEntries);
 }
 
 ecs_view_define(HierarchyEntryView) {
@@ -107,15 +107,15 @@ typedef struct {
   EcsEntityId             focusEntity;
 } HierarchyContext;
 
-static bool hierarchy_open(HierarchyContext* ctx, const EcsEntityId e) {
-  return dynbitset_test(&ctx->panel->openEntities, ecs_entity_id_index(e));
+static bool hierarchy_open(HierarchyContext* ctx, const HierarchyId id) {
+  return dynbitset_test(&ctx->panel->openEntries, id);
 }
 
-static void hierarchy_open_update(HierarchyContext* ctx, const EcsEntityId e, const bool open) {
+static void hierarchy_open_update(HierarchyContext* ctx, const HierarchyId id, const bool open) {
   if (open) {
-    dynbitset_set(&ctx->panel->openEntities, ecs_entity_id_index(e));
+    dynbitset_set(&ctx->panel->openEntries, id);
   } else {
-    dynbitset_clear(&ctx->panel->openEntities, ecs_entity_id_index(e));
+    dynbitset_clear(&ctx->panel->openEntries, id);
   }
 }
 
@@ -139,14 +139,14 @@ static HierarchyLink* hierarchy_link(HierarchyContext* ctx, const HierarchyLinkI
   return dynarray_at_t(&ctx->panel->links, id, HierarchyLink);
 }
 
+static HierarchyId hierarchy_entry_id(HierarchyContext* ctx, const HierarchyEntry* entry) {
+  return (HierarchyId)(entry - dynarray_begin_t(&ctx->panel->entries, HierarchyEntry));
+}
+
 static HierarchyId hierarchy_find_entity(HierarchyContext* ctx, const EcsEntityId entity) {
   const HierarchyEntry tgt = {.entity = entity};
   const void* res = dynarray_search_binary(&ctx->panel->entries, hierarchy_compare_entry, &tgt);
-  if (!res) {
-    return sentinel_u32;
-  }
-  const HierarchyEntry* first = dynarray_begin_t(&ctx->panel->entries, HierarchyEntry);
-  return (HierarchyId)((const HierarchyEntry*)res - first);
+  return res ? hierarchy_entry_id(ctx, res) : sentinel_u32;
 }
 
 static bool hierarchy_link_add(
@@ -331,9 +331,9 @@ static void hierarchy_entry_draw(
     ui_layout_grow(canvas, UiAlign_MiddleRight, ui_vector(inset, 0), UiBase_Absolute, Ui_X);
   }
   if (entry->parentMask) {
-    bool isOpen = hierarchy_open(ctx, entry->entity);
+    bool isOpen = hierarchy_open(ctx, hierarchy_entry_id(ctx, entry));
     if (ui_fold(canvas, &isOpen)) {
-      hierarchy_open_update(ctx, entry->entity, isOpen);
+      hierarchy_open_update(ctx, hierarchy_entry_id(ctx, entry), isOpen);
     }
   }
 
@@ -433,7 +433,7 @@ static void hierarchy_panel_draw(HierarchyContext* ctx, UiCanvasComp* canvas) {
 
     // Push children.
     const bool queueFull = childQueueSize == array_elems(childQueue);
-    if (entry->parentMask && !queueFull && hierarchy_open(ctx, entry->entity)) {
+    if (entry->parentMask && !queueFull && hierarchy_open(ctx, hierarchy_entry_id(ctx, entry))) {
       childQueue[childQueueSize++] = entry->linkHead;
     }
   }
@@ -505,7 +505,7 @@ dev_hierarchy_panel_open(EcsWorld* world, const EcsEntityId window, const DevPan
       .entries      = dynarray_create_t(g_allocHeap, HierarchyEntry, 1024),
       .links        = dynarray_create_t(g_allocHeap, HierarchyLink, 1024),
       .linkRequests = dynarray_create_t(g_allocHeap, HierarchyLinkRequest, 512),
-      .openEntities = dynbitset_create(g_allocHeap, 0));
+      .openEntries  = dynbitset_create(g_allocHeap, 0));
 
   if (type == DevPanelType_Detached) {
     ui_panel_maximize(&hierarchyPanel->panel);
