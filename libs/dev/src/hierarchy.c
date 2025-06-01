@@ -104,7 +104,7 @@ typedef struct {
   SceneSetEnvComp*        setEnv;
   const InputManagerComp* input;
   DevHierarchyPanelComp*  panel;
-  EcsEntityId             focusEntity;
+  HierarchyId             focusEntry;
 } HierarchyContext;
 
 static bool hierarchy_open(HierarchyContext* ctx, const HierarchyId id) {
@@ -164,10 +164,6 @@ static bool hierarchy_link_add(
   }
   parentEntry->parentMask |= type;
   childEntry->childMask |= type;
-
-  if (ctx->focusEntity == child) {
-    hierarchy_open_update(ctx, parent, true);
-  }
 
   // Walk the existing links.
   HierarchyLinkId* linkTail = &parentEntry->linkHead;
@@ -422,9 +418,9 @@ static void hierarchy_panel_draw(HierarchyContext* ctx, UiCanvasComp* canvas) {
     // Draw entry.
     const f32 y = ui_table_height(&table, ctx->panel->panelRowCount++);
     if (ui_scrollview_cull(&ctx->panel->scrollview, y, table.rowHeight)) {
-      if (ctx->focusEntity == entry->entity) {
+      if (ctx->focusEntry == hierarchy_entry_id(ctx, entry)) {
         ctx->panel->scrollview.offset = y;
-        ctx->focusEntity              = 0;
+        ctx->focusEntry               = sentinel_u32;
       }
     } else {
       ui_table_jump_row(canvas, &table, ctx->panel->panelRowCount - 1);
@@ -443,6 +439,10 @@ static void hierarchy_panel_draw(HierarchyContext* ctx, UiCanvasComp* canvas) {
   ui_panel_end(canvas, &ctx->panel->panel);
 }
 
+static void hierarchy_focus_entity(HierarchyContext* ctx, const EcsEntityId entity) {
+  ctx->focusEntry = hierarchy_find_entity(ctx, entity);
+}
+
 ecs_system_define(DevHierarchyUpdatePanelSys) {
   EcsView*     globalView = ecs_world_view_t(world, PanelUpdateGlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
@@ -450,10 +450,12 @@ ecs_system_define(DevHierarchyUpdatePanelSys) {
     return;
   }
   HierarchyContext ctx = {
-      .world  = world,
-      .setEnv = ecs_view_write_t(globalItr, SceneSetEnvComp),
-      .input  = ecs_view_read_t(globalItr, InputManagerComp),
+      .world      = world,
+      .setEnv     = ecs_view_write_t(globalItr, SceneSetEnvComp),
+      .input      = ecs_view_read_t(globalItr, InputManagerComp),
+      .focusEntry = sentinel_u32,
   };
+  const EcsEntityId mainSelection = scene_set_main(ctx.setEnv, g_sceneSetSelected);
 
   EcsView* panelView = ecs_world_view_t(world, PanelUpdateView);
   for (EcsIterator* itr = ecs_view_itr(panelView); ecs_view_walk(itr);) {
@@ -467,11 +469,13 @@ ecs_system_define(DevHierarchyUpdatePanelSys) {
     if (dev_panel_hidden(ecs_view_read_t(itr, DevPanelComp)) && !pinned) {
       continue;
     }
-    if (ctx.panel->lastMainSelection != scene_set_main(ctx.setEnv, g_sceneSetSelected)) {
-      ctx.panel->lastMainSelection = scene_set_main(ctx.setEnv, g_sceneSetSelected);
-      ctx.focusEntity              = ctx.panel->lastMainSelection;
-    }
     hierarchy_query(&ctx);
+
+    if (ctx.panel->lastMainSelection != mainSelection) {
+      ctx.panel->lastMainSelection = mainSelection;
+      hierarchy_focus_entity(&ctx, mainSelection);
+    }
+
     hierarchy_panel_draw(&ctx, canvas);
 
     if (ui_panel_closed(&ctx.panel->panel)) {
