@@ -29,6 +29,7 @@
 
 typedef u32 HierarchyId;
 typedef u32 HierarchyLinkId;
+typedef u32 HierarchyStableId;
 
 typedef enum {
   HierarchyLinkMask_None       = 0,
@@ -50,6 +51,7 @@ typedef struct {
   StringHash        nameHash;
   HierarchyLinkId   linkHead;
   HierarchyId       firstParent;
+  HierarchyStableId stableId;
 } HierarchyEntry;
 
 typedef struct {
@@ -108,16 +110,20 @@ typedef struct {
   HierarchyId             focusEntry;
 } HierarchyContext;
 
-static bool hierarchy_open(HierarchyContext* ctx, const HierarchyId id) {
-  return dynbitset_test(&ctx->panel->openEntries, id);
+static bool hierarchy_open(HierarchyContext* ctx, const HierarchyEntry* e) {
+  return dynbitset_test(&ctx->panel->openEntries, e->stableId);
 }
 
-static void hierarchy_open_update(HierarchyContext* ctx, const HierarchyId id, const bool open) {
+static void hierarchy_open_update(HierarchyContext* ctx, const HierarchyEntry* e, const bool open) {
   if (open) {
-    dynbitset_set(&ctx->panel->openEntries, id);
+    dynbitset_set(&ctx->panel->openEntries, e->stableId);
   } else {
-    dynbitset_clear(&ctx->panel->openEntries, id);
+    dynbitset_clear(&ctx->panel->openEntries, e->stableId);
   }
+}
+
+static HierarchyStableId hierarchy_stable_id_entity(const EcsEntityId e) {
+  return ecs_entity_id_index(e);
 }
 
 static i8 hierarchy_compare_entry(const void* a, const void* b) {
@@ -244,6 +250,7 @@ static void hierarchy_query(HierarchyContext* ctx) {
         .nameHash    = ecs_view_read_t(itr, SceneNameComp)->name,
         .linkHead    = sentinel_u32,
         .firstParent = sentinel_u32,
+        .stableId    = hierarchy_stable_id_entity(entity),
     };
 
     const SceneCreatorComp* creatorComp = ecs_view_read_t(itr, SceneCreatorComp);
@@ -333,9 +340,9 @@ static void hierarchy_entry_draw(
     ui_layout_grow(canvas, UiAlign_MiddleRight, ui_vector(inset, 0), UiBase_Absolute, Ui_X);
   }
   if (entry->parentMask) {
-    bool isOpen = hierarchy_open(ctx, hierarchy_entry_id(ctx, entry));
+    bool isOpen = hierarchy_open(ctx, entry);
     if (ui_fold(canvas, &isOpen)) {
-      hierarchy_open_update(ctx, hierarchy_entry_id(ctx, entry), isOpen);
+      hierarchy_open_update(ctx, entry, isOpen);
     }
   }
 
@@ -437,7 +444,7 @@ static void hierarchy_panel_draw(HierarchyContext* ctx, UiCanvasComp* canvas) {
 
     // Push children.
     const bool queueFull = childQueueSize == array_elems(childQueue);
-    if (entry->parentMask && !queueFull && hierarchy_open(ctx, hierarchy_entry_id(ctx, entry))) {
+    if (entry->parentMask && !queueFull && hierarchy_open(ctx, entry)) {
       childQueue[childQueueSize] = entry->linkHead;
       childDepth[childQueueSize] = entryDepth + 1;
       ++childQueueSize;
@@ -457,8 +464,9 @@ static void hierarchy_focus_entity(HierarchyContext* ctx, const EcsEntityId enti
 
   // Open the chain of parents to the root.
   for (HierarchyId p = hierarchy_entry(ctx, ctx->focusEntry)->firstParent; !sentinel_check(p);) {
-    hierarchy_open_update(ctx, p, true);
-    p = hierarchy_entry(ctx, p)->firstParent;
+    HierarchyEntry* entry = hierarchy_entry(ctx, p);
+    hierarchy_open_update(ctx, entry, true);
+    p = entry->firstParent;
   }
 }
 
