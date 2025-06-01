@@ -70,9 +70,11 @@ ecs_comp_define(DevHierarchyPanelComp) {
   UiPanel      panel;
   u32          panelRowCount;
   UiScrollview scrollview;
+  bool         freeze;
 
-  bool      freeze;
-  DynString nameFilter;
+  bool      filterActive;
+  DynString filterName;
+  DynBitSet filterResult;
 
   DynArray  entries;      // HierarchyEntry[]
   DynArray  links;        // HierarchyLink[]
@@ -84,7 +86,8 @@ ecs_comp_define(DevHierarchyPanelComp) {
 
 static void ecs_destruct_hierarchy_panel(void* data) {
   DevHierarchyPanelComp* comp = data;
-  dynstring_destroy(&comp->nameFilter);
+  dynstring_destroy(&comp->filterName);
+  dynbitset_destroy(&comp->filterResult);
   dynarray_destroy(&comp->entries);
   dynarray_destroy(&comp->links);
   dynarray_destroy(&comp->linkRequests);
@@ -295,6 +298,26 @@ static void hierarchy_query(HierarchyContext* ctx) {
   trace_end();
 }
 
+static void hierarchy_filter(HierarchyContext* ctx) {
+  ctx->panel->filterActive = false;
+  dynbitset_clear_all(&ctx->panel->filterResult);
+
+  // Apply name filter.
+  if (!string_is_empty(ctx->panel->filterName)) {
+    const String rawFilter = dynstring_view(&ctx->panel->filterName);
+    const String filter    = fmt_write_scratch("*{}*", fmt_text(rawFilter));
+
+    for (HierarchyId id = 0; id != ctx->panel->entries.size; ++id) {
+      const HierarchyEntry* entry = hierarchy_entry(ctx, id);
+      const String          name  = stringtable_lookup(g_stringtable, entry->nameHash);
+      if (!string_match_glob(name, filter, StringMatchFlags_IgnoreCase)) {
+        dynbitset_set(&ctx->panel->filterResult, id);
+        ctx->panel->filterActive = true;
+      }
+    }
+  }
+}
+
 static String hierarchy_name(const StringHash nameHash) {
   const String name = stringtable_lookup(g_stringtable, nameHash);
   return string_is_empty(name) ? string_lit("<unnamed>") : name;
@@ -421,7 +444,7 @@ static void hierarchy_options_draw(HierarchyContext* ctx, UiCanvasComp* canvas) 
   ui_label(canvas, string_lit("Filter:"));
   ui_table_next_column(canvas, &table);
   ui_textbox(
-      canvas, &ctx->panel->nameFilter, .placeholder = string_lit("*"), .tooltip = g_tooltipFilter);
+      canvas, &ctx->panel->filterName, .placeholder = string_lit("*"), .tooltip = g_tooltipFilter);
   ui_table_next_column(canvas, &table);
 
   ui_label(canvas, string_lit("Freeze:"));
@@ -437,16 +460,6 @@ static void hierarchy_bg_draw(UiCanvasComp* canvas) {
   ui_style_outline(canvas, 4);
   ui_canvas_draw_glyph(canvas, UiShape_Square, 10, UiFlags_None);
   ui_style_pop(canvas);
-}
-
-static bool hierarchy_panel_filter(HierarchyContext* ctx, const HierarchyEntry* entry) {
-  if (!string_is_empty(ctx->panel->nameFilter)) {
-    const String rawFilter = dynstring_view(&ctx->panel->nameFilter);
-    const String filter    = fmt_write_scratch("*{}*", fmt_text(rawFilter));
-    const String name      = stringtable_lookup(g_stringtable, entry->nameHash);
-    return string_match_glob(name, filter, StringMatchFlags_IgnoreCase);
-  }
-  return true;
 }
 
 static void hierarchy_panel_draw(HierarchyContext* ctx, UiCanvasComp* canvas) {
@@ -493,8 +506,11 @@ static void hierarchy_panel_draw(HierarchyContext* ctx, UiCanvasComp* canvas) {
     }
 
     // Apply filter.
-    if (!hierarchy_panel_filter(ctx, entry)) {
-      continue;
+    if (ctx->panel->filterActive) {
+      const HierarchyId id = hierarchy_entry_id(ctx, entry);
+      if (dynbitset_test(&ctx->panel->filterResult, id)) {
+        continue;
+      }
     }
 
     // Draw entry.
@@ -571,6 +587,10 @@ ecs_system_define(DevHierarchyUpdatePanelSys) {
       trace_end();
     }
 
+    trace_begin("filter", TraceColor_Blue);
+    hierarchy_filter(&ctx);
+    trace_end();
+
     if (ctx.panel->lastMainSelection != mainSelection) {
       ctx.panel->lastMainSelection = mainSelection;
       hierarchy_focus_entity(&ctx, mainSelection);
@@ -608,7 +628,8 @@ dev_hierarchy_panel_open(EcsWorld* world, const EcsEntityId window, const DevPan
       DevHierarchyPanelComp,
       .panel        = ui_panel(.position = ui_vector(1.0f, 0.0f), .size = ui_vector(500, 350)),
       .scrollview   = ui_scrollview(),
-      .nameFilter   = dynstring_create(g_allocHeap, 32),
+      .filterName   = dynstring_create(g_allocHeap, 32),
+      .filterResult = dynbitset_create(g_allocHeap, 0),
       .entries      = dynarray_create_t(g_allocHeap, HierarchyEntry, 1024),
       .links        = dynarray_create_t(g_allocHeap, HierarchyLink, 1024),
       .linkRequests = dynarray_create_t(g_allocHeap, HierarchyLinkRequest, 512),
