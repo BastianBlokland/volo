@@ -3,6 +3,7 @@
 #include "core_diag.h"
 #include "core_dynarray.h"
 #include "core_dynbitset.h"
+#include "core_dynstring.h"
 #include "core_format.h"
 #include "core_stringtable.h"
 #include "dev_hierarchy.h"
@@ -17,6 +18,7 @@
 #include "scene_lifetime.h"
 #include "scene_name.h"
 #include "scene_set.h"
+#include "trace_tracer.h"
 #include "ui_canvas.h"
 #include "ui_layout.h"
 #include "ui_panel.h"
@@ -25,6 +27,13 @@
 #include "ui_style.h"
 #include "ui_table.h"
 #include "ui_widget.h"
+
+// clang-format off
+
+static const String g_tooltipFilter = string_static("Filter entries by name.\nSupports glob characters \a.b*\ar and \a.b?\ar (\a.b!\ar prefix to invert).");
+static const String g_tooltipFreeze = string_static("Freeze the data set (halts data collection).");
+
+// clang-format on
 
 typedef u32 HierarchyId;
 typedef u32 HierarchyLinkId;
@@ -61,16 +70,26 @@ ecs_comp_define(DevHierarchyPanelComp) {
   UiPanel      panel;
   u32          panelRowCount;
   UiScrollview scrollview;
-  DynArray     entries;      // HierarchyEntry[]
-  DynArray     links;        // HierarchyLink[]
-  DynArray     linkRequests; // HierarchyLinkRequest[]
-  DynBitSet    openEntries;
+  bool         freeze;
+
+  bool      filterActive;
+  DynString filterName;
+  DynBitSet filterResult;
+  u32       filterMatches;
+
+  DynArray  entries;      // HierarchyEntry[]
+  DynArray  links;        // HierarchyLink[]
+  DynArray  linkRequests; // HierarchyLinkRequest[]
+  DynBitSet openEntries;
 
   EcsEntityId lastMainSelection;
+  bool        focusOnSelection;
 };
 
 static void ecs_destruct_hierarchy_panel(void* data) {
   DevHierarchyPanelComp* comp = data;
+  dynstring_destroy(&comp->filterName);
+  dynbitset_destroy(&comp->filterResult);
   dynarray_destroy(&comp->entries);
   dynarray_destroy(&comp->links);
   dynarray_destroy(&comp->linkRequests);
@@ -107,18 +126,6 @@ typedef struct {
   DevHierarchyPanelComp*  panel;
   HierarchyId             focusEntry;
 } HierarchyContext;
-
-static bool hierarchy_open(HierarchyContext* ctx, const HierarchyEntry* e) {
-  return dynbitset_test(&ctx->panel->openEntries, e->stableId);
-}
-
-static void hierarchy_open_update(HierarchyContext* ctx, const HierarchyEntry* e, const bool open) {
-  if (open) {
-    dynbitset_set(&ctx->panel->openEntries, e->stableId);
-  } else {
-    dynbitset_clear(&ctx->panel->openEntries, e->stableId);
-  }
-}
 
 static HierarchyStableId hierarchy_stable_id_entity(const EcsEntityId e) {
   return ecs_entity_id_index(e);
@@ -237,6 +244,7 @@ static void hierarchy_query(HierarchyContext* ctx) {
   dynarray_clear(&ctx->panel->entries);
   dynarray_clear(&ctx->panel->links);
 
+  trace_begin("find", TraceColor_Red);
   EcsView* entryView = ecs_world_view_t(ctx->world, HierarchyEntryView);
   for (EcsIterator* itr = ecs_view_itr(entryView); ecs_view_walk(itr);) {
     const EcsEntityId entity = ecs_view_entity(itr);
@@ -269,9 +277,75 @@ static void hierarchy_query(HierarchyContext* ctx) {
       hierarchy_link_request(ctx, attachComp->target, entity, HierarchyLinkMask_Attachment);
     }
   }
+  trace_end();
 
+  trace_begin("sort", TraceColor_Red);
   dynarray_sort(&ctx->panel->entries, hierarchy_compare_entry);
+  trace_end();
+
+  trace_begin("link", TraceColor_Red);
   hierarchy_link_apply_requests(ctx);
+  trace_end();
+}
+
+static bool hierarchy_open(HierarchyContext* ctx, const HierarchyEntry* e) {
+  return dynbitset_test(&ctx->panel->openEntries, e->stableId);
+}
+
+static void hierarchy_open_update(HierarchyContext* ctx, const HierarchyEntry* e, const bool open) {
+  if (open) {
+    dynbitset_set(&ctx->panel->openEntries, e->stableId);
+  } else {
+    dynbitset_clear(&ctx->panel->openEntries, e->stableId);
+  }
+}
+
+static void hierarchy_open_to_root(HierarchyContext* ctx, const HierarchyId id) {
+  for (HierarchyId p = hierarchy_entry(ctx, id)->firstParent; !sentinel_check(p);) {
+    HierarchyEntry* entry = hierarchy_entry(ctx, p);
+    hierarchy_open_update(ctx, entry, true);
+    p = entry->firstParent;
+  }
+}
+
+static void hierarchy_filter(HierarchyContext* ctx) {
+  ctx->panel->filterActive = false;
+  dynbitset_clear_all(&ctx->panel->filterResult);
+
+  // Apply name filter.
+  if (!string_is_empty(ctx->panel->filterName)) {
+    const String rawFilter = dynstring_view(&ctx->panel->filterName);
+    const String filter    = fmt_write_scratch("*{}*", fmt_text(rawFilter));
+
+    for (HierarchyId id = 0; id != ctx->panel->entries.size; ++id) {
+      const HierarchyEntry* entry = hierarchy_entry(ctx, id);
+      const String          name  = stringtable_lookup(g_stringtable, entry->nameHash);
+      if (!string_match_glob(name, filter, StringMatchFlags_IgnoreCase)) {
+        dynbitset_set(&ctx->panel->filterResult, id);
+        ctx->panel->filterActive = true;
+      }
+    }
+  }
+
+  // Count the results.
+  ctx->panel->filterMatches = (u32)ctx->panel->entries.size;
+  if (ctx->panel->filterActive) {
+    ctx->panel->filterMatches -= (u32)dynbitset_count(&ctx->panel->filterResult);
+  }
+
+  // Make all results visible by including their parents.
+  if (ctx->panel->filterActive) {
+    for (HierarchyId id = 0; id != ctx->panel->entries.size; ++id) {
+      if (dynbitset_test(&ctx->panel->filterResult, id)) {
+        continue; // Filtered out.
+      }
+      for (HierarchyId p = hierarchy_entry(ctx, id)->firstParent; !sentinel_check(p);) {
+        HierarchyEntry* entry = hierarchy_entry(ctx, p);
+        dynbitset_clear(&ctx->panel->filterResult, p);
+        p = entry->firstParent;
+      }
+    }
+  }
 }
 
 static String hierarchy_name(const StringHash nameHash) {
@@ -280,6 +354,9 @@ static String hierarchy_name(const StringHash nameHash) {
 }
 
 static Unicode hierarchy_icon(HierarchyContext* ctx, const EcsEntityId e) {
+  if (!ecs_world_exists(ctx->world, e)) {
+    return UiShape_Delete;
+  }
   if (ecs_world_has_t(ctx->world, e, SceneScriptComp)) {
     return UiShape_Description;
   }
@@ -334,8 +411,9 @@ static void hierarchy_entry_draw(
     ui_layout_grow(canvas, UiAlign_MiddleRight, ui_vector(inset, 0), UiBase_Absolute, Ui_X);
   }
   if (entry->parentMask) {
-    bool isOpen = hierarchy_open(ctx, entry);
-    if (ui_fold(canvas, &isOpen)) {
+    const UiWidgetFlags foldFlags = ctx->panel->filterActive ? UiWidget_Disabled : UiWidget_Default;
+    bool                isOpen    = hierarchy_open(ctx, entry) || ctx->panel->filterActive;
+    if (ui_fold(canvas, &isOpen, .flags = foldFlags)) {
       hierarchy_open_update(ctx, entry, isOpen);
     }
   }
@@ -355,7 +433,7 @@ static void hierarchy_entry_draw(
   ui_style_pop(canvas);
 
   ui_layout_push(canvas);
-  ui_layout_inner(canvas, UiBase_Current, UiAlign_MiddleRight, ui_vector(25, 25), UiBase_Absolute);
+  ui_layout_inner(canvas, UiBase_Current, UiAlign_MiddleRight, ui_vector(25, 22), UiBase_Absolute);
   if (ui_button(
           canvas,
           .label      = ui_shape_scratch(UiShape_SelectAll),
@@ -384,11 +462,52 @@ static void hierarchy_entry_draw(
   ui_layout_pop(canvas);
 }
 
+static void hierarchy_options_draw(HierarchyContext* ctx, UiCanvasComp* canvas) {
+  ui_layout_push(canvas);
+
+  UiTable table = ui_table(.spacing = ui_vector(10, 5), .rowHeight = 20);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 55);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 150);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 70);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 50);
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Filter:"));
+  ui_table_next_column(canvas, &table);
+  if (ui_textbox(
+          canvas,
+          &ctx->panel->filterName,
+          .placeholder = string_lit("*"),
+          .tooltip     = g_tooltipFilter)) {
+    ctx->panel->focusOnSelection = true;
+  }
+  ui_table_next_column(canvas, &table);
+
+  ui_label(canvas, string_lit("Freeze:"));
+  ui_table_next_column(canvas, &table);
+  ui_toggle(canvas, &ctx->panel->freeze, .tooltip = g_tooltipFreeze);
+
+  ui_layout_pop(canvas);
+}
+
+static void hierarchy_bg_draw(UiCanvasComp* canvas) {
+  ui_style_push(canvas);
+  ui_style_color(canvas, ui_color_clear);
+  ui_style_outline(canvas, 4);
+  ui_canvas_draw_glyph(canvas, UiShape_Square, 10, UiFlags_None);
+  ui_style_pop(canvas);
+}
+
 static void hierarchy_panel_draw(HierarchyContext* ctx, UiCanvasComp* canvas) {
   const String title = fmt_write_scratch(
-      "{} Hierarchy Panel ({})", fmt_ui_shape(Tree), fmt_int(ctx->panel->entries.size));
+      "{} Hierarchy Panel ({})", fmt_ui_shape(Tree), fmt_int(ctx->panel->filterMatches));
   ui_panel_begin(
       canvas, &ctx->panel->panel, .title = title, .topBarColor = ui_color(100, 0, 0, 192));
+
+  hierarchy_options_draw(ctx, canvas);
+  ui_layout_grow(canvas, UiAlign_BottomCenter, ui_vector(0, -32), UiBase_Absolute, Ui_Y);
+  ui_layout_container_push(canvas, UiClip_None, UiLayer_Normal);
+  hierarchy_bg_draw(canvas);
 
   UiTable table = ui_table(.spacing = ui_vector(10, 5));
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
@@ -423,6 +542,14 @@ static void hierarchy_panel_draw(HierarchyContext* ctx, UiCanvasComp* canvas) {
       rootIdx    = hierarchy_next_root(ctx, rootIdx + 1);
     }
 
+    // Apply filter.
+    if (ctx->panel->filterActive) {
+      const HierarchyId id = hierarchy_entry_id(ctx, entry);
+      if (dynbitset_test(&ctx->panel->filterResult, id)) {
+        continue;
+      }
+    }
+
     // Draw entry.
     const f32 y = ui_table_height(&table, ctx->panel->panelRowCount++);
     if (ui_scrollview_cull(&ctx->panel->scrollview, y, table.rowHeight)) {
@@ -437,30 +564,25 @@ static void hierarchy_panel_draw(HierarchyContext* ctx, UiCanvasComp* canvas) {
     }
 
     // Push children.
-    const bool queueFull = childQueueSize == array_elems(childQueue);
-    if (entry->parentMask && !queueFull && hierarchy_open(ctx, entry)) {
-      childQueue[childQueueSize] = entry->linkHead;
-      childDepth[childQueueSize] = entryDepth + 1;
-      ++childQueueSize;
+    if (entry->parentMask && childQueueSize != array_elems(childQueue)) {
+      if (ctx->panel->filterActive || hierarchy_open(ctx, entry)) {
+        childQueue[childQueueSize] = entry->linkHead;
+        childDepth[childQueueSize] = entryDepth + 1;
+        ++childQueueSize;
+      }
     }
   }
   ui_canvas_id_block_next(canvas);
 
   ui_scrollview_end(canvas, &ctx->panel->scrollview);
+  ui_layout_container_pop(canvas);
   ui_panel_end(canvas, &ctx->panel->panel);
 }
 
 static void hierarchy_focus_entity(HierarchyContext* ctx, const EcsEntityId entity) {
   ctx->focusEntry = hierarchy_find_entity(ctx, entity);
-  if (sentinel_check(ctx->focusEntry)) {
-    return; // Entity not found.
-  }
-
-  // Open the chain of parents to the root.
-  for (HierarchyId p = hierarchy_entry(ctx, ctx->focusEntry)->firstParent; !sentinel_check(p);) {
-    HierarchyEntry* entry = hierarchy_entry(ctx, p);
-    hierarchy_open_update(ctx, entry, true);
-    p = entry->firstParent;
+  if (!sentinel_check(ctx->focusEntry)) {
+    hierarchy_open_to_root(ctx, ctx->focusEntry);
   }
 }
 
@@ -490,14 +612,25 @@ ecs_system_define(DevHierarchyUpdatePanelSys) {
     if (dev_panel_hidden(ecs_view_read_t(itr, DevPanelComp)) && !pinned) {
       continue;
     }
-    hierarchy_query(&ctx);
+    if (!ctx.panel->freeze) {
+      trace_begin("query", TraceColor_Blue);
+      hierarchy_query(&ctx);
+      trace_end();
+    }
 
-    if (ctx.panel->lastMainSelection != mainSelection) {
+    trace_begin("filter", TraceColor_Blue);
+    hierarchy_filter(&ctx);
+    trace_end();
+
+    if (ctx.panel->lastMainSelection != mainSelection || ctx.panel->focusOnSelection) {
       ctx.panel->lastMainSelection = mainSelection;
+      ctx.panel->focusOnSelection  = false;
       hierarchy_focus_entity(&ctx, mainSelection);
     }
 
+    trace_begin("draw", TraceColor_Blue);
     hierarchy_panel_draw(&ctx, canvas);
+    trace_end();
 
     if (ui_panel_closed(&ctx.panel->panel)) {
       ecs_world_entity_destroy(world, entity);
@@ -527,6 +660,8 @@ dev_hierarchy_panel_open(EcsWorld* world, const EcsEntityId window, const DevPan
       DevHierarchyPanelComp,
       .panel        = ui_panel(.position = ui_vector(1.0f, 0.0f), .size = ui_vector(500, 350)),
       .scrollview   = ui_scrollview(),
+      .filterName   = dynstring_create(g_allocHeap, 32),
+      .filterResult = dynbitset_create(g_allocHeap, 0),
       .entries      = dynarray_create_t(g_allocHeap, HierarchyEntry, 1024),
       .links        = dynarray_create_t(g_allocHeap, HierarchyLink, 1024),
       .linkRequests = dynarray_create_t(g_allocHeap, HierarchyLinkRequest, 512),
