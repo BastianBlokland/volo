@@ -26,6 +26,12 @@
 #include "ui_table.h"
 #include "ui_widget.h"
 
+// clang-format off
+
+static const String g_tooltipFreeze = string_static("Freeze the data set (halts data collection).");
+
+// clang-format on
+
 typedef u32 HierarchyId;
 typedef u32 HierarchyLinkId;
 typedef u32 HierarchyStableId;
@@ -61,10 +67,12 @@ ecs_comp_define(DevHierarchyPanelComp) {
   UiPanel      panel;
   u32          panelRowCount;
   UiScrollview scrollview;
-  DynArray     entries;      // HierarchyEntry[]
-  DynArray     links;        // HierarchyLink[]
-  DynArray     linkRequests; // HierarchyLinkRequest[]
-  DynBitSet    openEntries;
+  bool         freeze;
+
+  DynArray  entries;      // HierarchyEntry[]
+  DynArray  links;        // HierarchyLink[]
+  DynArray  linkRequests; // HierarchyLinkRequest[]
+  DynBitSet openEntries;
 
   EcsEntityId lastMainSelection;
 };
@@ -280,6 +288,9 @@ static String hierarchy_name(const StringHash nameHash) {
 }
 
 static Unicode hierarchy_icon(HierarchyContext* ctx, const EcsEntityId e) {
+  if (!ecs_world_exists(ctx->world, e)) {
+    return UiShape_Delete;
+  }
   if (ecs_world_has_t(ctx->world, e, SceneScriptComp)) {
     return UiShape_Description;
   }
@@ -355,7 +366,7 @@ static void hierarchy_entry_draw(
   ui_style_pop(canvas);
 
   ui_layout_push(canvas);
-  ui_layout_inner(canvas, UiBase_Current, UiAlign_MiddleRight, ui_vector(25, 25), UiBase_Absolute);
+  ui_layout_inner(canvas, UiBase_Current, UiAlign_MiddleRight, ui_vector(25, 22), UiBase_Absolute);
   if (ui_button(
           canvas,
           .label      = ui_shape_scratch(UiShape_SelectAll),
@@ -384,11 +395,38 @@ static void hierarchy_entry_draw(
   ui_layout_pop(canvas);
 }
 
+static void hierarchy_options_draw(HierarchyContext* ctx, UiCanvasComp* canvas) {
+  ui_layout_push(canvas);
+
+  UiTable table = ui_table(.spacing = ui_vector(10, 5), .rowHeight = 20);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 70);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 50);
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Freeze:"));
+  ui_table_next_column(canvas, &table);
+  ui_toggle(canvas, &ctx->panel->freeze, .tooltip = g_tooltipFreeze);
+
+  ui_layout_pop(canvas);
+}
+
+static void hierarchy_bg_draw(UiCanvasComp* canvas) {
+  ui_style_push(canvas);
+  ui_style_color(canvas, ui_color_clear);
+  ui_style_outline(canvas, 4);
+  ui_canvas_draw_glyph(canvas, UiShape_Square, 10, UiFlags_None);
+  ui_style_pop(canvas);
+}
+
 static void hierarchy_panel_draw(HierarchyContext* ctx, UiCanvasComp* canvas) {
-  const String title = fmt_write_scratch(
-      "{} Hierarchy Panel ({})", fmt_ui_shape(Tree), fmt_int(ctx->panel->entries.size));
+  const String title = fmt_write_scratch("{} Hierarchy Panel", fmt_ui_shape(Tree));
   ui_panel_begin(
       canvas, &ctx->panel->panel, .title = title, .topBarColor = ui_color(100, 0, 0, 192));
+
+  hierarchy_options_draw(ctx, canvas);
+  ui_layout_grow(canvas, UiAlign_BottomCenter, ui_vector(0, -32), UiBase_Absolute, Ui_Y);
+  ui_layout_container_push(canvas, UiClip_None, UiLayer_Normal);
+  hierarchy_bg_draw(canvas);
 
   UiTable table = ui_table(.spacing = ui_vector(10, 5));
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
@@ -447,6 +485,7 @@ static void hierarchy_panel_draw(HierarchyContext* ctx, UiCanvasComp* canvas) {
   ui_canvas_id_block_next(canvas);
 
   ui_scrollview_end(canvas, &ctx->panel->scrollview);
+  ui_layout_container_pop(canvas);
   ui_panel_end(canvas, &ctx->panel->panel);
 }
 
@@ -490,7 +529,9 @@ ecs_system_define(DevHierarchyUpdatePanelSys) {
     if (dev_panel_hidden(ecs_view_read_t(itr, DevPanelComp)) && !pinned) {
       continue;
     }
-    hierarchy_query(&ctx);
+    if (!ctx.panel->freeze) {
+      hierarchy_query(&ctx);
+    }
 
     if (ctx.panel->lastMainSelection != mainSelection) {
       ctx.panel->lastMainSelection = mainSelection;
