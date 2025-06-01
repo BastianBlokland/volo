@@ -117,6 +117,10 @@ static HierarchyEntry* hierarchy_find(HierarchyContext* ctx, const EcsEntityId e
   return dynarray_search_binary(&ctx->panel->entries, hierarchy_compare_entry, &tgt);
 }
 
+static HierarchyLink* hierarchy_link(HierarchyContext* ctx, const HierarchyLinkId id) {
+  return dynarray_at_t(&ctx->panel->links, id, HierarchyLink);
+}
+
 static bool hierarchy_link_add(
     HierarchyContext*       ctx,
     const EcsEntityId       parent,
@@ -157,14 +161,6 @@ static bool hierarchy_link_add(
   };
 
   return true;
-}
-
-static EcsEntityId hierarchy_link_entity(HierarchyContext* ctx, const HierarchyLinkId id) {
-  return dynarray_at_t(&ctx->panel->links, id, HierarchyLink)->entity;
-}
-
-static HierarchyLinkId hierarchy_link_next(HierarchyContext* ctx, const HierarchyLinkId id) {
-  return dynarray_at_t(&ctx->panel->links, id, HierarchyLink)->next;
 }
 
 static u32 hierarchy_next_root(HierarchyContext* ctx, u32 entryIdx) {
@@ -343,21 +339,23 @@ static void hierarchy_panel_draw(HierarchyContext* ctx, UiCanvasComp* canvas) {
   ui_canvas_id_block_next(canvas); // Start the list of entities on its own id block.
 
   u32             rootIdx = hierarchy_next_root(ctx, 0);
-  HierarchyLinkId childItrQueue[64];
-  u32             childItrQueueSize = 0;
+  HierarchyLinkId childQueue[64];
+  u32             childQueueSize = 0;
 
   ctx->panel->panelRowCount = 0;
-  while (childItrQueueSize || rootIdx != ctx->panel->entries.size) {
-    // Pop next entry from the queue.
+  while (rootIdx != ctx->panel->entries.size || childQueueSize) {
+    // Pick entry.
     const HierarchyEntry* entry;
     u32                   entryDepth;
-    if (childItrQueueSize) {
-      HierarchyLinkId* linkItr = &childItrQueue[childItrQueueSize - 1];
-      entry                    = hierarchy_find(ctx, hierarchy_link_entity(ctx, *linkItr));
-      entryDepth               = childItrQueueSize;
-      *linkItr                 = hierarchy_link_next(ctx, *linkItr);
-      if (sentinel_check(*linkItr)) {
-        --childItrQueueSize;
+    if (childQueueSize) {
+      HierarchyLink* link = hierarchy_link(ctx, childQueue[childQueueSize - 1]);
+      entry               = hierarchy_find(ctx, link->entity);
+      entryDepth          = childQueueSize;
+
+      if (sentinel_check(link->next)) {
+        --childQueueSize;
+      } else {
+        childQueue[childQueueSize - 1] = link->next;
       }
     } else {
       entry      = dynarray_at_t(&ctx->panel->entries, rootIdx, HierarchyEntry);
@@ -378,10 +376,9 @@ static void hierarchy_panel_draw(HierarchyContext* ctx, UiCanvasComp* canvas) {
     }
 
     // Push children.
-    if (hierarchy_open(ctx, entry->entity)) {
-      if (!sentinel_check(entry->linkHead) && childItrQueueSize != array_elems(childItrQueue)) {
-        childItrQueue[childItrQueueSize++] = entry->linkHead;
-      }
+    const bool queueFull = childQueueSize == array_elems(childQueue);
+    if (entry->parentMask && !queueFull && hierarchy_open(ctx, entry->entity)) {
+      childQueue[childQueueSize++] = entry->linkHead;
     }
   }
   ui_canvas_id_block_next(canvas);
