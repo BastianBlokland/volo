@@ -5,6 +5,7 @@
 #include "ecs_view.h"
 #include "ecs_world.h"
 #include "scene_attachment.h"
+#include "scene_creator.h"
 #include "scene_health.h"
 #include "scene_lifetime.h"
 #include "scene_prefab.h"
@@ -84,6 +85,7 @@ static EcsEntityId status_effect_create(
   } else {
     scene_attach_to_entity(world, result, owner);
   }
+  ecs_world_add_t(world, result, SceneCreatorComp, .creator = owner);
   ecs_world_add_t(world, result, SceneVisibilityComp); // Seeing status-effects requires visibility.
   return result;
 }

@@ -15,6 +15,7 @@ ecs_comp_extern(SceneBoundsComp);
 ecs_comp_extern(SceneCameraComp);
 ecs_comp_extern(SceneCollisionComp);
 ecs_comp_extern(SceneCollisionEnvComp);
+ecs_comp_extern(SceneCreatorComp);
 ecs_comp_extern(SceneDeadComp);
 ecs_comp_extern(SceneDebugComp);
 ecs_comp_extern(SceneDebugEnvComp);

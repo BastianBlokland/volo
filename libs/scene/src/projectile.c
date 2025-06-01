@@ -6,6 +6,7 @@
 #include "ecs_world.h"
 #include "geo_sphere.h"
 #include "scene_collision.h"
+#include "scene_creator.h"
 #include "scene_faction.h"
 #include "scene_health.h"
 #include "scene_lifetime.h"
@@ -89,11 +90,12 @@ static SceneLayer projectile_query_layer_mask(const SceneFactionComp* faction) {
 
 static void projectile_impact_spawn(
     EcsWorld*                  world,
+    const EcsEntityId          projectileEntity,
     const SceneProjectileComp* projectile,
     const GeoVector            pos,
     const GeoVector            norm) {
 
-  scene_prefab_spawn(
+  const EcsEntityId effectEntity = scene_prefab_spawn(
       world,
       &(ScenePrefabSpec){
           .flags    = ScenePrefabFlags_Volatile,
@@ -102,6 +104,7 @@ static void projectile_impact_spawn(
           .position = pos,
           .rotation = geo_quat_look(norm, geo_up),
       });
+  ecs_world_add_t(world, effectEntity, SceneCreatorComp, .creator = projectileEntity);
 }
 
 static void projectile_hit(
@@ -119,7 +122,7 @@ static void projectile_hit(
   ecs_world_add_t(world, projEntity, SceneLifetimeDurationComp, .duration = proj->destroyDelay);
 
   if (proj->impactPrefab) {
-    projectile_impact_spawn(world, proj, hitPos, hitNormal);
+    projectile_impact_spawn(world, projEntity, proj, hitPos, hitNormal);
   }
 
   EcsEntityId hits[scene_query_max_hits + 1];

@@ -15,6 +15,7 @@
 #include "scene_attachment.h"
 #include "scene_attack.h"
 #include "scene_collision.h"
+#include "scene_creator.h"
 #include "scene_faction.h"
 #include "scene_health.h"
 #include "scene_lifetime.h"
@@ -341,6 +342,8 @@ static EffectResult effect_update_proj(
   // Seeing attacks requires visibility.
   ecs_world_add_t(ctx->world, projectileEntity, SceneVisibilityComp);
 
+  ecs_world_add_t(ctx->world, projectileEntity, SceneCreatorComp, .creator = ctx->instigator);
+
   return EffectResult_Done;
 }
 
@@ -441,8 +444,8 @@ static EffectResult effect_update_dmg(
 
     // Spawn impact.
     if (firstExecution && def->impactPrefab) {
-      const GeoVector impactPoint = aim_estimate_impact_point(orgPos, hitItr);
-      scene_prefab_spawn(
+      const GeoVector   impactPoint  = aim_estimate_impact_point(orgPos, hitItr);
+      const EcsEntityId effectEntity = scene_prefab_spawn(
           ctx->world,
           &(ScenePrefabSpec){
               .flags    = ScenePrefabFlags_Volatile,
@@ -451,6 +454,7 @@ static EffectResult effect_update_dmg(
               .position = geo_vector_lerp(impactPoint, orgPos, 0.5f),
               .rotation = geo_quat_ident,
           });
+      ecs_world_add_t(ctx->world, effectEntity, SceneCreatorComp, .creator = ctx->instigator);
     }
   }
   if (!def->continuous || interrupt) {
@@ -534,6 +538,7 @@ static EffectResult effect_update_vfx(
   }
   ecs_world_add_t(ctx->world, e, SceneLifetimeDurationComp, .duration = def->duration);
   ecs_world_add_t(ctx->world, e, SceneVisibilityComp); // Seeing attacks requires visibility.
+  ecs_world_add_t(ctx->world, e, SceneCreatorComp, .creator = ctx->instigator);
   ecs_world_add_t(
       ctx->world,
       e,
@@ -577,6 +582,7 @@ static EffectResult effect_update_sound(
   ecs_world_add_t(
       ctx->world, e, SceneSoundComp, .asset = def->asset.entity, .gain = gain, .pitch = pitch);
   ecs_world_add_t(ctx->world, e, SceneVisibilityComp); // Hearing attacks requires visibility.
+  ecs_world_add_t(ctx->world, e, SceneCreatorComp, .creator = ctx->instigator);
 
   return EffectResult_Done;
 }

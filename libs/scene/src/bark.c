@@ -7,6 +7,7 @@
 #include "ecs_world.h"
 #include "scene_attachment.h"
 #include "scene_bark.h"
+#include "scene_creator.h"
 #include "scene_lifetime.h"
 #include "scene_prefab.h"
 #include "scene_time.h"
@@ -114,6 +115,7 @@ static void bark_spawn(EcsWorld* world, SceneBarkEvent* barkEvent) {
           .rotation = geo_quat_ident});
   ecs_world_add_t(world, barkEntity, SceneLifetimeOwnerComp, .owners[0] = barkEvent->instigator);
   ecs_world_add_t(world, barkEntity, SceneVisibilityComp); // Hearing barks requires visibility.
+  ecs_world_add_t(world, barkEntity, SceneCreatorComp, .creator = barkEvent->instigator);
   scene_attach_to_entity(world, barkEntity, barkEvent->instigator);
 }
 

@@ -9,6 +9,7 @@
 #include "ecs_view.h"
 #include "ecs_world.h"
 #include "scene_bark.h"
+#include "scene_creator.h"
 #include "scene_health.h"
 #include "scene_lifetime.h"
 #include "scene_prefab.h"
@@ -264,7 +265,7 @@ ecs_system_define(SceneHealthUpdateSys) {
         health_anim_play_death(anim);
       }
       if (trans && health->deathEffectPrefab) {
-        scene_prefab_spawn(
+        const EcsEntityId effectEntity = scene_prefab_spawn(
             world,
             &(ScenePrefabSpec){
                 .flags    = ScenePrefabFlags_Volatile,
@@ -272,6 +273,7 @@ ecs_system_define(SceneHealthUpdateSys) {
                 .faction  = SceneFaction_None,
                 .position = trans->position,
                 .rotation = geo_quat_ident});
+        ecs_world_add_t(world, effectEntity, SceneCreatorComp, .creator = entity);
       }
       if (bark) {
         scene_bark_request(bark, SceneBarkType_Death);

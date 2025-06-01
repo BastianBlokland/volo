@@ -15,6 +15,7 @@
 #include "scene_action.h"
 #include "scene_attack.h"
 #include "scene_collision.h"
+#include "scene_creator.h"
 #include "scene_debug.h"
 #include "scene_health.h"
 #include "scene_lifetime.h"
@@ -945,6 +946,7 @@ static ScriptVal eval_prefab_spawn(EvalContext* ctx, ScriptBinderCall* call) {
   const StringHash prefabId = script_arg_str(call, 0);
 
   const EcsEntityId result = ecs_world_entity_create(ctx->world);
+  ecs_world_add_t(ctx->world, result, SceneCreatorComp, .creator = ctx->instigator);
 
   SceneAction* act = scene_action_push(ctx->actions, SceneActionType_Spawn);
 
@@ -1196,6 +1198,7 @@ static ScriptVal eval_renderable_spawn(EvalContext* ctx, ScriptBinderCall* call)
   const bool        requireVisibility = script_arg_opt_bool(call, 6, false);
 
   const EcsEntityId result = ecs_world_entity_create(ctx->world);
+  ecs_world_add_t(ctx->world, result, SceneCreatorComp, .creator = ctx->instigator);
   ecs_world_add_empty_t(ctx->world, result, SceneLevelInstanceComp);
   ecs_world_add_t(ctx->world, result, SceneTransformComp, .position = pos, .rotation = rot);
   if (scale < 0.999f || scale > 1.001f) {
@@ -1267,6 +1270,7 @@ static ScriptVal eval_vfx_system_spawn(EvalContext* ctx, ScriptBinderCall* call)
   const bool        requireVisibility = script_arg_opt_bool(call, 5, false);
 
   const EcsEntityId result = ecs_world_entity_create(ctx->world);
+  ecs_world_add_t(ctx->world, result, SceneCreatorComp, .creator = ctx->instigator);
   ecs_world_add_t(ctx->world, result, SceneTransformComp, .position = pos, .rotation = rot);
   ecs_world_add_t(
       ctx->world,
@@ -1290,6 +1294,7 @@ static ScriptVal eval_vfx_decal_spawn(EvalContext* ctx, ScriptBinderCall* call) 
   const bool        requireVisibility = script_arg_opt_bool(call, 4, false);
 
   const EcsEntityId result = ecs_world_entity_create(ctx->world);
+  ecs_world_add_t(ctx->world, result, SceneCreatorComp, .creator = ctx->instigator);
   ecs_world_add_t(ctx->world, result, SceneTransformComp, .position = pos, .rotation = rot);
   ecs_world_add_t(ctx->world, result, SceneVfxDecalComp, .asset = asset, .alpha = alpha);
   if (requireVisibility) {
@@ -1344,6 +1349,7 @@ static ScriptVal eval_collision_box_spawn(EvalContext* ctx, ScriptBinderCall* ca
   const bool       navBlocker = script_arg_opt_bool(call, 4, false);
 
   const EcsEntityId result = ecs_world_entity_create(ctx->world);
+  ecs_world_add_t(ctx->world, result, SceneCreatorComp, .creator = ctx->instigator);
   ecs_world_add_t(ctx->world, result, SceneTransformComp, .position = pos, .rotation = rot);
   ecs_world_add_empty_t(ctx->world, result, SceneLevelInstanceComp);
 
@@ -1373,6 +1379,7 @@ static ScriptVal eval_collision_sphere_spawn(EvalContext* ctx, ScriptBinderCall*
 
   const GeoQuat     rot    = geo_quat_ident;
   const EcsEntityId result = ecs_world_entity_create(ctx->world);
+  ecs_world_add_t(ctx->world, result, SceneCreatorComp, .creator = ctx->instigator);
   ecs_world_add_t(ctx->world, result, SceneTransformComp, .position = pos, .rotation = rot);
   ecs_world_add_empty_t(ctx->world, result, SceneLevelInstanceComp);
 
@@ -1396,6 +1403,7 @@ static ScriptVal eval_light_point_spawn(EvalContext* ctx, ScriptBinderCall* call
   const f32       radius   = (f32)script_arg_num_range(call, 2, 1e-3, 1e+3);
 
   const EcsEntityId result = ecs_world_entity_create(ctx->world);
+  ecs_world_add_t(ctx->world, result, SceneCreatorComp, .creator = ctx->instigator);
   ecs_world_add_t(ctx->world, result, SceneTransformComp, .position = pos, .rotation = rot);
   ecs_world_add_t(ctx->world, result, SceneLightPointComp, .radiance = radiance, .radius = radius);
   ecs_world_add_empty_t(ctx->world, result, SceneLevelInstanceComp);
@@ -1410,6 +1418,7 @@ static ScriptVal eval_light_spot_spawn(EvalContext* ctx, ScriptBinderCall* call)
   const f32       length   = (f32)script_arg_num_range(call, 4, 0.0, 1e+3);
 
   const EcsEntityId result = ecs_world_entity_create(ctx->world);
+  ecs_world_add_t(ctx->world, result, SceneCreatorComp, .creator = ctx->instigator);
   ecs_world_add_t(ctx->world, result, SceneTransformComp, .position = pos, .rotation = rot);
   ecs_world_add_t(
       ctx->world,
@@ -1430,6 +1439,7 @@ static ScriptVal eval_light_line_spawn(EvalContext* ctx, ScriptBinderCall* call)
   const f32       length   = (f32)script_arg_num_range(call, 4, 0.0, 1e+3);
 
   const EcsEntityId result = ecs_world_entity_create(ctx->world);
+  ecs_world_add_t(ctx->world, result, SceneCreatorComp, .creator = ctx->instigator);
   ecs_world_add_t(ctx->world, result, SceneTransformComp, .position = pos, .rotation = rot);
   ecs_world_add_t(
       ctx->world,
@@ -1525,6 +1535,7 @@ static ScriptVal eval_sound_spawn(EvalContext* ctx, ScriptBinderCall* call) {
   const bool requireVisibility = is3d && script_arg_opt_bool(call, 5, false);
 
   const EcsEntityId result = ecs_world_entity_create(ctx->world);
+  ecs_world_add_t(ctx->world, result, SceneCreatorComp, .creator = ctx->instigator);
   ecs_world_add_empty_t(ctx->world, result, SceneLevelInstanceComp);
   if (is3d) {
     ecs_world_add_t(
