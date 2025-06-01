@@ -16,7 +16,6 @@
 #include "scene_creator.h"
 #include "scene_lifetime.h"
 #include "scene_name.h"
-#include "scene_projectile.h"
 #include "scene_set.h"
 #include "ui_canvas.h"
 #include "ui_layout.h"
@@ -36,7 +35,6 @@ typedef enum {
   HierarchyLinkMask_Creator    = 1 << 0,
   HierarchyLinkMask_Lifetime   = 1 << 1,
   HierarchyLinkMask_Attachment = 1 << 2,
-  HierarchyLinkMask_Instigator = 1 << 3,
 } HierarchyLinkMask;
 
 typedef struct {
@@ -269,10 +267,6 @@ static void hierarchy_query(HierarchyContext* ctx) {
     const SceneAttachmentComp* attachComp = ecs_view_read_t(itr, SceneAttachmentComp);
     if (attachComp && attachComp->target) {
       hierarchy_link_request(ctx, attachComp->target, entity, HierarchyLinkMask_Attachment);
-    }
-    const SceneProjectileComp* projComp = ecs_view_read_t(itr, SceneProjectileComp);
-    if (projComp && projComp->instigator) {
-      hierarchy_link_request(ctx, projComp->instigator, entity, HierarchyLinkMask_Instigator);
     }
   }
 
