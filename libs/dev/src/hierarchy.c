@@ -12,6 +12,7 @@
 #include "input_manager.h"
 #include "scene.h"
 #include "scene_attachment.h"
+#include "scene_creator.h"
 #include "scene_lifetime.h"
 #include "scene_name.h"
 #include "scene_projectile.h"
@@ -30,9 +31,10 @@ typedef u32 HierarchyLinkId;
 
 typedef enum {
   HierarchyLinkMask_None       = 0,
-  HierarchyLinkMask_Lifetime   = 1 << 0,
-  HierarchyLinkMask_Attachment = 1 << 1,
-  HierarchyLinkMask_Instigator = 1 << 2,
+  HierarchyLinkMask_Creator    = 1 << 0,
+  HierarchyLinkMask_Lifetime   = 1 << 1,
+  HierarchyLinkMask_Attachment = 1 << 2,
+  HierarchyLinkMask_Instigator = 1 << 3,
 } HierarchyLinkMask;
 
 typedef struct {
@@ -76,6 +78,8 @@ static void ecs_destruct_hierarchy_panel(void* data) {
 ecs_view_define(HierarchyEntryView) {
   ecs_access_with(SceneLevelInstanceComp);
   ecs_access_read(SceneNameComp);
+  ecs_access_maybe_read(SceneAttachmentComp);
+  ecs_access_maybe_read(SceneCreatorComp);
   ecs_access_maybe_read(SceneLifetimeOwnerComp);
   ecs_access_maybe_read(SceneAttachmentComp);
   ecs_access_maybe_read(SceneProjectileComp);
@@ -234,6 +238,10 @@ static void hierarchy_query(HierarchyContext* ctx) {
         .linkHead   = sentinel_u32,
     };
 
+    const SceneCreatorComp* creatorComp = ecs_view_read_t(itr, SceneCreatorComp);
+    if (creatorComp && creatorComp->creator) {
+      hierarchy_link_request(ctx, creatorComp->creator, entity, HierarchyLinkMask_Creator);
+    }
     const SceneLifetimeOwnerComp* ownerComp = ecs_view_read_t(itr, SceneLifetimeOwnerComp);
     if (ownerComp) {
       for (u32 ownerIdx = 0; ownerIdx != scene_lifetime_owners_max; ++ownerIdx) {
