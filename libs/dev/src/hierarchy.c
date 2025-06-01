@@ -396,15 +396,47 @@ static Unicode hierarchy_icon(HierarchyContext* ctx, const EcsEntityId e) {
   return '?';
 }
 
+static void hierarchy_entry_select(HierarchyContext* ctx, const HierarchyEntry* entry) {
+  const InputModifier modifiers = input_modifiers(ctx->input);
+  if (!(modifiers & (InputModifier_Control | InputModifier_Shift))) {
+    scene_set_clear(ctx->setEnv, g_sceneSetSelected);
+  }
+  if (modifiers & InputModifier_Shift) {
+    scene_set_remove(ctx->setEnv, g_sceneSetSelected, entry->entity);
+  } else {
+    scene_set_add(ctx->setEnv, g_sceneSetSelected, entry->entity, SceneSetFlags_None);
+  }
+}
+
 static void hierarchy_entry_draw(
     HierarchyContext*     ctx,
     UiCanvasComp*         canvas,
     UiTable*              table,
     const HierarchyEntry* entry,
     const u32             depth) {
-  const bool    selected = scene_set_contains(ctx->setEnv, g_sceneSetSelected, entry->entity);
-  const UiColor color    = selected ? ui_color(48, 48, 178, 192) : ui_color(48, 48, 48, 192);
-  ui_table_draw_row_bg(canvas, table, color);
+  const bool selected = scene_set_contains(ctx->setEnv, g_sceneSetSelected, entry->entity);
+  UiColor    bgColor  = selected ? ui_color(32, 32, 255, 192) : ui_color(48, 48, 48, 192);
+
+  ui_style_push(canvas);
+  ui_style_mode(canvas, UiMode_Invisible);
+  const UiId bgId = ui_canvas_draw_glyph(canvas, UiShape_Square, 0, UiFlags_Interactable);
+  ui_style_pop(canvas);
+
+  switch (ui_canvas_elem_status(canvas, bgId)) {
+  case UiStatus_Hovered:
+    bgColor = ui_color_mul(bgColor, 1.25f);
+    break;
+  case UiStatus_Pressed:
+    bgColor = ui_color_mul(bgColor, 1.5f);
+    break;
+  case UiStatus_Activated:
+    hierarchy_entry_select(ctx, entry);
+    ui_canvas_sound(canvas, UiSoundType_Click);
+    break;
+  default:
+    break;
+  }
+  ui_table_draw_row_bg(canvas, table, bgColor);
 
   if (depth) {
     const f32 inset = -25.0f * depth;
@@ -418,6 +450,10 @@ static void hierarchy_entry_draw(
     }
   }
 
+  ui_style_push(canvas);
+  if (selected) {
+    ui_style_outline(canvas, 2);
+  }
   ui_layout_grow(canvas, UiAlign_MiddleRight, ui_vector(-17.0f, 0), UiBase_Absolute, Ui_X);
   ui_layout_push(canvas);
   ui_layout_inner(canvas, UiBase_Current, UiAlign_MiddleLeft, ui_vector(15, 15), UiBase_Absolute);
@@ -425,11 +461,7 @@ static void hierarchy_entry_draw(
   ui_layout_pop(canvas);
 
   ui_layout_grow(canvas, UiAlign_MiddleRight, ui_vector(-20.0f, 0), UiBase_Absolute, Ui_X);
-  ui_style_push(canvas);
-  if (selected) {
-    ui_style_outline(canvas, 2);
-  }
-  ui_label(canvas, hierarchy_name(entry->nameHash), .selectable = true);
+  ui_label(canvas, hierarchy_name(entry->nameHash));
   ui_style_pop(canvas);
 
   ui_layout_push(canvas);
@@ -440,15 +472,7 @@ static void hierarchy_entry_draw(
           .fontSize   = 18,
           .frameColor = ui_color(0, 16, 255, 192),
           .tooltip    = string_static("Select the entity."))) {
-    const InputModifier modifiers = input_modifiers(ctx->input);
-    if (!(modifiers & (InputModifier_Control | InputModifier_Shift))) {
-      scene_set_clear(ctx->setEnv, g_sceneSetSelected);
-    }
-    if (modifiers & InputModifier_Shift) {
-      scene_set_remove(ctx->setEnv, g_sceneSetSelected, entry->entity);
-    } else {
-      scene_set_add(ctx->setEnv, g_sceneSetSelected, entry->entity, SceneSetFlags_None);
-    }
+    hierarchy_entry_select(ctx, entry);
   }
   ui_layout_next(canvas, Ui_Left, 10);
   if (ui_button(
