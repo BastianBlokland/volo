@@ -82,6 +82,7 @@ ecs_comp_define(DevHierarchyPanelComp) {
   DynBitSet openEntries;
 
   EcsEntityId lastMainSelection;
+  bool        focusOnSelection;
 };
 
 static void ecs_destruct_hierarchy_panel(void* data) {
@@ -466,8 +467,13 @@ static void hierarchy_options_draw(HierarchyContext* ctx, UiCanvasComp* canvas) 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Filter:"));
   ui_table_next_column(canvas, &table);
-  ui_textbox(
-      canvas, &ctx->panel->filterName, .placeholder = string_lit("*"), .tooltip = g_tooltipFilter);
+  if (ui_textbox(
+          canvas,
+          &ctx->panel->filterName,
+          .placeholder = string_lit("*"),
+          .tooltip     = g_tooltipFilter)) {
+    ctx->panel->focusOnSelection = true;
+  }
   ui_table_next_column(canvas, &table);
 
   ui_label(canvas, string_lit("Freeze:"));
@@ -607,8 +613,9 @@ ecs_system_define(DevHierarchyUpdatePanelSys) {
     hierarchy_filter(&ctx);
     trace_end();
 
-    if (ctx.panel->lastMainSelection != mainSelection) {
+    if (ctx.panel->lastMainSelection != mainSelection || ctx.panel->focusOnSelection) {
       ctx.panel->lastMainSelection = mainSelection;
+      ctx.panel->focusOnSelection  = false;
       hierarchy_focus_entity(&ctx, mainSelection);
     }
 
