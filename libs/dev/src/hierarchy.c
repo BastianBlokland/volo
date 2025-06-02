@@ -7,6 +7,7 @@
 #include "core_format.h"
 #include "core_stringtable.h"
 #include "dev_hierarchy.h"
+#include "dev_inspector.h"
 #include "dev_panel.h"
 #include "ecs_def.h"
 #include "ecs_entity.h"
@@ -110,6 +111,7 @@ ecs_view_define(HierarchyEntryView) {
 ecs_view_define(PanelUpdateGlobalView) {
   ecs_access_write(SceneSetEnvComp);
   ecs_access_read(InputManagerComp);
+  ecs_access_maybe_write(DevInspectorSettingsComp);
 }
 
 ecs_view_define(PanelUpdateView) {
@@ -121,11 +123,12 @@ ecs_view_define(PanelUpdateView) {
 }
 
 typedef struct {
-  EcsWorld*               world;
-  SceneSetEnvComp*        setEnv;
-  const InputManagerComp* input;
-  DevHierarchyPanelComp*  panel;
-  HierarchyId             focusEntry;
+  EcsWorld*                 world;
+  SceneSetEnvComp*          setEnv;
+  const InputManagerComp*   input;
+  DevHierarchyPanelComp*    panel;
+  DevInspectorSettingsComp* inspector;
+  HierarchyId               focusEntry;
 } HierarchyContext;
 
 static HierarchyStableId hierarchy_stable_id_entity(const EcsEntityId e) {
@@ -438,6 +441,8 @@ static void hierarchy_entry_draw(
   const bool selected = scene_set_contains(ctx->setEnv, g_sceneSetSelected, entry->entity);
   UiColor    bgColor  = selected ? ui_color(32, 32, 255, 192) : ui_color(48, 48, 48, 192);
 
+  const bool isPicking = ctx->inspector && dev_inspector_picker_active(ctx->inspector);
+
   ui_style_push(canvas);
   ui_style_mode(canvas, UiMode_Invisible);
   const UiId     bgId     = ui_canvas_draw_glyph(canvas, UiShape_Square, 0, UiFlags_Interactable);
@@ -445,7 +450,13 @@ static void hierarchy_entry_draw(
   ui_style_pop(canvas);
 
   if (bgStatus == UiStatus_Hovered) {
-    ui_tooltip(canvas, bgId, hierarchy_entry_tooltip_scratch(ctx, entry));
+    if (isPicking) {
+      bgColor = ui_color(16, 128, 16, 192);
+      dev_inspector_picker_update(ctx->inspector, entry->entity);
+      ui_tooltip(canvas, bgId, string_lit("Pick this entity."));
+    } else {
+      ui_tooltip(canvas, bgId, hierarchy_entry_tooltip_scratch(ctx, entry));
+    }
   } else {
     ui_canvas_id_skip(canvas, 2);
   }
@@ -458,7 +469,11 @@ static void hierarchy_entry_draw(
     bgColor = ui_color_mul(bgColor, 1.5f);
     break;
   case UiStatus_Activated:
-    hierarchy_entry_select(ctx, entry);
+    if (isPicking) {
+      dev_inspector_picker_close(ctx->inspector);
+    } else {
+      hierarchy_entry_select(ctx, entry);
+    }
     ui_canvas_sound(canvas, UiSoundType_Click);
     break;
   default:
@@ -496,6 +511,7 @@ static void hierarchy_entry_draw(
   ui_layout_inner(canvas, UiBase_Current, UiAlign_MiddleRight, ui_vector(25, 22), UiBase_Absolute);
   if (ui_button(
           canvas,
+          .flags      = isPicking ? UiWidget_Disabled : UiWidget_Default,
           .label      = ui_shape_scratch(UiShape_SelectAll),
           .fontSize   = 18,
           .frameColor = ui_color(0, 16, 255, 192),
@@ -505,6 +521,7 @@ static void hierarchy_entry_draw(
   ui_layout_next(canvas, Ui_Left, 10);
   if (ui_button(
           canvas,
+          .flags      = isPicking ? UiWidget_Disabled : UiWidget_Default,
           .label      = ui_shape_scratch(UiShape_Delete),
           .fontSize   = 18,
           .frameColor = ui_color(255, 16, 0, 192),
@@ -648,6 +665,7 @@ ecs_system_define(DevHierarchyUpdatePanelSys) {
       .world      = world,
       .setEnv     = ecs_view_write_t(globalItr, SceneSetEnvComp),
       .input      = ecs_view_read_t(globalItr, InputManagerComp),
+      .inspector  = ecs_view_write_t(globalItr, DevInspectorSettingsComp),
       .focusEntry = sentinel_u32,
   };
   const EcsEntityId mainSelection = scene_set_main(ctx.setEnv, g_sceneSetSelected);
