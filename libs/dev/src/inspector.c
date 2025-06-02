@@ -1999,6 +1999,10 @@ static void inspector_tool_picker_update(
     return;
   }
 
+  if (input_blockers(input) & InputBlocker_HoveringUi) {
+    return;
+  }
+
   const SceneCameraComp*    camera      = ecs_view_read_t(cameraItr, SceneCameraComp);
   const SceneTransformComp* cameraTrans = ecs_view_read_t(cameraItr, SceneTransformComp);
 
