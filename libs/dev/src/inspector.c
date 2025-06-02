@@ -202,6 +202,7 @@ ecs_comp_define(DevInspectorSettingsComp) {
   bool                drawVisInGame;
   DevInspectorTool    toolPickerPrevTool;
   EcsEntityId         toolPickerResult;
+  bool                toolPickerClose;
   GeoQuat             toolRotation; // Cached rotation to support world-space rotation tools.
 };
 
@@ -817,6 +818,7 @@ static bool inspector_panel_prop_edit_level_entity(InspectorContext* ctx, Script
     if (ui_button(ctx->canvas, .label = fmt_write_scratch("Pick ({})", fmt_text(entityName)))) {
       ctx->settings->toolPickerPrevTool = ctx->settings->tool;
       ctx->settings->tool               = DevInspectorTool_Picker;
+      ctx->settings->toolPickerClose    = false;
       dev_stats_notify(ctx->stats, string_lit("Tool"), g_toolNames[DevInspectorTool_Picker]);
     }
   }
@@ -1990,6 +1992,7 @@ static void inspector_tool_picker_update(
     EcsIterator*                 entityRefItr) {
 
   bool shouldClose = false;
+  shouldClose |= set->toolPickerClose;
   shouldClose |= cameraItr == null;
   shouldClose |= input_triggered_lit(input, "DevInspectorPickerClose");
 
@@ -2829,3 +2832,13 @@ dev_inspector_panel_open(EcsWorld* world, const EcsEntityId window, const DevPan
 
   return panelEntity;
 }
+
+bool dev_inspector_picker_active(const DevInspectorSettingsComp* set) {
+  return set->tool == DevInspectorTool_Picker;
+}
+
+void dev_inspector_picker_update(DevInspectorSettingsComp* set, const EcsEntityId entity) {
+  set->toolPickerResult = entity;
+}
+
+void dev_inspector_picker_close(DevInspectorSettingsComp* set) { set->toolPickerClose = true; }
