@@ -9,6 +9,7 @@
 #include "dev_hierarchy.h"
 #include "dev_inspector.h"
 #include "dev_panel.h"
+#include "dev_stats.h"
 #include "ecs_def.h"
 #include "ecs_entity.h"
 #include "ecs_view.h"
@@ -112,6 +113,7 @@ ecs_view_define(PanelUpdateGlobalView) {
   ecs_access_write(SceneSetEnvComp);
   ecs_access_read(InputManagerComp);
   ecs_access_maybe_write(DevInspectorSettingsComp);
+  ecs_access_maybe_write(DevStatsGlobalComp);
 }
 
 ecs_view_define(PanelUpdateView) {
@@ -128,6 +130,7 @@ typedef struct {
   const InputManagerComp*   input;
   DevHierarchyPanelComp*    panel;
   DevInspectorSettingsComp* inspector;
+  DevStatsGlobalComp*       stats;
   HierarchyId               focusEntry;
 } HierarchyContext;
 
@@ -438,10 +441,10 @@ static void hierarchy_entry_draw(
     UiTable*              table,
     const HierarchyEntry* entry,
     const u32             depth) {
-  const bool selected = scene_set_contains(ctx->setEnv, g_sceneSetSelected, entry->entity);
-  UiColor    bgColor  = selected ? ui_color(32, 32, 255, 192) : ui_color(48, 48, 48, 192);
-
-  const bool isPicking = ctx->inspector && dev_inspector_picker_active(ctx->inspector);
+  const bool   selected  = scene_set_contains(ctx->setEnv, g_sceneSetSelected, entry->entity);
+  const bool   isPicking = ctx->inspector && dev_inspector_picker_active(ctx->inspector);
+  const String name      = hierarchy_name(entry->nameHash);
+  UiColor      bgColor   = selected ? ui_color(32, 32, 255, 192) : ui_color(48, 48, 48, 192);
 
   ui_style_push(canvas);
   ui_style_mode(canvas, UiMode_Invisible);
@@ -453,6 +456,9 @@ static void hierarchy_entry_draw(
     if (isPicking) {
       bgColor = ui_color(16, 128, 16, 192);
       dev_inspector_picker_update(ctx->inspector, entry->entity);
+      if (ctx->stats) {
+        dev_stats_notify(ctx->stats, string_lit("Picker entity"), name);
+      }
       ui_tooltip(canvas, bgId, string_lit("Pick this entity."));
     } else {
       ui_tooltip(canvas, bgId, hierarchy_entry_tooltip_scratch(ctx, entry));
@@ -504,7 +510,7 @@ static void hierarchy_entry_draw(
   ui_layout_pop(canvas);
 
   ui_layout_grow(canvas, UiAlign_MiddleRight, ui_vector(-20.0f, 0), UiBase_Absolute, Ui_X);
-  ui_label(canvas, hierarchy_name(entry->nameHash));
+  ui_label(canvas, name);
   ui_style_pop(canvas);
 
   ui_layout_push(canvas);
@@ -665,6 +671,7 @@ ecs_system_define(DevHierarchyUpdatePanelSys) {
       .world      = world,
       .setEnv     = ecs_view_write_t(globalItr, SceneSetEnvComp),
       .input      = ecs_view_read_t(globalItr, InputManagerComp),
+      .stats      = ecs_view_write_t(globalItr, DevStatsGlobalComp),
       .inspector  = ecs_view_write_t(globalItr, DevInspectorSettingsComp),
       .focusEntry = sentinel_u32,
   };
