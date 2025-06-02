@@ -202,6 +202,7 @@ ecs_comp_define(DevInspectorSettingsComp) {
   bool                drawVisInGame;
   DevInspectorTool    toolPickerPrevTool;
   EcsEntityId         toolPickerResult;
+  bool                toolPickerClose;
   GeoQuat             toolRotation; // Cached rotation to support world-space rotation tools.
 };
 
@@ -806,8 +807,7 @@ static bool inspector_panel_prop_edit_level_entity(InspectorContext* ctx, Script
   bool changed = false;
   if (ctx->settings->tool == DevInspectorTool_Picker) {
     if (ui_button(ctx->canvas, .label = string_lit("Cancel picking"))) {
-      ctx->settings->tool = ctx->settings->toolPickerPrevTool;
-      dev_stats_notify(ctx->stats, string_lit("Tool"), g_toolNames[ctx->settings->tool]);
+      ctx->settings->toolPickerClose = true;
     }
     if (entity != ctx->settings->toolPickerResult) {
       *val    = script_entity_or_null(ctx->settings->toolPickerResult);
@@ -817,6 +817,7 @@ static bool inspector_panel_prop_edit_level_entity(InspectorContext* ctx, Script
     if (ui_button(ctx->canvas, .label = fmt_write_scratch("Pick ({})", fmt_text(entityName)))) {
       ctx->settings->toolPickerPrevTool = ctx->settings->tool;
       ctx->settings->tool               = DevInspectorTool_Picker;
+      ctx->settings->toolPickerClose    = false;
       dev_stats_notify(ctx->stats, string_lit("Tool"), g_toolNames[DevInspectorTool_Picker]);
     }
   }
@@ -1705,7 +1706,8 @@ ecs_system_define(DevInspectorUpdatePanelSys) {
   EcsView*     subjectView = ecs_world_view_t(world, SubjectView);
   EcsIterator* subjectItr  = ecs_view_maybe_at(subjectView, scene_set_main(setEnv, selectedSet));
 
-  EcsView* panelView = ecs_world_view_t(world, PanelUpdateView);
+  bool     anyInspectorDrawn = false;
+  EcsView* panelView         = ecs_world_view_t(world, PanelUpdateView);
   for (EcsIterator* itr = ecs_view_itr(panelView); ecs_view_walk(itr);) {
     const EcsEntityId      entity    = ecs_view_entity(itr);
     DevInspectorPanelComp* panelComp = ecs_view_write_t(itr, DevInspectorPanelComp);
@@ -1741,6 +1743,12 @@ ecs_system_define(DevInspectorUpdatePanelSys) {
     if (ui_canvas_status(canvas) >= UiStatus_Pressed) {
       ui_canvas_to_front(canvas);
     }
+    anyInspectorDrawn = true;
+  }
+
+  // Close picker if no inspector is visible anymore.
+  if (settings->tool == DevInspectorTool_Picker && !anyInspectorDrawn) {
+    settings->toolPickerClose = true;
   }
 }
 
@@ -1990,12 +1998,17 @@ static void inspector_tool_picker_update(
     EcsIterator*                 entityRefItr) {
 
   bool shouldClose = false;
+  shouldClose |= set->toolPickerClose;
   shouldClose |= cameraItr == null;
   shouldClose |= input_triggered_lit(input, "DevInspectorPickerClose");
 
   if (shouldClose) {
     set->tool = set->toolPickerPrevTool;
     dev_stats_notify(stats, string_lit("Tool"), g_toolNames[set->tool]);
+    return;
+  }
+
+  if (input_blockers(input) & InputBlocker_HoveringUi) {
     return;
   }
 
@@ -2825,3 +2838,13 @@ dev_inspector_panel_open(EcsWorld* world, const EcsEntityId window, const DevPan
 
   return panelEntity;
 }
+
+bool dev_inspector_picker_active(const DevInspectorSettingsComp* set) {
+  return set->tool == DevInspectorTool_Picker;
+}
+
+void dev_inspector_picker_update(DevInspectorSettingsComp* set, const EcsEntityId entity) {
+  set->toolPickerResult = entity;
+}
+
+void dev_inspector_picker_close(DevInspectorSettingsComp* set) { set->toolPickerClose = true; }
