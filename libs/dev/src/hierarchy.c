@@ -403,15 +403,51 @@ static Unicode hierarchy_icon(HierarchyContext* ctx, const EcsEntityId e) {
   return '?';
 }
 
+static void hierarchy_entry_select_add(HierarchyContext* ctx, const HierarchyEntry* entry) {
+  if (input_modifiers(ctx->input) & InputModifier_Shift) {
+    scene_set_remove(ctx->setEnv, g_sceneSetSelected, entry->entity);
+  } else {
+    scene_set_add(ctx->setEnv, g_sceneSetSelected, entry->entity, SceneSetFlags_None);
+  }
+}
+
 static void hierarchy_entry_select(HierarchyContext* ctx, const HierarchyEntry* entry) {
+  if (!(input_modifiers(ctx->input) & (InputModifier_Control | InputModifier_Shift))) {
+    scene_set_clear(ctx->setEnv, g_sceneSetSelected);
+  }
+  hierarchy_entry_select_add(ctx, entry);
+}
+
+static void hierarchy_entry_select_recursive(HierarchyContext* ctx, const HierarchyEntry* entry) {
   const InputModifier modifiers = input_modifiers(ctx->input);
   if (!(modifiers & (InputModifier_Control | InputModifier_Shift))) {
     scene_set_clear(ctx->setEnv, g_sceneSetSelected);
   }
-  if (modifiers & InputModifier_Shift) {
-    scene_set_remove(ctx->setEnv, g_sceneSetSelected, entry->entity);
-  } else {
-    scene_set_add(ctx->setEnv, g_sceneSetSelected, entry->entity, SceneSetFlags_None);
+
+  hierarchy_entry_select_add(ctx, entry);
+
+  HierarchyLinkId childQueue[16];
+  u32             childQueueSize = 0;
+
+  if (entry->parentMask) {
+    childQueue[childQueueSize++] = entry->linkHead;
+  }
+
+  while (childQueueSize) {
+    HierarchyLink*        link  = hierarchy_link(ctx, childQueue[childQueueSize - 1]);
+    const HierarchyEntry* child = hierarchy_entry(ctx, link->target);
+
+    hierarchy_entry_select_add(ctx, child);
+
+    if (sentinel_check(link->next)) {
+      --childQueueSize;
+    } else {
+      childQueue[childQueueSize - 1] = link->next;
+    }
+
+    if (child->parentMask && childQueueSize != array_elems(childQueue)) {
+      childQueue[childQueueSize++] = child->linkHead;
+    }
   }
 }
 
