@@ -314,6 +314,35 @@ static void hierarchy_open_set(HierarchyContext* ctx, const HierarchyEntry* e, c
 }
 
 static void
+hierarchy_open_set_recursive(HierarchyContext* ctx, const HierarchyEntry* e, const bool open) {
+  hierarchy_open_set(ctx, e, open);
+
+  HierarchyLinkId childQueue[16];
+  u32             childQueueSize = 0;
+
+  if (e->parentMask) {
+    childQueue[childQueueSize++] = e->linkHead;
+  }
+
+  while (childQueueSize) {
+    HierarchyLink*        link  = hierarchy_link(ctx, childQueue[childQueueSize - 1]);
+    const HierarchyEntry* child = hierarchy_entry(ctx, link->target);
+
+    hierarchy_open_set(ctx, child, open);
+
+    if (sentinel_check(link->next)) {
+      --childQueueSize;
+    } else {
+      childQueue[childQueueSize - 1] = link->next;
+    }
+
+    if (child->parentMask && childQueueSize != array_elems(childQueue)) {
+      childQueue[childQueueSize++] = child->linkHead;
+    }
+  }
+}
+
+static void
 hierarchy_open_set_to_root(HierarchyContext* ctx, const HierarchyEntry* e, const bool open) {
   for (HierarchyId p = e->firstParent; !sentinel_check(p);) {
     HierarchyEntry* entry = hierarchy_entry(ctx, p);
@@ -570,7 +599,11 @@ static void hierarchy_entry_draw(
     const UiWidgetFlags foldFlags = ctx->panel->filterActive ? UiWidget_Disabled : UiWidget_Default;
     bool                isOpen    = hierarchy_open(ctx, entry) || ctx->panel->filterActive;
     if (ui_fold(canvas, &isOpen, .flags = foldFlags)) {
-      hierarchy_open_set(ctx, entry, isOpen);
+      if (input_modifiers(ctx->input) & InputModifier_Control) {
+        hierarchy_open_set_recursive(ctx, entry, isOpen);
+      } else {
+        hierarchy_open_set(ctx, entry, isOpen);
+      }
     }
   }
 
