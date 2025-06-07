@@ -198,11 +198,11 @@ static i8 hierarchy_compare_link_entity_request(const void* a, const void* b) {
 }
 
 static HierarchyEntry* hierarchy_entry(HierarchyContext* ctx, const HierarchyId id) {
-  return dynarray_at_t(&ctx->panel->entries, id, HierarchyEntry);
+  return &dynarray_begin_t(&ctx->panel->entries, HierarchyEntry)[id];
 }
 
 static HierarchyLink* hierarchy_link(HierarchyContext* ctx, const HierarchyLinkId id) {
-  return dynarray_at_t(&ctx->panel->links, id, HierarchyLink);
+  return &dynarray_begin_t(&ctx->panel->links, HierarchyLink)[id];
 }
 
 static HierarchyId hierarchy_entry_id(HierarchyContext* ctx, const HierarchyEntry* entry) {
@@ -250,7 +250,7 @@ static bool hierarchy_link_add(
   // Walk the existing links.
   HierarchyLinkId* linkTail = &parentEntry->linkHead;
   while (!sentinel_check(*linkTail)) {
-    HierarchyLink* link = dynarray_at_t(&ctx->panel->links, *linkTail, HierarchyLink);
+    HierarchyLink* link = hierarchy_link(ctx, *linkTail);
     if (link->target == child) {
       link->mask |= type;
       return true;
@@ -331,7 +331,7 @@ static void hierarchy_link_entity_apply_requests(HierarchyContext* ctx) {
 
 static u32 hierarchy_next_root(HierarchyContext* ctx, u32 entryIdx) {
   for (; entryIdx != ctx->panel->entries.size; ++entryIdx) {
-    HierarchyEntry* entry = dynarray_at_t(&ctx->panel->entries, entryIdx, HierarchyEntry);
+    HierarchyEntry* entry = hierarchy_entry(ctx, entryIdx);
     if (!entry->childMask) {
       break;
     }
@@ -853,7 +853,7 @@ static void hierarchy_panel_draw(HierarchyContext* ctx, UiCanvasComp* canvas) {
         childQueue[childQueueSize - 1] = link->next;
       }
     } else {
-      entry      = dynarray_at_t(&ctx->panel->entries, rootIdx, HierarchyEntry);
+      entry      = hierarchy_entry(ctx, rootIdx);
       entryDepth = 0;
       rootIdx    = hierarchy_next_root(ctx, rootIdx + 1);
     }
