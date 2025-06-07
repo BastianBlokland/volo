@@ -179,7 +179,22 @@ static i8 hierarchy_compare_entry(const void* a, const void* b) {
 static i8 hierarchy_compare_link_entity_request(const void* a, const void* b) {
   const HierarchyLinkEntityRequest* reqA = a;
   const HierarchyLinkEntityRequest* reqB = b;
-  return reqA->child < reqB->child ? -1 : reqA->child > reqB->child ? 1 : 0;
+  if (LIKELY(reqA->child != reqB->child)) {
+    return reqA->child < reqB->child ? -1 : 1;
+  }
+  if (reqA->parentKind != reqB->parentKind) {
+    return reqA->parentKind < reqB->parentKind ? -1 : 1;
+  }
+  switch (reqA->parentKind) {
+  case HierarchyKind_Entity:
+    return reqA->parent.entity < reqB->parent.entity   ? -1
+           : reqA->parent.entity > reqB->parent.entity ? 1
+                                                       : 0;
+  case HierarchyKind_Set:
+    return reqA->parent.set < reqB->parent.set ? -1 : reqA->parent.set > reqB->parent.set ? 1 : 0;
+    break;
+  }
+  UNREACHABLE
 }
 
 static HierarchyEntry* hierarchy_entry(HierarchyContext* ctx, const HierarchyId id) {
