@@ -675,27 +675,12 @@ void scene_set_clear(SceneSetEnvComp* env, const StringHash set) {
   };
 }
 
-u32 scene_set_global_count(const SceneSetEnvComp* env) {
-  u32 count = 0;
-  for (u32 setIdx = 0; setIdx != scene_set_max; ++setIdx) {
-    if (!env->storage->ids[setIdx]) {
-      continue; // Slot empty.
-    }
-    ++count;
-  }
-  return count;
+u32 scene_set_slot_count(const SceneSetEnvComp* env) {
+  (void)env;
+  return scene_set_max;
 }
 
-StringHash scene_set_global_get(const SceneSetEnvComp* env, const u32 index) {
-  diag_assert(index < scene_set_max);
-  u32 itrIndex = 0;
-  for (u32 setIdx = 0; setIdx != scene_set_max; ++setIdx) {
-    if (!env->storage->ids[setIdx]) {
-      continue; // Slot empty.
-    }
-    if (itrIndex++ == index) {
-      return env->storage->ids[setIdx];
-    }
-  }
-  diag_crash_msg("Set index '{}' is out of bounds", fmt_int(index));
+StringHash scene_set_slot_get(const SceneSetEnvComp* env, const u32 slotIndex) {
+  diag_assert(slotIndex < scene_set_max);
+  return env->storage->ids[slotIndex];
 }

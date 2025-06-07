@@ -157,8 +157,8 @@ static HierarchyStableId hierarchy_stable_id_entity(const EcsEntityId e) {
   return (ecs_entity_id_index(e) << hierarchy_kind_bits) | HierarchyKind_Entity;
 }
 
-static HierarchyStableId hierarchy_stable_id_set(const u32 setIndex) {
-  return (setIndex << hierarchy_kind_bits) | HierarchyKind_Set;
+static HierarchyStableId hierarchy_stable_id_set(const u32 setSlotIndex) {
+  return (setSlotIndex << hierarchy_kind_bits) | HierarchyKind_Set;
 }
 
 static i8 hierarchy_compare_entry(const void* a, const void* b) {
@@ -321,17 +321,20 @@ static void hierarchy_query(HierarchyContext* ctx) {
   trace_end();
 
   trace_begin("find_sets", TraceColor_Red);
-  const u32 setCount = scene_set_global_count(ctx->setEnv);
-  for (u32 setIdx = 0; setIdx != setCount; ++setIdx) {
-    const StringHash set = scene_set_global_get(ctx->setEnv, setIdx);
-    if (set == g_sceneSetSelected) {
+  const u32 slotSetCount = scene_set_slot_count(ctx->setEnv);
+  for (u32 setSlotIdx = 0; setSlotIdx != slotSetCount; ++setSlotIdx) {
+    const StringHash set = scene_set_slot_get(ctx->setEnv, setSlotIdx);
+    if (!set) {
+      continue; // Empty slot.
+    }
+    if (!set || set == g_sceneSetSelected) {
       continue; // Filter out selected set as it doesn't add much value
     }
     *dynarray_push_t(&ctx->panel->entries, HierarchyEntry) = (HierarchyEntry){
         .nameHash    = set,
         .linkHead    = sentinel_u32,
         .firstParent = sentinel_u32,
-        .stableId    = hierarchy_stable_id_set(setIdx),
+        .stableId    = hierarchy_stable_id_set(setSlotIdx),
     };
   }
   trace_end();

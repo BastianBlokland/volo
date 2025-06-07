@@ -50,5 +50,5 @@ void scene_set_clear(SceneSetEnvComp*, StringHash set);
 /**
  * Iterate all sets.
  */
-u32        scene_set_global_count(const SceneSetEnvComp*);
-StringHash scene_set_global_get(const SceneSetEnvComp*, u32 index);
+u32        scene_set_slot_count(const SceneSetEnvComp*);
+StringHash scene_set_slot_get(const SceneSetEnvComp*, u32 slotIndex);
