@@ -422,6 +422,7 @@ static void hierarchy_entry_select(HierarchyContext* ctx, const HierarchyEntry* 
     scene_set_clear(ctx->setEnv, g_sceneSetSelected);
   }
   hierarchy_entry_select_add(ctx, entry);
+  hierarchy_open_update(ctx, entry, true);
 }
 
 static void hierarchy_entry_select_recursive(HierarchyContext* ctx, const HierarchyEntry* entry) {
@@ -431,6 +432,7 @@ static void hierarchy_entry_select_recursive(HierarchyContext* ctx, const Hierar
   }
 
   hierarchy_entry_select_add(ctx, entry);
+  hierarchy_open_update(ctx, entry, true);
 
   HierarchyLinkId childQueue[16];
   u32             childQueueSize = 0;
@@ -444,6 +446,7 @@ static void hierarchy_entry_select_recursive(HierarchyContext* ctx, const Hierar
     const HierarchyEntry* child = hierarchy_entry(ctx, link->target);
 
     hierarchy_entry_select_add(ctx, child);
+    hierarchy_open_update(ctx, child, true);
 
     if (sentinel_check(link->next)) {
       --childQueueSize;
