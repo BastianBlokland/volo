@@ -52,3 +52,4 @@ void scene_set_clear(SceneSetEnvComp*, StringHash set);
  */
 u32        scene_set_slot_count(const SceneSetEnvComp*);
 StringHash scene_set_slot_get(const SceneSetEnvComp*, u32 slotIndex);
+u32        scene_set_slot_find(const SceneSetEnvComp*, StringHash set);

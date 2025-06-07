@@ -684,3 +684,7 @@ StringHash scene_set_slot_get(const SceneSetEnvComp* env, const u32 slotIndex) {
   diag_assert(slotIndex < scene_set_max);
   return env->storage->ids[slotIndex];
 }
+
+u32 scene_set_slot_find(const SceneSetEnvComp* env, const StringHash set) {
+  return set_storage_index(env->storage, set);
+}
