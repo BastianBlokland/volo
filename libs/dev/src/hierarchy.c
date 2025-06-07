@@ -676,7 +676,7 @@ static void hierarchy_entry_draw(
   case UiStatus_Activated:
     if (isPicking) {
       dev_inspector_picker_close(ctx->inspector);
-    } else if (hierarchy_doubleclick_update(ctx, entry)) {
+    } else if (hierarchy_doubleclick_update(ctx, entry) || !entry->entity) {
       hierarchy_entry_select_rec(ctx, entry);
     } else {
       hierarchy_entry_select(ctx, entry);
