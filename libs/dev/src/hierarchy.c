@@ -54,9 +54,10 @@ typedef u32 HierarchyStableId;
 
 typedef enum {
   HierarchyLinkMask_None       = 0,
-  HierarchyLinkMask_Creator    = 1 << 0,
-  HierarchyLinkMask_Lifetime   = 1 << 1,
-  HierarchyLinkMask_Attachment = 1 << 2,
+  HierarchyLinkMask_SetMember  = 1 << 0,
+  HierarchyLinkMask_Creator    = 1 << 1,
+  HierarchyLinkMask_Lifetime   = 1 << 2,
+  HierarchyLinkMask_Attachment = 1 << 3,
 } HierarchyLinkMask;
 
 typedef struct {
@@ -76,7 +77,12 @@ typedef struct {
 
 typedef struct {
   HierarchyLinkMask type;
-  EcsEntityId       parent, child;
+  HierarchyKind     parentKind;
+  union {
+    EcsEntityId entity;
+    StringHash  set;
+  } parent;
+  EcsEntityId child;
 } HierarchyLinkEntityRequest;
 
 ecs_comp_define(DevHierarchyPanelComp) {
@@ -118,8 +124,7 @@ ecs_view_define(HierarchyEntryView) {
   ecs_access_maybe_read(SceneAttachmentComp);
   ecs_access_maybe_read(SceneCreatorComp);
   ecs_access_maybe_read(SceneLifetimeOwnerComp);
-  ecs_access_maybe_read(SceneAttachmentComp);
-  ecs_access_maybe_read(SceneProjectileComp);
+  ecs_access_maybe_read(SceneSetMemberComp);
 }
 
 ecs_view_define(PanelUpdateGlobalView) {
@@ -252,16 +257,42 @@ static void hierarchy_link_entity_request(
     const HierarchyLinkMask type) {
   *dynarray_push_t(&ctx->panel->linkEntityRequests, HierarchyLinkEntityRequest) =
       (HierarchyLinkEntityRequest){
-          .type   = type,
-          .parent = parent,
-          .child  = child,
+          .type          = type,
+          .parentKind    = HierarchyKind_Entity,
+          .parent.entity = parent,
+          .child         = child,
+      };
+}
+
+static void hierarchy_link_entity_to_set_request(
+    HierarchyContext*       ctx,
+    const StringHash        set,
+    const EcsEntityId       child,
+    const HierarchyLinkMask type) {
+  *dynarray_push_t(&ctx->panel->linkEntityRequests, HierarchyLinkEntityRequest) =
+      (HierarchyLinkEntityRequest){
+          .type       = type,
+          .parentKind = HierarchyKind_Set,
+          .parent.set = set,
+          .child      = child,
       };
 }
 
 static void hierarchy_link_entity_apply_requests(HierarchyContext* ctx) {
   dynarray_sort(&ctx->panel->linkEntityRequests, hierarchy_compare_link_entity_request);
   dynarray_for_t(&ctx->panel->linkEntityRequests, HierarchyLinkEntityRequest, req) {
-    const HierarchyId parentId = hierarchy_find_entity(ctx, req->parent);
+    HierarchyId parentId = sentinel_u32;
+    switch (req->parentKind) {
+    case HierarchyKind_Entity:
+      parentId = hierarchy_find_entity(ctx, req->parent.entity);
+      break;
+    case HierarchyKind_Set: {
+      const u32 slotIndex = scene_set_slot_find(ctx->setEnv, req->parent.set);
+      if (!sentinel_check(slotIndex)) {
+        parentId = hierarchy_find(ctx, hierarchy_stable_id_set(slotIndex));
+      }
+    }
+    }
     if (sentinel_check(parentId)) {
       continue; // Parent does not exist anymore.
     }
@@ -316,6 +347,15 @@ static void hierarchy_query(HierarchyContext* ctx) {
     const SceneAttachmentComp* attachComp = ecs_view_read_t(itr, SceneAttachmentComp);
     if (attachComp && attachComp->target) {
       hierarchy_link_entity_request(ctx, attachComp->target, entity, HierarchyLinkMask_Attachment);
+    }
+    const SceneSetMemberComp* setMember = ecs_view_read_t(itr, SceneSetMemberComp);
+    if (setMember) {
+      StringHash sets[scene_set_member_max_sets];
+      const u32  setCount = scene_set_member_all(setMember, sets);
+      for (u32 setIdx = 0; setIdx != setCount; ++setIdx) {
+        const StringHash set = sets[setIdx];
+        hierarchy_link_entity_to_set_request(ctx, set, entity, HierarchyLinkMask_SetMember);
+      }
     }
   }
   trace_end();
