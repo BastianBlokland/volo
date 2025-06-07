@@ -1,5 +1,6 @@
 #include "core_alloc.h"
 #include "core_array.h"
+#include "core_bits.h"
 #include "core_diag.h"
 #include "core_dynarray.h"
 #include "core_dynbitset.h"
@@ -38,6 +39,13 @@ static const String g_tooltipFilter = string_static("Filter entries by name.\nSu
 static const String g_tooltipFreeze = string_static("Freeze the data set (halts data collection).");
 
 // clang-format on
+
+typedef enum {
+  HierarchyKind_Entity,
+} HierarchyKind;
+
+#define hierarchy_kind_bits 1
+#define hierarchy_kind_mask bit_range_32(0, hierarchy_kind_bits)
 
 typedef u32 HierarchyId;
 typedef u32 HierarchyLinkId;
@@ -140,8 +148,12 @@ typedef struct {
   HierarchyId               focusEntry;
 } HierarchyContext;
 
+static HierarchyKind hierarchy_stable_id_kind(const HierarchyStableId id) {
+  return (HierarchyKind)(id & hierarchy_kind_mask);
+}
+
 static HierarchyStableId hierarchy_stable_id_entity(const EcsEntityId e) {
-  return ecs_entity_id_index(e);
+  return (ecs_entity_id_index(e) << hierarchy_kind_bits) | HierarchyKind_Entity;
 }
 
 static i8 hierarchy_compare_entry(const void* a, const void* b) {
@@ -395,11 +407,7 @@ static String hierarchy_name(const StringHash nameHash) {
   return string_is_empty(name) ? string_lit("<unnamed>") : name;
 }
 
-static Unicode hierarchy_icon(HierarchyContext* ctx, const HierarchyEntry* entry) {
-  const EcsEntityId e = entry->entity;
-  if (!ecs_entity_valid(e)) {
-    return '?';
-  }
+static Unicode hierarchy_icon_entity(HierarchyContext* ctx, const EcsEntityId e) {
   if (!ecs_world_exists(ctx->world, e)) {
     return UiShape_Delete;
   }
@@ -440,6 +448,14 @@ static Unicode hierarchy_icon(HierarchyContext* ctx, const HierarchyEntry* entry
     return UiShape_Dashboard;
   }
   return '?';
+}
+
+static Unicode hierarchy_icon(HierarchyContext* ctx, const HierarchyEntry* entry) {
+  switch (hierarchy_stable_id_kind(entry->stableId)) {
+  case HierarchyKind_Entity:
+    return hierarchy_icon_entity(ctx, entry->entity);
+  }
+  diag_crash();
 }
 
 static void hierarchy_entry_select_add(HierarchyContext* ctx, const HierarchyEntry* entry) {
