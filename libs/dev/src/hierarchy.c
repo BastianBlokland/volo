@@ -21,6 +21,7 @@
 #include "scene_lifetime.h"
 #include "scene_name.h"
 #include "scene_set.h"
+#include "scene_time.h"
 #include "trace_tracer.h"
 #include "ui_canvas.h"
 #include "ui_layout.h"
@@ -74,6 +75,7 @@ ecs_comp_define(DevHierarchyPanelComp) {
   u32          panelRowCount;
   UiScrollview scrollview;
   bool         freeze;
+  bool         focusOnSelection;
 
   bool      filterActive;
   DynString filterName;
@@ -86,7 +88,9 @@ ecs_comp_define(DevHierarchyPanelComp) {
   DynBitSet openEntries;
 
   EcsEntityId lastMainSelection;
-  bool        focusOnSelection;
+
+  EcsEntityId  lastClickEntity;
+  TimeDuration lastClickTime;
 };
 
 static void ecs_destruct_hierarchy_panel(void* data) {
@@ -112,6 +116,7 @@ ecs_view_define(HierarchyEntryView) {
 ecs_view_define(PanelUpdateGlobalView) {
   ecs_access_write(SceneSetEnvComp);
   ecs_access_read(InputManagerComp);
+  ecs_access_read(SceneTimeComp);
   ecs_access_maybe_write(DevInspectorSettingsComp);
   ecs_access_maybe_write(DevStatsGlobalComp);
 }
@@ -128,6 +133,7 @@ typedef struct {
   EcsWorld*                 world;
   SceneSetEnvComp*          setEnv;
   const InputManagerComp*   input;
+  const SceneTimeComp*      time;
   DevHierarchyPanelComp*    panel;
   DevInspectorSettingsComp* inspector;
   DevStatsGlobalComp*       stats;
@@ -451,6 +457,19 @@ static void hierarchy_entry_select_recursive(HierarchyContext* ctx, const Hierar
   }
 }
 
+static bool hierarchy_doubleclick_update(HierarchyContext* ctx, const EcsEntityId entity) {
+  const TimeDuration timeElapsed = ctx->time->realTime - ctx->panel->lastClickTime;
+
+  bool result = true;
+  result &= ctx->panel->lastClickEntity == entity;
+  result &= timeElapsed < input_doubleclick_interval(ctx->input);
+
+  ctx->panel->lastClickEntity = entity;
+  ctx->panel->lastClickTime   = ctx->time->realTime;
+
+  return result;
+}
+
 static String hierarchy_entry_tooltip_scratch(HierarchyContext* ctx, const HierarchyEntry* entry) {
   if (!entry->entity) {
     return string_empty;
@@ -513,6 +532,8 @@ static void hierarchy_entry_draw(
   case UiStatus_Activated:
     if (isPicking) {
       dev_inspector_picker_close(ctx->inspector);
+    } else if (hierarchy_doubleclick_update(ctx, entry->entity)) {
+      hierarchy_entry_select_recursive(ctx, entry);
     } else {
       hierarchy_entry_select(ctx, entry);
     }
@@ -707,6 +728,7 @@ ecs_system_define(DevHierarchyUpdatePanelSys) {
       .world      = world,
       .setEnv     = ecs_view_write_t(globalItr, SceneSetEnvComp),
       .input      = ecs_view_read_t(globalItr, InputManagerComp),
+      .time       = ecs_view_read_t(globalItr, SceneTimeComp),
       .stats      = ecs_view_write_t(globalItr, DevStatsGlobalComp),
       .inspector  = ecs_view_write_t(globalItr, DevInspectorSettingsComp),
       .focusEntry = sentinel_u32,
