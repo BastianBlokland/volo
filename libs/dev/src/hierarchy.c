@@ -37,6 +37,7 @@
 
 static const String g_tooltipFilter = string_static("Filter entries by name.\nSupports glob characters \a.b*\ar and \a.b?\ar (\a.b!\ar prefix to invert).");
 static const String g_tooltipFreeze = string_static("Freeze the data set (halts data collection).");
+static const String g_tooltipSets   = string_static("Include sets in the hierarchy.");
 
 // clang-format on
 
@@ -90,6 +91,7 @@ ecs_comp_define(DevHierarchyPanelComp) {
   u32          panelRowCount;
   UiScrollview scrollview;
   bool         freeze;
+  bool         includeSets;
   bool         focusOnSelection;
 
   bool      filterActive;
@@ -349,7 +351,7 @@ static void hierarchy_query(HierarchyContext* ctx) {
       hierarchy_link_entity_request(ctx, attachComp->target, entity, HierarchyLinkMask_Attachment);
     }
     const SceneSetMemberComp* setMember = ecs_view_read_t(itr, SceneSetMemberComp);
-    if (setMember) {
+    if (setMember && ctx->panel->includeSets) {
       StringHash sets[scene_set_member_max_sets];
       const u32  setCount = scene_set_member_all(setMember, sets);
       for (u32 setIdx = 0; setIdx != setCount; ++setIdx) {
@@ -360,24 +362,26 @@ static void hierarchy_query(HierarchyContext* ctx) {
   }
   trace_end();
 
-  trace_begin("find_sets", TraceColor_Red);
-  const u32 slotSetCount = scene_set_slot_count(ctx->setEnv);
-  for (u32 setSlotIdx = 0; setSlotIdx != slotSetCount; ++setSlotIdx) {
-    const StringHash set = scene_set_slot_get(ctx->setEnv, setSlotIdx);
-    if (!set) {
-      continue; // Empty slot.
+  if (ctx->panel->includeSets) {
+    trace_begin("find_sets", TraceColor_Red);
+    const u32 slotSetCount = scene_set_slot_count(ctx->setEnv);
+    for (u32 setSlotIdx = 0; setSlotIdx != slotSetCount; ++setSlotIdx) {
+      const StringHash set = scene_set_slot_get(ctx->setEnv, setSlotIdx);
+      if (!set) {
+        continue; // Empty slot.
+      }
+      if (!set || set == g_sceneSetSelected) {
+        continue; // Filter out selected set as it doesn't add much value
+      }
+      *dynarray_push_t(&ctx->panel->entries, HierarchyEntry) = (HierarchyEntry){
+          .nameHash    = set,
+          .linkHead    = sentinel_u32,
+          .firstParent = sentinel_u32,
+          .stableId    = hierarchy_stable_id_set(setSlotIdx),
+      };
     }
-    if (!set || set == g_sceneSetSelected) {
-      continue; // Filter out selected set as it doesn't add much value
-    }
-    *dynarray_push_t(&ctx->panel->entries, HierarchyEntry) = (HierarchyEntry){
-        .nameHash    = set,
-        .linkHead    = sentinel_u32,
-        .firstParent = sentinel_u32,
-        .stableId    = hierarchy_stable_id_set(setSlotIdx),
-    };
+    trace_end();
   }
-  trace_end();
 
   trace_begin("sort", TraceColor_Red);
   dynarray_sort(&ctx->panel->entries, hierarchy_compare_entry);
@@ -750,6 +754,8 @@ static void hierarchy_options_draw(HierarchyContext* ctx, UiCanvasComp* canvas) 
   ui_table_add_column(&table, UiTableColumn_Fixed, 150);
   ui_table_add_column(&table, UiTableColumn_Fixed, 70);
   ui_table_add_column(&table, UiTableColumn_Fixed, 50);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 55);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 50);
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Filter:"));
@@ -761,11 +767,16 @@ static void hierarchy_options_draw(HierarchyContext* ctx, UiCanvasComp* canvas) 
           .tooltip     = g_tooltipFilter)) {
     ctx->panel->focusOnSelection = true;
   }
-  ui_table_next_column(canvas, &table);
 
+  ui_table_next_column(canvas, &table);
   ui_label(canvas, string_lit("Freeze:"));
   ui_table_next_column(canvas, &table);
   ui_toggle(canvas, &ctx->panel->freeze, .tooltip = g_tooltipFreeze);
+
+  ui_table_next_column(canvas, &table);
+  ui_label(canvas, string_lit("Sets:"));
+  ui_table_next_column(canvas, &table);
+  ui_toggle(canvas, &ctx->panel->includeSets, .tooltip = g_tooltipSets);
 
   ui_layout_pop(canvas);
 }
@@ -943,6 +954,7 @@ dev_hierarchy_panel_open(EcsWorld* world, const EcsEntityId window, const DevPan
       DevHierarchyPanelComp,
       .panel        = ui_panel(.position = ui_vector(1.0f, 0.0f), .size = ui_vector(500, 350)),
       .scrollview   = ui_scrollview(),
+      .includeSets  = true,
       .filterName   = dynstring_create(g_allocHeap, 32),
       .filterResult = dynbitset_create(g_allocHeap, 0),
       .entries      = dynarray_create_t(g_allocHeap, HierarchyEntry, 1024),
