@@ -648,7 +648,11 @@ static void hierarchy_entry_draw(
           .fontSize   = 18,
           .frameColor = ui_color(0, 16, 255, 192),
           .tooltip    = string_static("Select the entity."))) {
-    hierarchy_entry_select(ctx, entry);
+    if (input_modifiers(ctx->input) & InputModifier_Control) {
+      hierarchy_entry_select_rec(ctx, entry);
+    } else {
+      hierarchy_entry_select(ctx, entry);
+    }
   }
   if (ecs_entity_valid(entry->entity)) {
     ui_layout_next(canvas, Ui_Left, 10);
