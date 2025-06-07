@@ -42,6 +42,7 @@ static const String g_tooltipFreeze = string_static("Freeze the data set (halts 
 
 typedef enum {
   HierarchyKind_Entity,
+  HierarchyKind_Set,
 } HierarchyKind;
 
 #define hierarchy_kind_bits 1
@@ -454,6 +455,8 @@ static Unicode hierarchy_icon(HierarchyContext* ctx, const HierarchyEntry* entry
   switch (hierarchy_stable_id_kind(entry->stableId)) {
   case HierarchyKind_Entity:
     return hierarchy_icon_entity(ctx, entry->entity);
+  case HierarchyKind_Set:
+    return UiShape_Category;
   }
   diag_crash();
 }
