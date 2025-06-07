@@ -298,7 +298,11 @@ static void hierarchy_link_entity_to_set_request(
 }
 
 static void hierarchy_link_entity_apply_requests(HierarchyContext* ctx) {
+  trace_begin("requests_sort", TraceColor_Blue);
   dynarray_sort(&ctx->panel->linkEntityRequests, hierarchy_compare_link_entity_request);
+  trace_end();
+
+  trace_begin("requests_apply", TraceColor_Blue);
   dynarray_for_t(&ctx->panel->linkEntityRequests, HierarchyLinkEntityRequest, req) {
     HierarchyId parentId = sentinel_u32;
     switch (req->parentKind) {
@@ -320,6 +324,8 @@ static void hierarchy_link_entity_apply_requests(HierarchyContext* ctx) {
 
     hierarchy_link_add(ctx, parentId, childId, req->type);
   }
+  trace_end();
+
   dynarray_clear(&ctx->panel->linkEntityRequests);
 }
 
