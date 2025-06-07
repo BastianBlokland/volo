@@ -21,6 +21,7 @@
 #include "scene_lifetime.h"
 #include "scene_name.h"
 #include "scene_set.h"
+#include "scene_time.h"
 #include "trace_tracer.h"
 #include "ui_canvas.h"
 #include "ui_layout.h"
@@ -74,6 +75,7 @@ ecs_comp_define(DevHierarchyPanelComp) {
   u32          panelRowCount;
   UiScrollview scrollview;
   bool         freeze;
+  bool         focusOnSelection;
 
   bool      filterActive;
   DynString filterName;
@@ -86,7 +88,9 @@ ecs_comp_define(DevHierarchyPanelComp) {
   DynBitSet openEntries;
 
   EcsEntityId lastMainSelection;
-  bool        focusOnSelection;
+
+  HierarchyStableId lastClickEntry;
+  TimeDuration      lastClickTime;
 };
 
 static void ecs_destruct_hierarchy_panel(void* data) {
@@ -112,6 +116,7 @@ ecs_view_define(HierarchyEntryView) {
 ecs_view_define(PanelUpdateGlobalView) {
   ecs_access_write(SceneSetEnvComp);
   ecs_access_read(InputManagerComp);
+  ecs_access_read(SceneTimeComp);
   ecs_access_maybe_write(DevInspectorSettingsComp);
   ecs_access_maybe_write(DevStatsGlobalComp);
 }
@@ -128,6 +133,7 @@ typedef struct {
   EcsWorld*                 world;
   SceneSetEnvComp*          setEnv;
   const InputManagerComp*   input;
+  const SceneTimeComp*      time;
   DevHierarchyPanelComp*    panel;
   DevInspectorSettingsComp* inspector;
   DevStatsGlobalComp*       stats;
@@ -295,22 +301,50 @@ static void hierarchy_query(HierarchyContext* ctx) {
   trace_end();
 }
 
-static bool hierarchy_open(HierarchyContext* ctx, const HierarchyEntry* e) {
+static bool hierarchy_is_open(HierarchyContext* ctx, const HierarchyEntry* e) {
   return dynbitset_test(&ctx->panel->openEntries, e->stableId);
 }
 
-static void hierarchy_open_update(HierarchyContext* ctx, const HierarchyEntry* e, const bool open) {
-  if (open) {
+static void hierarchy_open(HierarchyContext* ctx, const HierarchyEntry* e, const bool v) {
+  if (v) {
     dynbitset_set(&ctx->panel->openEntries, e->stableId);
   } else {
     dynbitset_clear(&ctx->panel->openEntries, e->stableId);
   }
 }
 
-static void hierarchy_open_to_root(HierarchyContext* ctx, const HierarchyId id) {
-  for (HierarchyId p = hierarchy_entry(ctx, id)->firstParent; !sentinel_check(p);) {
+static void hierarchy_open_rec(HierarchyContext* ctx, const HierarchyEntry* e, const bool v) {
+  hierarchy_open(ctx, e, v);
+
+  HierarchyLinkId childQueue[16];
+  u32             childQueueSize = 0;
+
+  if (e->parentMask) {
+    childQueue[childQueueSize++] = e->linkHead;
+  }
+
+  while (childQueueSize) {
+    HierarchyLink*        link  = hierarchy_link(ctx, childQueue[childQueueSize - 1]);
+    const HierarchyEntry* child = hierarchy_entry(ctx, link->target);
+
+    hierarchy_open(ctx, child, v);
+
+    if (sentinel_check(link->next)) {
+      --childQueueSize;
+    } else {
+      childQueue[childQueueSize - 1] = link->next;
+    }
+
+    if (child->parentMask && childQueueSize != array_elems(childQueue)) {
+      childQueue[childQueueSize++] = child->linkHead;
+    }
+  }
+}
+
+static void hierarchy_open_to_root(HierarchyContext* ctx, const HierarchyEntry* e, const bool v) {
+  for (HierarchyId p = e->firstParent; !sentinel_check(p);) {
     HierarchyEntry* entry = hierarchy_entry(ctx, p);
-    hierarchy_open_update(ctx, entry, true);
+    hierarchy_open(ctx, entry, v);
     p = entry->firstParent;
   }
 }
@@ -360,7 +394,11 @@ static String hierarchy_name(const StringHash nameHash) {
   return string_is_empty(name) ? string_lit("<unnamed>") : name;
 }
 
-static Unicode hierarchy_icon(HierarchyContext* ctx, const EcsEntityId e) {
+static Unicode hierarchy_icon(HierarchyContext* ctx, const HierarchyEntry* entry) {
+  const EcsEntityId e = entry->entity;
+  if (!ecs_entity_valid(e)) {
+    return '?';
+  }
   if (!ecs_world_exists(ctx->world, e)) {
     return UiShape_Delete;
   }
@@ -403,20 +441,75 @@ static Unicode hierarchy_icon(HierarchyContext* ctx, const EcsEntityId e) {
   return '?';
 }
 
-static void hierarchy_entry_select(HierarchyContext* ctx, const HierarchyEntry* entry) {
-  const InputModifier modifiers = input_modifiers(ctx->input);
-  if (!(modifiers & (InputModifier_Control | InputModifier_Shift))) {
-    scene_set_clear(ctx->setEnv, g_sceneSetSelected);
+static void hierarchy_entry_select_add(HierarchyContext* ctx, const HierarchyEntry* entry) {
+  if (!ecs_entity_valid(entry->entity)) {
+    return; // Only entities can be selected.
   }
-  if (modifiers & InputModifier_Shift) {
+  if (input_modifiers(ctx->input) & InputModifier_Shift) {
     scene_set_remove(ctx->setEnv, g_sceneSetSelected, entry->entity);
   } else {
     scene_set_add(ctx->setEnv, g_sceneSetSelected, entry->entity, SceneSetFlags_None);
   }
 }
 
+static void hierarchy_entry_select(HierarchyContext* ctx, const HierarchyEntry* entry) {
+  if (!(input_modifiers(ctx->input) & (InputModifier_Control | InputModifier_Shift))) {
+    scene_set_clear(ctx->setEnv, g_sceneSetSelected);
+  }
+  hierarchy_entry_select_add(ctx, entry);
+  hierarchy_open(ctx, entry, true);
+}
+
+static void hierarchy_entry_select_rec(HierarchyContext* ctx, const HierarchyEntry* entry) {
+  const InputModifier modifiers = input_modifiers(ctx->input);
+  if (!(modifiers & (InputModifier_Control | InputModifier_Shift))) {
+    scene_set_clear(ctx->setEnv, g_sceneSetSelected);
+  }
+
+  hierarchy_entry_select_add(ctx, entry);
+  hierarchy_open(ctx, entry, true);
+
+  HierarchyLinkId childQueue[16];
+  u32             childQueueSize = 0;
+
+  if (entry->parentMask) {
+    childQueue[childQueueSize++] = entry->linkHead;
+  }
+
+  while (childQueueSize) {
+    HierarchyLink*        link  = hierarchy_link(ctx, childQueue[childQueueSize - 1]);
+    const HierarchyEntry* child = hierarchy_entry(ctx, link->target);
+
+    hierarchy_entry_select_add(ctx, child);
+    hierarchy_open(ctx, child, true);
+
+    if (sentinel_check(link->next)) {
+      --childQueueSize;
+    } else {
+      childQueue[childQueueSize - 1] = link->next;
+    }
+
+    if (child->parentMask && childQueueSize != array_elems(childQueue)) {
+      childQueue[childQueueSize++] = child->linkHead;
+    }
+  }
+}
+
+static bool hierarchy_doubleclick_update(HierarchyContext* ctx, const HierarchyEntry* entry) {
+  const TimeDuration timeElapsed = ctx->time->realTime - ctx->panel->lastClickTime;
+
+  bool result = true;
+  result &= ctx->panel->lastClickEntry == entry->stableId;
+  result &= timeElapsed < input_doubleclick_interval(ctx->input);
+
+  ctx->panel->lastClickEntry = entry->stableId;
+  ctx->panel->lastClickTime  = ctx->time->realTime;
+
+  return result;
+}
+
 static String hierarchy_entry_tooltip_scratch(HierarchyContext* ctx, const HierarchyEntry* entry) {
-  if (!entry->entity) {
+  if (!ecs_entity_valid(entry->entity)) {
     return string_empty;
   }
   DynString str = dynstring_create_over(alloc_alloc(g_allocScratch, 8 * usize_kibibyte, 1));
@@ -435,13 +528,20 @@ static String hierarchy_entry_tooltip_scratch(HierarchyContext* ctx, const Hiera
   return dynstring_view(&str);
 }
 
+static bool hierarchy_is_selected(HierarchyContext* ctx, const HierarchyEntry* entry) {
+  if (!ecs_entity_valid(entry->entity)) {
+    return false; // Only entities can be selected.
+  }
+  return scene_set_contains(ctx->setEnv, g_sceneSetSelected, entry->entity);
+}
+
 static void hierarchy_entry_draw(
     HierarchyContext*     ctx,
     UiCanvasComp*         canvas,
     UiTable*              table,
     const HierarchyEntry* entry,
     const u32             depth) {
-  const bool   selected  = scene_set_contains(ctx->setEnv, g_sceneSetSelected, entry->entity);
+  const bool   selected  = hierarchy_is_selected(ctx, entry);
   const bool   isPicking = ctx->inspector && dev_inspector_picker_active(ctx->inspector);
   const String name      = hierarchy_name(entry->nameHash);
   UiColor      bgColor   = selected ? ui_color(32, 32, 255, 192) : ui_color(48, 48, 48, 192);
@@ -453,7 +553,7 @@ static void hierarchy_entry_draw(
   ui_style_pop(canvas);
 
   if (bgStatus == UiStatus_Hovered) {
-    if (isPicking) {
+    if (isPicking && ecs_entity_valid(entry->entity)) {
       bgColor = ui_color(16, 128, 16, 192);
       dev_inspector_picker_update(ctx->inspector, entry->entity);
       if (ctx->stats) {
@@ -477,6 +577,8 @@ static void hierarchy_entry_draw(
   case UiStatus_Activated:
     if (isPicking) {
       dev_inspector_picker_close(ctx->inspector);
+    } else if (hierarchy_doubleclick_update(ctx, entry)) {
+      hierarchy_entry_select_rec(ctx, entry);
     } else {
       hierarchy_entry_select(ctx, entry);
     }
@@ -493,9 +595,13 @@ static void hierarchy_entry_draw(
   }
   if (entry->parentMask) {
     const UiWidgetFlags foldFlags = ctx->panel->filterActive ? UiWidget_Disabled : UiWidget_Default;
-    bool                isOpen    = hierarchy_open(ctx, entry) || ctx->panel->filterActive;
+    bool                isOpen    = hierarchy_is_open(ctx, entry) || ctx->panel->filterActive;
     if (ui_fold(canvas, &isOpen, .flags = foldFlags)) {
-      hierarchy_open_update(ctx, entry, isOpen);
+      if (input_modifiers(ctx->input) & InputModifier_Control) {
+        hierarchy_open_rec(ctx, entry, isOpen);
+      } else {
+        hierarchy_open(ctx, entry, isOpen);
+      }
     }
   }
 
@@ -506,7 +612,7 @@ static void hierarchy_entry_draw(
   ui_layout_grow(canvas, UiAlign_MiddleRight, ui_vector(-17.0f, 0), UiBase_Absolute, Ui_X);
   ui_layout_push(canvas);
   ui_layout_inner(canvas, UiBase_Current, UiAlign_MiddleLeft, ui_vector(15, 15), UiBase_Absolute);
-  ui_canvas_draw_glyph(canvas, hierarchy_icon(ctx, entry->entity), 0, UiFlags_None);
+  ui_canvas_draw_glyph(canvas, hierarchy_icon(ctx, entry), 0, UiFlags_None);
   ui_layout_pop(canvas);
 
   ui_layout_grow(canvas, UiAlign_MiddleRight, ui_vector(-20.0f, 0), UiBase_Absolute, Ui_X);
@@ -524,15 +630,17 @@ static void hierarchy_entry_draw(
           .tooltip    = string_static("Select the entity."))) {
     hierarchy_entry_select(ctx, entry);
   }
-  ui_layout_next(canvas, Ui_Left, 10);
-  if (ui_button(
-          canvas,
-          .flags      = isPicking ? UiWidget_Disabled : UiWidget_Default,
-          .label      = ui_shape_scratch(UiShape_Delete),
-          .fontSize   = 18,
-          .frameColor = ui_color(255, 16, 0, 192),
-          .tooltip    = string_lit("Destroy the entity."))) {
-    ecs_world_entity_destroy(ctx->world, entry->entity);
+  if (ecs_entity_valid(entry->entity)) {
+    ui_layout_next(canvas, Ui_Left, 10);
+    if (ui_button(
+            canvas,
+            .flags      = isPicking ? UiWidget_Disabled : UiWidget_Default,
+            .label      = ui_shape_scratch(UiShape_Delete),
+            .fontSize   = 18,
+            .frameColor = ui_color(255, 16, 0, 192),
+            .tooltip    = string_lit("Destroy the entity."))) {
+      ecs_world_entity_destroy(ctx->world, entry->entity);
+    }
   }
   ui_layout_pop(canvas);
 }
@@ -640,7 +748,7 @@ static void hierarchy_panel_draw(HierarchyContext* ctx, UiCanvasComp* canvas) {
 
     // Push children.
     if (entry->parentMask && childQueueSize != array_elems(childQueue)) {
-      if (ctx->panel->filterActive || hierarchy_open(ctx, entry)) {
+      if (ctx->panel->filterActive || hierarchy_is_open(ctx, entry)) {
         childQueue[childQueueSize] = entry->linkHead;
         childDepth[childQueueSize] = entryDepth + 1;
         ++childQueueSize;
@@ -657,7 +765,7 @@ static void hierarchy_panel_draw(HierarchyContext* ctx, UiCanvasComp* canvas) {
 static void hierarchy_focus_entity(HierarchyContext* ctx, const EcsEntityId entity) {
   ctx->focusEntry = hierarchy_find_entity(ctx, entity);
   if (!sentinel_check(ctx->focusEntry)) {
-    hierarchy_open_to_root(ctx, ctx->focusEntry);
+    hierarchy_open_to_root(ctx, hierarchy_entry(ctx, ctx->focusEntry), true);
   }
 }
 
@@ -671,6 +779,7 @@ ecs_system_define(DevHierarchyUpdatePanelSys) {
       .world      = world,
       .setEnv     = ecs_view_write_t(globalItr, SceneSetEnvComp),
       .input      = ecs_view_read_t(globalItr, InputManagerComp),
+      .time       = ecs_view_read_t(globalItr, SceneTimeComp),
       .stats      = ecs_view_write_t(globalItr, DevStatsGlobalComp),
       .inspector  = ecs_view_write_t(globalItr, DevInspectorSettingsComp),
       .focusEntry = sentinel_u32,
