@@ -58,7 +58,7 @@ typedef struct {
 
 typedef struct {
   HierarchyLinkMask parentMask, childMask;
-  EcsEntityId       entity;
+  EcsEntityId       entity; // Optional reference to an entity.
   StringHash        nameHash;
   HierarchyLinkId   linkHead;
   HierarchyId       firstParent;
@@ -145,9 +145,9 @@ static HierarchyStableId hierarchy_stable_id_entity(const EcsEntityId e) {
 }
 
 static i8 hierarchy_compare_entry(const void* a, const void* b) {
-  const EcsEntityId entityA = ((const HierarchyEntry*)a)->entity;
-  const EcsEntityId entityB = ((const HierarchyEntry*)b)->entity;
-  return entityA < entityB ? -1 : entityA > entityB ? 1 : 0;
+  const HierarchyStableId stableIdA = ((const HierarchyEntry*)a)->stableId;
+  const HierarchyStableId stableIdB = ((const HierarchyEntry*)b)->stableId;
+  return stableIdA < stableIdB ? -1 : stableIdA > stableIdB ? 1 : 0;
 }
 
 static i8 hierarchy_compare_link_request(const void* a, const void* b) {
@@ -168,8 +168,8 @@ static HierarchyId hierarchy_entry_id(HierarchyContext* ctx, const HierarchyEntr
   return (HierarchyId)(entry - dynarray_begin_t(&ctx->panel->entries, HierarchyEntry));
 }
 
-static HierarchyId hierarchy_find_entity(HierarchyContext* ctx, const EcsEntityId entity) {
-  const HierarchyEntry tgt = {.entity = entity};
+static HierarchyId hierarchy_find(HierarchyContext* ctx, const HierarchyStableId stableId) {
+  const HierarchyEntry tgt = {.stableId = stableId};
   const void* res = dynarray_search_binary(&ctx->panel->entries, hierarchy_compare_entry, &tgt);
   return res ? hierarchy_entry_id(ctx, res) : sentinel_u32;
 }
@@ -231,11 +231,11 @@ static void hierarchy_link_request(
 static void hierarchy_link_apply_requests(HierarchyContext* ctx) {
   dynarray_sort(&ctx->panel->linkRequests, hierarchy_compare_link_request);
   dynarray_for_t(&ctx->panel->linkRequests, HierarchyLinkRequest, req) {
-    const HierarchyId parentId = hierarchy_find_entity(ctx, req->parent);
+    const HierarchyId parentId = hierarchy_find(ctx, hierarchy_stable_id_entity(req->parent));
     if (sentinel_check(parentId)) {
       continue; // Parent does not exist anymore.
     }
-    const HierarchyId childId = hierarchy_find_entity(ctx, req->child);
+    const HierarchyId childId = hierarchy_find(ctx, hierarchy_stable_id_entity(req->child));
     diag_assert(!sentinel_check(childId)); // Child has to exist.
 
     hierarchy_link_add(ctx, parentId, childId, req->type);
@@ -763,7 +763,7 @@ static void hierarchy_panel_draw(HierarchyContext* ctx, UiCanvasComp* canvas) {
 }
 
 static void hierarchy_focus_entity(HierarchyContext* ctx, const EcsEntityId entity) {
-  ctx->focusEntry = hierarchy_find_entity(ctx, entity);
+  ctx->focusEntry = hierarchy_find(ctx, hierarchy_stable_id_entity(entity));
   if (!sentinel_check(ctx->focusEntry)) {
     hierarchy_open_to_root(ctx, hierarchy_entry(ctx, ctx->focusEntry), true);
   }
