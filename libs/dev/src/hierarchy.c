@@ -68,7 +68,7 @@ typedef struct {
 typedef struct {
   HierarchyLinkMask type;
   EcsEntityId       parent, child;
-} HierarchyLinkRequest;
+} HierarchyLinkEntityRequest;
 
 ecs_comp_define(DevHierarchyPanelComp) {
   UiPanel      panel;
@@ -82,9 +82,9 @@ ecs_comp_define(DevHierarchyPanelComp) {
   DynBitSet filterResult;
   u32       filterMatches;
 
-  DynArray  entries;      // HierarchyEntry[]
-  DynArray  links;        // HierarchyLink[]
-  DynArray  linkRequests; // HierarchyLinkRequest[]
+  DynArray  entries;            // HierarchyEntry[]
+  DynArray  links;              // HierarchyLink[]
+  DynArray  linkEntityRequests; // HierarchyLinkEntityRequest[]
   DynBitSet openEntries;
 
   EcsEntityId lastMainSelection;
@@ -99,7 +99,7 @@ static void ecs_destruct_hierarchy_panel(void* data) {
   dynbitset_destroy(&comp->filterResult);
   dynarray_destroy(&comp->entries);
   dynarray_destroy(&comp->links);
-  dynarray_destroy(&comp->linkRequests);
+  dynarray_destroy(&comp->linkEntityRequests);
   dynbitset_destroy(&comp->openEntries);
 }
 
@@ -150,9 +150,9 @@ static i8 hierarchy_compare_entry(const void* a, const void* b) {
   return stableIdA < stableIdB ? -1 : stableIdA > stableIdB ? 1 : 0;
 }
 
-static i8 hierarchy_compare_link_request(const void* a, const void* b) {
-  const HierarchyLinkRequest* reqA = a;
-  const HierarchyLinkRequest* reqB = b;
+static i8 hierarchy_compare_link_entity_request(const void* a, const void* b) {
+  const HierarchyLinkEntityRequest* reqA = a;
+  const HierarchyLinkEntityRequest* reqB = b;
   return reqA->child < reqB->child ? -1 : reqA->child > reqB->child ? 1 : 0;
 }
 
@@ -216,21 +216,22 @@ static bool hierarchy_link_add(
   return true;
 }
 
-static void hierarchy_link_request(
+static void hierarchy_link_entity_request(
     HierarchyContext*       ctx,
     const EcsEntityId       parent,
     const EcsEntityId       child,
     const HierarchyLinkMask type) {
-  *dynarray_push_t(&ctx->panel->linkRequests, HierarchyLinkRequest) = (HierarchyLinkRequest){
-      .type   = type,
-      .parent = parent,
-      .child  = child,
-  };
+  *dynarray_push_t(&ctx->panel->linkEntityRequests, HierarchyLinkEntityRequest) =
+      (HierarchyLinkEntityRequest){
+          .type   = type,
+          .parent = parent,
+          .child  = child,
+      };
 }
 
-static void hierarchy_link_apply_requests(HierarchyContext* ctx) {
-  dynarray_sort(&ctx->panel->linkRequests, hierarchy_compare_link_request);
-  dynarray_for_t(&ctx->panel->linkRequests, HierarchyLinkRequest, req) {
+static void hierarchy_link_entity_apply_requests(HierarchyContext* ctx) {
+  dynarray_sort(&ctx->panel->linkEntityRequests, hierarchy_compare_link_entity_request);
+  dynarray_for_t(&ctx->panel->linkEntityRequests, HierarchyLinkEntityRequest, req) {
     const HierarchyId parentId = hierarchy_find(ctx, hierarchy_stable_id_entity(req->parent));
     if (sentinel_check(parentId)) {
       continue; // Parent does not exist anymore.
@@ -240,7 +241,7 @@ static void hierarchy_link_apply_requests(HierarchyContext* ctx) {
 
     hierarchy_link_add(ctx, parentId, childId, req->type);
   }
-  dynarray_clear(&ctx->panel->linkRequests);
+  dynarray_clear(&ctx->panel->linkEntityRequests);
 }
 
 static u32 hierarchy_next_root(HierarchyContext* ctx, u32 entryIdx) {
@@ -274,20 +275,20 @@ static void hierarchy_query(HierarchyContext* ctx) {
 
     const SceneCreatorComp* creatorComp = ecs_view_read_t(itr, SceneCreatorComp);
     if (creatorComp && creatorComp->creator) {
-      hierarchy_link_request(ctx, creatorComp->creator, entity, HierarchyLinkMask_Creator);
+      hierarchy_link_entity_request(ctx, creatorComp->creator, entity, HierarchyLinkMask_Creator);
     }
     const SceneLifetimeOwnerComp* ownerComp = ecs_view_read_t(itr, SceneLifetimeOwnerComp);
     if (ownerComp) {
       for (u32 ownerIdx = 0; ownerIdx != scene_lifetime_owners_max; ++ownerIdx) {
         const EcsEntityId owner = ownerComp->owners[ownerIdx];
         if (owner) {
-          hierarchy_link_request(ctx, owner, entity, HierarchyLinkMask_Lifetime);
+          hierarchy_link_entity_request(ctx, owner, entity, HierarchyLinkMask_Lifetime);
         }
       }
     }
     const SceneAttachmentComp* attachComp = ecs_view_read_t(itr, SceneAttachmentComp);
     if (attachComp && attachComp->target) {
-      hierarchy_link_request(ctx, attachComp->target, entity, HierarchyLinkMask_Attachment);
+      hierarchy_link_entity_request(ctx, attachComp->target, entity, HierarchyLinkMask_Attachment);
     }
   }
   trace_end();
@@ -297,7 +298,7 @@ static void hierarchy_query(HierarchyContext* ctx) {
   trace_end();
 
   trace_begin("link", TraceColor_Red);
-  hierarchy_link_apply_requests(ctx);
+  hierarchy_link_entity_apply_requests(ctx);
   trace_end();
 }
 
@@ -850,8 +851,8 @@ dev_hierarchy_panel_open(EcsWorld* world, const EcsEntityId window, const DevPan
       .filterResult = dynbitset_create(g_allocHeap, 0),
       .entries      = dynarray_create_t(g_allocHeap, HierarchyEntry, 1024),
       .links        = dynarray_create_t(g_allocHeap, HierarchyLink, 1024),
-      .linkRequests = dynarray_create_t(g_allocHeap, HierarchyLinkRequest, 512),
-      .openEntries  = dynbitset_create(g_allocHeap, 0));
+      .linkEntityRequests = dynarray_create_t(g_allocHeap, HierarchyLinkEntityRequest, 512),
+      .openEntries        = dynbitset_create(g_allocHeap, 0));
 
   if (type == DevPanelType_Detached) {
     ui_panel_maximize(&hierarchyPanel->panel);
