@@ -606,22 +606,23 @@ static bool hierarchy_doubleclick_update(HierarchyContext* ctx, const HierarchyE
 }
 
 static String hierarchy_entry_tooltip_scratch(HierarchyContext* ctx, const HierarchyEntry* entry) {
-  if (!ecs_entity_valid(entry->entity)) {
-    return string_empty;
-  }
   DynString str = dynstring_create_over(alloc_alloc(g_allocScratch, 8 * usize_kibibyte, 1));
-  fmt_write(&str, "Entity: {}\n", ecs_entity_fmt(entry->entity));
+  if (hierarchy_stable_id_kind(entry->stableId) == HierarchyKind_Set) {
+    fmt_write(&str, "Set: {}\n", fmt_int(entry->nameHash));
+  }
+  if (ecs_entity_valid(entry->entity)) {
+    fmt_write(&str, "Entity: {}\n", ecs_entity_fmt(entry->entity));
 
-  const EcsArchetypeId archetype = ecs_world_entity_archetype(ctx->world, entry->entity);
-  if (!sentinel_check(archetype)) {
-    const BitSet  compMask = ecs_world_component_mask(ctx->world, archetype);
-    const EcsDef* ecsDef   = ecs_world_def(ctx->world);
-    bitset_for(compMask, compId) {
-      const String compName = ecs_def_comp_name(ecsDef, (EcsCompId)compId);
-      fmt_write(&str, "- {}\n", fmt_text(compName));
+    const EcsArchetypeId archetype = ecs_world_entity_archetype(ctx->world, entry->entity);
+    if (!sentinel_check(archetype)) {
+      const BitSet  compMask = ecs_world_component_mask(ctx->world, archetype);
+      const EcsDef* ecsDef   = ecs_world_def(ctx->world);
+      bitset_for(compMask, compId) {
+        const String compName = ecs_def_comp_name(ecsDef, (EcsCompId)compId);
+        fmt_write(&str, "- {}\n", fmt_text(compName));
+      }
     }
   }
-
   return dynstring_view(&str);
 }
 
