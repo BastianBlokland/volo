@@ -553,10 +553,7 @@ static void hierarchy_entry_select(HierarchyContext* ctx, const HierarchyEntry* 
   if (!(input_modifiers(ctx->input) & (InputModifier_Control | InputModifier_Shift))) {
     scene_set_clear(ctx->setEnv, g_sceneSetSelected);
   }
-  if (ecs_entity_valid(entry->entity)) {
-    hierarchy_entry_select_add(ctx, entry);
-    hierarchy_open(ctx, entry, true);
-  }
+  hierarchy_entry_select_add(ctx, entry);
 }
 
 static void hierarchy_entry_select_rec(HierarchyContext* ctx, const HierarchyEntry* entry) {
