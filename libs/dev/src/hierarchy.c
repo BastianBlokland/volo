@@ -721,7 +721,7 @@ static void hierarchy_entry_draw(
           .fontSize   = 18,
           .frameColor = ui_color(0, 16, 255, 192),
           .tooltip    = string_static("Select the entity."))) {
-    if (input_modifiers(ctx->input) & InputModifier_Control) {
+    if (!entry->entity || (input_modifiers(ctx->input) & InputModifier_Control)) {
       hierarchy_entry_select_rec(ctx, entry);
     } else {
       hierarchy_entry_select(ctx, entry);
