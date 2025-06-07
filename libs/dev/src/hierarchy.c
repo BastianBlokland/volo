@@ -157,6 +157,10 @@ static HierarchyStableId hierarchy_stable_id_entity(const EcsEntityId e) {
   return (ecs_entity_id_index(e) << hierarchy_kind_bits) | HierarchyKind_Entity;
 }
 
+static HierarchyStableId hierarchy_stable_id_set(const u32 setIndex) {
+  return (setIndex << hierarchy_kind_bits) | HierarchyKind_Set;
+}
+
 static i8 hierarchy_compare_entry(const void* a, const void* b) {
   const HierarchyStableId stableIdA = ((const HierarchyEntry*)a)->stableId;
   const HierarchyStableId stableIdB = ((const HierarchyEntry*)b)->stableId;
@@ -271,14 +275,12 @@ static void hierarchy_query(HierarchyContext* ctx) {
   dynarray_clear(&ctx->panel->entries);
   dynarray_clear(&ctx->panel->links);
 
-  trace_begin("find", TraceColor_Red);
+  trace_begin("find_entities", TraceColor_Red);
   EcsView* entryView = ecs_world_view_t(ctx->world, HierarchyEntryView);
   for (EcsIterator* itr = ecs_view_itr(entryView); ecs_view_walk(itr);) {
     const EcsEntityId entity = ecs_view_entity(itr);
 
     *dynarray_push_t(&ctx->panel->entries, HierarchyEntry) = (HierarchyEntry){
-        .parentMask  = 0,
-        .childMask   = 0,
         .entity      = entity,
         .nameHash    = ecs_view_read_t(itr, SceneNameComp)->name,
         .linkHead    = sentinel_u32,
@@ -303,6 +305,18 @@ static void hierarchy_query(HierarchyContext* ctx) {
     if (attachComp && attachComp->target) {
       hierarchy_link_entity_request(ctx, attachComp->target, entity, HierarchyLinkMask_Attachment);
     }
+  }
+  trace_end();
+
+  trace_begin("find_sets", TraceColor_Red);
+  const u32 setCount = scene_set_global_count(ctx->setEnv);
+  for (u32 setIdx = 0; setIdx != setCount; ++setIdx) {
+    *dynarray_push_t(&ctx->panel->entries, HierarchyEntry) = (HierarchyEntry){
+        .nameHash    = scene_set_global_get(ctx->setEnv, setIdx),
+        .linkHead    = sentinel_u32,
+        .firstParent = sentinel_u32,
+        .stableId    = hierarchy_stable_id_set(setIdx),
+    };
   }
   trace_end();
 
