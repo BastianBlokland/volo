@@ -191,6 +191,18 @@ static HierarchyId hierarchy_find(HierarchyContext* ctx, const HierarchyStableId
   return res ? hierarchy_entry_id(ctx, res) : sentinel_u32;
 }
 
+static HierarchyId hierarchy_find_entity(HierarchyContext* ctx, const EcsEntityId e) {
+  const HierarchyId id = hierarchy_find(ctx, hierarchy_stable_id_entity(e));
+  if (sentinel_check(id)) {
+    return sentinel_u32;
+  }
+  const HierarchyEntry* entry = hierarchy_entry(ctx, id);
+  if (entry->entity != e) {
+    return sentinel_u32; // Entity index has been re-used; not the same entity.
+  }
+  return id;
+}
+
 static bool hierarchy_link_add(
     HierarchyContext*       ctx,
     const HierarchyId       parent,
@@ -249,11 +261,11 @@ static void hierarchy_link_entity_request(
 static void hierarchy_link_entity_apply_requests(HierarchyContext* ctx) {
   dynarray_sort(&ctx->panel->linkEntityRequests, hierarchy_compare_link_entity_request);
   dynarray_for_t(&ctx->panel->linkEntityRequests, HierarchyLinkEntityRequest, req) {
-    const HierarchyId parentId = hierarchy_find(ctx, hierarchy_stable_id_entity(req->parent));
+    const HierarchyId parentId = hierarchy_find_entity(ctx, req->parent);
     if (sentinel_check(parentId)) {
       continue; // Parent does not exist anymore.
     }
-    const HierarchyId childId = hierarchy_find(ctx, hierarchy_stable_id_entity(req->child));
+    const HierarchyId childId = hierarchy_find_entity(ctx, req->child);
     diag_assert(!sentinel_check(childId)); // Child has to exist.
 
     hierarchy_link_add(ctx, parentId, childId, req->type);
@@ -805,7 +817,7 @@ static void hierarchy_panel_draw(HierarchyContext* ctx, UiCanvasComp* canvas) {
 }
 
 static void hierarchy_focus_entity(HierarchyContext* ctx, const EcsEntityId entity) {
-  ctx->focusEntry = hierarchy_find(ctx, hierarchy_stable_id_entity(entity));
+  ctx->focusEntry = hierarchy_find_entity(ctx, entity);
   if (!sentinel_check(ctx->focusEntry)) {
     hierarchy_open_to_root(ctx, hierarchy_entry(ctx, ctx->focusEntry), true);
   }
