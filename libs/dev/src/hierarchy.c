@@ -103,6 +103,7 @@ ecs_comp_define(DevHierarchyPanelComp) {
   DynArray  links;              // HierarchyLink[]
   DynArray  linkEntityRequests; // HierarchyLinkEntityRequest[]
   DynBitSet openEntries;
+  DynBitSet visibleEntries;
 
   EcsEntityId lastMainSelection;
 
@@ -118,6 +119,7 @@ static void ecs_destruct_hierarchy_panel(void* data) {
   dynarray_destroy(&comp->links);
   dynarray_destroy(&comp->linkEntityRequests);
   dynbitset_destroy(&comp->openEntries);
+  dynbitset_destroy(&comp->visibleEntries);
 }
 
 ecs_view_define(HierarchyEntryView) {
@@ -812,6 +814,8 @@ static void hierarchy_panel_draw(HierarchyContext* ctx, UiCanvasComp* canvas) {
   u32             childDepth[16];
   u32             childQueueSize = 0;
 
+  dynbitset_clear_all(&ctx->panel->visibleEntries);
+
   ctx->panel->panelRowCount = 0;
   while (rootIdx != ctx->panel->entries.size || childQueueSize) {
     // Pick entry.
@@ -852,6 +856,7 @@ static void hierarchy_panel_draw(HierarchyContext* ctx, UiCanvasComp* canvas) {
     } else {
       ui_table_jump_row(canvas, &table, ctx->panel->panelRowCount - 1);
       hierarchy_entry_draw(ctx, canvas, &table, entry, entryDepth);
+      dynbitset_set(&ctx->panel->visibleEntries, entry->stableId);
     }
 
     // Push children.
@@ -871,6 +876,9 @@ static void hierarchy_panel_draw(HierarchyContext* ctx, UiCanvasComp* canvas) {
 }
 
 static void hierarchy_focus_entity(HierarchyContext* ctx, const EcsEntityId entity) {
+  if (dynbitset_test(&ctx->panel->visibleEntries, hierarchy_stable_id_entity(entity))) {
+    return; // Already visible.
+  }
   ctx->focusEntry = hierarchy_find_entity(ctx, entity);
   if (!sentinel_check(ctx->focusEntry)) {
     hierarchy_open_to_root(ctx, hierarchy_entry(ctx, ctx->focusEntry), true);
@@ -960,7 +968,8 @@ dev_hierarchy_panel_open(EcsWorld* world, const EcsEntityId window, const DevPan
       .entries      = dynarray_create_t(g_allocHeap, HierarchyEntry, 1024),
       .links        = dynarray_create_t(g_allocHeap, HierarchyLink, 1024),
       .linkEntityRequests = dynarray_create_t(g_allocHeap, HierarchyLinkEntityRequest, 512),
-      .openEntries        = dynbitset_create(g_allocHeap, 0));
+      .openEntries        = dynbitset_create(g_allocHeap, 0),
+      .visibleEntries     = dynbitset_create(g_allocHeap, 512));
 
   if (type == DevPanelType_Detached) {
     ui_panel_maximize(&hierarchyPanel->panel);
