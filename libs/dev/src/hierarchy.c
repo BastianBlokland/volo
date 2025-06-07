@@ -227,19 +227,14 @@ static HierarchyId hierarchy_find_entity(HierarchyContext* ctx, const EcsEntityI
   return id;
 }
 
-static bool hierarchy_link_add(
+static void hierarchy_link_add(
     HierarchyContext*       ctx,
     const HierarchyId       parent,
     const HierarchyId       child,
     const HierarchyLinkMask type) {
   HierarchyEntry* parentEntry = hierarchy_entry(ctx, parent);
-  if (!parentEntry) {
-    return false;
-  }
-  HierarchyEntry* childEntry = hierarchy_entry(ctx, child);
-  if (!childEntry) {
-    return false;
-  }
+  HierarchyEntry* childEntry  = hierarchy_entry(ctx, child);
+
   parentEntry->parentMask |= type;
   childEntry->childMask |= type;
 
@@ -253,7 +248,7 @@ static bool hierarchy_link_add(
     HierarchyLink* link = hierarchy_link(ctx, *linkTail);
     if (link->target == child) {
       link->mask |= type;
-      return true;
+      return;
     }
     linkTail = &link->next;
   }
@@ -266,7 +261,7 @@ static bool hierarchy_link_add(
       .next   = sentinel_u32,
   };
 
-  return true;
+  return;
 }
 
 static void hierarchy_link_entity_request(
