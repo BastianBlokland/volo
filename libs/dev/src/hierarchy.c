@@ -305,7 +305,7 @@ static bool hierarchy_open(HierarchyContext* ctx, const HierarchyEntry* e) {
   return dynbitset_test(&ctx->panel->openEntries, e->stableId);
 }
 
-static void hierarchy_open_update(HierarchyContext* ctx, const HierarchyEntry* e, const bool open) {
+static void hierarchy_open_set(HierarchyContext* ctx, const HierarchyEntry* e, const bool open) {
   if (open) {
     dynbitset_set(&ctx->panel->openEntries, e->stableId);
   } else {
@@ -313,10 +313,11 @@ static void hierarchy_open_update(HierarchyContext* ctx, const HierarchyEntry* e
   }
 }
 
-static void hierarchy_open_to_root(HierarchyContext* ctx, const HierarchyId id) {
-  for (HierarchyId p = hierarchy_entry(ctx, id)->firstParent; !sentinel_check(p);) {
+static void
+hierarchy_open_set_to_root(HierarchyContext* ctx, const HierarchyEntry* e, const bool open) {
+  for (HierarchyId p = e->firstParent; !sentinel_check(p);) {
     HierarchyEntry* entry = hierarchy_entry(ctx, p);
-    hierarchy_open_update(ctx, entry, true);
+    hierarchy_open_set(ctx, entry, open);
     p = entry->firstParent;
   }
 }
@@ -429,7 +430,7 @@ static void hierarchy_entry_select(HierarchyContext* ctx, const HierarchyEntry* 
     scene_set_clear(ctx->setEnv, g_sceneSetSelected);
   }
   hierarchy_entry_select_add(ctx, entry);
-  hierarchy_open_update(ctx, entry, true);
+  hierarchy_open_set(ctx, entry, true);
 }
 
 static void hierarchy_entry_select_recursive(HierarchyContext* ctx, const HierarchyEntry* entry) {
@@ -439,7 +440,7 @@ static void hierarchy_entry_select_recursive(HierarchyContext* ctx, const Hierar
   }
 
   hierarchy_entry_select_add(ctx, entry);
-  hierarchy_open_update(ctx, entry, true);
+  hierarchy_open_set(ctx, entry, true);
 
   HierarchyLinkId childQueue[16];
   u32             childQueueSize = 0;
@@ -453,7 +454,7 @@ static void hierarchy_entry_select_recursive(HierarchyContext* ctx, const Hierar
     const HierarchyEntry* child = hierarchy_entry(ctx, link->target);
 
     hierarchy_entry_select_add(ctx, child);
-    hierarchy_open_update(ctx, child, true);
+    hierarchy_open_set(ctx, child, true);
 
     if (sentinel_check(link->next)) {
       --childQueueSize;
@@ -569,7 +570,7 @@ static void hierarchy_entry_draw(
     const UiWidgetFlags foldFlags = ctx->panel->filterActive ? UiWidget_Disabled : UiWidget_Default;
     bool                isOpen    = hierarchy_open(ctx, entry) || ctx->panel->filterActive;
     if (ui_fold(canvas, &isOpen, .flags = foldFlags)) {
-      hierarchy_open_update(ctx, entry, isOpen);
+      hierarchy_open_set(ctx, entry, isOpen);
     }
   }
 
@@ -733,7 +734,7 @@ static void hierarchy_panel_draw(HierarchyContext* ctx, UiCanvasComp* canvas) {
 static void hierarchy_focus_entity(HierarchyContext* ctx, const EcsEntityId entity) {
   ctx->focusEntry = hierarchy_find_entity(ctx, entity);
   if (!sentinel_check(ctx->focusEntry)) {
-    hierarchy_open_to_root(ctx, ctx->focusEntry);
+    hierarchy_open_set_to_root(ctx, hierarchy_entry(ctx, ctx->focusEntry), true);
   }
 }
 
