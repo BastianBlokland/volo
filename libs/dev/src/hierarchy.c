@@ -63,6 +63,8 @@ typedef enum {
   HierarchyLinkMask_Lifetime   = 1 << 2,
   HierarchyLinkMask_Attachment = 1 << 3,
   HierarchyLinkMask_Reference  = 1 << 4,
+
+  HierarchyLinkMask_Hard = ~HierarchyLinkMask_Reference,
 } HierarchyLinkMask;
 
 typedef struct {
@@ -77,7 +79,7 @@ typedef struct {
   StringHash        nameHash;
   EcsEntityId       entity; // Optional reference to an entity.
   HierarchyLinkId   linkHead, linkTail;
-  HierarchyId       firstParent;
+  HierarchyId       firstHardParent;
   HierarchyStableId stableId;
 } HierarchyEntry;
 
@@ -248,8 +250,8 @@ static void hierarchy_link_add(
   parentEntry->parentMask |= type;
   childEntry->childMask |= type;
 
-  if (sentinel_check(childEntry->firstParent) && type != HierarchyLinkMask_Reference) {
-    childEntry->firstParent = parent;
+  if (sentinel_check(childEntry->firstHardParent) && (type & HierarchyLinkMask_Hard)) {
+    childEntry->firstHardParent = parent;
   }
 
   // Add a new link.
@@ -283,8 +285,8 @@ static void hierarchy_link_add_unique(
   parentEntry->parentMask |= type;
   childEntry->childMask |= type;
 
-  if (sentinel_check(childEntry->firstParent) && type != HierarchyLinkMask_Reference) {
-    childEntry->firstParent = parent;
+  if (sentinel_check(childEntry->firstHardParent) && (type & HierarchyLinkMask_Hard)) {
+    childEntry->firstHardParent = parent;
   }
 
   // Walk the existing links to check for duplicates.
@@ -407,7 +409,7 @@ static void hierarchy_link_entity_apply_requests(HierarchyContext* ctx) {
 }
 
 static bool hierarchy_is_root(const HierarchyEntry* entry) {
-  return (entry->childMask & ~HierarchyLinkMask_Reference) == 0;
+  return (entry->childMask & HierarchyLinkMask_Hard) == 0;
 }
 
 static u32 hierarchy_next_root(HierarchyContext* ctx, u32 entryIdx) {
@@ -430,12 +432,12 @@ static void hierarchy_query(HierarchyContext* ctx) {
     const EcsEntityId entity = ecs_view_entity(itr);
 
     *dynarray_push_t(&ctx->panel->entries, HierarchyEntry) = (HierarchyEntry){
-        .entity      = entity,
-        .nameHash    = ecs_view_read_t(itr, SceneNameComp)->name,
-        .linkHead    = sentinel_u32,
-        .linkTail    = sentinel_u32,
-        .firstParent = sentinel_u32,
-        .stableId    = hierarchy_stable_id_entity(entity),
+        .entity          = entity,
+        .nameHash        = ecs_view_read_t(itr, SceneNameComp)->name,
+        .linkHead        = sentinel_u32,
+        .linkTail        = sentinel_u32,
+        .firstHardParent = sentinel_u32,
+        .stableId        = hierarchy_stable_id_entity(entity),
     };
 
     const SceneCreatorComp* creatorComp = ecs_view_read_t(itr, SceneCreatorComp);
@@ -489,11 +491,11 @@ static void hierarchy_query(HierarchyContext* ctx) {
         continue; // Filter out selected set as it doesn't add much value
       }
       *dynarray_push_t(&ctx->panel->entries, HierarchyEntry) = (HierarchyEntry){
-          .nameHash    = set,
-          .linkHead    = sentinel_u32,
-          .linkTail    = sentinel_u32,
-          .firstParent = sentinel_u32,
-          .stableId    = hierarchy_stable_id_set(setSlotIdx),
+          .nameHash        = set,
+          .linkHead        = sentinel_u32,
+          .linkTail        = sentinel_u32,
+          .firstHardParent = sentinel_u32,
+          .stableId        = hierarchy_stable_id_set(setSlotIdx),
       };
     }
     trace_end();
@@ -549,10 +551,10 @@ static void hierarchy_open_rec(HierarchyContext* ctx, const HierarchyEntry* e, c
 }
 
 static void hierarchy_open_to_root(HierarchyContext* ctx, const HierarchyEntry* e, const bool v) {
-  for (HierarchyId p = e->firstParent; !sentinel_check(p);) {
+  for (HierarchyId p = e->firstHardParent; !sentinel_check(p);) {
     HierarchyEntry* entry = hierarchy_entry(ctx, p);
     hierarchy_open(ctx, entry, v);
-    p = entry->firstParent;
+    p = entry->firstHardParent;
   }
 }
 
@@ -587,10 +589,10 @@ static void hierarchy_filter(HierarchyContext* ctx) {
       if (dynbitset_test(&ctx->panel->filterResult, id)) {
         continue; // Filtered out.
       }
-      for (HierarchyId p = hierarchy_entry(ctx, id)->firstParent; !sentinel_check(p);) {
+      for (HierarchyId p = hierarchy_entry(ctx, id)->firstHardParent; !sentinel_check(p);) {
         HierarchyEntry* entry = hierarchy_entry(ctx, p);
         dynbitset_clear(&ctx->panel->filterResult, p);
-        p = entry->firstParent;
+        p = entry->firstHardParent;
       }
     }
   }
