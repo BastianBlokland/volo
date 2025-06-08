@@ -21,8 +21,11 @@
 #include "scene_creator.h"
 #include "scene_lifetime.h"
 #include "scene_name.h"
+#include "scene_property.h"
 #include "scene_set.h"
 #include "scene_time.h"
+#include "script_mem.h"
+#include "script_val.h"
 #include "trace_tracer.h"
 #include "ui_canvas.h"
 #include "ui_layout.h"
@@ -59,6 +62,7 @@ typedef enum {
   HierarchyLinkMask_Creator    = 1 << 1,
   HierarchyLinkMask_Lifetime   = 1 << 2,
   HierarchyLinkMask_Attachment = 1 << 3,
+  HierarchyLinkMask_Reference  = 1 << 4,
 } HierarchyLinkMask;
 
 typedef struct {
@@ -130,6 +134,7 @@ ecs_view_define(HierarchyEntryView) {
   ecs_access_maybe_read(SceneCreatorComp);
   ecs_access_maybe_read(SceneLifetimeOwnerComp);
   ecs_access_maybe_read(SceneSetMemberComp);
+  ecs_access_maybe_read(ScenePropertyComp);
 }
 
 ecs_view_define(PanelUpdateGlobalView) {
@@ -453,6 +458,16 @@ static void hierarchy_query(HierarchyContext* ctx) {
       for (u32 setIdx = 0; setIdx != setCount; ++setIdx) {
         const StringHash set = sets[setIdx];
         hierarchy_link_entity_to_set_request(ctx, set, entity, HierarchyLinkMask_SetMember);
+      }
+    }
+    const ScenePropertyComp* propComp = ecs_view_read_t(itr, ScenePropertyComp);
+    if (propComp) {
+      const ScriptMem* memory = scene_prop_memory(propComp);
+      for (ScriptMemItr i = script_mem_begin(memory); i.key; i = script_mem_next(memory, i)) {
+        const EcsEntityId ref = script_get_entity(script_mem_load(memory, i.key), 0);
+        if (ref) {
+          hierarchy_link_entity_request(ctx, entity, ref, HierarchyLinkMask_Reference);
+        }
       }
     }
   }
