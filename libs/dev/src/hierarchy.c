@@ -1019,10 +1019,14 @@ ecs_system_define(DevHierarchyUpdatePanelSys) {
     hierarchy_filter(&ctx);
     trace_end();
 
-    if (ctx.panel->lastMainSelection != mainSelection || ctx.panel->focusOnSelection) {
+    if (ctx.panel->lastMainSelection != mainSelection) {
       ctx.panel->lastMainSelection = mainSelection;
-      ctx.panel->focusOnSelection  = false;
       hierarchy_focus_entity(&ctx, mainSelection);
+    }
+    if (ctx.panel->focusOnSelection) {
+      // HACK: Intentially delayed a frame so the visiblity bits has been updated before focussing.
+      ctx.panel->lastMainSelection = 0;
+      ctx.panel->focusOnSelection  = false;
     }
 
     trace_begin("draw", TraceColor_Blue);
