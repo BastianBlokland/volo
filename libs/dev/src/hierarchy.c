@@ -871,7 +871,9 @@ static void hierarchy_options_draw(HierarchyContext* ctx, UiCanvasComp* canvas) 
   ui_table_next_column(canvas, &table);
   ui_label(canvas, string_lit("Sets:"));
   ui_table_next_column(canvas, &table);
-  ui_toggle(canvas, &ctx->panel->includeSets, .tooltip = g_tooltipSets);
+  if (ui_toggle(canvas, &ctx->panel->includeSets, .tooltip = g_tooltipSets)) {
+    ctx->panel->focusOnSelection = true;
+  }
 
   ui_layout_pop(canvas);
 }
