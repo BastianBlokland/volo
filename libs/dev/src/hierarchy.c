@@ -248,7 +248,7 @@ static void hierarchy_link_add(
   parentEntry->parentMask |= type;
   childEntry->childMask |= type;
 
-  if (sentinel_check(childEntry->firstParent)) {
+  if (sentinel_check(childEntry->firstParent) && type != HierarchyLinkMask_Reference) {
     childEntry->firstParent = parent;
   }
 
@@ -283,7 +283,7 @@ static void hierarchy_link_add_unique(
   parentEntry->parentMask |= type;
   childEntry->childMask |= type;
 
-  if (sentinel_check(childEntry->firstParent)) {
+  if (sentinel_check(childEntry->firstParent) && type != HierarchyLinkMask_Reference) {
     childEntry->firstParent = parent;
   }
 
