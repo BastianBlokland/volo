@@ -345,6 +345,16 @@ static void hierarchy_link_entity_apply_requests(HierarchyContext* ctx) {
   trace_end();
 
   trace_begin("requests_apply", TraceColor_Blue);
+
+  HierarchyId setEntries[256];
+  const u32   setSlotCount = scene_set_slot_count(ctx->setEnv);
+  if (UNLIKELY(setSlotCount > array_elems(setEntries))) {
+    diag_crash_msg("Global set count exceeds maximum");
+  }
+  for (u32 setIdx = 0; setIdx != setSlotCount; ++setIdx) {
+    setEntries[setIdx] = hierarchy_find(ctx, hierarchy_stable_id_set(setIdx));
+  }
+
   dynarray_for_t(&ctx->panel->linkEntityRequests, HierarchyLinkEntityRequest, req) {
     const HierarchyId childId = hierarchy_find_entity(ctx, req->child);
     diag_assert(!sentinel_check(childId)); // Child has to exist.
@@ -362,12 +372,11 @@ static void hierarchy_link_entity_apply_requests(HierarchyContext* ctx) {
       const u32 slotIndex = scene_set_slot_find(ctx->setEnv, req->parent.set);
       diag_assert(!sentinel_check(slotIndex));
 
-      const HierarchyId parentId = hierarchy_find(ctx, hierarchy_stable_id_set(slotIndex));
-      if (sentinel_check(parentId)) {
+      if (sentinel_check(setEntries[slotIndex])) {
         continue; // Set does not have a hierarchy entry.
       }
       // NOTE: No duplicates are allowed in set requests.
-      hierarchy_link_add(ctx, parentId, childId, req->type);
+      hierarchy_link_add(ctx, setEntries[slotIndex], childId, req->type);
       break;
     }
     }
