@@ -213,16 +213,16 @@ static HierarchyId hierarchy_entry_id(HierarchyContext* ctx, const HierarchyEntr
 static HierarchyId hierarchy_find(HierarchyContext* ctx, const HierarchyStableId stableId) {
   const HierarchyEntry tgt = {.stableId = stableId};
   const void* res = dynarray_search_binary(&ctx->panel->entries, hierarchy_compare_entry, &tgt);
-  return res ? hierarchy_entry_id(ctx, res) : sentinel_u32;
+  return LIKELY(res) ? hierarchy_entry_id(ctx, res) : sentinel_u32;
 }
 
 static HierarchyId hierarchy_find_entity(HierarchyContext* ctx, const EcsEntityId e) {
   const HierarchyId id = hierarchy_find(ctx, hierarchy_stable_id_entity(e));
-  if (sentinel_check(id)) {
+  if (UNLIKELY(sentinel_check(id))) {
     return sentinel_u32;
   }
   const HierarchyEntry* entry = hierarchy_entry(ctx, id);
-  if (entry->entity != e) {
+  if (UNLIKELY(entry->entity != e)) {
     return sentinel_u32; // Entity index has been re-used; not the same entity.
   }
   return id;
@@ -355,9 +355,22 @@ static void hierarchy_link_entity_apply_requests(HierarchyContext* ctx) {
     setEntries[setIdx] = hierarchy_find(ctx, hierarchy_stable_id_set(setIdx));
   }
 
+  // Cache of the previously looked up childId, usefull as often childs have multiple links.
+  EcsEntityId lastChild   = ecs_entity_invalid;
+  HierarchyId lastChildId = sentinel_u32;
+
   dynarray_for_t(&ctx->panel->linkEntityRequests, HierarchyLinkEntityRequest, req) {
-    const HierarchyId childId = hierarchy_find_entity(ctx, req->child);
-    diag_assert(!sentinel_check(childId)); // Child has to exist.
+    HierarchyId childId;
+    if (req->child == lastChild) {
+      childId = lastChildId;
+    } else {
+      childId = hierarchy_find_entity(ctx, req->child);
+      diag_assert(!sentinel_check(childId)); // Child has to exist.
+
+      // Cache the result in case this child has another link request right after.
+      lastChild   = req->child;
+      lastChildId = childId;
+    }
 
     switch (req->parentKind) {
     case HierarchyKind_Entity: {
