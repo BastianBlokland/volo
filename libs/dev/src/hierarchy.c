@@ -228,7 +228,7 @@ static HierarchyId hierarchy_find_entity(HierarchyContext* ctx, const EcsEntityI
   return id;
 }
 
-static void hierarchy_link_add(
+static void hierarchy_link_add_dedup(
     HierarchyContext*       ctx,
     const HierarchyId       parent,
     const HierarchyId       child,
@@ -243,12 +243,12 @@ static void hierarchy_link_add(
     childEntry->firstParent = parent;
   }
 
-  // Walk the existing links.
+  // Walk the existing links to check for duplicates.
   HierarchyLinkId* linkItr = &parentEntry->linkHead;
   while (!sentinel_check(*linkItr)) {
     HierarchyLink* link = hierarchy_link(ctx, *linkItr);
     if (link->target == child) {
-      link->mask |= type;
+      link->mask |= type; // Merge links.
       return;
     }
     linkItr = &link->next;
@@ -300,25 +300,30 @@ static void hierarchy_link_entity_apply_requests(HierarchyContext* ctx) {
 
   trace_begin("requests_apply", TraceColor_Blue);
   dynarray_for_t(&ctx->panel->linkEntityRequests, HierarchyLinkEntityRequest, req) {
-    HierarchyId parentId = sentinel_u32;
-    switch (req->parentKind) {
-    case HierarchyKind_Entity:
-      parentId = hierarchy_find_entity(ctx, req->parent.entity);
-      break;
-    case HierarchyKind_Set: {
-      const u32 slotIndex = scene_set_slot_find(ctx->setEnv, req->parent.set);
-      if (!sentinel_check(slotIndex)) {
-        parentId = hierarchy_find(ctx, hierarchy_stable_id_set(slotIndex));
-      }
-    }
-    }
-    if (sentinel_check(parentId)) {
-      continue; // Parent does not exist anymore.
-    }
     const HierarchyId childId = hierarchy_find_entity(ctx, req->child);
     diag_assert(!sentinel_check(childId)); // Child has to exist.
 
-    hierarchy_link_add(ctx, parentId, childId, req->type);
+    switch (req->parentKind) {
+    case HierarchyKind_Entity: {
+      const HierarchyId parentId = hierarchy_find_entity(ctx, req->parent.entity);
+      if (sentinel_check(parentId)) {
+        continue; // Parent does not exist anymore.
+      }
+      hierarchy_link_add_dedup(ctx, parentId, childId, req->type);
+      break;
+    }
+    case HierarchyKind_Set: {
+      const u32 slotIndex = scene_set_slot_find(ctx->setEnv, req->parent.set);
+      diag_assert(!sentinel_check(slotIndex));
+
+      const HierarchyId parentId = hierarchy_find(ctx, hierarchy_stable_id_set(slotIndex));
+      if (sentinel_check(parentId)) {
+        continue; // Set does not have a hierarchy entry/
+      }
+      hierarchy_link_add_dedup(ctx, parentId, childId, req->type);
+      break;
+    }
+    }
   }
   trace_end();
 
