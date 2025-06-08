@@ -228,7 +228,46 @@ static HierarchyId hierarchy_find_entity(HierarchyContext* ctx, const EcsEntityI
   return id;
 }
 
-static void hierarchy_link_add_dedup(
+/**
+ * Register a link between the parent and child entries.
+ * NOTE: Does not handle duplicates (not even of different link types).
+ */
+static void hierarchy_link_add(
+    HierarchyContext*       ctx,
+    const HierarchyId       parent,
+    const HierarchyId       child,
+    const HierarchyLinkMask type) {
+  HierarchyEntry* parentEntry = hierarchy_entry(ctx, parent);
+  HierarchyEntry* childEntry  = hierarchy_entry(ctx, child);
+
+  parentEntry->parentMask |= type;
+  childEntry->childMask |= type;
+
+  if (sentinel_check(childEntry->firstParent)) {
+    childEntry->firstParent = parent;
+  }
+
+  // Add a new link.
+  const HierarchyLinkId linkId                        = (HierarchyLinkId)ctx->panel->links.size;
+  *dynarray_push_t(&ctx->panel->links, HierarchyLink) = (HierarchyLink){
+      .mask   = type,
+      .target = child,
+      .next   = sentinel_u32,
+  };
+
+  if (!sentinel_check(parentEntry->linkTail)) {
+    hierarchy_link(ctx, parentEntry->linkTail)->next = linkId;
+  } else {
+    parentEntry->linkHead = linkId;
+  }
+  parentEntry->linkTail = linkId;
+}
+
+/**
+ * Register a new link between the parent and child entries.
+ * NOTE: This automatically deduplicates links between the same parent <-> child.
+ */
+static void hierarchy_link_add_unique(
     HierarchyContext*       ctx,
     const HierarchyId       parent,
     const HierarchyId       child,
@@ -255,16 +294,19 @@ static void hierarchy_link_add_dedup(
   }
 
   // Add a new link.
-  *linkItr                                            = (HierarchyLinkId)ctx->panel->links.size;
+  *linkItr              = (HierarchyLinkId)ctx->panel->links.size;
+  parentEntry->linkTail = *linkItr;
+
   *dynarray_push_t(&ctx->panel->links, HierarchyLink) = (HierarchyLink){
       .mask   = type,
       .target = child,
       .next   = sentinel_u32,
   };
-  parentEntry->linkTail = *linkItr;
-  return;
 }
 
+/**
+ * Request the given entity to be linked to a parent entity.
+ */
 static void hierarchy_link_entity_request(
     HierarchyContext*       ctx,
     const EcsEntityId       parent,
@@ -279,6 +321,10 @@ static void hierarchy_link_entity_request(
       };
 }
 
+/**
+ * Request the given entity to be linked to a set.
+ * NOTE: No duplicate requests are allowed between the same entity <-> set.
+ */
 static void hierarchy_link_entity_to_set_request(
     HierarchyContext*       ctx,
     const StringHash        set,
@@ -309,7 +355,7 @@ static void hierarchy_link_entity_apply_requests(HierarchyContext* ctx) {
       if (sentinel_check(parentId)) {
         continue; // Parent does not exist anymore.
       }
-      hierarchy_link_add_dedup(ctx, parentId, childId, req->type);
+      hierarchy_link_add_unique(ctx, parentId, childId, req->type);
       break;
     }
     case HierarchyKind_Set: {
@@ -318,9 +364,10 @@ static void hierarchy_link_entity_apply_requests(HierarchyContext* ctx) {
 
       const HierarchyId parentId = hierarchy_find(ctx, hierarchy_stable_id_set(slotIndex));
       if (sentinel_check(parentId)) {
-        continue; // Set does not have a hierarchy entry/
+        continue; // Set does not have a hierarchy entry.
       }
-      hierarchy_link_add_dedup(ctx, parentId, childId, req->type);
+      // NOTE: No duplicates are allowed in set requests.
+      hierarchy_link_add(ctx, parentId, childId, req->type);
       break;
     }
     }
@@ -353,6 +400,7 @@ static void hierarchy_query(HierarchyContext* ctx) {
         .entity      = entity,
         .nameHash    = ecs_view_read_t(itr, SceneNameComp)->name,
         .linkHead    = sentinel_u32,
+        .linkTail    = sentinel_u32,
         .firstParent = sentinel_u32,
         .stableId    = hierarchy_stable_id_entity(entity),
     };
@@ -400,6 +448,7 @@ static void hierarchy_query(HierarchyContext* ctx) {
       *dynarray_push_t(&ctx->panel->entries, HierarchyEntry) = (HierarchyEntry){
           .nameHash    = set,
           .linkHead    = sentinel_u32,
+          .linkTail    = sentinel_u32,
           .firstParent = sentinel_u32,
           .stableId    = hierarchy_stable_id_set(setSlotIdx),
       };
