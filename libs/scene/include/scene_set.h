@@ -46,3 +46,10 @@ const EcsEntityId* scene_set_end(const SceneSetEnvComp*, StringHash set);
 void scene_set_add(SceneSetEnvComp*, StringHash set, EcsEntityId, SceneSetFlags);
 void scene_set_remove(SceneSetEnvComp*, StringHash set, EcsEntityId);
 void scene_set_clear(SceneSetEnvComp*, StringHash set);
+
+/**
+ * Iterate all sets.
+ */
+u32        scene_set_slot_count(const SceneSetEnvComp*);
+StringHash scene_set_slot_get(const SceneSetEnvComp*, u32 slotIndex);
+u32        scene_set_slot_find(const SceneSetEnvComp*, StringHash set);
