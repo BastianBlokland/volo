@@ -365,11 +365,13 @@ static void hierarchy_link_entity_apply_requests(HierarchyContext* ctx) {
       childId = lastChildId;
     } else {
       childId = hierarchy_find_entity(ctx, req->child);
-      diag_assert(!sentinel_check(childId)); // Child has to exist.
 
       // Cache the result in case this child has another link request right after.
       lastChild   = req->child;
       lastChildId = childId;
+    }
+    if (sentinel_check(childId)) {
+      continue; // Child does not exist anymore.
     }
 
     switch (req->parentKind) {
