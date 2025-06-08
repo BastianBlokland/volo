@@ -68,10 +68,11 @@ typedef struct {
 } HierarchyLink;
 
 typedef struct {
-  HierarchyLinkMask parentMask, childMask;
-  EcsEntityId       entity; // Optional reference to an entity.
+  HierarchyLinkMask parentMask : 16;
+  HierarchyLinkMask childMask : 16;
   StringHash        nameHash;
-  HierarchyLinkId   linkHead;
+  EcsEntityId       entity; // Optional reference to an entity.
+  HierarchyLinkId   linkHead, linkTail;
   HierarchyId       firstParent;
   HierarchyStableId stableId;
 } HierarchyEntry;
@@ -243,24 +244,24 @@ static void hierarchy_link_add(
   }
 
   // Walk the existing links.
-  HierarchyLinkId* linkTail = &parentEntry->linkHead;
-  while (!sentinel_check(*linkTail)) {
-    HierarchyLink* link = hierarchy_link(ctx, *linkTail);
+  HierarchyLinkId* linkItr = &parentEntry->linkHead;
+  while (!sentinel_check(*linkItr)) {
+    HierarchyLink* link = hierarchy_link(ctx, *linkItr);
     if (link->target == child) {
       link->mask |= type;
       return;
     }
-    linkTail = &link->next;
+    linkItr = &link->next;
   }
 
   // Add a new link.
-  *linkTail                                           = (HierarchyLinkId)ctx->panel->links.size;
+  *linkItr                                            = (HierarchyLinkId)ctx->panel->links.size;
   *dynarray_push_t(&ctx->panel->links, HierarchyLink) = (HierarchyLink){
       .mask   = type,
       .target = child,
       .next   = sentinel_u32,
   };
-
+  parentEntry->linkTail = *linkItr;
   return;
 }
 
