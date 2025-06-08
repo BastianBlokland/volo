@@ -406,10 +406,14 @@ static void hierarchy_link_entity_apply_requests(HierarchyContext* ctx) {
   dynarray_clear(&ctx->panel->linkEntityRequests);
 }
 
+static bool hierarchy_is_root(const HierarchyEntry* entry) {
+  return (entry->childMask & ~HierarchyLinkMask_Reference) == 0;
+}
+
 static u32 hierarchy_next_root(HierarchyContext* ctx, u32 entryIdx) {
   for (; entryIdx != ctx->panel->entries.size; ++entryIdx) {
-    HierarchyEntry* entry = hierarchy_entry(ctx, entryIdx);
-    if (!entry->childMask) {
+    const HierarchyEntry* entry = hierarchy_entry(ctx, entryIdx);
+    if (hierarchy_is_root(entry)) {
       break;
     }
   }
