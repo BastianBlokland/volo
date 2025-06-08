@@ -21,8 +21,11 @@
 #include "scene_creator.h"
 #include "scene_lifetime.h"
 #include "scene_name.h"
+#include "scene_property.h"
 #include "scene_set.h"
 #include "scene_time.h"
+#include "script_mem.h"
+#include "script_val.h"
 #include "trace_tracer.h"
 #include "ui_canvas.h"
 #include "ui_layout.h"
@@ -59,6 +62,9 @@ typedef enum {
   HierarchyLinkMask_Creator    = 1 << 1,
   HierarchyLinkMask_Lifetime   = 1 << 2,
   HierarchyLinkMask_Attachment = 1 << 3,
+  HierarchyLinkMask_Reference  = 1 << 4,
+
+  HierarchyLinkMask_Hard = ~HierarchyLinkMask_Reference,
 } HierarchyLinkMask;
 
 typedef struct {
@@ -73,7 +79,7 @@ typedef struct {
   StringHash        nameHash;
   EcsEntityId       entity; // Optional reference to an entity.
   HierarchyLinkId   linkHead, linkTail;
-  HierarchyId       firstParent;
+  HierarchyId       firstHardParent;
   HierarchyStableId stableId;
 } HierarchyEntry;
 
@@ -130,6 +136,7 @@ ecs_view_define(HierarchyEntryView) {
   ecs_access_maybe_read(SceneCreatorComp);
   ecs_access_maybe_read(SceneLifetimeOwnerComp);
   ecs_access_maybe_read(SceneSetMemberComp);
+  ecs_access_maybe_read(ScenePropertyComp);
 }
 
 ecs_view_define(PanelUpdateGlobalView) {
@@ -243,8 +250,8 @@ static void hierarchy_link_add(
   parentEntry->parentMask |= type;
   childEntry->childMask |= type;
 
-  if (sentinel_check(childEntry->firstParent)) {
-    childEntry->firstParent = parent;
+  if (sentinel_check(childEntry->firstHardParent) && (type & HierarchyLinkMask_Hard)) {
+    childEntry->firstHardParent = parent;
   }
 
   // Add a new link.
@@ -278,8 +285,8 @@ static void hierarchy_link_add_unique(
   parentEntry->parentMask |= type;
   childEntry->childMask |= type;
 
-  if (sentinel_check(childEntry->firstParent)) {
-    childEntry->firstParent = parent;
+  if (sentinel_check(childEntry->firstHardParent) && (type & HierarchyLinkMask_Hard)) {
+    childEntry->firstHardParent = parent;
   }
 
   // Walk the existing links to check for duplicates.
@@ -365,11 +372,13 @@ static void hierarchy_link_entity_apply_requests(HierarchyContext* ctx) {
       childId = lastChildId;
     } else {
       childId = hierarchy_find_entity(ctx, req->child);
-      diag_assert(!sentinel_check(childId)); // Child has to exist.
 
       // Cache the result in case this child has another link request right after.
       lastChild   = req->child;
       lastChildId = childId;
+    }
+    if (sentinel_check(childId)) {
+      continue; // Child does not exist anymore.
     }
 
     switch (req->parentKind) {
@@ -399,10 +408,14 @@ static void hierarchy_link_entity_apply_requests(HierarchyContext* ctx) {
   dynarray_clear(&ctx->panel->linkEntityRequests);
 }
 
+static bool hierarchy_is_root(const HierarchyEntry* entry) {
+  return (entry->childMask & HierarchyLinkMask_Hard) == 0;
+}
+
 static u32 hierarchy_next_root(HierarchyContext* ctx, u32 entryIdx) {
   for (; entryIdx != ctx->panel->entries.size; ++entryIdx) {
-    HierarchyEntry* entry = hierarchy_entry(ctx, entryIdx);
-    if (!entry->childMask) {
+    const HierarchyEntry* entry = hierarchy_entry(ctx, entryIdx);
+    if (hierarchy_is_root(entry)) {
       break;
     }
   }
@@ -419,12 +432,12 @@ static void hierarchy_query(HierarchyContext* ctx) {
     const EcsEntityId entity = ecs_view_entity(itr);
 
     *dynarray_push_t(&ctx->panel->entries, HierarchyEntry) = (HierarchyEntry){
-        .entity      = entity,
-        .nameHash    = ecs_view_read_t(itr, SceneNameComp)->name,
-        .linkHead    = sentinel_u32,
-        .linkTail    = sentinel_u32,
-        .firstParent = sentinel_u32,
-        .stableId    = hierarchy_stable_id_entity(entity),
+        .entity          = entity,
+        .nameHash        = ecs_view_read_t(itr, SceneNameComp)->name,
+        .linkHead        = sentinel_u32,
+        .linkTail        = sentinel_u32,
+        .firstHardParent = sentinel_u32,
+        .stableId        = hierarchy_stable_id_entity(entity),
     };
 
     const SceneCreatorComp* creatorComp = ecs_view_read_t(itr, SceneCreatorComp);
@@ -453,6 +466,16 @@ static void hierarchy_query(HierarchyContext* ctx) {
         hierarchy_link_entity_to_set_request(ctx, set, entity, HierarchyLinkMask_SetMember);
       }
     }
+    const ScenePropertyComp* propComp = ecs_view_read_t(itr, ScenePropertyComp);
+    if (propComp) {
+      const ScriptMem* memory = scene_prop_memory(propComp);
+      for (ScriptMemItr i = script_mem_begin(memory); i.key; i = script_mem_next(memory, i)) {
+        const EcsEntityId ref = script_get_entity(script_mem_load(memory, i.key), 0);
+        if (ref) {
+          hierarchy_link_entity_request(ctx, entity, ref, HierarchyLinkMask_Reference);
+        }
+      }
+    }
   }
   trace_end();
 
@@ -468,11 +491,11 @@ static void hierarchy_query(HierarchyContext* ctx) {
         continue; // Filter out selected set as it doesn't add much value
       }
       *dynarray_push_t(&ctx->panel->entries, HierarchyEntry) = (HierarchyEntry){
-          .nameHash    = set,
-          .linkHead    = sentinel_u32,
-          .linkTail    = sentinel_u32,
-          .firstParent = sentinel_u32,
-          .stableId    = hierarchy_stable_id_set(setSlotIdx),
+          .nameHash        = set,
+          .linkHead        = sentinel_u32,
+          .linkTail        = sentinel_u32,
+          .firstHardParent = sentinel_u32,
+          .stableId        = hierarchy_stable_id_set(setSlotIdx),
       };
     }
     trace_end();
@@ -528,10 +551,10 @@ static void hierarchy_open_rec(HierarchyContext* ctx, const HierarchyEntry* e, c
 }
 
 static void hierarchy_open_to_root(HierarchyContext* ctx, const HierarchyEntry* e, const bool v) {
-  for (HierarchyId p = e->firstParent; !sentinel_check(p);) {
+  for (HierarchyId p = e->firstHardParent; !sentinel_check(p);) {
     HierarchyEntry* entry = hierarchy_entry(ctx, p);
     hierarchy_open(ctx, entry, v);
-    p = entry->firstParent;
+    p = entry->firstHardParent;
   }
 }
 
@@ -566,10 +589,10 @@ static void hierarchy_filter(HierarchyContext* ctx) {
       if (dynbitset_test(&ctx->panel->filterResult, id)) {
         continue; // Filtered out.
       }
-      for (HierarchyId p = hierarchy_entry(ctx, id)->firstParent; !sentinel_check(p);) {
+      for (HierarchyId p = hierarchy_entry(ctx, id)->firstHardParent; !sentinel_check(p);) {
         HierarchyEntry* entry = hierarchy_entry(ctx, p);
         dynbitset_clear(&ctx->panel->filterResult, p);
-        p = entry->firstParent;
+        p = entry->firstHardParent;
       }
     }
   }
@@ -871,7 +894,9 @@ static void hierarchy_options_draw(HierarchyContext* ctx, UiCanvasComp* canvas) 
   ui_table_next_column(canvas, &table);
   ui_label(canvas, string_lit("Sets:"));
   ui_table_next_column(canvas, &table);
-  ui_toggle(canvas, &ctx->panel->includeSets, .tooltip = g_tooltipSets);
+  if (ui_toggle(canvas, &ctx->panel->includeSets, .tooltip = g_tooltipSets)) {
+    ctx->panel->focusOnSelection = true;
+  }
 
   ui_layout_pop(canvas);
 }
@@ -1017,10 +1042,14 @@ ecs_system_define(DevHierarchyUpdatePanelSys) {
     hierarchy_filter(&ctx);
     trace_end();
 
-    if (ctx.panel->lastMainSelection != mainSelection || ctx.panel->focusOnSelection) {
+    if (ctx.panel->lastMainSelection != mainSelection) {
       ctx.panel->lastMainSelection = mainSelection;
-      ctx.panel->focusOnSelection  = false;
       hierarchy_focus_entity(&ctx, mainSelection);
+    }
+    if (ctx.panel->focusOnSelection) {
+      // HACK: Intentially delayed a frame so the visiblity bits has been updated before focussing.
+      ctx.panel->lastMainSelection = 0;
+      ctx.panel->focusOnSelection  = false;
     }
 
     trace_begin("draw", TraceColor_Blue);
