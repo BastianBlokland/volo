@@ -200,7 +200,6 @@ static i8 hierarchy_compare_link_entity_request(const void* a, const void* b) {
                                                        : 0;
   case HierarchyKind_Set:
     return reqA->parent.set < reqB->parent.set ? -1 : reqA->parent.set > reqB->parent.set ? 1 : 0;
-    break;
   }
   UNREACHABLE
 }
@@ -347,12 +346,21 @@ static void hierarchy_link_entity_to_set_request(
 }
 
 static void hierarchy_link_entity_apply_requests(HierarchyContext* ctx) {
-  trace_begin("requests_sort", TraceColor_Blue);
-  dynarray_sort(&ctx->panel->linkEntityRequests, hierarchy_compare_link_entity_request);
+  trace_begin("entity_cache_construct", TraceColor_Blue);
+  enum { EntityCacheMax = 100 * 1000 };
+  HierarchyId entityEntryCache[EntityCacheMax];
+  mem_set(array_mem(entityEntryCache), 0xFF);
+
+  for (HierarchyId entryId = 0; entryId != ctx->panel->entries.size; ++entryId) {
+    const EcsEntityId entity      = hierarchy_entry(ctx, entryId)->entity;
+    const u32         entityIndex = ecs_entity_id_index(entity);
+    if (ecs_entity_valid(entity) && entityIndex < EntityCacheMax) {
+      entityEntryCache[entityIndex] = entryId;
+    }
+  }
   trace_end();
 
-  trace_begin("requests_apply", TraceColor_Blue);
-
+  trace_begin("set_cache_construct", TraceColor_Blue);
   HierarchyId setEntries[256];
   const u32   setSlotCount = scene_set_slot_count(ctx->setEnv);
   if (UNLIKELY(setSlotCount > array_elems(setEntries))) {
@@ -361,44 +369,46 @@ static void hierarchy_link_entity_apply_requests(HierarchyContext* ctx) {
   for (u32 setIdx = 0; setIdx != setSlotCount; ++setIdx) {
     setEntries[setIdx] = hierarchy_find(ctx, hierarchy_stable_id_set(setIdx));
   }
+  trace_end();
 
-  // Cache of the previously looked up childId, usefull as often childs have multiple links.
-  EcsEntityId lastChild   = ecs_entity_invalid;
-  HierarchyId lastChildId = sentinel_u32;
+  trace_begin("requests_sort", TraceColor_Blue);
+  dynarray_sort(&ctx->panel->linkEntityRequests, hierarchy_compare_link_entity_request);
+  trace_end();
 
+  trace_begin("requests_apply", TraceColor_Blue);
   dynarray_for_t(&ctx->panel->linkEntityRequests, HierarchyLinkEntityRequest, req) {
     HierarchyId childId;
-    if (req->child == lastChild) {
-      childId = lastChildId;
+    if (LIKELY(ecs_entity_id_index(req->child) < EntityCacheMax)) {
+      childId = entityEntryCache[ecs_entity_id_index(req->child)];
     } else {
-      childId = hierarchy_find_entity(ctx, req->child);
-
-      // Cache the result in case this child has another link request right after.
-      lastChild   = req->child;
-      lastChildId = childId;
+      childId = hierarchy_find(ctx, hierarchy_stable_id_entity(req->child));
     }
-    if (sentinel_check(childId)) {
+    if (sentinel_check(childId) || hierarchy_entry(ctx, childId)->entity != req->child) {
       continue; // Child does not exist anymore.
     }
 
     switch (req->parentKind) {
     case HierarchyKind_Entity: {
-      const HierarchyId parentId = hierarchy_find_entity(ctx, req->parent.entity);
-      if (sentinel_check(parentId)) {
-        continue; // Parent does not exist anymore.
+      const EcsEntityId parentEntity = req->parent.entity;
+      HierarchyId       parentId;
+      if (LIKELY(ecs_entity_id_index(parentEntity) < EntityCacheMax)) {
+        parentId = entityEntryCache[ecs_entity_id_index(parentEntity)];
+      } else {
+        parentId = hierarchy_find(ctx, hierarchy_stable_id_entity(parentEntity));
       }
-      hierarchy_link_add_unique(ctx, parentId, childId, req->type);
+      if (!sentinel_check(parentId) && hierarchy_entry(ctx, parentId)->entity == parentEntity) {
+        hierarchy_link_add_unique(ctx, parentId, childId, req->type);
+      }
       break;
     }
     case HierarchyKind_Set: {
       const u32 slotIndex = scene_set_slot_find(ctx->setEnv, req->parent.set);
       diag_assert(!sentinel_check(slotIndex));
 
-      if (sentinel_check(setEntries[slotIndex])) {
-        continue; // Set does not have a hierarchy entry.
+      if (!sentinel_check(setEntries[slotIndex])) {
+        // NOTE: No duplicates are allowed in set requests.
+        hierarchy_link_add(ctx, setEntries[slotIndex], childId, req->type);
       }
-      // NOTE: No duplicates are allowed in set requests.
-      hierarchy_link_add(ctx, setEntries[slotIndex], childId, req->type);
       break;
     }
     }
