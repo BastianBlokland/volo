@@ -16,6 +16,7 @@ typedef enum {
   SortSwapType_u64,
 #ifdef VOLO_SIMD
   SortSwapType_u128,
+  SortSwapType_u256,
 #endif
 } SortSwapType;
 
@@ -48,6 +49,17 @@ INLINE_HINT static void sort_swap_u128(u8* a, u8* b, u16 bytes) {
     b += 16;
   } while (bytes -= 16);
 }
+
+INLINE_HINT static void sort_swap_u256(u8* a, u8* b, u16 bytes) {
+  do {
+    const SimdVec256 tmp = simd_vec_256_load(a);
+    simd_vec_256_store(simd_vec_256_load(b), a);
+    simd_vec_256_store(tmp, b);
+
+    a += 32;
+    b += 32;
+  } while (bytes -= 32);
+}
 #endif
 
 INLINE_HINT static void sort_swap(u8* a, u8* b, const u16 bytes, const SortSwapType type) {
@@ -62,6 +74,9 @@ INLINE_HINT static void sort_swap(u8* a, u8* b, const u16 bytes, const SortSwapT
   case SortSwapType_u128:
     sort_swap_u128(a, b, bytes);
     return;
+  case SortSwapType_u256:
+    sort_swap_u256(a, b, bytes);
+    return;
 #endif
   }
   UNREACHABLE
@@ -69,6 +84,9 @@ INLINE_HINT static void sort_swap(u8* a, u8* b, const u16 bytes, const SortSwapT
 
 INLINE_HINT static SortSwapType sort_swap_type(u8* ptr, const u16 bytes) {
 #ifdef VOLO_SIMD
+  if (bits_aligned_ptr(ptr, 32) && bits_aligned(bytes, 32)) {
+    return SortSwapType_u256;
+  }
   if (bits_aligned_ptr(ptr, 16) && bits_aligned(bytes, 16)) {
     return SortSwapType_u128;
   }
