@@ -43,7 +43,7 @@ static const String g_tooltipFreeze     = string_static("Freeze the data set (ha
 static const String g_tooltipSets       = string_static("Include sets in the hierarchy.");
 static const String g_tooltipFoldOpen   = string_static("Show children.");
 static const String g_tooltipFoldClose  = string_static("Hide children.");
-static const String g_tooltipFoldFilter = string_static("Unable to hide children while a filter is active.");
+static const String g_tooltipFoldFilter = string_static("Filter is active; unable to toggle children.");
 
 // clang-format on
 
