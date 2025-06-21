@@ -67,6 +67,14 @@ typedef enum {
   HierarchyLinkMask_Hard = ~HierarchyLinkMask_Reference,
 } HierarchyLinkMask;
 
+static const String g_linkNames[] = {
+    string_static("SetMember"),
+    string_static("Creator"),
+    string_static("Lifetime"),
+    string_static("Attachment"),
+    string_static("Reference"),
+};
+
 typedef struct {
   HierarchyLinkMask mask;
   HierarchyLinkId   next;
@@ -747,8 +755,15 @@ static bool hierarchy_doubleclick_update(HierarchyContext* ctx, const HierarchyE
   return result;
 }
 
-static String hierarchy_entry_tooltip_scratch(HierarchyContext* ctx, const HierarchyEntry* entry) {
+static String hierarchy_entry_tooltip_scratch(
+    HierarchyContext* ctx, const HierarchyEntry* entry, const HierarchyLink* link) {
   DynString str = dynstring_create_over(alloc_alloc(g_allocScratch, 8 * usize_kibibyte, 1));
+  if (link) {
+    fmt_write(&str, "Parent link:\n");
+    bitset_for(bitset_from_var(link->mask), idx) {
+      fmt_write(&str, "- {}\n", fmt_text(g_linkNames[idx]));
+    }
+  }
   if (hierarchy_stable_id_kind(entry->stableId) == HierarchyKind_Set) {
     fmt_write(&str, "Set: {}\n", fmt_int(entry->nameHash));
   }
@@ -780,7 +795,8 @@ static void hierarchy_entry_draw(
     UiCanvasComp*         canvas,
     UiTable*              table,
     const HierarchyEntry* entry,
-    const u32             depth) {
+    const u32             depth,
+    const HierarchyLink*  link) {
   const bool   selected  = hierarchy_is_selected(ctx, entry);
   const bool   isPicking = ctx->inspector && dev_inspector_picker_active(ctx->inspector);
   const String name      = hierarchy_name(entry->nameHash);
@@ -801,7 +817,7 @@ static void hierarchy_entry_draw(
       }
       ui_tooltip(canvas, bgId, string_lit("Pick this entity."));
     } else {
-      ui_tooltip(canvas, bgId, hierarchy_entry_tooltip_scratch(ctx, entry));
+      ui_tooltip(canvas, bgId, hierarchy_entry_tooltip_scratch(ctx, entry, link));
     }
   } else {
     ui_canvas_id_skip(canvas, 2);
@@ -964,10 +980,11 @@ static void hierarchy_panel_draw(HierarchyContext* ctx, UiCanvasComp* canvas) {
     // Pick entry.
     const HierarchyEntry* entry;
     u32                   entryDepth;
+    HierarchyLink*        link;
     if (childQueueSize) {
-      HierarchyLink* link = hierarchy_link(ctx, childQueue[childQueueSize - 1]);
-      entry               = hierarchy_entry(ctx, link->target);
-      entryDepth          = childDepth[childQueueSize - 1];
+      link       = hierarchy_link(ctx, childQueue[childQueueSize - 1]);
+      entry      = hierarchy_entry(ctx, link->target);
+      entryDepth = childDepth[childQueueSize - 1];
 
       if (sentinel_check(link->next)) {
         --childQueueSize;
@@ -977,6 +994,7 @@ static void hierarchy_panel_draw(HierarchyContext* ctx, UiCanvasComp* canvas) {
     } else {
       entry      = hierarchy_entry(ctx, rootIdx);
       entryDepth = 0;
+      link       = null;
       rootIdx    = hierarchy_next_root(ctx, rootIdx + 1);
     }
 
@@ -998,7 +1016,7 @@ static void hierarchy_panel_draw(HierarchyContext* ctx, UiCanvasComp* canvas) {
       }
     } else {
       ui_table_jump_row(canvas, &table, ctx->panel->panelRowCount - 1);
-      hierarchy_entry_draw(ctx, canvas, &table, entry, entryDepth);
+      hierarchy_entry_draw(ctx, canvas, &table, entry, entryDepth, link);
       dynbitset_set(&ctx->panel->visibleEntries, entry->stableId);
     }
 
