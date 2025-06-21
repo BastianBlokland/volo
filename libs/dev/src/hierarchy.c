@@ -763,23 +763,23 @@ static String hierarchy_entry_tooltip_scratch(
     HierarchyContext* ctx, const HierarchyEntry* entry, const HierarchyLink* link) {
   DynString str = dynstring_create_over(alloc_alloc(g_allocScratch, 8 * usize_kibibyte, 1));
   if (link) {
-    fmt_write(&str, "Parent link:\n");
+    fmt_write(&str, "\a.bParent link\ar:\n");
     bitset_for(bitset_from_var(link->mask), idx) {
       fmt_write(&str, "- {}\n", fmt_text(g_linkNames[idx]));
     }
   }
   if (entry->childCount) {
     if (entry->childCount == u16_max) {
-      fmt_write(&str, "Children: {}+\n", fmt_int(u16_max));
+      fmt_write(&str, "\a.bChildren\ar: {}+\n", fmt_int(u16_max));
     } else {
-      fmt_write(&str, "Children: {}\n", fmt_int(entry->childCount));
+      fmt_write(&str, "\a.bChildren\ar: {}\n", fmt_int(entry->childCount));
     }
   }
   if (hierarchy_stable_id_kind(entry->stableId) == HierarchyKind_Set) {
-    fmt_write(&str, "Set: {}\n", fmt_int(entry->nameHash));
+    fmt_write(&str, "\a.bSet\ar: {}\n", fmt_int(entry->nameHash));
   }
   if (ecs_entity_valid(entry->entity)) {
-    fmt_write(&str, "Entity: {}\n", ecs_entity_fmt(entry->entity));
+    fmt_write(&str, "\a.bEntity\ar: {}\n", ecs_entity_fmt(entry->entity));
 
     const EcsArchetypeId archetype = ecs_world_entity_archetype(ctx->world, entry->entity);
     if (!sentinel_check(archetype)) {
