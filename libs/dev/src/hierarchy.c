@@ -320,6 +320,9 @@ static void hierarchy_link_entity_request(
     const EcsEntityId       parent,
     const EcsEntityId       child,
     const HierarchyLinkMask type) {
+  if (!ecs_world_exists(ctx->world, parent) || !ecs_world_exists(ctx->world, child)) {
+    return; // Entity does not exist anymore.
+  }
   *dynarray_push_t(&ctx->panel->linkEntityRequests, HierarchyLinkEntityRequest) =
       (HierarchyLinkEntityRequest){
           .type          = type,
@@ -338,6 +341,9 @@ static void hierarchy_link_entity_to_set_request(
     const StringHash        set,
     const EcsEntityId       child,
     const HierarchyLinkMask type) {
+  if (!ecs_world_exists(ctx->world, child)) {
+    return; // Entity does not exist anymore.
+  }
   *dynarray_push_t(&ctx->panel->linkEntityRequests, HierarchyLinkEntityRequest) =
       (HierarchyLinkEntityRequest){
           .type       = type,
@@ -385,7 +391,7 @@ static void hierarchy_link_entity_apply_requests(HierarchyContext* ctx) {
     } else {
       childId = hierarchy_find(ctx, hierarchy_stable_id_entity(req->child));
     }
-    if (sentinel_check(childId) || hierarchy_entry(ctx, childId)->entity != req->child) {
+    if (sentinel_check(childId)) {
       continue; // Child does not exist anymore.
     }
 
@@ -398,7 +404,7 @@ static void hierarchy_link_entity_apply_requests(HierarchyContext* ctx) {
       } else {
         parentId = hierarchy_find(ctx, hierarchy_stable_id_entity(parentEntity));
       }
-      if (!sentinel_check(parentId) && hierarchy_entry(ctx, parentId)->entity == parentEntity) {
+      if (!sentinel_check(parentId)) {
         hierarchy_link_add_unique(ctx, parentId, childId, req->type);
       }
       break;
