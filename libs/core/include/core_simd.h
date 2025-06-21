@@ -18,6 +18,13 @@ MAYBE_UNUSED INLINE_HINT static void simd_copy_128(void* dst, const void* src) {
   _mm_storeu_si128(dst, _mm_loadu_si128(src));
 }
 
+/**
+ * Copy 256 bits from 'src' to 'dst'.
+ */
+MAYBE_UNUSED INLINE_HINT static void simd_copy_256(void* dst, const void* src) {
+  _mm256_storeu_si256(dst, _mm256_loadu_si256(src));
+}
+
 typedef __m128 SimdVec;
 typedef __m256 SimdVec256;
 
