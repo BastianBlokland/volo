@@ -3,6 +3,10 @@
 #include "core_diag.h"
 #include "core_sort.h"
 
+#ifdef VOLO_SIMD
+#include "core_simd.h"
+#endif
+
 // #define VOLO_SORT_VERIFY
 
 #define sort_quicksort_elems_min 10
@@ -10,6 +14,9 @@
 typedef enum {
   SortSwapType_u8,
   SortSwapType_u64,
+#ifdef VOLO_SIMD
+  SortSwapType_u128,
+#endif
 } SortSwapType;
 
 INLINE_HINT static void sort_swap_u8(u8* a, u8* b, u16 bytes) {
@@ -30,6 +37,19 @@ INLINE_HINT static void sort_swap_u64(u8* a, u8* b, u16 bytes) {
   } while (bytes -= sizeof(u64));
 }
 
+#ifdef VOLO_SIMD
+INLINE_HINT static void sort_swap_u128(u8* a, u8* b, u16 bytes) {
+  do {
+    const SimdVec tmp = simd_vec_load(a);
+    simd_vec_store(simd_vec_load(b), a);
+    simd_vec_store(tmp, b);
+
+    a += 16;
+    b += 16;
+  } while (bytes -= 16);
+}
+#endif
+
 INLINE_HINT static void sort_swap(u8* a, u8* b, const u16 bytes, const SortSwapType type) {
   switch (type) {
   case SortSwapType_u8:
@@ -38,11 +58,21 @@ INLINE_HINT static void sort_swap(u8* a, u8* b, const u16 bytes, const SortSwapT
   case SortSwapType_u64:
     sort_swap_u64(a, b, bytes);
     return;
+#ifdef VOLO_SIMD
+  case SortSwapType_u128:
+    sort_swap_u128(a, b, bytes);
+    return;
+#endif
   }
   UNREACHABLE
 }
 
 INLINE_HINT static SortSwapType sort_swap_type(u8* ptr, const u16 bytes) {
+#ifdef VOLO_SIMD
+  if (bits_aligned_ptr(ptr, 16) && bits_aligned(bytes, 16)) {
+    return SortSwapType_u128;
+  }
+#endif
   if (bits_aligned_ptr(ptr, sizeof(u64)) && bits_aligned(bytes, sizeof(u64))) {
     return SortSwapType_u64;
   }
