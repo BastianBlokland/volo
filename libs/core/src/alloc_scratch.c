@@ -66,7 +66,7 @@ static void alloc_scratch_free(Allocator* allocator, Mem mem) {
 
   diag_assert(mem_valid(mem));
 
-  // NOTE: Tag the remaining memory to detect UAF.
+  // NOTE: Tag the freed memory to detect UAF.
   alloc_tag_free(mem, AllocMemType_Scratch);
 }
 

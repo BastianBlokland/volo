@@ -44,8 +44,8 @@ void mem_cpy(const Mem dst, const Mem src) {
   const u8* srcEnd = mem_end(src);
 
 #ifdef VOLO_SIMD
-  for (usize chunks = src.size >> 4; chunks != 0; --chunks, srcItr += 16, dstItr += 16) {
-    simd_copy_128(dstItr, srcItr);
+  for (usize chunks = src.size >> 5; chunks != 0; --chunks, srcItr += 32, dstItr += 32) {
+    simd_copy_256(dstItr, srcItr);
   }
 #endif
 

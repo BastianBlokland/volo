@@ -18,7 +18,15 @@ MAYBE_UNUSED INLINE_HINT static void simd_copy_128(void* dst, const void* src) {
   _mm_storeu_si128(dst, _mm_loadu_si128(src));
 }
 
+/**
+ * Copy 256 bits from 'src' to 'dst'.
+ */
+MAYBE_UNUSED INLINE_HINT static void simd_copy_256(void* dst, const void* src) {
+  _mm256_storeu_si256(dst, _mm256_loadu_si256(src));
+}
+
 typedef __m128 SimdVec;
+typedef __m256 SimdVec256;
 
 #define simd_vec_shuffle(_A_, _B_, _C1_, _C2_, _C3_, _C4_)                                         \
   _mm_shuffle_ps((_A_), (_B_), _MM_SHUFFLE(_C1_, _C2_, _C3_, _C4_))
@@ -66,6 +74,22 @@ MAYBE_UNUSED INLINE_HINT static void simd_vec_store(const SimdVec vec, void* out
  */
 MAYBE_UNUSED INLINE_HINT static void simd_vec_store_unaligned(const SimdVec vec, void* out) {
   _mm_storeu_ps(out, vec);
+}
+
+/**
+ * Load 256 bits of data (256 bit aligned) into a Simd vector.
+ * Pre-condition: bits_aligned_ptr(data, 32)
+ */
+MAYBE_UNUSED INLINE_HINT static SimdVec256 simd_vec_256_load(const void* data) {
+  return _mm256_load_ps(data);
+}
+
+/**
+ * Store a Simd vector to memory (256 bit aligned).
+ * Pre-condition: bits_aligned_ptr(out, 32)
+ */
+MAYBE_UNUSED INLINE_HINT static void simd_vec_256_store(const SimdVec256 vec, void* out) {
+  _mm256_store_ps(out, vec);
 }
 
 MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_zero(void) { return _mm_setzero_ps(); }

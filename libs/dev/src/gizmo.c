@@ -180,6 +180,13 @@ static const String g_gizmoSectionNames[] = {
 };
 ASSERT(array_elems(g_gizmoSectionNames) == DevGizmoSection_Count, "Missing section name");
 
+static void gizmo_validate_pos(MAYBE_UNUSED const GeoVector vec) {
+  diag_assert_msg(
+      geo_vector_mag_sqr(vec) <= (1e5f * 1e5f),
+      "Position ({}) is out of bounds",
+      geo_vector_fmt(vec));
+}
+
 static bool gizmo_is_hovered(const DevGizmoComp* comp, const DevGizmoId id) {
   return comp->status >= DevGizmoStatus_Hovering && comp->activeId == id;
 }
@@ -878,9 +885,12 @@ bool dev_gizmo_translation(
   if (isInteracting) {
     if (comp->requestReset) {
       *translation = comp->editor.translation.basePos;
+      gizmo_validate_pos(*translation);
+
       gizmo_interaction_cancel(comp);
     } else {
       *translation = comp->editor.translation.result;
+      gizmo_validate_pos(*translation);
     }
   }
   return isInteracting;
