@@ -388,7 +388,7 @@ bool ui_fold_with_opts(UiCanvasComp* canvas, bool* value, const UiFoldOpts* opts
     break;
   case UiStatus_Idle:
     ui_style_color(canvas, opts->color);
-    ui_style_outline(canvas, 2);
+    ui_style_outline(canvas, opts->flags & UiWidget_Disabled ? 1 : 2);
     break;
   }
   const f32 angle = *value ? math_pi_f32 : math_pi_f32 * 0.5f;
