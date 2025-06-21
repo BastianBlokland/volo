@@ -35,7 +35,7 @@ jobs:
           }
         - {
             name: windows-msvc,
-            image: windows-2019,
+            image: windows-2022,
             os: windows,
             toolchain: msvc,
             cc: cl,
@@ -44,7 +44,7 @@ jobs:
           }
         - {
             name: windows-clang,
-            image: windows-2019,
+            image: windows-2022,
             os: windows,
             toolchain: msvc,
             cc: clang,
@@ -53,7 +53,7 @@ jobs:
           }
         - {
             name: windows-mingw,
-            image: windows-2019,
+            image: windows-2022,
             os: windows,
             toolchain: mingw,
             cc: gcc,
@@ -71,7 +71,7 @@ jobs:
           }
         - {
             name: windows-msvc-release,
-            image: windows-2019,
+            image: windows-2022,
             os: windows,
             toolchain: msvc,
             cc: cl,
