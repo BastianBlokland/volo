@@ -214,6 +214,8 @@ ecs_system_define(SceneProjectileSys) {
     SceneRayHit hit;
     if (scene_query_ray(colEnv, &ray, deltaDist, &filter, &hit)) {
       trans->position = hit.position;
+      projectile_validate_pos(trans->position);
+
       projectile_hit(world, colEnv, &filter, entity, proj, hit.position, hit.normal, hit.entity);
       continue;
     }
@@ -222,10 +224,13 @@ ecs_system_define(SceneProjectileSys) {
     if (scene_terrain_loaded(terrain)) {
       const f32 terrainHitT = scene_terrain_intersect_ray(terrain, &ray, deltaDist);
       if (terrainHitT >= 0) {
-        const EcsEntityId hitEntity      = 0;
-        const GeoVector   hitPos         = geo_ray_position(&ray, terrainHitT);
-        trans->position                  = hitPos;
-        const GeoVector terrainHitNormal = scene_terrain_normal(terrain, hitPos);
+        const EcsEntityId hitEntity        = 0;
+        const GeoVector   hitPos           = geo_ray_position(&ray, terrainHitT);
+        const GeoVector   terrainHitNormal = scene_terrain_normal(terrain, hitPos);
+
+        trans->position = hitPos;
+        projectile_validate_pos(trans->position);
+
         projectile_hit(world, colEnv, &filter, entity, proj, hitPos, terrainHitNormal, hitEntity);
         continue;
       }
