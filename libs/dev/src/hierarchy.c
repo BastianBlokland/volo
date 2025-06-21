@@ -87,7 +87,7 @@ typedef struct {
 typedef struct {
   ALIGNAS(32)
   StringHash        nameHash;
-  HierarchyLinkMask childMask : 16;
+  u16               childMask; // HierarchyLinkMask
   u16               childCount;
   EcsEntityId       entity; // Optional reference to an entity.
   HierarchyLinkId   linkHead, linkTail;
