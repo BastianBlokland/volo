@@ -5,7 +5,7 @@
   i8 compare_##_NAME_(const void* a, const void* b) {                                              \
     const _TYPE_ aVal = *(const _TYPE_*)a;                                                         \
     const _TYPE_ bVal = *(const _TYPE_*)b;                                                         \
-    return aVal < bVal ? -1 : aVal > bVal ? 1 : 0;                                                 \
+    return (aVal > bVal) - (aVal < bVal);                                                          \
   }                                                                                                \
   i8 compare_##_NAME_##_reverse(const void* a, const void* b) { return compare_##_NAME_(b, a); }
 

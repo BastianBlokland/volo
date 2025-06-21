@@ -191,7 +191,7 @@ static HierarchyStableId hierarchy_stable_id_set(const u32 setSlotIndex) {
 static i8 hierarchy_compare_entry(const void* a, const void* b) {
   const HierarchyStableId stableIdA = ((const HierarchyEntry*)a)->stableId;
   const HierarchyStableId stableIdB = ((const HierarchyEntry*)b)->stableId;
-  return stableIdA < stableIdB ? -1 : stableIdA > stableIdB ? 1 : 0;
+  return (stableIdA > stableIdB) - (stableIdA < stableIdB);
 }
 
 static i8 hierarchy_compare_link_entity_request(const void* a, const void* b) {
@@ -205,11 +205,10 @@ static i8 hierarchy_compare_link_entity_request(const void* a, const void* b) {
   }
   switch (reqA->parentKind) {
   case HierarchyKind_Entity:
-    return reqA->parent.entityIdx < reqB->parent.entityIdx   ? -1
-           : reqA->parent.entityIdx > reqB->parent.entityIdx ? 1
-                                                             : 0;
+    return (reqA->parent.entityIdx > reqB->parent.entityIdx) -
+           (reqA->parent.entityIdx < reqB->parent.entityIdx);
   case HierarchyKind_Set:
-    return reqA->parent.set < reqB->parent.set ? -1 : reqA->parent.set > reqB->parent.set ? 1 : 0;
+    return (reqA->parent.set > reqB->parent.set) - (reqA->parent.set < reqB->parent.set);
   }
   UNREACHABLE
 }
