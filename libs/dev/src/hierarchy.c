@@ -38,9 +38,11 @@
 
 // clang-format off
 
-static const String g_tooltipFilter = string_static("Filter entries by name.\nSupports glob characters \a.b*\ar and \a.b?\ar (\a.b!\ar prefix to invert).");
-static const String g_tooltipFreeze = string_static("Freeze the data set (halts data collection).");
-static const String g_tooltipSets   = string_static("Include sets in the hierarchy.");
+static const String g_tooltipFilter    = string_static("Filter entries by name.\nSupports glob characters \a.b*\ar and \a.b?\ar (\a.b!\ar prefix to invert).");
+static const String g_tooltipFreeze    = string_static("Freeze the data set (halts data collection).");
+static const String g_tooltipSets      = string_static("Include sets in the hierarchy.");
+static const String g_tooltipFoldOpen  = string_static("Show children.");
+static const String g_tooltipFoldClose = string_static("Hide children.");
 
 // clang-format on
 
@@ -863,7 +865,8 @@ static void hierarchy_entry_draw(
   if (entry->childCount) {
     const UiWidgetFlags foldFlags = ctx->panel->filterActive ? UiWidget_Disabled : UiWidget_Default;
     bool                isOpen    = hierarchy_is_open(ctx, entry) || ctx->panel->filterActive;
-    if (ui_fold(c, &isOpen, .flags = foldFlags)) {
+    const String        tooltipFold = isOpen ? g_tooltipFoldClose : g_tooltipFoldOpen;
+    if (ui_fold(c, &isOpen, .flags = foldFlags, .tooltip = tooltipFold)) {
       if (input_modifiers(ctx->input) & InputModifier_Control) {
         hierarchy_open_rec(ctx, entry, isOpen);
       } else {
