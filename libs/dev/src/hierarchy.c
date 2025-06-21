@@ -83,6 +83,8 @@ typedef struct {
   HierarchyStableId stableId;
 } HierarchyEntry;
 
+ASSERT(sizeof(HierarchyEntry) <= 32, "Hierarchy entry too big");
+
 typedef struct {
   HierarchyLinkMask type;
   HierarchyKind     parentKind;
