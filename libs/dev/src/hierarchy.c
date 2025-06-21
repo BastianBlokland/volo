@@ -84,8 +84,8 @@ typedef struct {
 typedef struct {
   ALIGNAS(32)
   StringHash        nameHash;
-  HierarchyLinkMask parentMask : 16;
   HierarchyLinkMask childMask : 16;
+  u16               childCount;
   EcsEntityId       entity; // Optional reference to an entity.
   HierarchyLinkId   linkHead, linkTail;
   HierarchyId       firstHardParent;
@@ -263,7 +263,6 @@ static void hierarchy_link_add(
   HierarchyEntry* parentEntry = hierarchy_entry(ctx, parent);
   HierarchyEntry* childEntry  = hierarchy_entry(ctx, child);
 
-  parentEntry->parentMask |= type;
   childEntry->childMask |= type;
 
   if (sentinel_check(childEntry->firstHardParent) && (type & HierarchyLinkMask_Hard)) {
@@ -284,6 +283,9 @@ static void hierarchy_link_add(
     parentEntry->linkHead = linkId;
   }
   parentEntry->linkTail = linkId;
+  if (LIKELY(parentEntry->childCount != u16_max)) {
+    ++parentEntry->childCount;
+  }
 }
 
 /**
@@ -298,7 +300,6 @@ static void hierarchy_link_add_unique(
   HierarchyEntry* parentEntry = hierarchy_entry(ctx, parent);
   HierarchyEntry* childEntry  = hierarchy_entry(ctx, child);
 
-  parentEntry->parentMask |= type;
   childEntry->childMask |= type;
 
   if (sentinel_check(childEntry->firstHardParent) && (type & HierarchyLinkMask_Hard)) {
@@ -319,6 +320,9 @@ static void hierarchy_link_add_unique(
   // Add a new link.
   *linkItr              = (HierarchyLinkId)ctx->panel->links.size;
   parentEntry->linkTail = *linkItr;
+  if (LIKELY(parentEntry->childCount != u16_max)) {
+    ++parentEntry->childCount;
+  }
 
   *dynarray_push_t(&ctx->panel->links, HierarchyLink) = (HierarchyLink){
       .mask   = type,
@@ -561,7 +565,7 @@ static void hierarchy_open_rec(HierarchyContext* ctx, const HierarchyEntry* e, c
   HierarchyLinkId childQueue[16];
   u32             childQueueSize = 0;
 
-  if (e->parentMask) {
+  if (e->childCount) {
     childQueue[childQueueSize++] = e->linkHead;
   }
 
@@ -577,7 +581,7 @@ static void hierarchy_open_rec(HierarchyContext* ctx, const HierarchyEntry* e, c
       childQueue[childQueueSize - 1] = link->next;
     }
 
-    if (child->parentMask && childQueueSize != array_elems(childQueue)) {
+    if (child->childCount && childQueueSize != array_elems(childQueue)) {
       childQueue[childQueueSize++] = child->linkHead;
     }
   }
@@ -719,7 +723,7 @@ static void hierarchy_entry_select_rec(HierarchyContext* ctx, const HierarchyEnt
   HierarchyLinkId childQueue[16];
   u32             childQueueSize = 0;
 
-  if (entry->parentMask) {
+  if (entry->childCount) {
     childQueue[childQueueSize++] = entry->linkHead;
   }
 
@@ -736,7 +740,7 @@ static void hierarchy_entry_select_rec(HierarchyContext* ctx, const HierarchyEnt
       childQueue[childQueueSize - 1] = link->next;
     }
 
-    if (child->parentMask && childQueueSize != array_elems(childQueue)) {
+    if (child->childCount && childQueueSize != array_elems(childQueue)) {
       childQueue[childQueueSize++] = child->linkHead;
     }
   }
@@ -762,6 +766,13 @@ static String hierarchy_entry_tooltip_scratch(
     fmt_write(&str, "Parent link:\n");
     bitset_for(bitset_from_var(link->mask), idx) {
       fmt_write(&str, "- {}\n", fmt_text(g_linkNames[idx]));
+    }
+  }
+  if (entry->childCount) {
+    if (entry->childCount == u16_max) {
+      fmt_write(&str, "Children: {}+\n", fmt_int(u16_max));
+    } else {
+      fmt_write(&str, "Children: {}\n", fmt_int(entry->childCount));
     }
   }
   if (hierarchy_stable_id_kind(entry->stableId) == HierarchyKind_Set) {
@@ -792,7 +803,7 @@ static bool hierarchy_is_selected(HierarchyContext* ctx, const HierarchyEntry* e
 
 static void hierarchy_entry_draw(
     HierarchyContext*     ctx,
-    UiCanvasComp*         canvas,
+    UiCanvasComp*         c,
     UiTable*              table,
     const HierarchyEntry* entry,
     const u32             depth,
@@ -802,11 +813,11 @@ static void hierarchy_entry_draw(
   const String name      = hierarchy_name(entry->nameHash);
   UiColor      bgColor   = selected ? ui_color(32, 32, 255, 192) : ui_color(48, 48, 48, 192);
 
-  ui_style_push(canvas);
-  ui_style_mode(canvas, UiMode_Invisible);
-  const UiId     bgId     = ui_canvas_draw_glyph(canvas, UiShape_Square, 0, UiFlags_Interactable);
-  const UiStatus bgStatus = ui_canvas_elem_status(canvas, bgId);
-  ui_style_pop(canvas);
+  ui_style_push(c);
+  ui_style_mode(c, UiMode_Invisible);
+  const UiId     bgId     = ui_canvas_draw_glyph(c, UiShape_Square, 0, UiFlags_Interactable);
+  const UiStatus bgStatus = ui_canvas_elem_status(c, bgId);
+  ui_style_pop(c);
 
   if (bgStatus == UiStatus_Hovered) {
     if (isPicking && ecs_entity_valid(entry->entity)) {
@@ -815,12 +826,12 @@ static void hierarchy_entry_draw(
       if (ctx->stats) {
         dev_stats_notify(ctx->stats, string_lit("Picker entity"), name);
       }
-      ui_tooltip(canvas, bgId, string_lit("Pick this entity."));
+      ui_tooltip(c, bgId, string_lit("Pick this entity."));
     } else {
-      ui_tooltip(canvas, bgId, hierarchy_entry_tooltip_scratch(ctx, entry, link));
+      ui_tooltip(c, bgId, hierarchy_entry_tooltip_scratch(ctx, entry, link));
     }
   } else {
-    ui_canvas_id_skip(canvas, 2);
+    ui_canvas_id_skip(c, 2);
   }
 
   switch (bgStatus) {
@@ -838,21 +849,21 @@ static void hierarchy_entry_draw(
     } else {
       hierarchy_entry_select(ctx, entry);
     }
-    ui_canvas_sound(canvas, UiSoundType_Click);
+    ui_canvas_sound(c, UiSoundType_Click);
     break;
   default:
     break;
   }
-  ui_table_draw_row_bg(canvas, table, bgColor);
+  ui_table_draw_row_bg(c, table, bgColor);
 
   if (depth) {
     const f32 inset = -25.0f * depth;
-    ui_layout_grow(canvas, UiAlign_MiddleRight, ui_vector(inset, 0), UiBase_Absolute, Ui_X);
+    ui_layout_grow(c, UiAlign_MiddleRight, ui_vector(inset, 0), UiBase_Absolute, Ui_X);
   }
-  if (entry->parentMask) {
+  if (entry->childCount) {
     const UiWidgetFlags foldFlags = ctx->panel->filterActive ? UiWidget_Disabled : UiWidget_Default;
     bool                isOpen    = hierarchy_is_open(ctx, entry) || ctx->panel->filterActive;
-    if (ui_fold(canvas, &isOpen, .flags = foldFlags)) {
+    if (ui_fold(c, &isOpen, .flags = foldFlags)) {
       if (input_modifiers(ctx->input) & InputModifier_Control) {
         hierarchy_open_rec(ctx, entry, isOpen);
       } else {
@@ -861,24 +872,31 @@ static void hierarchy_entry_draw(
     }
   }
 
-  ui_style_push(canvas);
+  ui_style_push(c);
   if (selected) {
-    ui_style_outline(canvas, 2);
+    ui_style_outline(c, 2);
   }
-  ui_layout_grow(canvas, UiAlign_MiddleRight, ui_vector(-17.0f, 0), UiBase_Absolute, Ui_X);
-  ui_layout_push(canvas);
-  ui_layout_inner(canvas, UiBase_Current, UiAlign_MiddleLeft, ui_vector(15, 15), UiBase_Absolute);
-  ui_canvas_draw_glyph(canvas, hierarchy_icon(ctx, entry), 0, UiFlags_None);
-  ui_layout_pop(canvas);
+  ui_layout_grow(c, UiAlign_MiddleRight, ui_vector(-17.0f, 0), UiBase_Absolute, Ui_X);
+  ui_layout_push(c);
+  ui_layout_inner(c, UiBase_Current, UiAlign_MiddleLeft, ui_vector(15, 15), UiBase_Absolute);
+  ui_canvas_draw_glyph(c, hierarchy_icon(ctx, entry), 0, UiFlags_None);
+  ui_layout_pop(c);
 
-  ui_layout_grow(canvas, UiAlign_MiddleRight, ui_vector(-20.0f, 0), UiBase_Absolute, Ui_X);
-  ui_label(canvas, name);
-  ui_style_pop(canvas);
+  ui_layout_grow(c, UiAlign_MiddleRight, ui_vector(-20.0f, 0), UiBase_Absolute, Ui_X);
+  String label = name;
+  if (entry->childCount == u16_max) {
+    label = fmt_write_scratch("{} \a~silver\a|01\a.l[{}+]", fmt_text(name), fmt_int(u16_max));
+  } else if (entry->childCount) {
+    const u16 count = entry->childCount;
+    label = fmt_write_scratch("{} \a~silver\a|01\a.l[{}]", fmt_text(name), fmt_int(count));
+  }
+  ui_label(c, label);
+  ui_style_pop(c);
 
-  ui_layout_push(canvas);
-  ui_layout_inner(canvas, UiBase_Current, UiAlign_MiddleRight, ui_vector(25, 22), UiBase_Absolute);
+  ui_layout_push(c);
+  ui_layout_inner(c, UiBase_Current, UiAlign_MiddleRight, ui_vector(25, 22), UiBase_Absolute);
   if (ui_button(
-          canvas,
+          c,
           .flags      = isPicking ? UiWidget_Disabled : UiWidget_Default,
           .label      = ui_shape_scratch(UiShape_SelectAll),
           .fontSize   = 18,
@@ -891,9 +909,9 @@ static void hierarchy_entry_draw(
     }
   }
   if (ecs_entity_valid(entry->entity)) {
-    ui_layout_next(canvas, Ui_Left, 10);
+    ui_layout_next(c, Ui_Left, 10);
     if (ui_button(
-            canvas,
+            c,
             .flags      = isPicking ? UiWidget_Disabled : UiWidget_Default,
             .label      = ui_shape_scratch(UiShape_Delete),
             .fontSize   = 18,
@@ -902,11 +920,11 @@ static void hierarchy_entry_draw(
       ecs_world_entity_destroy(ctx->world, entry->entity);
     }
   }
-  ui_layout_pop(canvas);
+  ui_layout_pop(c);
 }
 
-static void hierarchy_options_draw(HierarchyContext* ctx, UiCanvasComp* canvas) {
-  ui_layout_push(canvas);
+static void hierarchy_options_draw(HierarchyContext* ctx, UiCanvasComp* c) {
+  ui_layout_push(c);
 
   UiTable table = ui_table(.spacing = ui_vector(10, 5), .rowHeight = 20);
   ui_table_add_column(&table, UiTableColumn_Fixed, 55);
@@ -916,57 +934,53 @@ static void hierarchy_options_draw(HierarchyContext* ctx, UiCanvasComp* canvas) 
   ui_table_add_column(&table, UiTableColumn_Fixed, 55);
   ui_table_add_column(&table, UiTableColumn_Fixed, 50);
 
-  ui_table_next_row(canvas, &table);
-  ui_label(canvas, string_lit("Filter:"));
-  ui_table_next_column(canvas, &table);
+  ui_table_next_row(c, &table);
+  ui_label(c, string_lit("Filter:"));
+  ui_table_next_column(c, &table);
   if (ui_textbox(
-          canvas,
-          &ctx->panel->filterName,
-          .placeholder = string_lit("*"),
-          .tooltip     = g_tooltipFilter)) {
+          c, &ctx->panel->filterName, .placeholder = string_lit("*"), .tooltip = g_tooltipFilter)) {
     ctx->panel->focusOnSelection = true;
   }
 
-  ui_table_next_column(canvas, &table);
-  ui_label(canvas, string_lit("Freeze:"));
-  ui_table_next_column(canvas, &table);
-  ui_toggle(canvas, &ctx->panel->freeze, .tooltip = g_tooltipFreeze);
+  ui_table_next_column(c, &table);
+  ui_label(c, string_lit("Freeze:"));
+  ui_table_next_column(c, &table);
+  ui_toggle(c, &ctx->panel->freeze, .tooltip = g_tooltipFreeze);
 
-  ui_table_next_column(canvas, &table);
-  ui_label(canvas, string_lit("Sets:"));
-  ui_table_next_column(canvas, &table);
-  if (ui_toggle(canvas, &ctx->panel->includeSets, .tooltip = g_tooltipSets)) {
+  ui_table_next_column(c, &table);
+  ui_label(c, string_lit("Sets:"));
+  ui_table_next_column(c, &table);
+  if (ui_toggle(c, &ctx->panel->includeSets, .tooltip = g_tooltipSets)) {
     ctx->panel->focusOnSelection = true;
   }
 
-  ui_layout_pop(canvas);
+  ui_layout_pop(c);
 }
 
-static void hierarchy_bg_draw(UiCanvasComp* canvas) {
-  ui_style_push(canvas);
-  ui_style_color(canvas, ui_color_clear);
-  ui_style_outline(canvas, 4);
-  ui_canvas_draw_glyph(canvas, UiShape_Square, 10, UiFlags_None);
-  ui_style_pop(canvas);
+static void hierarchy_bg_draw(UiCanvasComp* c) {
+  ui_style_push(c);
+  ui_style_color(c, ui_color_clear);
+  ui_style_outline(c, 4);
+  ui_canvas_draw_glyph(c, UiShape_Square, 10, UiFlags_None);
+  ui_style_pop(c);
 }
 
-static void hierarchy_panel_draw(HierarchyContext* ctx, UiCanvasComp* canvas) {
+static void hierarchy_panel_draw(HierarchyContext* ctx, UiCanvasComp* c) {
   const String title = fmt_write_scratch(
       "{} Hierarchy Panel ({})", fmt_ui_shape(Tree), fmt_int(ctx->panel->filterMatches));
-  ui_panel_begin(
-      canvas, &ctx->panel->panel, .title = title, .topBarColor = ui_color(100, 0, 0, 192));
+  ui_panel_begin(c, &ctx->panel->panel, .title = title, .topBarColor = ui_color(100, 0, 0, 192));
 
-  hierarchy_options_draw(ctx, canvas);
-  ui_layout_grow(canvas, UiAlign_BottomCenter, ui_vector(0, -32), UiBase_Absolute, Ui_Y);
-  ui_layout_container_push(canvas, UiClip_None, UiLayer_Normal);
-  hierarchy_bg_draw(canvas);
+  hierarchy_options_draw(ctx, c);
+  ui_layout_grow(c, UiAlign_BottomCenter, ui_vector(0, -32), UiBase_Absolute, Ui_Y);
+  ui_layout_container_push(c, UiClip_None, UiLayer_Normal);
+  hierarchy_bg_draw(c);
 
   UiTable table = ui_table(.spacing = ui_vector(10, 5));
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
   const f32 height = ui_table_height(&table, ctx->panel->panelRowCount);
-  ui_scrollview_begin(canvas, &ctx->panel->scrollview, UiLayer_Normal, height);
-  ui_canvas_id_block_next(canvas); // Start the list of entities on its own id block.
+  ui_scrollview_begin(c, &ctx->panel->scrollview, UiLayer_Normal, height);
+  ui_canvas_id_block_next(c); // Start the list of entities on its own id block.
 
   u32             rootIdx = hierarchy_next_root(ctx, 0);
   HierarchyLinkId childQueue[16];
@@ -1015,13 +1029,13 @@ static void hierarchy_panel_draw(HierarchyContext* ctx, UiCanvasComp* canvas) {
         ctx->focusEntry               = sentinel_u32;
       }
     } else {
-      ui_table_jump_row(canvas, &table, ctx->panel->panelRowCount - 1);
-      hierarchy_entry_draw(ctx, canvas, &table, entry, entryDepth, link);
+      ui_table_jump_row(c, &table, ctx->panel->panelRowCount - 1);
+      hierarchy_entry_draw(ctx, c, &table, entry, entryDepth, link);
       dynbitset_set(&ctx->panel->visibleEntries, entry->stableId);
     }
 
     // Push children.
-    if (entry->parentMask && childQueueSize != array_elems(childQueue)) {
+    if (entry->childCount && childQueueSize != array_elems(childQueue)) {
       if (ctx->panel->filterActive || hierarchy_is_open(ctx, entry)) {
         childQueue[childQueueSize] = entry->linkHead;
         childDepth[childQueueSize] = entryDepth + 1;
@@ -1029,11 +1043,11 @@ static void hierarchy_panel_draw(HierarchyContext* ctx, UiCanvasComp* canvas) {
       }
     }
   }
-  ui_canvas_id_block_next(canvas);
+  ui_canvas_id_block_next(c);
 
-  ui_scrollview_end(canvas, &ctx->panel->scrollview);
-  ui_layout_container_pop(canvas);
-  ui_panel_end(canvas, &ctx->panel->panel);
+  ui_scrollview_end(c, &ctx->panel->scrollview);
+  ui_layout_container_pop(c);
+  ui_panel_end(c, &ctx->panel->panel);
 }
 
 static void hierarchy_focus_entity(HierarchyContext* ctx, const EcsEntityId entity) {
