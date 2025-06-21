@@ -74,9 +74,10 @@ typedef struct {
 } HierarchyLink;
 
 typedef struct {
+  ALIGNAS(32)
+  StringHash        nameHash;
   HierarchyLinkMask parentMask : 16;
   HierarchyLinkMask childMask : 16;
-  StringHash        nameHash;
   EcsEntityId       entity; // Optional reference to an entity.
   HierarchyLinkId   linkHead, linkTail;
   HierarchyId       firstHardParent;
@@ -86,14 +87,17 @@ typedef struct {
 ASSERT(sizeof(HierarchyEntry) <= 32, "Hierarchy entry too big");
 
 typedef struct {
+  ALIGNAS(16)
   HierarchyLinkMask type;
   HierarchyKind     parentKind;
   union {
-    EcsEntityId entity;
-    StringHash  set;
+    u32        entityIdx; // Required to exist in the ECS world.
+    StringHash set;
   } parent;
-  EcsEntityId child;
+  u32 childEntityIdx; // Required to exist in the ECS world.
 } HierarchyLinkEntityRequest;
+
+ASSERT(sizeof(HierarchyLinkEntityRequest) <= 16, "Hierarchy link request too big");
 
 ecs_comp_define(DevHierarchyPanelComp) {
   UiPanel      panel;
@@ -172,8 +176,12 @@ static HierarchyKind hierarchy_stable_id_kind(const HierarchyStableId id) {
   return (HierarchyKind)(id & hierarchy_kind_mask);
 }
 
-static HierarchyStableId hierarchy_stable_id_entity(const EcsEntityId e) {
-  return (ecs_entity_id_index(e) << hierarchy_kind_bits) | HierarchyKind_Entity;
+static HierarchyStableId hierarchy_stable_id_entity(const EcsEntityId entity) {
+  return (ecs_entity_id_index(entity) << hierarchy_kind_bits) | HierarchyKind_Entity;
+}
+
+static HierarchyStableId hierarchy_stable_id_entity_index(const u32 entityIndex) {
+  return (entityIndex << hierarchy_kind_bits) | HierarchyKind_Entity;
 }
 
 static HierarchyStableId hierarchy_stable_id_set(const u32 setSlotIndex) {
@@ -189,17 +197,17 @@ static i8 hierarchy_compare_entry(const void* a, const void* b) {
 static i8 hierarchy_compare_link_entity_request(const void* a, const void* b) {
   const HierarchyLinkEntityRequest* reqA = a;
   const HierarchyLinkEntityRequest* reqB = b;
-  if (LIKELY(reqA->child != reqB->child)) {
-    return reqA->child < reqB->child ? -1 : 1;
+  if (LIKELY(reqA->childEntityIdx != reqB->childEntityIdx)) {
+    return reqA->childEntityIdx < reqB->childEntityIdx ? -1 : 1;
   }
   if (reqA->parentKind != reqB->parentKind) {
     return reqA->parentKind < reqB->parentKind ? -1 : 1;
   }
   switch (reqA->parentKind) {
   case HierarchyKind_Entity:
-    return reqA->parent.entity < reqB->parent.entity   ? -1
-           : reqA->parent.entity > reqB->parent.entity ? 1
-                                                       : 0;
+    return reqA->parent.entityIdx < reqB->parent.entityIdx   ? -1
+           : reqA->parent.entityIdx > reqB->parent.entityIdx ? 1
+                                                             : 0;
   case HierarchyKind_Set:
     return reqA->parent.set < reqB->parent.set ? -1 : reqA->parent.set > reqB->parent.set ? 1 : 0;
   }
@@ -325,10 +333,10 @@ static void hierarchy_link_entity_request(
   }
   *dynarray_push_t(&ctx->panel->linkEntityRequests, HierarchyLinkEntityRequest) =
       (HierarchyLinkEntityRequest){
-          .type          = type,
-          .parentKind    = HierarchyKind_Entity,
-          .parent.entity = parent,
-          .child         = child,
+          .type             = type,
+          .parentKind       = HierarchyKind_Entity,
+          .parent.entityIdx = ecs_entity_id_index(parent),
+          .childEntityIdx   = ecs_entity_id_index(child),
       };
 }
 
@@ -346,10 +354,10 @@ static void hierarchy_link_entity_to_set_request(
   }
   *dynarray_push_t(&ctx->panel->linkEntityRequests, HierarchyLinkEntityRequest) =
       (HierarchyLinkEntityRequest){
-          .type       = type,
-          .parentKind = HierarchyKind_Set,
-          .parent.set = set,
-          .child      = child,
+          .type           = type,
+          .parentKind     = HierarchyKind_Set,
+          .parent.set     = set,
+          .childEntityIdx = ecs_entity_id_index(child),
       };
 }
 
@@ -386,10 +394,10 @@ static void hierarchy_link_entity_apply_requests(HierarchyContext* ctx) {
   trace_begin("requests_apply", TraceColor_Blue);
   dynarray_for_t(&ctx->panel->linkEntityRequests, HierarchyLinkEntityRequest, req) {
     HierarchyId childId;
-    if (LIKELY(ecs_entity_id_index(req->child) < EntityCacheMax)) {
-      childId = entityEntryCache[ecs_entity_id_index(req->child)];
+    if (LIKELY(req->childEntityIdx < EntityCacheMax)) {
+      childId = entityEntryCache[req->childEntityIdx];
     } else {
-      childId = hierarchy_find(ctx, hierarchy_stable_id_entity(req->child));
+      childId = hierarchy_find(ctx, hierarchy_stable_id_entity_index(req->childEntityIdx));
     }
     if (sentinel_check(childId)) {
       continue; // Child does not exist anymore.
@@ -397,12 +405,12 @@ static void hierarchy_link_entity_apply_requests(HierarchyContext* ctx) {
 
     switch (req->parentKind) {
     case HierarchyKind_Entity: {
-      const EcsEntityId parentEntity = req->parent.entity;
-      HierarchyId       parentId;
-      if (LIKELY(ecs_entity_id_index(parentEntity) < EntityCacheMax)) {
-        parentId = entityEntryCache[ecs_entity_id_index(parentEntity)];
+      const u32   parentEntityIndex = req->parent.entityIdx;
+      HierarchyId parentId;
+      if (LIKELY(parentEntityIndex < EntityCacheMax)) {
+        parentId = entityEntryCache[parentEntityIndex];
       } else {
-        parentId = hierarchy_find(ctx, hierarchy_stable_id_entity(parentEntity));
+        parentId = hierarchy_find(ctx, hierarchy_stable_id_entity_index(parentEntityIndex));
       }
       if (!sentinel_check(parentId)) {
         hierarchy_link_add_unique(ctx, parentId, childId, req->type);
