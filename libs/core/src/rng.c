@@ -81,7 +81,9 @@ u32 rng_sample_u32(Rng* rng) {
 
 f32 rng_sample_f32(Rng* rng) {
   diag_assert_msg(rng, "rng_next: Rng is not initialized");
-  static const f32 g_toFloat = 1.0f / ((f32)u32_max + 1.0f); // +1 to never return 1.0.
+  // epsilon: 1.1920929E-7 (difference between 1.0f and the next representable f32 number).
+  // margin: u32_max * epsilon = 512.00000181.
+  static const f32 g_toFloat = 1.0f / ((f32)u32_max + 512.00000181f); // +512 to never return 1.0.
   return rng->next(rng) * g_toFloat;
 }
 

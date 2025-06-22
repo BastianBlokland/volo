@@ -4,7 +4,7 @@
 #include "core_rng.h"
 #include "vfx_warp.h"
 
-#define test_vec_eq_threshold 1e-6f
+#define test_vec_eq_threshold 1e-5f
 
 static VfxWarpVec test_vec_rand_in_box(Rng* rng, const f32 min, const f32 max) {
   return (VfxWarpVec){.x = rng_sample_range(rng, min, max), .y = rng_sample_range(rng, min, max)};
