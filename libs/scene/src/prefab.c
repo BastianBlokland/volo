@@ -864,7 +864,7 @@ static bool setup_prefab(
     break;
   }
 
-  if (spec->faction != SceneFaction_None) {
+  if (spec->faction != SceneFaction_None || spec->variant == ScenePrefabVariant_Edit) {
     ecs_world_add_t(world, e, SceneFactionComp, .id = spec->faction);
   }
   if (!mem_all(mem_var(spec->sets), 0)) {
