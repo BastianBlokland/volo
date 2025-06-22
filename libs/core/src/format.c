@@ -725,8 +725,18 @@ String format_read_i64(String input, i64* output, u8 base) {
 }
 
 String format_read_f64(String input, f64* output) {
+  if (UNLIKELY(string_eq(input, string_lit("nan")))) {
+    *output = f64_nan;
+    return string_consume(input, 3);
+  }
+
   i8 sign;
   input = format_read_sign(input, &sign);
+
+  if (UNLIKELY(string_eq(input, string_lit("inf")))) {
+    *output = sign == -1 ? -f64_inf : f64_inf;
+    return string_consume(input, 3);
+  }
 
   f64  mantissa       = 0.0;
   f64  divider        = 1.0;
