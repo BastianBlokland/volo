@@ -560,7 +560,7 @@ static void level_obj_push(
   };
 
   // Quantize floats to make load <-> save roundtrip stable.
-  enum { LevelFloatMantissaBits = 19 };
+  enum { LevelFloatMantissaBits = 16 };
   obj.position = geo_vector_quantize3(obj.position, LevelFloatMantissaBits);
   obj.rotation = geo_quat_quantize(obj.rotation, LevelFloatMantissaBits);
   obj.scale    = float_quantize_f32(obj.scale, LevelFloatMantissaBits);
