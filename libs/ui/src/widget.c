@@ -497,9 +497,13 @@ static UiSelectFlags ui_select_dropdown(
   ui_layout_resize(canvas, anchor, ui_vector(0, lastRect.height), UiBase_Absolute, Ui_Y);
 
   for (i32 i = 0; i != (i32)entryCount; ++i) {
-    const i32 optionIndex = (dir == Ui_Up ? (i32)entryCount - 1 - i : i) - (i32)opts->allowNone;
-
-    const UiId     optionId     = ui_canvas_id_peek(canvas);
+    if (ui_scrollview_cull(&scrollview, i * (lastRect.height + g_spacing), lastRect.height)) {
+      ui_canvas_id_skip(canvas, 2);
+      ui_layout_next(canvas, dir, g_spacing);
+      continue;
+    }
+    const i32  optionIndex = (dir == Ui_Up ? (i32)entryCount - 1 - i : i) - (i32)opts->allowNone;
+    const UiId optionId    = ui_canvas_id_peek(canvas);
     const UiStatus optionStatus = ui_canvas_elem_status(canvas, optionId);
 
     ui_style_push(canvas);
