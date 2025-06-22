@@ -370,6 +370,15 @@ bool geo_quat_clamp(GeoQuat* q, const f32 maxAngle) {
   return true;
 }
 
+GeoQuat geo_quat_quantize(const GeoQuat quat, const u8 maxMantissaBits) {
+  return (GeoQuat){
+      .x = float_quantize_f32(quat.x, maxMantissaBits),
+      .y = float_quantize_f32(quat.y, maxMantissaBits),
+      .z = float_quantize_f32(quat.z, maxMantissaBits),
+      .w = float_quantize_f32(quat.w, maxMantissaBits),
+  };
+}
+
 void geo_quat_pack_f16(const GeoQuat quat, f16 out[PARAM_ARRAY_SIZE(4)]) {
 #ifdef VOLO_SIMD
   const SimdVec vecF32 = simd_vec_load(quat.comps);

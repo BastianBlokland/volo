@@ -136,6 +136,12 @@ GeoQuat       geo_quat_to_twist(GeoQuat, GeoVector twistAxis);
 bool geo_quat_clamp(GeoQuat*, f32 maxAngle);
 
 /**
+ * Quantize a quaternion to use a limited number of mantissa bits.
+ * Pre-condition: maxMantissaBits > 0 && maxMantissaBits <= 23
+ */
+GeoQuat geo_quat_quantize(GeoQuat, u8 maxMantissaBits);
+
+/**
  * Pack a quaternion to 16 bit floats.
  */
 void geo_quat_pack_f16(GeoQuat, f16 out[PARAM_ARRAY_SIZE(4)]);
