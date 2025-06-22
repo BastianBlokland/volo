@@ -2007,7 +2007,7 @@
       "prefab": "PropFloorLight",
       "faction": "A",
       "position": { "x": 26.959, "y": 0.9148, "z": -10.6213 },
-      "rotation": { "x": -4.2147e-8, "y": 6.2023e-19, "z": -4.2147e-8, "w": 1 },
+      "rotation": { "x": -0, "y": 0, "z": -0, "w": 1 },
       "properties": [
         { "$type": "AssetProperty_EntityLevel", "$name": "cfgTrigger", "$data": 4128576319 }
       ]
@@ -6797,7 +6797,7 @@
       "prefab": "PropGate",
       "faction": "A",
       "position": { "x": 25.8489, "y": 0.72, "z": -7.0346 },
-      "rotation": { "y": -1, "w": -4.3711e-8 },
+      "rotation": { "y": -1, "w": -0 },
       "properties": [
         { "$type": "AssetProperty_EntityLevel", "$name": "cfgTrigger", "$data": 4128576319 }
       ]

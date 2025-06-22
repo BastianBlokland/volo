@@ -645,7 +645,7 @@
       "prefab": "PropFence",
       "faction": "A",
       "position": { "x": -10.8, "y": 0.4387, "z": 10.5264 },
-      "rotation": { "y": 1, "w": 1.9107e-15 },
+      "rotation": { "y": 1, "w": 0 },
       "scale": 1.25
     },
     {
@@ -1404,7 +1404,7 @@
       "prefab": "StructureTurretMissile",
       "faction": "A",
       "position": { "x": 4.5, "y": 0.8129, "z": -15.5 },
-      "rotation": { "y": 1, "w": 1.9107e-15 }
+      "rotation": { "y": 1, "w": 0 }
     },
     {
       "id": 709712167,
@@ -1730,7 +1730,7 @@
       "prefab": "PropFence",
       "faction": "A",
       "position": { "x": -10.8, "y": 0.4387, "z": 6.771 },
-      "rotation": { "y": 1, "w": 1.9107e-15 },
+      "rotation": { "y": 1, "w": 0 },
       "scale": 1.25
     },
     {
@@ -2239,7 +2239,7 @@
       "prefab": "PropFence",
       "faction": "A",
       "position": { "x": -10.8, "y": 0.4387, "z": -8.2725 },
-      "rotation": { "y": 1, "w": 1.9107e-15 },
+      "rotation": { "y": 1, "w": 0 },
       "scale": 1.25
     },
     {
@@ -4797,7 +4797,7 @@
       "prefab": "PropFence",
       "faction": "A",
       "position": { "x": -10.8, "y": 0.4387, "z": -12.0331 },
-      "rotation": { "y": 1, "w": 1.9107e-15 },
+      "rotation": { "y": 1, "w": 0 },
       "scale": 1.25
     },
     {
@@ -5094,7 +5094,7 @@
       "prefab": "PropFence",
       "faction": "A",
       "position": { "x": -10.8, "y": 0.4387, "z": -4.5049 },
-      "rotation": { "y": 1, "w": 1.9107e-15 },
+      "rotation": { "y": 1, "w": 0 },
       "scale": 1.25
     },
     {
@@ -5873,7 +5873,7 @@
       "prefab": "StructureTurretMissile",
       "faction": "A",
       "position": { "x": 9.5, "y": 0.6969, "z": -15.5 },
-      "rotation": { "y": 1, "w": 1.9107e-15 }
+      "rotation": { "y": 1, "w": 0 }
     },
     {
       "id": 3096134815,
@@ -6896,7 +6896,7 @@
       "prefab": "StructureTurretMissile",
       "faction": "A",
       "position": { "x": -0.5, "y": 0.8333, "z": -15.5 },
-      "rotation": { "y": 1, "w": 1.9107e-15 }
+      "rotation": { "y": 1, "w": 0 }
     },
     {
       "id": 3653524843,
@@ -8236,7 +8236,7 @@
       "prefab": "PropFence",
       "faction": "A",
       "position": { "x": -10.8, "y": 0.4387, "z": 3.0165 },
-      "rotation": { "y": 1, "w": 1.9107e-15 },
+      "rotation": { "y": 1, "w": 0 },
       "scale": 1.25
     }
   ]
