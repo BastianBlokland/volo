@@ -461,13 +461,6 @@ static UiSelectFlags ui_select_dropdown(
   }
   static const f32 g_spacing = 2;
 
-  UiScrollview scrollview;
-  if (ui_canvas_elem_status(canvas, id) == UiStatus_Activated) {
-    scrollview = (UiScrollview){0}; // Reset the scrollview on open.
-  } else {
-    scrollview = *ui_canvas_persistent_scrollview(canvas, id);
-  }
-
   UiSelectFlags selectFlags = 0;
   const UiRect  lastRect    = ui_canvas_elem_rect(canvas, id);
   const f32     totalHeight = entryCount * lastRect.height + (entryCount - 1) * g_spacing;
@@ -488,6 +481,13 @@ static UiSelectFlags ui_select_dropdown(
   ui_style_color(canvas, opts->dropFrameColor);
   ui_canvas_draw_glyph(canvas, UiShape_Square, 10, UiFlags_None);
   ui_style_pop(canvas);
+
+  UiScrollview scrollview;
+  if (ui_canvas_elem_status(canvas, id) == UiStatus_Activated) {
+    scrollview = (UiScrollview){0}; // Reset the scrollview on open.
+  } else {
+    scrollview = *ui_canvas_persistent_scrollview(canvas, id);
+  }
 
   if (ui_scrollview_begin(canvas, &scrollview, UiLayer_Overlay, totalHeight)) {
     selectFlags |= UiSelectFlags_Hovered;
