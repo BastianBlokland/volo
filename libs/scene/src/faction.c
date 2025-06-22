@@ -30,7 +30,7 @@ SceneLayer scene_faction_layers(const SceneFaction faction) {
   case SceneFaction_D:
     return SceneLayer_UnitFactionD;
   case SceneFaction_None:
-    return SceneLayer_None;
+    return SceneLayer_UnitFactionNone;
   case SceneFaction_Count:
     break;
   }
