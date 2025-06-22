@@ -5,6 +5,7 @@
 #include "core_float.h"
 #include "core_format.h"
 #include "core_math.h"
+#include "core_rng.h"
 #include "core_time.h"
 
 spec(format) {
@@ -722,5 +723,54 @@ spec(format) {
       }
     }
     dynstring_destroy(&string);
+  }
+
+  it("can roundtrip basic decimal number read/write") {
+    Allocator* allocStack = alloc_bump_create_stack(1024);
+    Rng*       rng        = rng_create_xorwow(allocStack, 42 /* seed */);
+
+    enum { MaxIntDigits = 6, MaxDecimalDigits = 9, Iterations = 10 * 1000 };
+
+    const FormatOptsFloat opts = format_opts_float(
+            .expThresholdPos = f64_max, .expThresholdNeg = 0, .maxDecDigits = MaxDecimalDigits);
+
+    DynString strA = dynstring_create(allocStack, 128);
+    DynString strB = dynstring_create(allocStack, 128);
+    for (u32 itr = 0; itr != Iterations; ++itr) {
+      dynstring_clear(&strA);
+      dynstring_clear(&strB);
+
+      bool anyInt = false;
+      for (u32 i = 0; i != MaxIntDigits; ++i) {
+        const u32 v = (u32)rng_sample_range(rng, 0, 10);
+        if (v) {
+          dynstring_append_char(&strA, '0' + v);
+          anyInt = true;
+        }
+      }
+      if (!anyInt) {
+        dynstring_append_char(&strA, '0');
+      }
+
+      bool anyDecimal = false;
+      dynstring_append_char(&strA, '.');
+      for (u32 i = 0; i != MaxDecimalDigits; ++i) {
+        const u32 v = (u32)rng_sample_range(rng, 0, 10);
+        if (v) {
+          dynstring_append_char(&strA, '0' + v);
+          anyDecimal = true;
+        }
+      }
+      if (!anyDecimal) {
+        dynstring_erase_chars(&strA, dynstring_view(&strA).size - 1, 1);
+      }
+
+      f64          result;
+      const String rem = format_read_f64(dynstring_view(&strA), &result);
+      check_eq_string(rem, string_empty);
+
+      format_write_f64(&strB, result, &opts);
+      check_eq_string(dynstring_view(&strA), dynstring_view(&strB));
+    }
   }
 }
