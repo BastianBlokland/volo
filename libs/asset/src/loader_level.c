@@ -1,6 +1,7 @@
 #include "asset_level.h"
 #include "core_alloc.h"
 #include "core_dynstring.h"
+#include "core_float.h"
 #include "core_path.h"
 #include "core_search.h"
 #include "core_sort.h"
@@ -172,8 +173,13 @@ bool asset_level_save(AssetManagerComp* manager, const String id, const AssetLev
 
   DynString dataBuffer = dynstring_create(g_allocHeap, 512 * usize_kibibyte);
 
-  const DataWriteJsonOpts jOpts = data_write_json_opts(.numberMaxDecDigits = 4, .compact = true);
-  const Mem               levelData = mem_create(level, sizeof(AssetLevel));
+  const DataWriteJsonOpts jOpts = data_write_json_opts(
+          .numberMaxDecDigits    = 4,
+          .numberExpThresholdPos = f64_max, // Disable positive scientific notation.
+          .numberExpThresholdNeg = 0,       // // Disable negative scientific notation.
+          .compact               = true);
+
+  const Mem levelData = mem_create(level, sizeof(AssetLevel));
   data_write_json(g_dataReg, &dataBuffer, g_assetLevelDefMeta, levelData, &jOpts);
   dynstring_append_char(&dataBuffer, '\n'); // End the file with a new-line.
 
