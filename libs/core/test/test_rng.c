@@ -50,16 +50,20 @@ spec(rng) {
   }
 
   it("can sample random values in a specific range") {
-    static const usize g_iterations = 100;
+    static const usize g_iterations = 10 * 1000;
     static const u64   g_seed       = 42;
 
     Allocator* alloc = alloc_bump_create_stack(256);
     Rng*       rng   = rng_create_xorwow(alloc, g_seed);
 
     for (usize i = 0; i != g_iterations; ++i) {
-      i32 val = (i32)rng_sample_range(rng, -10, 20);
+      const i32 val = (i32)rng_sample_range(rng, -10, 20);
       check(val >= -10);
       check(val < 20);
+    }
+    for (usize i = 0; i != g_iterations; ++i) {
+      const i32 val = (i32)rng_sample_range(rng, 0, 1);
+      check(val == 0);
     }
 
     rng_destroy(rng);
