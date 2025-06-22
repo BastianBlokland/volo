@@ -681,7 +681,7 @@ spec(format) {
     }
   }
 
-  it("can roundtrip f64 floating point number read/write") {
+  it("can roundtrip basic floating point number read/write") {
     static const f64 g_nan = f64_nan;
     static const f64 g_inf = f64_inf;
     struct {
@@ -699,6 +699,7 @@ spec(format) {
         {0.133713371337, format_opts_float(.maxDecDigits = 12)},
         {0.1337133713371337, format_opts_float(.maxDecDigits = 16)},
         {0.13371337133713371, format_opts_float(.maxDecDigits = 17)},
+        {46590.9023438, format_opts_float()},
     };
 
     DynString string = dynstring_create_over(mem_stack(128));
