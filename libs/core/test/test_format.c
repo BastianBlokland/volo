@@ -693,6 +693,12 @@ spec(format) {
         {-g_inf, format_opts_float()},
         {0.0, format_opts_float()},
         {1.0, format_opts_float()},
+        {0.1337, format_opts_float()},
+        {0.1337133, format_opts_float()},
+        {0.13371337, format_opts_float(.maxDecDigits = 8)},
+        {0.133713371337, format_opts_float(.maxDecDigits = 12)},
+        {0.1337133713371337, format_opts_float(.maxDecDigits = 16)},
+        {0.13371337133713371, format_opts_float(.maxDecDigits = 17)},
     };
 
     DynString string = dynstring_create_over(mem_stack(128));
@@ -707,7 +713,11 @@ spec(format) {
       if (float_isnan(data[i].val)) {
         check_msg(float_isnan(result), "nan roundtrips");
       } else {
-        check_msg(data[i].val == result, "{} roundtrips", fmt_float(data[i].val));
+        check_msg(
+            data[i].val == result,
+            "{} ({}) roundtrips",
+            fmt_float(data[i].val),
+            fmt_text(dynstring_view(&string)));
       }
     }
     dynstring_destroy(&string);
