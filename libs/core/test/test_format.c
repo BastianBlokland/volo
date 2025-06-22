@@ -680,4 +680,36 @@ spec(format) {
       check_eq_string(rem, data[i].expectedRemaining);
     }
   }
+
+  it("can roundtrip f64 floating point number read/write") {
+    static const f64 g_nan = f64_nan;
+    static const f64 g_inf = f64_inf;
+    struct {
+      f64             val;
+      FormatOptsFloat opts;
+    } const data[] = {
+        {g_nan, format_opts_float()},
+        {g_inf, format_opts_float()},
+        {-g_inf, format_opts_float()},
+        {0.0, format_opts_float()},
+        {1.0, format_opts_float()},
+    };
+
+    DynString string = dynstring_create_over(mem_stack(128));
+    for (usize i = 0; i != array_elems(data); ++i) {
+      dynstring_clear(&string);
+      format_write_f64(&string, data[i].val, &data[i].opts);
+
+      f64          result;
+      const String rem = format_read_f64(dynstring_view(&string), &result);
+      check_eq_string(rem, string_empty);
+
+      if (float_isnan(data[i].val)) {
+        check_msg(float_isnan(result), "nan roundtrips");
+      } else {
+        check_msg(data[i].val == result, "{} roundtrips", fmt_float(data[i].val));
+      }
+    }
+    dynstring_destroy(&string);
+  }
 }
