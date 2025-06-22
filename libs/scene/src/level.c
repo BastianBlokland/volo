@@ -3,6 +3,7 @@
 #include "core_array.h"
 #include "core_diag.h"
 #include "core_dynarray.h"
+#include "core_float.h"
 #include "core_math.h"
 #include "core_rng.h"
 #include "ecs_entity.h"
@@ -557,6 +558,13 @@ static void level_obj_push(
       .scale    = scaleVal == 1.0f ? 0.0 : scaleVal, // Scale 0 is treated as unscaled (eg 1.0).
       .faction  = maybeFaction ? level_to_asset_faction(maybeFaction->id) : AssetLevelFaction_None,
   };
+
+  // Quantize floats to make load <-> save roundtrip stable.
+  enum { LevelFloatMantissaBits = 19 };
+  obj.position = geo_vector_quantize3(obj.position, LevelFloatMantissaBits);
+  obj.rotation = geo_quat_quantize(obj.rotation, LevelFloatMantissaBits);
+  obj.scale    = float_quantize_f32(obj.scale, LevelFloatMantissaBits);
+
   if (maybeProperties) {
     level_obj_push_properties(idMap, entitySelf, &obj, alloc, maybeProperties, entityRefItr);
   }
