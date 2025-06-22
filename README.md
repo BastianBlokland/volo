@@ -3,6 +3,8 @@
 
 *Work in progress RTS game*
 
+![screenshot](https://bastian.tech/media/volo_22-06-2025.jpg)
+
 # Volo
 
 ## Building
