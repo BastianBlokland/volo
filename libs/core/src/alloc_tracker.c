@@ -27,7 +27,10 @@ static bool tracker_should_grow(AllocTracker* tracker) {
 
 static AllocTrackerSlot* tracker_slots_alloc(const usize slotCount) {
   const usize slotsMemSize = sizeof(AllocTrackerSlot) * slotCount;
-  const Mem   slotsMem     = alloc_alloc(g_allocPage, slotsMemSize, alignof(AllocTracker));
+  const Mem   slotsMem     = g_allocPage->alloc(g_allocPage, slotsMemSize, alignof(AllocTracker));
+  if (UNLIKELY(!mem_valid(slotsMem))) {
+    return null; // Allocation failed.
+  }
   mem_set(slotsMem, 0);
   return slotsMem.ptr;
 }
@@ -47,10 +50,13 @@ static AllocTrackerSlot* tracker_slot(
   return null;
 }
 
-NO_INLINE_HINT static void tracker_grow(AllocTracker* table) {
+NO_INLINE_HINT static bool tracker_grow(AllocTracker* table) {
   // Allocate new slots.
   const usize       newSlotCount = bits_nextpow2(table->slotCount + 1);
   AllocTrackerSlot* newSlots     = tracker_slots_alloc(newSlotCount);
+  if (UNLIKELY(!newSlots)) {
+    return false; // Grow failed.
+  }
 
   // Insert the old data into the new slots.
   for (AllocTrackerSlot* slot = table->slots; slot != (table->slots + table->slotCount); ++slot) {
@@ -64,6 +70,8 @@ NO_INLINE_HINT static void tracker_grow(AllocTracker* table) {
   alloc_free_array_t(g_allocPage, table->slots, table->slotCount);
   table->slots     = newSlots;
   table->slotCount = newSlotCount;
+
+  return true; // Grow succeeded.
 }
 
 AllocTracker* alloc_tracker_create() {
@@ -96,7 +104,7 @@ void alloc_tracker_add(AllocTracker* tracker, const Mem mem, const SymbolStack s
    * NOTE: Delay crashing until we've released the spinlock, this avoids deadlocking when the
    * process of crashing requires us to allocate more memory.
    */
-  enum { ErrNone, ErrDupAlloc };
+  enum { ErrNone, ErrDupAlloc, ErrGrowFailed };
   u32   err     = ErrNone;
   usize oldSize = 0;
 
@@ -109,7 +117,10 @@ void alloc_tracker_add(AllocTracker* tracker, const Mem mem, const SymbolStack s
       tracker->slotCountUsed += 1;
       tracker->slotSizeUsed += mem.size;
       if (UNLIKELY(tracker_should_grow(tracker))) {
-        tracker_grow(tracker);
+        const bool growSuccess = tracker_grow(tracker);
+        if (UNLIKELY(!growSuccess)) {
+          err = ErrGrowFailed;
+        }
       }
     } else {
       err     = ErrDupAlloc;
@@ -125,6 +136,9 @@ void alloc_tracker_add(AllocTracker* tracker, const Mem mem, const SymbolStack s
         fmt_int((uptr)mem.ptr, .base = 16, .minDigits = 16),
         fmt_int(oldSize),
         fmt_int(mem.size));
+    break;
+  case ErrGrowFailed:
+    diag_crash_msg("Failed to grow AllocationTracker (slots: {})", fmt_int(tracker->slotCount));
     break;
   }
 }
