@@ -176,7 +176,7 @@ bool asset_level_save(AssetManagerComp* manager, const String id, const AssetLev
   const DataWriteJsonOpts jOpts = data_write_json_opts(
           .numberMaxDecDigits    = 4,
           .numberExpThresholdPos = f64_max, // Disable positive scientific notation.
-          .numberExpThresholdNeg = 0,       // // Disable negative scientific notation.
+          .numberExpThresholdNeg = 0,       // Disable negative scientific notation.
           .compact               = true);
 
   const Mem levelData = mem_create(level, sizeof(AssetLevel));
