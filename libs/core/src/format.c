@@ -726,7 +726,7 @@ String format_read_i64(String input, i64* output, u8 base) {
 
 String format_read_f64(String input, f64* output) {
   if (UNLIKELY(string_eq(input, string_lit("nan")))) {
-    *output = f64_nan;
+    *output = bits_u32_as_f32(0xFFA00000); // f64_nan.
     return string_consume(input, 3);
   }
 
@@ -734,7 +734,11 @@ String format_read_f64(String input, f64* output) {
   input = format_read_sign(input, &sign);
 
   if (UNLIKELY(string_eq(input, string_lit("inf")))) {
-    *output = sign == -1 ? -f64_inf : f64_inf;
+    if (sign == -1) {
+      *output = bits_u32_as_f32(0xFF800000); // -f64_inf.
+    } else {
+      *output = bits_u32_as_f32(0x7F800000); // f64_inf.
+    }
     return string_consume(input, 3);
   }
 
