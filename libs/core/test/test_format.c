@@ -12,27 +12,27 @@ spec(format) {
 
   it("can write FormatArg's") {
     struct {
-      FormatArg* arg;
-      String     expected;
+      FormatArg arg;
+      String    expected;
     } const data[] = {
-        {&fmt_int(42), string_lit("42")},
-        {&fmt_int(-42), string_lit("-42")},
-        {&fmt_int(42, .base = 16), string_lit("2A")},
-        {&fmt_float(42.42), string_lit("42.42")},
-        {&fmt_bool(true), string_lit("true")},
-        {&fmt_mem(string_lit("Hello")), string_lit("6F6C6C6548")},
-        {&fmt_duration(time_minute), string_lit("1m")},
-        {&fmt_size(usize_mebibyte), string_lit("1MiB")},
-        {&fmt_text_lit("Hello World"), string_lit("Hello World")},
-        {&fmt_char('a'), string_lit("a")},
-        {&fmt_path(string_lit("c:\\hello")), string_lit("C:/hello")},
-        {&fmt_padding(5), string_lit("     ")},
+        {fmt_int(42), string_lit("42")},
+        {fmt_int(-42), string_lit("-42")},
+        {fmt_int(42, .base = 16), string_lit("2A")},
+        {fmt_float(42.42), string_lit("42.42")},
+        {fmt_bool(true), string_lit("true")},
+        {fmt_mem(string_lit("Hello")), string_lit("6F6C6C6548")},
+        {fmt_duration(time_minute), string_lit("1m")},
+        {fmt_size(usize_mebibyte), string_lit("1MiB")},
+        {fmt_text_lit("Hello World"), string_lit("Hello World")},
+        {fmt_char('a'), string_lit("a")},
+        {fmt_path(string_lit("c:\\hello")), string_lit("C:/hello")},
+        {fmt_padding(5), string_lit("     ")},
     };
 
     DynString string = dynstring_create_over(mem_stack(128));
     for (usize i = 0; i != array_elems(data); ++i) {
       dynstring_clear(&string);
-      format_write_arg(&string, data[i].arg);
+      format_write_arg(&string, &data[i].arg);
       check_eq_string(dynstring_view(&string), data[i].expected);
     }
     dynstring_destroy(&string);
