@@ -76,6 +76,7 @@ GeoQuat geo_quat_flip(GeoQuat);
  */
 GeoQuat geo_quat_norm(GeoQuat);
 GeoQuat geo_quat_norm_or_ident(GeoQuat);
+GeoQuat geo_quat_norm_or_ident_exact(GeoQuat);
 
 /**
  * Calculate the dot product of two quaternions.

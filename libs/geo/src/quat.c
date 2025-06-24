@@ -148,6 +148,15 @@ GeoQuat geo_quat_norm_or_ident(const GeoQuat q) {
 #endif
 }
 
+GeoQuat geo_quat_norm_or_ident_exact(const GeoQuat q) {
+  const f32 magSqr = geo_quat_dot(q, q);
+  if (magSqr < f32_epsilon) {
+    return geo_quat_ident;
+  }
+  const f32 mag = intrinsic_sqrt_f32(magSqr);
+  return (GeoQuat){q.x / mag, q.y / mag, q.z / mag, q.w / mag};
+}
+
 f32 geo_quat_dot(const GeoQuat a, const GeoQuat b) {
 #ifdef VOLO_SIMD
   return simd_vec_x(simd_vec_dot4(simd_vec_load(a.comps), simd_vec_load(b.comps)));
