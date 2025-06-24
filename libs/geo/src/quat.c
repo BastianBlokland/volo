@@ -123,7 +123,8 @@ GeoQuat geo_quat_norm(const GeoQuat q) {
 #else
   const f32 mag = geo_vector_mag((GeoVector){q.x, q.y, q.z, q.w});
   diag_assert(mag != 0);
-  return (GeoQuat){q.x / mag, q.y / mag, q.z / mag, q.w / mag};
+  const f32 magInv = 1.0f / mag;
+  return (GeoQuat){q.x * magInv, q.y * magInv, q.z * magInv, q.w * magInv};
 #endif
 }
 
@@ -143,8 +144,8 @@ GeoQuat geo_quat_norm_or_ident(const GeoQuat q) {
   if (magSqr < f32_epsilon) {
     return geo_quat_ident;
   }
-  const f32 mag = intrinsic_sqrt_f32(magSqr);
-  return (GeoQuat){q.x / mag, q.y / mag, q.z / mag, q.w / mag};
+  const f32 magInv = 1.0f / intrinsic_sqrt_f32(magSqr);
+  return (GeoQuat){q.x * magInv, q.y * magInv, q.z * magInv, q.w * magInv};
 #endif
 }
 
