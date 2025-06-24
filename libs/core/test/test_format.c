@@ -5,33 +5,34 @@
 #include "core_float.h"
 #include "core_format.h"
 #include "core_math.h"
+#include "core_rng.h"
 #include "core_time.h"
 
 spec(format) {
 
   it("can write FormatArg's") {
     struct {
-      FormatArg* arg;
-      String     expected;
+      FormatArg arg;
+      String    expected;
     } const data[] = {
-        {&fmt_int(42), string_lit("42")},
-        {&fmt_int(-42), string_lit("-42")},
-        {&fmt_int(42, .base = 16), string_lit("2A")},
-        {&fmt_float(42.42), string_lit("42.42")},
-        {&fmt_bool(true), string_lit("true")},
-        {&fmt_mem(string_lit("Hello")), string_lit("6F6C6C6548")},
-        {&fmt_duration(time_minute), string_lit("1m")},
-        {&fmt_size(usize_mebibyte), string_lit("1MiB")},
-        {&fmt_text_lit("Hello World"), string_lit("Hello World")},
-        {&fmt_char('a'), string_lit("a")},
-        {&fmt_path(string_lit("c:\\hello")), string_lit("C:/hello")},
-        {&fmt_padding(5), string_lit("     ")},
+        {fmt_int(42), string_lit("42")},
+        {fmt_int(-42), string_lit("-42")},
+        {fmt_int(42, .base = 16), string_lit("2A")},
+        {fmt_float(42.42), string_lit("42.42")},
+        {fmt_bool(true), string_lit("true")},
+        {fmt_mem(string_lit("Hello")), string_lit("6F6C6C6548")},
+        {fmt_duration(time_minute), string_lit("1m")},
+        {fmt_size(usize_mebibyte), string_lit("1MiB")},
+        {fmt_text_lit("Hello World"), string_lit("Hello World")},
+        {fmt_char('a'), string_lit("a")},
+        {fmt_path(string_lit("c:\\hello")), string_lit("C:/hello")},
+        {fmt_padding(5), string_lit("     ")},
     };
 
     DynString string = dynstring_create_over(mem_stack(128));
     for (usize i = 0; i != array_elems(data); ++i) {
       dynstring_clear(&string);
-      format_write_arg(&string, data[i].arg);
+      format_write_arg(&string, &data[i].arg);
       check_eq_string(dynstring_view(&string), data[i].expected);
     }
     dynstring_destroy(&string);
@@ -678,6 +679,98 @@ spec(format) {
       const String rem = format_read_time_duration(data[i].val, &out);
       check_eq_int(out, data[i].expected);
       check_eq_string(rem, data[i].expectedRemaining);
+    }
+  }
+
+  it("can roundtrip basic floating point number read/write") {
+    static const f64 g_nan = f64_nan;
+    static const f64 g_inf = f64_inf;
+    struct {
+      f64             val;
+      FormatOptsFloat opts;
+    } const data[] = {
+        {g_nan, format_opts_float()},
+        {g_inf, format_opts_float()},
+        {-g_inf, format_opts_float()},
+        {0.0, format_opts_float()},
+        {1.0, format_opts_float()},
+        {0.1337, format_opts_float()},
+        {0.1337133, format_opts_float()},
+        {0.13371337, format_opts_float(.maxDecDigits = 8)},
+        {0.133713371337, format_opts_float(.maxDecDigits = 12)},
+        {0.1337133713371337, format_opts_float(.maxDecDigits = 16)},
+        {0.13371337133713371, format_opts_float(.maxDecDigits = 17)},
+        {46590.9023438, format_opts_float()},
+    };
+
+    DynString string = dynstring_create_over(mem_stack(128));
+    for (usize i = 0; i != array_elems(data); ++i) {
+      dynstring_clear(&string);
+      format_write_f64(&string, data[i].val, &data[i].opts);
+
+      f64          result;
+      const String rem = format_read_f64(dynstring_view(&string), &result);
+      check_eq_string(rem, string_empty);
+
+      if (float_isnan(data[i].val)) {
+        check_msg(float_isnan(result), "nan roundtrips");
+      } else {
+        check_msg(
+            data[i].val == result,
+            "{} ({}) roundtrips",
+            fmt_float(data[i].val),
+            fmt_text(dynstring_view(&string)));
+      }
+    }
+    dynstring_destroy(&string);
+  }
+
+  it("can roundtrip basic decimal number read/write") {
+    Allocator* allocStack = alloc_bump_create_stack(1024);
+    Rng*       rng        = rng_create_xorwow(allocStack, 42 /* seed */);
+
+    enum { MaxIntDigits = 6, MaxDecimalDigits = 9, Iterations = 10 * 1000 };
+
+    const FormatOptsFloat opts = format_opts_float(
+            .expThresholdPos = f64_max, .expThresholdNeg = 0, .maxDecDigits = MaxDecimalDigits);
+
+    DynString strA = dynstring_create(allocStack, 128);
+    DynString strB = dynstring_create(allocStack, 128);
+    for (u32 itr = 0; itr != Iterations; ++itr) {
+      dynstring_clear(&strA);
+      dynstring_clear(&strB);
+
+      bool anyInt = false;
+      for (u32 i = 0; i != MaxIntDigits; ++i) {
+        const u32 v = (u32)rng_sample_range(rng, 0, 10);
+        if (v) {
+          dynstring_append_char(&strA, '0' + v);
+          anyInt = true;
+        }
+      }
+      if (!anyInt) {
+        dynstring_append_char(&strA, '0');
+      }
+
+      bool anyDecimal = false;
+      dynstring_append_char(&strA, '.');
+      for (u32 i = 0; i != MaxDecimalDigits; ++i) {
+        const u32 v = (u32)rng_sample_range(rng, 0, 10);
+        if (v) {
+          dynstring_append_char(&strA, '0' + v);
+          anyDecimal = true;
+        }
+      }
+      if (!anyDecimal) {
+        dynstring_erase_chars(&strA, dynstring_view(&strA).size - 1, 1);
+      }
+
+      f64          result;
+      const String rem = format_read_f64(dynstring_view(&strA), &result);
+      check_eq_string(rem, string_empty);
+
+      format_write_f64(&strB, result, &opts);
+      check_eq_string(dynstring_view(&strA), dynstring_view(&strB));
     }
   }
 }
