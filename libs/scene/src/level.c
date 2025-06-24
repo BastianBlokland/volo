@@ -553,7 +553,7 @@ static void level_obj_push(
       .id       = level_id_lookup(idMap, entitySelf),
       .prefab   = prefabInst->prefabId,
       .position = maybeTrans ? maybeTrans->position : geo_vector(0),
-      .rotation = maybeTrans ? geo_quat_norm(maybeTrans->rotation) : geo_quat_ident,
+      .rotation = maybeTrans ? geo_quat_norm_or_ident_exact(maybeTrans->rotation) : geo_quat_ident,
       .scale    = scaleVal == 1.0f ? 0.0 : scaleVal, // Scale 0 is treated as unscaled (eg 1.0).
       .faction  = maybeFaction ? level_to_asset_faction(maybeFaction->id) : AssetLevelFaction_None,
   };
