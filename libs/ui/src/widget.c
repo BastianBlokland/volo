@@ -461,13 +461,6 @@ static UiSelectFlags ui_select_dropdown(
   }
   static const f32 g_spacing = 2;
 
-  UiScrollview scrollview;
-  if (ui_canvas_elem_status(canvas, id) == UiStatus_Activated) {
-    scrollview = (UiScrollview){0}; // Reset the scrollview on open.
-  } else {
-    scrollview = *ui_canvas_persistent_scrollview(canvas, id);
-  }
-
   UiSelectFlags selectFlags = 0;
   const UiRect  lastRect    = ui_canvas_elem_rect(canvas, id);
   const f32     totalHeight = entryCount * lastRect.height + (entryCount - 1) * g_spacing;
@@ -489,6 +482,13 @@ static UiSelectFlags ui_select_dropdown(
   ui_canvas_draw_glyph(canvas, UiShape_Square, 10, UiFlags_None);
   ui_style_pop(canvas);
 
+  UiScrollview scrollview;
+  if (ui_canvas_elem_status(canvas, id) == UiStatus_Activated) {
+    scrollview = (UiScrollview){0}; // Reset the scrollview on open.
+  } else {
+    scrollview = *ui_canvas_persistent_scrollview(canvas, id);
+  }
+
   if (ui_scrollview_begin(canvas, &scrollview, UiLayer_Overlay, totalHeight)) {
     selectFlags |= UiSelectFlags_Hovered;
   }
@@ -497,9 +497,13 @@ static UiSelectFlags ui_select_dropdown(
   ui_layout_resize(canvas, anchor, ui_vector(0, lastRect.height), UiBase_Absolute, Ui_Y);
 
   for (i32 i = 0; i != (i32)entryCount; ++i) {
-    const i32 optionIndex = (dir == Ui_Up ? (i32)entryCount - 1 - i : i) - (i32)opts->allowNone;
-
-    const UiId     optionId     = ui_canvas_id_peek(canvas);
+    if (ui_scrollview_cull(&scrollview, i * (lastRect.height + g_spacing), lastRect.height)) {
+      ui_canvas_id_skip(canvas, 2);
+      ui_layout_next(canvas, dir, g_spacing);
+      continue;
+    }
+    const i32  optionIndex = (dir == Ui_Up ? (i32)entryCount - 1 - i : i) - (i32)opts->allowNone;
+    const UiId optionId    = ui_canvas_id_peek(canvas);
     const UiStatus optionStatus = ui_canvas_elem_status(canvas, optionId);
 
     ui_style_push(canvas);
