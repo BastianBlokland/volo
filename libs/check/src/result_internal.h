@@ -10,7 +10,7 @@ typedef struct {
 
 typedef struct {
   Allocator*   alloc;
-  bool         finished;
+  bool         finished, errorsTruncated;
   TimeDuration duration;
   DynArray     errors; // CheckError[]
 } CheckResult;

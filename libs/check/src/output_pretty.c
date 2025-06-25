@@ -120,6 +120,13 @@ static void output_test_finished(
         fmt_int(err->source.line),
         arg_style_reset(prettyOut));
   }
+  if (result->errorsTruncated) {
+    fmt_write(
+        &str,
+        "  {}[Errors truncated]{}\n",
+        arg_style_result(prettyOut, type),
+        arg_style_reset(prettyOut));
+  }
 
   output_write(prettyOut, dynstring_view(&str));
   dynstring_destroy(&str);

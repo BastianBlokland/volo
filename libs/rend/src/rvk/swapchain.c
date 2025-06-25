@@ -460,6 +460,9 @@ void rvk_swapchain_wait_for_present(const RvkSwapchain* swap, const u32 numBehin
           "Out-of-date swapchain detected during wait",
           log_param("id", fmt_int(swap->curPresentId)));
       break;
+    case VK_ERROR_DEVICE_LOST:
+      log_w("Device lost during swapchain wait", log_param("id", fmt_int(swap->curPresentId)));
+      break;
     default:
       rvk_api_check(string_lit("waitForPresentKHR"), result);
     }

@@ -79,7 +79,7 @@ static bool asset_data_normalizer_color4norm(const Mem data) {
 
 static bool asset_data_normalizer_quat(const Mem data) {
   GeoQuat* quat = mem_as_t(data, GeoQuat);
-  *quat         = geo_quat_norm_or_ident(*quat);
+  *quat         = geo_quat_norm_or_ident_exact(*quat);
   return true;
 }
 
