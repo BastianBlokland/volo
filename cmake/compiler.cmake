@@ -125,7 +125,8 @@ macro(set_clang_compile_options)
   add_compile_options(-Wall -Wextra -Werror -Wshadow -Wgnu-empty-initializer -Wconversion)
   add_compile_options(-Wno-initializer-overrides -Wno-unused-value -Wno-missing-braces
                       -Wno-sign-conversion -Wno-implicit-int-float-conversion
-                      -Wno-implicit-int-conversion -Wno-missing-field-initializers)
+                      -Wno-implicit-int-conversion -Wno-missing-field-initializers
+                      -Wno-enum-enum-conversion)
 
   # Optimization settings.
   add_compile_options(-O3) # Optimization level 3.
