@@ -22,6 +22,7 @@ jobs:
             toolchain: unix,
             cc: gcc-9,
             fast: Off,
+            simd: On,
             lto: Off,
           }
         - {
@@ -31,6 +32,7 @@ jobs:
             toolchain: unix,
             cc: clang-13,
             fast: Off,
+            simd: On,
             lto: Off,
           }
         - {
@@ -40,6 +42,7 @@ jobs:
             toolchain: msvc,
             cc: cl,
             fast: Off,
+            simd: On,
             lto: Off,
           }
         - {
@@ -49,6 +52,7 @@ jobs:
             toolchain: msvc,
             cc: clang,
             fast: Off,
+            simd: On,
             lto: Off,
           }
         - {
@@ -58,6 +62,7 @@ jobs:
             toolchain: mingw,
             cc: gcc,
             fast: Off,
+            simd: On,
             lto: Off,
           }
         - {
@@ -67,6 +72,7 @@ jobs:
             toolchain: unix,
             cc: clang-13,
             fast: On,
+            simd: On,
             lto: On,
           }
         - {
@@ -76,11 +82,12 @@ jobs:
             toolchain: msvc,
             cc: cl,
             fast: On,
+            simd: On,
             lto: On,
           }
     env:
       CC: ${{matrix.config.cc}}
-      CMAKE_OPTS: "-DSANITIZE=On -DFAST=${{matrix.config.fast}} -DLTO=${{matrix.config.lto}}"
+      CMAKE_OPTS: "-DSANITIZE=On -DFAST=${{matrix.config.fast}} -DSIMD=${{matrix.config.simd}} -DLTO=${{matrix.config.lto}}"
     steps:
     - name: checkout
       uses: actions/checkout@v4
