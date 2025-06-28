@@ -32,6 +32,10 @@ macro(set_generic_defines)
     message(STATUS "Enabling fast mode")
     add_definitions(-DVOLO_FAST)
   endif()
+  if(${SIMD})
+    message(STATUS "Enabling simd mode")
+    add_definitions(-DVOLO_SIMD)
+  endif()
   if(${TRACE})
     message(STATUS "Enabling trace mode")
     add_definitions(-DVOLO_TRACE)
@@ -42,21 +46,21 @@ endmacro(set_generic_defines)
 # Set gcc specific defines
 #
 macro(set_gcc_defines)
-  add_definitions(-DVOLO_GCC -DVOLO_SIMD)
+  add_definitions(-DVOLO_GCC)
 endmacro(set_gcc_defines)
 
 #
 # Set clang specific defines
 #
 macro(set_clang_defines)
-  add_definitions(-DVOLO_CLANG -DVOLO_SIMD)
+  add_definitions(-DVOLO_CLANG)
 endmacro(set_clang_defines)
 
 #
 # Set msvc specific defines
 #
 macro(set_msvc_defines)
-  add_definitions(-DVOLO_MSVC -DVOLO_SIMD)
+  add_definitions(-DVOLO_MSVC)
 endmacro(set_msvc_defines)
 
 #
@@ -102,6 +106,11 @@ macro(set_gcc_compile_options)
   add_compile_options(-mf16c) # Enable output of f16c (f32 <-> f16 conversions)
   # add_compile_options(-mfma) # Enable output of 'fused multiply-add' instructions.
 
+  if(NOT ${SIMD})
+    message(STATUS "Disabling auto-vectorization")
+    add_compile_options(-fno-tree-vectorize)
+  endif()
+
   # Debug options.
   add_compile_options(-g) # Enable debug symbols.
   add_compile_options(-fno-omit-frame-pointer) # Include frame-pointers for fast stack-traces.
@@ -138,6 +147,11 @@ macro(set_clang_compile_options)
   # add_compile_options(-fno-finite-math-only) # Enable NaN support with fast-math.
   add_compile_options(-mf16c) # Enable output of f16c (f32 <-> f16 conversions)
   # add_compile_options(-mfma) # Enable output of 'fused multiply-add' instructions.
+
+  if(NOT ${SIMD})
+    message(STATUS "Disabling auto-vectorization")
+    add_compile_options(-fno-vectorize)
+  endif()
 
   # Debug options.
   add_compile_options(-g) # Enable debug symbols.
@@ -207,6 +221,11 @@ macro(set_msvc_compile_options)
   add_compile_options(/Gv) # Use the 'vectorcall' calling convention.
   # add_compile_options(/fp:fast)  # Enable (potentially lossy) floating point optimizations.
   add_compile_options(/GS-) # Disable 'Buffer Security Check'.
+
+  if(NOT ${SIMD})
+    message(STATUS "Disabling auto-vectorization")
+    add_compile_options(/d2Qvec-)
+  endif()
 
   # Debug options.
   add_compile_options(/Zi) # Debug symbols in seperate pdb files.

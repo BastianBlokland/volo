@@ -60,6 +60,7 @@ GeoVector geo_vector_mul_comps(GeoVector, GeoVector);
  */
 GeoVector geo_vector_div(GeoVector, f32 scalar);
 GeoVector geo_vector_div_comps(GeoVector, GeoVector);
+GeoVector geo_vector_div_comps3(GeoVector, GeoVector);
 
 /**
  * Calculate the magnitude of the vector squared.

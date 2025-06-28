@@ -598,7 +598,7 @@ ScriptVal script_val_div(const ScriptVal a, const ScriptVal b) {
     if (val_type(b) == ScriptType_Vec3) {
       const GeoVector vecA = val_as_vec3_dirty_w(a);
       const GeoVector vecB = val_as_vec3_dirty_w(b);
-      return val_vec3(geo_vector_div_comps(vecA, vecB));
+      return val_vec3(geo_vector_div_comps3(vecA, vecB));
     }
     return val_null();
   }

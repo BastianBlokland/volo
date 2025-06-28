@@ -90,6 +90,16 @@ GeoVector geo_vector_div_comps(const GeoVector a, const GeoVector b) {
 #endif
 }
 
+GeoVector geo_vector_div_comps3(const GeoVector a, const GeoVector b) {
+#ifdef VOLO_SIMD
+  GeoVector res;
+  simd_vec_store(simd_vec_div(simd_vec_load(a.comps), simd_vec_load(b.comps)), res.comps);
+  return res;
+#else
+  return geo_vector(a.x / b.x, a.y / b.y, a.z / b.z);
+#endif
+}
+
 f32 geo_vector_mag_sqr(const GeoVector v) {
 #ifdef VOLO_SIMD
   const SimdVec vec = simd_vec_load(v.comps);
