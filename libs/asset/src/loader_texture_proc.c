@@ -200,8 +200,8 @@ static GeoColor proctex_sample_brdf_integration(const f32 roughness, const f32 n
     }
   }
 
-  outScale /= SampleCount;
-  outBias /= SampleCount;
+  outScale /= (f32)SampleCount;
+  outBias /= (f32)SampleCount;
   return geo_color(outScale, outBias, 0, 1);
 }
 
