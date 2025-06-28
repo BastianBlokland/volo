@@ -32,6 +32,10 @@ macro(set_generic_defines)
     message(STATUS "Enabling fast mode")
     add_definitions(-DVOLO_FAST)
   endif()
+  if(${SIMD})
+    message(STATUS "Enabling simd mode")
+    add_definitions(-DVOLO_SIMD)
+  endif()
   if(${TRACE})
     message(STATUS "Enabling trace mode")
     add_definitions(-DVOLO_TRACE)
@@ -42,21 +46,21 @@ endmacro(set_generic_defines)
 # Set gcc specific defines
 #
 macro(set_gcc_defines)
-  add_definitions(-DVOLO_GCC -DVOLO_SIMD)
+  add_definitions(-DVOLO_GCC)
 endmacro(set_gcc_defines)
 
 #
 # Set clang specific defines
 #
 macro(set_clang_defines)
-  add_definitions(-DVOLO_CLANG -DVOLO_SIMD)
+  add_definitions(-DVOLO_CLANG)
 endmacro(set_clang_defines)
 
 #
 # Set msvc specific defines
 #
 macro(set_msvc_defines)
-  add_definitions(-DVOLO_MSVC -DVOLO_SIMD)
+  add_definitions(-DVOLO_MSVC)
 endmacro(set_msvc_defines)
 
 #
