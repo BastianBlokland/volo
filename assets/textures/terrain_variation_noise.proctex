@@ -1,0 +1,10 @@
+{
+  "type": "NoiseWhite",
+  "channels": "Four",
+  "mipmaps": false,
+  "lossless": true,
+  "size": 4,
+  "frequency": 1,
+  "power": 1,
+  "seed": 1337
+}
