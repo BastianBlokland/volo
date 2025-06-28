@@ -1894,15 +1894,17 @@ static void inspector_tool_group_update(
     for (const EcsEntityId* e = scene_set_begin(setEnv, s); e != scene_set_end(setEnv, s); ++e) {
       if (ecs_view_maybe_jump(itr, *e)) {
         SceneTransformComp* transform = ecs_view_write_t(itr, SceneTransformComp);
-        SceneScaleComp*     scaleComp = ecs_view_write_t(itr, SceneScaleComp);
-        if (posDirty) {
-          transform->position = geo_vector_add(transform->position, posDelta);
-        }
-        if (rotDirty) {
-          scene_transform_rotate_around(transform, pos, rotDelta);
-        }
-        if (scaleComp && scaleDirty) {
-          scene_transform_scale_around(transform, scaleComp, pos, scaleDelta);
+        if (LIKELY(transform)) {
+          SceneScaleComp* scaleComp = ecs_view_write_t(itr, SceneScaleComp);
+          if (posDirty) {
+            transform->position = geo_vector_add(transform->position, posDelta);
+          }
+          if (rotDirty) {
+            scene_transform_rotate_around(transform, pos, rotDelta);
+          }
+          if (scaleComp && scaleDirty) {
+            scene_transform_scale_around(transform, scaleComp, pos, scaleDelta);
+          }
         }
       }
     }
