@@ -555,7 +555,7 @@ void dev_circle(
     const f32       radius,
     const GeoColor  color) {
   enum { Segments = 16 };
-  const f32 step = math_pi_f32 * 2.0f / Segments;
+  const f32 step = math_pi_f32 * 2.0f / (f32)Segments;
   GeoVector points[Segments];
   for (u32 i = 0; i != Segments; ++i) {
     const f32       angle = i * step;
