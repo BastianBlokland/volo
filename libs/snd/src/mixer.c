@@ -20,8 +20,6 @@
 
 #ifdef VOLO_SIMD
 #include "core_simd.h"
-#else
-#error Sound Mixer requires SIMD support
 #endif
 
 #define snd_mixer_objects_max 512
@@ -345,12 +343,14 @@ INLINE_HINT static void snd_object_sample(
   }
 }
 
+#ifdef VOLO_SIMD
 INLINE_HINT static SimdVec snd_object_param_blend(
     const SimdVec actual, const SimdVec target, const SimdVec deltaMin, const SimdVec deltaMax) {
   const SimdVec delta        = simd_vec_sub(target, actual);
   const SimdVec deltaClamped = simd_vec_max(simd_vec_min(delta, deltaMax), deltaMin);
   return simd_vec_add(actual, deltaClamped);
 }
+#endif
 
 static bool snd_object_render(SndObject* obj, SndBuffer out) {
   diag_assert(obj->phase == SndObjectPhase_Playing);
@@ -372,17 +372,20 @@ static bool snd_object_render(SndObject* obj, SndBuffer out) {
       [SndObjectParam_GainRight] = pitchTooLow ? 0.0f : 1.0f,
   };
 
+#ifdef VOLO_SIMD
   const SimdVec paramDeltaMax = simd_vec_load(g_paramDeltaMaxValues);
   const SimdVec paramDeltaMin = simd_vec_mul(paramDeltaMax, simd_vec_broadcast(-1.0f));
   const SimdVec paramMult     = simd_vec_load(paramMultValues);
   const SimdVec paramTarget   = simd_vec_mul(simd_vec_load(obj->paramSetting), paramMult);
   SimdVec       paramActual   = simd_vec_load(obj->paramActual);
+#endif
 
   for (u32 frame = 0; frame != out.frameCount; ++frame) {
-    paramActual = snd_object_param_blend(paramActual, paramTarget, paramDeltaMin, paramDeltaMax);
-
     f32 samples[SndChannel_Count];
     snd_object_sample(obj, obj->cursor, samples);
+
+#ifdef VOLO_SIMD
+    paramActual = snd_object_param_blend(paramActual, paramTarget, paramDeltaMin, paramDeltaMax);
 
     const f32 gainLeft = simd_vec_x(simd_vec_splat(paramActual, SndObjectParam_GainLeft));
     out.frames[frame].samples[SndChannel_Left] += samples[SndChannel_Left] * gainLeft;
@@ -392,6 +395,22 @@ static bool snd_object_render(SndObject* obj, SndBuffer out) {
 
     ASSERT(SndObjectParam_Pitch == 0, "Expected pitch to be the first parameter");
     obj->cursor += advancePerFrame * (f64)simd_vec_x(paramActual);
+#else
+    for (u32 i = 0; i != SndObjectParam_Count; ++i) {
+      const f32 deltaMax = g_paramDeltaMaxValues[i];
+      const f32 deltaMin = deltaMax * -1.0f;
+      const f32 target   = obj->paramSetting[i] * paramMultValues[i];
+      obj->paramActual[i] += math_clamp_f32(target - obj->paramActual[i], deltaMin, deltaMax);
+    }
+
+    const f32 gainLeft = obj->paramActual[SndObjectParam_GainLeft];
+    out.frames[frame].samples[SndChannel_Left] += samples[SndChannel_Left] * gainLeft;
+
+    const f32 gainRight = obj->paramActual[SndObjectParam_GainRight];
+    out.frames[frame].samples[SndChannel_Right] += samples[SndChannel_Right] * gainRight;
+
+    obj->cursor += advancePerFrame * (f64)obj->paramActual[SndObjectParam_Pitch];
+#endif
 
     if (UNLIKELY(obj->cursor >= obj->frameCount)) {
       if (obj->flags & SndObjectFlags_Looping) {
@@ -402,7 +421,10 @@ static bool snd_object_render(SndObject* obj, SndBuffer out) {
     }
   }
 
+#ifdef VOLO_SIMD
   simd_vec_store(paramActual, obj->paramActual);
+#endif
+
   return true; // Still playing.
 }
 
@@ -427,6 +449,7 @@ static bool snd_object_skip(SndObject* obj, const TimeDuration dur) {
       [SndObjectParam_GainRight] = pitchTooLow ? 0.0f : 1.0f,
   };
 
+#ifdef VOLO_SIMD
   const SimdVec paramDeltaMax = simd_vec_load(paramDeltaMaxValues);
   const SimdVec paramDeltaMin = simd_vec_mul(paramDeltaMax, simd_vec_broadcast(-1.0f));
   const SimdVec paramMult     = simd_vec_load(paramMultValues);
@@ -438,6 +461,15 @@ static bool snd_object_skip(SndObject* obj, const TimeDuration dur) {
 
   ASSERT(SndObjectParam_Pitch == 0, "Expected pitch to be the first parameter");
   obj->cursor += durSeconds * (f64)obj->frameRate * (f64)simd_vec_x(paramActual);
+#else
+  for (u32 i = 0; i != SndObjectParam_Count; ++i) {
+    const f32 deltaMax = paramDeltaMaxValues[i];
+    const f32 deltaMin = deltaMax * -1.0f;
+    const f32 target   = obj->paramSetting[i] * paramMultValues[i];
+    obj->paramActual[i] += math_clamp_f32(target - obj->paramActual[i], deltaMin, deltaMax);
+  }
+  obj->cursor += durSeconds * (f64)obj->frameRate * (f64)obj->paramActual[SndObjectParam_Pitch];
+#endif
 
   if (obj->cursor >= obj->frameCount) {
     if (obj->flags & SndObjectFlags_Looping) {
@@ -483,6 +515,7 @@ static SndBuffer snd_mixer_merge(SndMixerComp* m, const u32 frameCount) {
   const u32 bufferSampleStride = snd_frame_count_max * SndChannel_Count;
 
   const u32 sampleCount = bits_align(frameCount, 2) * SndChannel_Count;
+#ifdef VOLO_SIMD
   for (u32 sampleIndex = 0; sampleIndex != sampleCount; sampleIndex += 4) {
     SimdVec accum = simd_vec_load(bufferSamples + sampleIndex);
     for (u32 i = 1; i != snd_mixer_buffer_count; ++i) {
@@ -491,6 +524,13 @@ static SndBuffer snd_mixer_merge(SndMixerComp* m, const u32 frameCount) {
     }
     simd_vec_store(accum, bufferSamples + sampleIndex);
   }
+#else
+  for (u32 sampleIndex = 0; sampleIndex != sampleCount; ++sampleIndex) {
+    for (u32 i = 1; i != snd_mixer_buffer_count; ++i) {
+      bufferSamples[sampleIndex] += bufferSamples[bufferSampleStride * i + sampleIndex];
+    }
+  }
+#endif
 
   return (SndBuffer){
       .frames     = (SndBufferFrame*)bufferSamples,
