@@ -291,6 +291,8 @@ bool ui_toggle_flag_with_opts(UiCanvasComp*, u32* value, u32 flag, const UiToggl
 bool ui_fold_with_opts(UiCanvasComp*, bool* value, const UiFoldOpts*);
 bool ui_select_with_opts(
     UiCanvasComp*, i32* value, const String* options, u32 optionCount, const UiSelectOpts*);
+bool ui_select_bits_with_opts(
+    UiCanvasComp*, BitSet value, const String* options, u32 optionCount, const UiSelectOpts*);
 bool ui_tooltip_with_opts(UiCanvasComp*, UiId, String text, const UiTooltipOpts*);
 bool ui_section_with_opts(UiCanvasComp*, const UiSectionOpts*);
 bool ui_textbox_with_opts(UiCanvasComp*, DynString*, const UiTextboxOpts*);

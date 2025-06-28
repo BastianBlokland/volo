@@ -601,6 +601,65 @@ bool ui_select_with_opts(
   return (selectFlags & UiSelectFlags_Changed) != 0;
 }
 
+bool ui_select_bits_with_opts(
+    UiCanvasComp*       canvas,
+    const BitSet        value,
+    const String*       options,
+    const u32           optionCount,
+    const UiSelectOpts* opts) {
+
+  const UiId     headerId     = ui_canvas_id_peek(canvas);
+  const bool     disabled     = (opts->flags & UiWidget_Disabled) != 0 || !optionCount;
+  const UiStatus headerStatus = disabled ? UiStatus_Idle : ui_canvas_elem_status(canvas, headerId);
+  UiSelectFlags  selectFlags  = 0;
+
+  if (headerStatus >= UiStatus_Hovered) {
+    selectFlags |= UiSelectFlags_Hovered;
+  }
+  if (headerStatus == UiStatus_Activated) {
+    ui_canvas_persistent_flags_toggle(canvas, headerId, UiPersistentFlags_Open);
+  }
+  const bool isOpen = (ui_canvas_persistent_flags(canvas, headerId) & UiPersistentFlags_Open) != 0;
+  const bool outOfBounds   = *input < 0 || *input >= (i32)optionCount;
+  const String headerLabel = outOfBounds ? opts->placeholder : options[*input];
+
+  ui_style_push(canvas);
+  if (isOpen) {
+    ui_style_layer(canvas, UiLayer_Overlay);
+    ui_canvas_min_interact_layer(canvas, UiLayer_Overlay);
+  }
+  if (disabled) {
+    ui_style_color_mult(canvas, g_uiDisabledMult);
+  }
+  ui_select_header(canvas, headerLabel, headerStatus, isOpen, opts);
+
+  if (isOpen) {
+    selectFlags |= ui_select_dropdown(canvas, headerId, input, options, optionCount, opts);
+  } else {
+    ui_canvas_id_skip(canvas, optionCount * 2);
+  }
+  if (selectFlags & UiSelectFlags_Changed || disabled) {
+    ui_canvas_persistent_flags_unset(canvas, headerId, UiPersistentFlags_Open);
+  }
+  if (!(selectFlags & UiSelectFlags_Hovered) && ui_canvas_input_any(canvas)) {
+    ui_canvas_persistent_flags_unset(canvas, headerId, UiPersistentFlags_Open);
+  }
+
+  if (!string_is_empty(opts->tooltip)) {
+    ui_tooltip(canvas, headerId, opts->tooltip);
+  }
+
+  if (headerStatus >= UiStatus_Hovered) {
+    ui_canvas_interact_type(canvas, UiInteractType_Action);
+  }
+  if (headerStatus == UiStatus_Activated || selectFlags & UiSelectFlags_Changed) {
+    ui_canvas_sound(canvas, UiSoundType_Click);
+  }
+
+  ui_style_pop(canvas);
+  return (selectFlags & UiSelectFlags_Changed) != 0;
+}
+
 static UiAlign ui_tooltip_align(UiCanvasComp* canvas) {
   const f32 halfCanvas = ui_canvas_resolution(canvas).width * 0.5f;
   return ui_canvas_input_pos(canvas).x > halfCanvas ? UiAlign_TopRight : UiAlign_TopLeft;
