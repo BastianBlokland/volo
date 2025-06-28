@@ -150,7 +150,7 @@ macro(set_clang_compile_options)
 
   if(NOT ${SIMD})
     message(STATUS "Disabling auto-vectorization")
-    add_compile_options(-fno-vectorize)
+    add_compile_options(-fno-vectorize -fno-slp-vectorize)
   endif()
 
   # Debug options.
