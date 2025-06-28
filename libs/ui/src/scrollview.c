@@ -134,7 +134,7 @@ static void ui_scrollview_draw_bar(UiCanvasComp* canvas, const UiScrollviewStatu
   const f32 handleInsetX  = hovered ? 4 : 6;
 
   const f32 minHandleSize  = 20.0f / math_max(status->viewport.height, 1);
-  const f32 additionalSize = math_max(minHandleSize - status->viewportFrac, 0.0f);
+  const f32 additionalSize = math_clamp_f32(minHandleSize - status->viewportFrac, 0.0f, 1.0);
   const f32 handlePos      = handleTopFrac + additionalSize * (1.0f - handleTopFrac);
   const f32 handleSize     = status->viewportFrac + additionalSize;
 
@@ -166,7 +166,9 @@ UiScrollviewOutput ui_scrollview_begin(
   // Draw an invisible element over the whole viewport to act as a hover target and track the rect.
   ui_canvas_draw_glyph(canvas, UiShape_Empty, 0, UiFlags_Interactable | UiFlags_TrackRect);
 
-  ui_scrollview_draw_bar(canvas, &status);
+  if (status.viewport.height > 0.0f) {
+    ui_scrollview_draw_bar(canvas, &status);
+  }
   ui_style_pop(canvas);
 
   // Push a container with the viewport rect to clip the content within the viewport.
