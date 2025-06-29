@@ -390,6 +390,8 @@ RvkImage rvk_image_create_source_color_cube(
     const RvkSize       size,
     const u8            mipLevels,
     const RvkImageFlags flags) {
+  diag_assert_msg(size.width == size.height, "Cube images need to be square");
+
   RvkImageCapability caps = RvkImageCapability_Sampled | RvkImageCapability_TransferDest;
   if ((flags & RvkImageFlags_GenerateMips) && mipLevels > 1) {
     caps |= RvkImageCapability_TransferSource | RvkImageCapability_BlitDest;

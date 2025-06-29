@@ -67,6 +67,7 @@ RvkTexture* rvk_texture_create(RvkDevice* dev, const AssetTextureComp* asset, St
   }
 
   if (asset->flags & AssetTextureFlags_CubeMap) {
+    diag_assert_msg(size.width == size.height, "CubeMap needs to be square");
     diag_assert_msg(layers == 6, "CubeMap needs 6 layers");
     tex->image = rvk_image_create_source_color_cube(dev, vkFormat, size, mipLevels, imageFlags);
   } else {
