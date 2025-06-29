@@ -110,6 +110,7 @@ ecs_comp_extern_public(RendSettingsComp) {
   f32                  distortionResolutionScale;
   EcsEntityId          debugViewerResource; // Resource entity to visualize for debug purposes.
   f32                  debugViewerLod;      // Level-of-detail to use for the debug-viewer.
+  f32                  debugViewerLayer;    // Layer to show in the debug-viewer.
   RendDebugViewerFlags debugViewerFlags;    // Flags to use for the debug-viewer.
 };
 

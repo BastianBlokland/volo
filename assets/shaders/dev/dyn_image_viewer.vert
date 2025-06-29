@@ -1,5 +1,6 @@
 #include "binding.glsl"
 #include "global.glsl"
+#include "image_viewer.glsl"
 
 const f32v4 c_unitPositions[] = {
     f32v4(-1, 1, 1, 1),
@@ -12,14 +13,6 @@ const f32v2 c_unitTexCoords[] = {
     f32v2(1, 0),
     f32v2(1, 1),
     f32v2(0, 1),
-};
-
-struct ImageData {
-  u16 imageChannels;
-  f16 lod;
-  u32 flags;
-  f32 exposure;
-  f32 aspect;
 };
 
 bind_global_data(0) readonly uniform Global { GlobalData u_global; };

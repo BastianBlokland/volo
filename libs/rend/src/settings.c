@@ -6,7 +6,7 @@
 #include "rend_settings.h"
 
 #define VOLO_REND_GPU_DEBUG 1
-#define VOLO_REND_VALIDATION 0
+#define VOLO_REND_VALIDATION 1
 #define VOLO_REND_PROFILING 1
 
 ecs_comp_define_public(RendSettingsComp);

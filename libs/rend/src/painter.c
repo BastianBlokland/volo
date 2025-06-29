@@ -422,15 +422,17 @@ painter_push_debug_image_viewer(RendPaintContext* ctx, RvkImage* image, const f3
 
     struct {
       ALIGNAS(16)
-      u16 imageChannels;
-      f16 lod;
       u32 flags;
+      u32 imageChannels;
+      f32 lod;
+      f32 layer;
       f32 exposure;
       f32 aspect;
     } data = {
-        .imageChannels = vkFormatComponents(image->vkFormat),
-        .lod           = float_f32_to_f16(ctx->settings->debugViewerLod),
         .flags         = flags,
+        .imageChannels = vkFormatComponents(image->vkFormat),
+        .lod           = ctx->settings->debugViewerLod,
+        .layer         = ctx->settings->debugViewerLayer,
         .exposure      = exposure,
         .aspect        = (f32)image->size.width / (f32)image->size.height,
     };

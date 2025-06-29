@@ -23,6 +23,7 @@ typedef enum {
 
 typedef enum {
   AssetShaderResKind_Texture2D,
+  AssetShaderResKind_Texture2DArray,
   AssetShaderResKind_TextureCube,
   AssetShaderResKind_UniformBuffer,
   AssetShaderResKind_StorageBuffer,
