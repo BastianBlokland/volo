@@ -1017,6 +1017,9 @@ AssetTextureComp asset_texture_create(
   const bool alpha    = tex_has_alpha(in, width, height, channels, layers, mipsSrc, type);
   const bool lossless = (flags & AssetTextureFlags_Lossless) != 0;
 
+  if (layers > 1) {
+    flags |= AssetTextureFlags_Array;
+  }
   if (alpha) {
     flags |= AssetTextureFlags_Alpha;
   } else {

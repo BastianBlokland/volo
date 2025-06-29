@@ -129,6 +129,8 @@ static AssetTextureFlags arraytex_output_flags(const ArrayTexDef* def) {
   AssetTextureFlags flags = 0;
   if (arraytex_output_cube(def)) {
     flags |= AssetTextureFlags_CubeMap;
+  } else {
+    flags |= AssetTextureFlags_Array;
   }
   if (def->mipmaps) {
     flags |= AssetTextureFlags_GenerateMips;

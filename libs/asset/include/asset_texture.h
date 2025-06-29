@@ -21,10 +21,11 @@ typedef enum {
   AssetTextureFlags_None         = 0,
   AssetTextureFlags_Srgb         = 1 << 0,
   AssetTextureFlags_GenerateMips = 1 << 1,
-  AssetTextureFlags_CubeMap      = 1 << 2,
-  AssetTextureFlags_Alpha        = 1 << 3, // Alpha channel is in use.
-  AssetTextureFlags_Lossless     = 1 << 4, // Texture should not be compressed.
-  AssetTextureFlags_BroadcastR   = 1 << 5, // Broadcast the r channel to rgba.
+  AssetTextureFlags_Array        = 1 << 2,
+  AssetTextureFlags_CubeMap      = 1 << 3,
+  AssetTextureFlags_Alpha        = 1 << 4, // Alpha channel is in use.
+  AssetTextureFlags_Lossless     = 1 << 5, // Texture should not be compressed.
+  AssetTextureFlags_BroadcastR   = 1 << 6, // Broadcast the r channel to rgba.
 } AssetTextureFlags;
 
 ecs_comp_extern_public(AssetTextureComp) {
