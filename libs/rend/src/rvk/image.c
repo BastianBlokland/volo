@@ -191,12 +191,12 @@ static VkFormatFeatureFlags rvk_image_format_features(const RvkImageCapability c
   return formatFeatures;
 }
 
-static VkImageCreateFlags rvk_image_create_flags(const RvkImageType type, const u8 layers) {
+static VkImageCreateFlags rvk_image_create_flags(const RvkImageType type) {
   switch (type) {
   case RvkImageType_ColorSourceCube:
     return VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
   default:
-    return layers > 1 ? VK_IMAGE_CREATE_2D_ARRAY_COMPATIBLE_BIT : 0;
+    return 0;
   }
 }
 
@@ -266,7 +266,7 @@ static VkImage rvk_vkimage_create(
 
   const VkImageCreateInfo imageInfo = {
       .sType         = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
-      .flags         = rvk_image_create_flags(type, layers),
+      .flags         = rvk_image_create_flags(type),
       .imageType     = VK_IMAGE_TYPE_2D,
       .extent.width  = size.width,
       .extent.height = size.height,
