@@ -52,26 +52,29 @@ RvkTexture* rvk_texture_create(RvkDevice* dev, const AssetTextureComp* asset, St
   const RvkSize  size       = rvk_size(asset->width, asset->height);
   const u8       layers     = (u8)asset->layers;
   const u8       mipLevels  = (u8)asset->mipsMax;
-  const VkFormat vkFormat   = rvk_texture_format(asset);
-  const bool     compressed = vkFormatCompressed4x4(vkFormat);
+  const VkFormat vkFmt      = rvk_texture_format(asset);
+  const bool     compressed = vkFormatCompressed4x4(vkFmt);
   (void)compressed;
 
-  RvkImageFlags imageFlags = RvkImageFlags_None;
+  RvkImageFlags imgFlags = RvkImageFlags_None;
   if (asset->flags & AssetTextureFlags_BroadcastR) {
-    imageFlags |= RvkImageFlags_BroadcastR;
+    imgFlags |= RvkImageFlags_BroadcastR;
   }
   if (asset->mipsData != asset->mipsMax) {
     diag_assert(asset->mipsData == 1); // Cannot both have source mips and generate mips.
     diag_assert(!compressed);          // Cannot generate mips for compressed textures on the gpu.
-    imageFlags |= RvkImageFlags_GenerateMips;
+    imgFlags |= RvkImageFlags_GenerateMips;
   }
 
   if (asset->flags & AssetTextureFlags_CubeMap) {
     diag_assert_msg(size.width == size.height, "CubeMap needs to be square");
     diag_assert_msg(layers == 6, "CubeMap needs 6 layers");
-    tex->image = rvk_image_create_source_color_cube(dev, vkFormat, size, mipLevels, imageFlags);
+    tex->image = rvk_image_create_source_color_cube(dev, vkFmt, size, mipLevels, imgFlags);
+  } else if (asset->flags & AssetTextureFlags_Array) {
+    tex->image = rvk_image_create_source_color_array(dev, vkFmt, size, layers, mipLevels, imgFlags);
   } else {
-    tex->image = rvk_image_create_source_color(dev, vkFormat, size, layers, mipLevels, imageFlags);
+    diag_assert_msg(layers == 1, "Multiple layers are not supported for normal images");
+    tex->image = rvk_image_create_source_color(dev, vkFmt, size, mipLevels, imgFlags);
   }
 
   const Mem transferData = asset_texture_data(asset);
@@ -85,7 +88,7 @@ RvkTexture* rvk_texture_create(RvkDevice* dev, const AssetTextureComp* asset, St
   log_d(
       "Vulkan texture created",
       log_param("name", fmt_text(dbgName)),
-      log_param("format", fmt_text(rvk_format_info(vkFormat).name)),
+      log_param("format", fmt_text(vkFormatStr(vkFmt))),
       log_param("size", rvk_size_fmt(tex->image.size)),
       log_param("layers", fmt_int(tex->image.layers)),
       log_param("memory", fmt_size(tex->image.mem.size)));

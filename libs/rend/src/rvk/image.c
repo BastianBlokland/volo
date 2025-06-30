@@ -137,6 +137,7 @@ static VkImageLayout rvk_image_vklayout(const RvkImageType type, const RvkImageP
 static VkImageAspectFlags rvk_image_vkaspect(const RvkImageType type) {
   switch (type) {
   case RvkImageType_ColorSource:
+  case RvkImageType_ColorSourceArray:
   case RvkImageType_ColorSourceCube:
   case RvkImageType_ColorAttachment:
   case RvkImageType_Swapchain:
@@ -200,12 +201,14 @@ static VkImageCreateFlags rvk_image_create_flags(const RvkImageType type) {
   }
 }
 
-static VkImageViewType rvk_image_viewtype(const RvkImageType type, const u8 layers) {
+static VkImageViewType rvk_image_viewtype(const RvkImageType type) {
   switch (type) {
+  case RvkImageType_ColorSourceArray:
+    return VK_IMAGE_VIEW_TYPE_2D_ARRAY;
   case RvkImageType_ColorSourceCube:
-    return layers > 6 ? VK_IMAGE_VIEW_TYPE_CUBE_ARRAY : VK_IMAGE_VIEW_TYPE_CUBE;
+    return VK_IMAGE_VIEW_TYPE_CUBE;
   default:
-    return layers > 1 ? VK_IMAGE_VIEW_TYPE_2D_ARRAY : VK_IMAGE_VIEW_TYPE_2D;
+    return VK_IMAGE_VIEW_TYPE_2D;
   }
 }
 
@@ -298,7 +301,7 @@ static VkImageView rvk_vkimageview_create(
   VkImageViewCreateInfo createInfo = {
       .sType                           = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
       .image                           = vkImage,
-      .viewType                        = rvk_image_viewtype(type, layers),
+      .viewType                        = rvk_image_viewtype(type),
       .format                          = vkFormat,
       .subresourceRange.aspectMask     = vkAspect,
       .subresourceRange.baseMipLevel   = 0,
@@ -373,6 +376,21 @@ RvkImage rvk_image_create_source_color(
     RvkDevice*          dev,
     const VkFormat      vkFormat,
     const RvkSize       size,
+    const u8            mipLevels,
+    const RvkImageFlags flags) {
+  RvkImageCapability caps = RvkImageCapability_Sampled | RvkImageCapability_TransferDest;
+  if ((flags & RvkImageFlags_GenerateMips) && mipLevels > 1) {
+    caps |= RvkImageCapability_TransferSource | RvkImageCapability_BlitDest;
+  }
+  const u8 layers = 1;
+  return rvk_image_create_backed(
+      dev, RvkImageType_ColorSource, caps, vkFormat, size, layers, mipLevels, flags);
+}
+
+RvkImage rvk_image_create_source_color_array(
+    RvkDevice*          dev,
+    const VkFormat      vkFormat,
+    const RvkSize       size,
     const u8            layers,
     const u8            mipLevels,
     const RvkImageFlags flags) {
@@ -381,7 +399,7 @@ RvkImage rvk_image_create_source_color(
     caps |= RvkImageCapability_TransferSource | RvkImageCapability_BlitDest;
   }
   return rvk_image_create_backed(
-      dev, RvkImageType_ColorSource, caps, vkFormat, size, layers, mipLevels, flags);
+      dev, RvkImageType_ColorSourceArray, caps, vkFormat, size, layers, mipLevels, flags);
 }
 
 RvkImage rvk_image_create_source_color_cube(
@@ -478,6 +496,7 @@ void rvk_image_destroy(RvkImage* img, RvkDevice* dev) {
 String rvk_image_type_str(const RvkImageType type) {
   static const String g_names[] = {
       string_static("ColorSource"),
+      string_static("ColorSourceArray"),
       string_static("ColorSourceCube"),
       string_static("ColorAttachment"),
       string_static("DepthAttachment"),

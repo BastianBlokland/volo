@@ -19,6 +19,7 @@ typedef enum eRvkImagePhase {
 
 typedef enum eRvkImageType {
   RvkImageType_ColorSource,
+  RvkImageType_ColorSourceArray,
   RvkImageType_ColorSourceCube,
   RvkImageType_ColorAttachment,
   RvkImageType_DepthAttachment,
@@ -61,7 +62,8 @@ typedef struct sRvkImage {
 
 // clang-format off
 
-RvkImage rvk_image_create_source_color(RvkDevice*, VkFormat, RvkSize, u8 layers, u8 mipLevels, RvkImageFlags);
+RvkImage rvk_image_create_source_color(RvkDevice*, VkFormat, RvkSize, u8 mipLevels, RvkImageFlags);
+RvkImage rvk_image_create_source_color_array(RvkDevice*, VkFormat, RvkSize, u8 layers, u8 mipLevels, RvkImageFlags);
 RvkImage rvk_image_create_source_color_cube(RvkDevice*, VkFormat, RvkSize, u8 mipLevels, RvkImageFlags);
 RvkImage rvk_image_create_attach_color(RvkDevice*, VkFormat, RvkSize, RvkImageCapability extraCaps);
 RvkImage rvk_image_create_attach_depth(RvkDevice*, VkFormat, RvkSize, RvkImageCapability extraCaps);
