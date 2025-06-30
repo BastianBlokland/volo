@@ -84,7 +84,9 @@ typedef enum {
   SpvIdKind_TypePointer,
   SpvIdKind_TypeStruct,
   SpvIdKind_TypeImage2D,
+  SpvIdKind_TypeImage2DArray,
   SpvIdKind_TypeImageCube,
+  SpvIdKind_TypeImageCubeArray,
   SpvIdKind_TypeSampledImage,
   SpvIdKind_SpecConstant,
   SpvIdKind_Label,
@@ -412,7 +414,7 @@ static SpvData spv_read_program(SpvData data, const u32 maxId, SpvProgram* out, 
        * Image declaration.
        * https://www.khronos.org/registry/SPIR-V/specs/unified1/SPIRV.html#OpTypeImage
        */
-      if (data.size < 5) {
+      if (data.size < 6) {
         *err = SpvError_Malformed;
         return data;
       }
@@ -420,12 +422,13 @@ static SpvData spv_read_program(SpvData data, const u32 maxId, SpvProgram* out, 
       if (!spv_validate_new_id(id, out, err)) {
         return data;
       }
+      const bool arrayed = data.ptr[5] == 1;
       switch (data.ptr[3]) {
       case SpvImageDim_2D:
-        out->ids[id].kind = SpvIdKind_TypeImage2D;
+        out->ids[id].kind = arrayed ? SpvIdKind_TypeImage2DArray : SpvIdKind_TypeImage2D;
         break;
       case SpvImageDim_Cube:
-        out->ids[id].kind = SpvIdKind_TypeImageCube;
+        out->ids[id].kind = arrayed ? SpvIdKind_TypeImageCubeArray : SpvIdKind_TypeImageCube;
         break;
       default:
         *err = SpvError_UnsupportedImageType;
@@ -663,9 +666,11 @@ static AssetShaderResKind spv_resource_kind(
   case SpvIdKind_TypePointer:
     return spv_resource_kind(program, id->typeId, varStorageClass, err);
   case SpvIdKind_TypeImage2D:
+  case SpvIdKind_TypeImage2DArray:
     *err = SpvError_None;
     return AssetShaderResKind_Texture2D;
   case SpvIdKind_TypeImageCube:
+  case SpvIdKind_TypeImageCubeArray:
     *err = SpvError_None;
     return AssetShaderResKind_TextureCube;
   case SpvIdKind_TypeSampledImage:
