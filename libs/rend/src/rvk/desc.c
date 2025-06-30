@@ -58,7 +58,9 @@ static VkDescriptorType rvk_desc_vktype(const RvkDescKind kind) {
   case RvkDescKind_None:
     break;
   case RvkDescKind_CombinedImageSampler2D:
+  case RvkDescKind_CombinedImageSampler2DArray:
   case RvkDescKind_CombinedImageSamplerCube:
+  case RvkDescKind_CombinedImageSamplerCubeArray:
     return VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
   case RvkDescKind_UniformBuffer:
     return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -375,7 +377,9 @@ String rvk_desc_kind_str(const RvkDescKind kind) {
   static const String g_names[] = {
       string_static("None"),
       string_static("CombinedImageSampler2D"),
+      string_static("CombinedImageSampler2DArray"),
       string_static("CombinedImageSamplerCube"),
+      string_static("CombinedImageSamplerCubeArray"),
       string_static("UniformBuffer"),
       string_static("UniformBufferDynamic"),
       string_static("StorageBuffer"),
@@ -398,7 +402,9 @@ bool rvk_desc_kind_is_buffer(const RvkDescKind kind) {
 bool rvk_desc_kind_is_sampler(const RvkDescKind kind) {
   switch (kind) {
   case RvkDescKind_CombinedImageSampler2D:
+  case RvkDescKind_CombinedImageSampler2DArray:
   case RvkDescKind_CombinedImageSamplerCube:
+  case RvkDescKind_CombinedImageSamplerCubeArray:
     return true;
   default:
     return false;
@@ -529,7 +535,9 @@ void rvk_desc_set_clear_batch(const RvkDescSet sets[], const usize count) {
 
       switch (meta.bindings[binding]) {
       case RvkDescKind_CombinedImageSampler2D:
+      case RvkDescKind_CombinedImageSampler2DArray:
       case RvkDescKind_CombinedImageSamplerCube:
+      case RvkDescKind_CombinedImageSamplerCubeArray:
         write->pImageInfo = &nullImage;
         continue;
       case RvkDescKind_UniformBuffer:
