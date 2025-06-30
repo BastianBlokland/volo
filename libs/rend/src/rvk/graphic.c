@@ -28,11 +28,16 @@ static const u8 g_rendSupportedShaderSets[] = {
     RvkGraphicSet_Instance,
 };
 
-#define rend_uniform_buffer_mask (1 << RvkDescKind_UniformBuffer)
-#define rend_storage_buffer_mask (1 << RvkDescKind_StorageBuffer)
-#define rend_image_sampler_2d_mask (1 << RvkDescKind_CombinedImageSampler2D)
-#define rend_image_sampler_cube_mask (1 << RvkDescKind_CombinedImageSamplerCube)
-#define rend_image_sampler_mask (rend_image_sampler_2d_mask | rend_image_sampler_cube_mask)
+// clang-format off
+
+#define rend_uniform_buffer_mask         (1 << RvkDescKind_UniformBuffer)
+#define rend_storage_buffer_mask         (1 << RvkDescKind_StorageBuffer)
+#define rend_image_sampler_2d_mask       (1 << RvkDescKind_CombinedImageSampler2D)
+#define rend_image_sampler_2d_array_mask (1 << RvkDescKind_CombinedImageSampler2DArray)
+#define rend_image_sampler_cube_mask     (1 << RvkDescKind_CombinedImageSamplerCube)
+#define rend_image_sampler_mask          (rend_image_sampler_2d_mask | rend_image_sampler_2d_array_mask | rend_image_sampler_cube_mask)
+
+// clang-format on
 
 static const u32 g_rendSupportedGlobalBindings[rvk_desc_bindings_max] = {
     rend_uniform_buffer_mask,
