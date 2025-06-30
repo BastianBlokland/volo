@@ -686,6 +686,7 @@ void asset_data_init_tex(void) {
   data_reg_enum_multi_t(g_dataReg, AssetTextureFlags);
   data_reg_const_t(g_dataReg, AssetTextureFlags, Srgb);
   data_reg_const_t(g_dataReg, AssetTextureFlags, GenerateMips);
+  data_reg_const_t(g_dataReg, AssetTextureFlags, Array);
   data_reg_const_t(g_dataReg, AssetTextureFlags, CubeMap);
   data_reg_const_t(g_dataReg, AssetTextureFlags, Alpha);
   data_reg_const_t(g_dataReg, AssetTextureFlags, Lossless);
