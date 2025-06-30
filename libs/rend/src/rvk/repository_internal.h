@@ -17,6 +17,7 @@ typedef enum {
   RvkRepositoryId_FogGraphic,
   RvkRepositoryId_MissingMesh,
   RvkRepositoryId_MissingTexture,
+  RvkRepositoryId_MissingTextureArray,
   RvkRepositoryId_MissingTextureCube,
   RvkRepositoryId_OutlineGraphic,
   RvkRepositoryId_SkyCubeMapGraphic,

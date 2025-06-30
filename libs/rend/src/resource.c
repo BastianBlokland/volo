@@ -53,6 +53,7 @@ static const RendResGlobalDef g_rendResGlobal[] = {
   { .repoId = RvkRepositoryId_FogGraphic,                  .assetId = string_static("graphics/fog.graphic") },
   { .repoId = RvkRepositoryId_MissingMesh,                 .assetId = string_static("meshes/missing.procmesh"), .ignoreAssetChanges = true, .graphicRequirement = true },
   { .repoId = RvkRepositoryId_MissingTexture,              .assetId = string_static("textures/missing.proctex"), .ignoreAssetChanges = true, .graphicRequirement = true  },
+  { .repoId = RvkRepositoryId_MissingTextureArray,         .assetId = string_static("textures/missing_array.arraytex"), .ignoreAssetChanges = true, .graphicRequirement = true  },
   { .repoId = RvkRepositoryId_MissingTextureCube,          .assetId = string_static("textures/missing_cube.arraytex"), .ignoreAssetChanges = true, .graphicRequirement = true  },
   { .repoId = RvkRepositoryId_OutlineGraphic,              .assetId = string_static("graphics/outline.graphic") },
   { .repoId = RvkRepositoryId_SkyCubeMapGraphic,           .assetId = string_static("graphics/scene/sky_cubemap.graphic") },

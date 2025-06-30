@@ -39,6 +39,7 @@ String rvk_repository_id_str(const RvkRepositoryId id) {
       string_static("FogGraphic"),
       string_static("MissingMesh"),
       string_static("MissingTexture"),
+      string_static("MissingTextureArray"),
       string_static("MissingTextureCube"),
       string_static("OutlineGraphic"),
       string_static("SkyCubeMapGraphic"),
