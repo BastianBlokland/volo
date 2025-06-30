@@ -876,6 +876,10 @@ u8 rend_res_texture_mip_levels(const RendResTextureComp* comp) {
   return comp->texture->image.mipLevels;
 }
 
+bool rend_res_texture_is_array(const RendResTextureComp* comp) {
+  return comp->texture->image.type == RvkImageType_ColorSourceArray;
+}
+
 bool rend_res_texture_is_cube(const RendResTextureComp* comp) {
   return comp->texture->image.type == RvkImageType_ColorSourceCube;
 }
