@@ -72,7 +72,15 @@ static const u32 g_rendSupportedInstanceBindings[rvk_desc_bindings_max] = {
 };
 
 static bool rvk_desc_is_sampler(const RvkDescKind kind) {
-  return kind == RvkDescKind_CombinedImageSampler2D || kind == RvkDescKind_CombinedImageSamplerCube;
+  switch (kind) {
+  case RvkDescKind_CombinedImageSampler2D:
+  case RvkDescKind_CombinedImageSampler2DArray:
+  case RvkDescKind_CombinedImageSamplerCube:
+  case RvkDescKind_CombinedImageSamplerCubeArray:
+    return true;
+  default:
+    return false;
+  }
 }
 
 static const char* rvk_to_null_term_scratch(const String str) {
@@ -704,9 +712,18 @@ static void rvk_graphic_set_missing_sampler(
     const RvkDescKind    kind) {
   diag_assert(!graphic->samplerTextures[samplerIndex]);
 
-  const RvkRepositoryId repoId = kind == RvkDescKind_CombinedImageSamplerCube
-                                     ? RvkRepositoryId_MissingTextureCube
-                                     : RvkRepositoryId_MissingTexture;
+  RvkRepositoryId repoId;
+  switch (kind) {
+  case RvkDescKind_CombinedImageSampler2DArray:
+    repoId = RvkRepositoryId_MissingTextureArray;
+    break;
+  case RvkDescKind_CombinedImageSamplerCube:
+    repoId = RvkRepositoryId_MissingTextureCube;
+    break;
+  default:
+    repoId = RvkRepositoryId_MissingTexture;
+    break;
+  }
 
   graphic->samplerTextures[samplerIndex] = rvk_repository_texture_get(repo, repoId);
   graphic->samplerSpecs[samplerIndex]    = (RvkSamplerSpec){
