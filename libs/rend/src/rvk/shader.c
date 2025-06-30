@@ -48,8 +48,10 @@ MAYBE_UNUSED static String rvk_shader_kind_str(const AssetShaderKind kind) {
 static RvkDescKind rvk_shader_desc_kind(const AssetShaderResKind resKind) {
   switch (resKind) {
   case AssetShaderResKind_Texture2D:
+  case AssetShaderResKind_Texture2DArray:
     return RvkDescKind_CombinedImageSampler2D;
   case AssetShaderResKind_TextureCube:
+  case AssetShaderResKind_TextureCubeArray:
     return RvkDescKind_CombinedImageSamplerCube;
   case AssetShaderResKind_UniformBuffer:
     return RvkDescKind_UniformBuffer;

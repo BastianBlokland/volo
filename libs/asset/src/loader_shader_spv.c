@@ -666,13 +666,17 @@ static AssetShaderResKind spv_resource_kind(
   case SpvIdKind_TypePointer:
     return spv_resource_kind(program, id->typeId, varStorageClass, err);
   case SpvIdKind_TypeImage2D:
-  case SpvIdKind_TypeImage2DArray:
     *err = SpvError_None;
     return AssetShaderResKind_Texture2D;
+  case SpvIdKind_TypeImage2DArray:
+    *err = SpvError_None;
+    return AssetShaderResKind_Texture2DArray;
   case SpvIdKind_TypeImageCube:
-  case SpvIdKind_TypeImageCubeArray:
     *err = SpvError_None;
     return AssetShaderResKind_TextureCube;
+  case SpvIdKind_TypeImageCubeArray:
+    *err = SpvError_None;
+    return AssetShaderResKind_TextureCubeArray;
   case SpvIdKind_TypeSampledImage:
     return spv_resource_kind(program, id->typeId, varStorageClass, err);
   case SpvIdKind_TypeStruct:
