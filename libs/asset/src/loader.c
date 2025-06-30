@@ -41,7 +41,7 @@
   _X_(AssetFormat_TexArray,         tex_array,          1  )                                       \
   _X_(AssetFormat_TexAtlas,         tex_atlas,          1  )                                       \
   _X_(AssetFormat_TexAtlasBin,      tex_atlas_bin,      2  )                                       \
-  _X_(AssetFormat_TexBin,           tex_bin,            3  )                                       \
+  _X_(AssetFormat_TexBin,           tex_bin,            4  )                                       \
   _X_(AssetFormat_TexFont,          tex_font,           1  )                                       \
   _X_(AssetFormat_TexFontBin,       tex_font_bin,       2  )                                       \
   _X_(AssetFormat_TexHeight16,      tex_height16,       2  )                                       \
