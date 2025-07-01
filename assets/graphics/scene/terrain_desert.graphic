@@ -6,6 +6,7 @@
     {
       "program": "shaders/scene/terrain.frag",
       "overrides": [
+        { "name": "splatLayers", "binding": 0, "value": 2 },
         { "name": "splat1UvScale", "binding": 1, "value": 250 },
         { "name": "splat2UvScale", "binding": 2, "value": 75 }
       ]
