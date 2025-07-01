@@ -108,14 +108,7 @@ void rvk_texture_destroy(RvkTexture* texture, RvkDevice* dev) {
 }
 
 RvkDescKind rvk_texture_sampler_kind(const RvkTexture* texture) {
-  switch (texture->image.type) {
-  case RvkImageType_ColorSourceArray:
-    return RvkDescKind_CombinedImageSampler2DArray;
-  case RvkImageType_ColorSourceCube:
-    return RvkDescKind_CombinedImageSamplerCube;
-  default:
-    return RvkDescKind_CombinedImageSampler2D;
-  }
+  return rvk_image_sampler_kind(&texture->image);
 }
 
 bool rvk_texture_is_ready(const RvkTexture* texture, const RvkDevice* dev) {

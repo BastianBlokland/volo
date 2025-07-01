@@ -4,6 +4,7 @@
 #include "core_math.h"
 #include "geo_color.h"
 
+#include "desc_internal.h"
 #include "device_internal.h"
 #include "image_internal.h"
 #include "lib_internal.h"
@@ -518,6 +519,17 @@ String rvk_image_phase_str(const RvkImagePhase phase) {
   };
   ASSERT(array_elems(g_names) == RvkImagePhase_Count, "Incorrect number of image-phase names");
   return g_names[phase];
+}
+
+RvkDescKind rvk_image_sampler_kind(const RvkImage* img) {
+  switch (img->type) {
+  case RvkImageType_ColorSourceArray:
+    return RvkDescKind_CombinedImageSampler2DArray;
+  case RvkImageType_ColorSourceCube:
+    return RvkDescKind_CombinedImageSamplerCube;
+  default:
+    return RvkDescKind_CombinedImageSampler2D;
+  }
 }
 
 void rvk_image_assert_phase(const RvkImage* img, const RvkImagePhase phase) {

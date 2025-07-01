@@ -72,8 +72,9 @@ void     rvk_image_destroy(RvkImage*, RvkDevice*);
 
 // clang-format on
 
-String rvk_image_type_str(RvkImageType);
-String rvk_image_phase_str(RvkImagePhase);
+String      rvk_image_type_str(RvkImageType);
+String      rvk_image_phase_str(RvkImagePhase);
+RvkDescKind rvk_image_sampler_kind(const RvkImage*);
 
 void rvk_image_assert_phase(const RvkImage*, RvkImagePhase);
 
