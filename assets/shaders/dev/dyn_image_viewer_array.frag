@@ -1,13 +1,13 @@
 #include "binding.glsl"
-#include "image_viewer.glsl"
 #include "texture.glsl"
+#include "image_viewer.glsl"
 
 const u32 c_flagsFlipY       = 1 << 0;
 const u32 c_flagsAlphaIgnore = 1 << 1;
 const u32 c_flagsAlphaOnly   = 1 << 2;
 
 bind_draw_data(0) readonly uniform Draw { ImageData u_draw; };
-bind_draw_img(0) uniform sampler2D u_tex;
+bind_draw_img(0) uniform sampler2DArray u_tex;
 
 bind_internal(0) in f32v2 in_texcoord;
 
@@ -26,9 +26,10 @@ void main() {
   }
   const u32 imageChannels = u_draw.imageChannels;
   const f32 lod           = u_draw.lod;
+  const f32 layer         = u_draw.layer;
   const f32 exposure      = u_draw.exposure;
 
-  const f32v4 imageColor = abs(textureLod(u_tex, coord, lod)) * exposure;
+  const f32v4 imageColor = abs(textureLod(u_tex, f32v3(coord, layer), lod)) * exposure;
   switch (imageChannels) {
   case 1:
     out_color = f32v4(imageColor.rrr, 1);

@@ -2,14 +2,7 @@
 #include "global.glsl"
 #include "quat.glsl"
 #include "texture.glsl"
-
-struct ImageData {
-  u16 imageChannels;
-  f16 lod;
-  u32 flags;
-  f32 exposure;
-  f32 aspect;
-};
+#include "image_viewer.glsl"
 
 const f32 c_rotateSpeed      = 0.15;
 const u32 c_flagsFlipY       = 1 << 0;
@@ -41,8 +34,8 @@ void main() {
   if ((u_draw.flags & c_flagsFlipY) != 0) {
     coord.y = 1.0 - coord.y;
   }
-  const u32 imageChannels = u32(u_draw.imageChannels);
-  const f32 lod           = f32(u_draw.lod);
+  const u32 imageChannels = u_draw.imageChannels;
+  const f32 lod           = u_draw.lod;
   const f32 exposure      = u_draw.exposure;
 
   const f32v3 dir        = compute_dir(coord, u_global.time.y * c_rotateSpeed);

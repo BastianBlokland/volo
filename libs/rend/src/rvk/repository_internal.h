@@ -9,6 +9,7 @@ typedef enum {
   RvkRepositoryId_AmbientOcclusionGraphic,
   RvkRepositoryId_BloomDownGraphic,
   RvkRepositoryId_BloomUpGraphic,
+  RvkRepositoryId_DebugImageViewerArrayGraphic,
   RvkRepositoryId_DebugImageViewerCubeGraphic,
   RvkRepositoryId_DebugImageViewerGraphic,
   RvkRepositoryId_DebugMeshViewerGraphic,
