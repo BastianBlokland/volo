@@ -1,0 +1,10 @@
+{
+  "type": "Array",
+  "channels": "Three",
+  "mipmaps": true,
+  "srgb": true,
+  "textures": [
+    "external/tiling/sand_2_color.png",
+    "external/tiling/dirt_2_color.png"
+  ]
+}

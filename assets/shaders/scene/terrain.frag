@@ -11,12 +11,9 @@ bind_spec(2) const f32 s_splat2UvScale         = 50;
 bind_draw_img(0) uniform sampler2D u_texHeight;
 
 bind_graphic_img(0) uniform sampler2D u_texSplat;
-bind_graphic_img(1) uniform sampler2D u_tex1Color;
-bind_graphic_img(2) uniform sampler2D u_tex1Rough;
-bind_graphic_img(3) uniform sampler2D u_tex1Normal;
-bind_graphic_img(4) uniform sampler2D u_tex2Color;
-bind_graphic_img(5) uniform sampler2D u_tex2Rough;
-bind_graphic_img(6) uniform sampler2D u_tex2Normal;
+bind_graphic_img(1) uniform sampler2DArray u_texColor;
+bind_graphic_img(2) uniform sampler2DArray u_texRough;
+bind_graphic_img(3) uniform sampler2DArray u_texNormal;
 
 bind_internal(0) in flat f32 in_size;
 bind_internal(1) in flat f32 in_heightScale;
@@ -44,9 +41,9 @@ f32v3 heightmap_normal(const f32v2 uv, const f32 size, const f32 heightScale) {
 /**
  * Sample a texture at multiple texcoord frequencies to hide visible tiling patterns.
  */
-f32v4 texture_multi(const sampler2D s, const f32v2 texcoord) {
+f32v4 texture_multi(const sampler2DArray s, const f32v2 texcoord, const f32 layer) {
   // TODO: Investigate different blending techniques.
-  return mix(texture(s, texcoord), texture(s, texcoord * -0.25), 0.5);
+  return mix(texture(s, f32v3(texcoord, layer)), texture(s, f32v3(texcoord * -0.25, layer)), 0.5);
 }
 
 void main() {
@@ -56,22 +53,22 @@ void main() {
   GeoBase base;
   base.tags  = 1 << tag_terrain_bit;
   base.color = f32v3(0);
-  base.color += splat.r * texture_multi(u_tex1Color, in_texcoord * s_splat1UvScale).rgb;
-  base.color += splat.g * texture_multi(u_tex2Color, in_texcoord * s_splat2UvScale).rgb;
+  base.color += splat.r * texture_multi(u_texColor, in_texcoord * s_splat1UvScale, 0).rgb;
+  base.color += splat.g * texture_multi(u_texColor, in_texcoord * s_splat2UvScale, 1).rgb;
   out_base = geo_base_encode(base);
 
   // Output attributes.
   GeoAttribute attr;
   attr.roughness = 0;
-  attr.roughness += splat.r * texture_multi(u_tex1Rough, in_texcoord * s_splat1UvScale).r;
-  attr.roughness += splat.g * texture_multi(u_tex2Rough, in_texcoord * s_splat2UvScale).r;
+  attr.roughness += splat.r * texture_multi(u_texRough, in_texcoord * s_splat1UvScale, 0).r;
+  attr.roughness += splat.g * texture_multi(u_texRough, in_texcoord * s_splat2UvScale, 1).r;
   attr.metalness = 0;
-  out_attribute = geo_attr_encode(attr);
+  out_attribute  = geo_attr_encode(attr);
 
   // Sample the detail-normal based on the splat-map.
   f32v3 splatNormRaw = f32v3(0, 0, 0);
-  splatNormRaw += splat.r * texture_multi(u_tex1Normal, in_texcoord * s_splat1UvScale).xyz;
-  splatNormRaw += splat.g * texture_multi(u_tex2Normal, in_texcoord * s_splat2UvScale).xyz;
+  splatNormRaw += splat.r * texture_multi(u_texNormal, in_texcoord * s_splat1UvScale, 0).xyz;
+  splatNormRaw += splat.g * texture_multi(u_texNormal, in_texcoord * s_splat2UvScale, 1).xyz;
   const f32v3 splatNorm = normal_tex_decode(splatNormRaw);
 
   // Compute the world-normal based on the normal map and the sampled detail normals.
