@@ -392,10 +392,16 @@ static void
 painter_push_debug_image_viewer(RendPaintContext* ctx, RvkImage* image, const f32 exposure) {
   const RvkRepository* repo = rend_builder_repository(ctx->builder);
   const RvkGraphic*    graphic;
-  if (image->type == RvkImageType_ColorSourceCube) {
+  switch (image->type) {
+  case RvkImageType_ColorSourceArray:
+    graphic = rvk_repository_graphic_get(repo, RvkRepositoryId_DebugImageViewerArrayGraphic);
+    break;
+  case RvkImageType_ColorSourceCube:
     graphic = rvk_repository_graphic_get(repo, RvkRepositoryId_DebugImageViewerCubeGraphic);
-  } else {
+    break;
+  default:
     graphic = rvk_repository_graphic_get(repo, RvkRepositoryId_DebugImageViewerGraphic);
+    break;
   }
   if (graphic) {
     enum {
@@ -422,15 +428,17 @@ painter_push_debug_image_viewer(RendPaintContext* ctx, RvkImage* image, const f3
 
     struct {
       ALIGNAS(16)
-      u16 imageChannels;
-      f16 lod;
       u32 flags;
+      u32 imageChannels;
+      f32 lod;
+      f32 layer;
       f32 exposure;
       f32 aspect;
     } data = {
-        .imageChannels = vkFormatComponents(image->vkFormat),
-        .lod           = float_f32_to_f16(ctx->settings->debugViewerLod),
         .flags         = flags,
+        .imageChannels = vkFormatComponents(image->vkFormat),
+        .lod           = ctx->settings->debugViewerLod,
+        .layer         = ctx->settings->debugViewerLayer,
         .exposure      = exposure,
         .aspect        = (f32)image->size.width / (f32)image->size.height,
     };

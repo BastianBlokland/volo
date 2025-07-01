@@ -65,7 +65,9 @@ void asset_data_init_shader(void) {
 
   data_reg_enum_t(g_dataReg, AssetShaderResKind);
   data_reg_const_t(g_dataReg, AssetShaderResKind, Texture2D);
+  data_reg_const_t(g_dataReg, AssetShaderResKind, Texture2DArray);
   data_reg_const_t(g_dataReg, AssetShaderResKind, TextureCube);
+  data_reg_const_t(g_dataReg, AssetShaderResKind, TextureCubeArray);
   data_reg_const_t(g_dataReg, AssetShaderResKind, UniformBuffer);
   data_reg_const_t(g_dataReg, AssetShaderResKind, StorageBuffer);
 

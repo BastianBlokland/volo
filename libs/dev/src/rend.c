@@ -441,6 +441,7 @@ static void dev_overlay_resource(
   ui_layout_resize(c, UiAlign_MiddleCenter, panelSize, UiBase_Absolute, Ui_XY);
 
   f32 lodMax = 0.0f;
+  f32 layers = 0.0f;
 
   dev_overlay_bg(c);
   ui_layout_grow(c, UiAlign_MiddleCenter, inset, UiBase_Absolute, Ui_XY);
@@ -527,6 +528,7 @@ static void dev_overlay_resource(
     }
     if (texture) {
       lodMax = (f32)(rend_res_texture_mip_levels(texture) - 1);
+      layers = (f32)rend_res_texture_layers(texture);
       dev_overlay_size(c, &table, string_lit("Memory"), rend_res_texture_memory(texture));
       const u16    width   = rend_res_texture_width(texture);
       const u16    height  = rend_res_texture_height(texture);
@@ -572,6 +574,13 @@ static void dev_overlay_resource(
       ui_slider(c, &set->debugViewerLod, .max = lodMax, .step = 1.0f);
     }
     if (texture) {
+      if (rend_res_texture_is_array(texture)) {
+        ui_table_next_row(c, &table);
+        ui_label(c, string_lit("Layer"), .fontSize = 14);
+        ui_table_next_column(c, &table);
+        ui_slider(c, &set->debugViewerLayer, .max = layers - 1.0f, .step = 1.0f);
+      }
+
       ui_table_next_row(c, &table);
       ui_label(c, string_lit("Interpolate"), .fontSize = 14);
       ui_table_next_column(c, &table);

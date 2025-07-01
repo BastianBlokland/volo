@@ -117,7 +117,7 @@ static RvkAttachIndex rvk_attach_create(
       "Vulkan attachment image created",
       log_param("slot", fmt_int(slot)),
       log_param("type", fmt_text(rvk_image_type_str(type))),
-      log_param("format", fmt_text(rvk_format_info(spec.vkFormat).name)),
+      log_param("format", fmt_text(vkFormatStr(spec.vkFormat))),
       log_param("size", fmt_list_lit(fmt_int(size.width), fmt_int(size.height))));
 #endif
 

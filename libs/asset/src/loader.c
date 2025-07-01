@@ -30,18 +30,18 @@
   _X_(AssetFormat_Raw,              raw,                0  ) /* Raw cannot be versioned. */        \
   _X_(AssetFormat_Script,           script,             42 )                                       \
   _X_(AssetFormat_ScriptBin,        script_bin,         3  )                                       \
-  _X_(AssetFormat_ShaderBin,        shader_bin,         2  )                                       \
-  _X_(AssetFormat_ShaderGlslFrag,   shader_glsl_frag,   2  )                                       \
-  _X_(AssetFormat_ShaderGlslVert,   shader_glsl_vert,   2  )                                       \
-  _X_(AssetFormat_ShaderSpv,        shader_spv,         1  )                                       \
+  _X_(AssetFormat_ShaderBin,        shader_bin,         3  )                                       \
+  _X_(AssetFormat_ShaderGlslFrag,   shader_glsl_frag,   3  )                                       \
+  _X_(AssetFormat_ShaderGlslVert,   shader_glsl_vert,   3  )                                       \
+  _X_(AssetFormat_ShaderSpv,        shader_spv,         2  )                                       \
   _X_(AssetFormat_SoundBin,         sound_bin,          2  )                                       \
   _X_(AssetFormat_SoundWav,         sound_wav,          1  )                                       \
   _X_(AssetFormat_Terrain,          terrain,            1  )                                       \
   _X_(AssetFormat_TerrainBin,       terrain,            1  )                                       \
-  _X_(AssetFormat_TexArray,         tex_array,          1  )                                       \
+  _X_(AssetFormat_TexArray,         tex_array,          2  )                                       \
   _X_(AssetFormat_TexAtlas,         tex_atlas,          1  )                                       \
   _X_(AssetFormat_TexAtlasBin,      tex_atlas_bin,      2  )                                       \
-  _X_(AssetFormat_TexBin,           tex_bin,            2  )                                       \
+  _X_(AssetFormat_TexBin,           tex_bin,            4  )                                       \
   _X_(AssetFormat_TexFont,          tex_font,           1  )                                       \
   _X_(AssetFormat_TexFontBin,       tex_font_bin,       2  )                                       \
   _X_(AssetFormat_TexHeight16,      tex_height16,       2  )                                       \

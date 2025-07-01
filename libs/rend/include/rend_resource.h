@@ -32,6 +32,7 @@ u16               rend_res_texture_width(const RendResTextureComp*);
 u16               rend_res_texture_height(const RendResTextureComp*);
 u16               rend_res_texture_layers(const RendResTextureComp*);
 u8                rend_res_texture_mip_levels(const RendResTextureComp*);
+bool              rend_res_texture_is_array(const RendResTextureComp*);
 bool              rend_res_texture_is_cube(const RendResTextureComp*);
 String            rend_res_texture_format_str(const RendResTextureComp*);
 usize             rend_res_texture_memory(const RendResTextureComp*);
