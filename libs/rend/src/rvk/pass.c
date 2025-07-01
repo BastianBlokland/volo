@@ -6,6 +6,7 @@
 #include "log_logger.h"
 
 #include "attach_internal.h"
+#include "desc_internal.h"
 #include "device_internal.h"
 #include "graphic_internal.h"
 #include "image_internal.h"
@@ -380,6 +381,22 @@ rvk_pass_alloc_desc_volatile(RvkPass* pass, RvkPassFrame* frame, const RvkDescMe
   return res;
 }
 
+static const RvkImage* rvk_pass_missing_image(RvkPass* pass, const RvkDescKind kind) {
+  RvkRepositoryId repoId;
+  switch (kind) {
+  case RvkDescKind_CombinedImageSampler2DArray:
+    repoId = RvkRepositoryId_MissingTextureArray;
+    break;
+  case RvkDescKind_CombinedImageSamplerCube:
+    repoId = RvkRepositoryId_MissingTextureCube;
+    break;
+  default:
+    repoId = RvkRepositoryId_MissingTexture;
+    break;
+  }
+  return (RvkImage*)&rvk_repository_texture_get(pass->dev->repository, repoId)->image;
+}
+
 static void rvk_pass_bind_global(
     RvkPass* pass, RvkPassFrame* frame, RvkPassInvoc* invoc, const RvkPassSetup* setup) {
   diag_assert(!invoc->globalBoundMask);
@@ -411,10 +428,9 @@ static void rvk_pass_bind_global(
       globalDescSet = rvk_pass_alloc_desc_volatile(pass, frame, &pass->globalDescMeta);
     }
 
-    if (UNLIKELY(img->type == RvkImageType_ColorSourceCube)) {
-      log_e("Cube images cannot be bound globally");
-      const RvkRepositoryId missing = RvkRepositoryId_MissingTexture;
-      img = (RvkImage*)&rvk_repository_texture_get(pass->dev->repository, missing)->image;
+    if (UNLIKELY(rvk_image_sampler_kind(img) != RvkDescKind_CombinedImageSampler2D)) {
+      log_e("Array/Cube images cannot be bound globally");
+      img = (RvkImage*)rvk_pass_missing_image(pass, RvkDescKind_CombinedImageSampler2D);
     }
 
     diag_assert_msg(img->caps & RvkImageCapability_Sampled, "Image does not support sampling");
@@ -452,13 +468,9 @@ static void rvk_pass_bind_draw(
     rvk_desc_update_buffer(&pass->descUpdates, descSet, 1 /* binding */, &mesh->vertexBuffer, 0, 0);
   }
   if (img && gra->drawDescMeta.bindings[2]) {
-    const bool reqCube = gra->drawDescMeta.bindings[2] == RvkDescKind_CombinedImageSamplerCube;
-    if (UNLIKELY(reqCube != (img->type == RvkImageType_ColorSourceCube))) {
+    if (UNLIKELY(gra->drawDescMeta.bindings[2] != rvk_image_sampler_kind(img))) {
       log_e("Unsupported draw image type", log_param("graphic", fmt_text(gra->dbgName)));
-
-      const RvkRepositoryId missing =
-          reqCube ? RvkRepositoryId_MissingTextureCube : RvkRepositoryId_MissingTexture;
-      img = (RvkImage*)&rvk_repository_texture_get(pass->dev->repository, missing)->image;
+      img = (RvkImage*)rvk_pass_missing_image(pass, gra->drawDescMeta.bindings[2]);
     }
     rvk_desc_update_sampler(&pass->descUpdates, descSet, 2, img, sampler);
   }
