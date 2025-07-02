@@ -45,7 +45,6 @@ add_library(lib_core STATIC
   src/init.c
   src/math.c
   src/memory.c
-  src/noise_lut.c
   src/noise.c
   src/path_pal.c
   src/path.c
