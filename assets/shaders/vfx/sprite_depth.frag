@@ -1,6 +1,6 @@
 #include "binding.glsl"
 #include "global.glsl"
-#include "rand.glsl"
+#include "noise.glsl"
 #include "texture.glsl"
 
 const f32 c_alphaDitherMax = 0.99;
@@ -19,7 +19,7 @@ void main() {
   const f32   alpha     = texSample.a * in_color.a * in_opacity * c_alphaMult;
 
   // Dithered transparency.
-  if (alpha < c_alphaDitherMax && rand_gradient_noise(in_fragCoord.xy) > alpha) {
+  if (alpha < c_alphaDitherMax && noise_gradient_f32v2(in_fragCoord.xy) > alpha) {
     discard;
   }
 }

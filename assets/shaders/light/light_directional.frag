@@ -1,9 +1,9 @@
 #include "binding.glsl"
 #include "global.glsl"
+#include "hash.glsl"
 #include "light.glsl"
 #include "math.glsl"
 #include "pbr.glsl"
-#include "rand.glsl"
 #include "texture.glsl"
 
 bind_spec(0) const f32 s_coverageScale     = 100;
@@ -80,7 +80,7 @@ f32 shadow_frac(const f32v3 worldPos) {
    * Randomize the rotation of the sample points based on the position, this greatly reduces the
    * visible patterns at the tradeoff of some noise.
    */
-  const f32   randVal = rand_f32(f32v4(worldPos, 0));
+  const f32   randVal = hash_f32v3(worldPos);
   const f32m2 rotMat  = math_rotate_f32m2(randVal * c_pi * 2);
 
   f32 shadowSum = 0;

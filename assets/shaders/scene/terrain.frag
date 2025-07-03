@@ -2,14 +2,16 @@
 #include "geometry.glsl"
 #include "global.glsl"
 #include "math_frag.glsl"
+#include "noise.glsl"
 #include "tag.glsl"
 
 bind_spec(0) const u32 s_splatLayers           = 1;
-bind_spec(1) const f32 s_splat1UvScale         = 50;
-bind_spec(2) const f32 s_splat2UvScale         = 50;
-bind_spec(3) const f32 s_splat3UvScale         = 50;
-bind_spec(4) const f32 s_splat4UvScale         = 50;
-bind_spec(5) const f32 s_heightNormalIntensity = 1.0;
+bind_spec(1) const f32 s_splatVariationScale   = 2.25;
+bind_spec(2) const f32 s_splat1UvScale         = 50;
+bind_spec(3) const f32 s_splat2UvScale         = 50;
+bind_spec(4) const f32 s_splat3UvScale         = 50;
+bind_spec(5) const f32 s_splat4UvScale         = 50;
+bind_spec(6) const f32 s_heightNormalIntensity = 1.0;
 
 bind_draw_img(0) uniform sampler2D u_texHeight;
 
@@ -41,12 +43,30 @@ f32v3 heightmap_normal(const f32v2 uv, const f32 size, const f32 heightScale) {
   return normalize(f32v3(hLeft - hRight, xzScale * 2.0, hDown - hUp));
 }
 
-/**
- * Sample a texture at multiple texcoord frequencies to hide visible tiling patterns.
- */
-f32v4 texture_multi(const sampler2DArray s, const f32v2 texcoord, const f32 layer) {
-  // TODO: Investigate different blending techniques.
-  return mix(texture(s, f32v3(texcoord, layer)), texture(s, f32v3(texcoord * -0.25, layer)), 0.5);
+f32v4 layer_tex(
+    const sampler2DArray  tex,
+    const f32             layer,
+    const f32v2           texcoord,
+    const f32v2           offsetA,
+    const f32v2           offsetB,
+    const f32             frac,
+    const f32v2           dx,
+    const f32v2           dy) {
+
+  /**
+   * Avoid visible texture repetition by blending between two (randomly picked) virtual patterns.
+   * Source https://iquilezles.org/articles/texturerepetition/ by 'Inigo Quilez'.
+   */
+
+  // Sample the two virtual patterns.
+  const f32v4 colorA = textureGrad(tex, f32v3(texcoord + offsetA, layer), dx, dy);
+  const f32v4 colorB = textureGrad(tex, f32v3(texcoord + offsetB, layer), dx, dy);
+
+  // Interpolate between the two virtual patterns.
+  const f32v4 delta = colorA - colorB;
+  const f32 blend = smoothstep(0.2, 0.8, frac - 0.1 * (delta.x + delta.y + delta.z));
+
+  return mix(colorA, colorB, blend);
 }
 
 void main() {
@@ -70,9 +90,28 @@ void main() {
 
   // Sample the splat layers.
   for (u32 i = 0; i != s_splatLayers; ++i) {
-    base.color += splat[i] * texture_multi(u_texColor, in_texcoord * splatUvScale[i], i).rgb;
-    attr.roughness += splat[i] * texture_multi(u_texRough, in_texcoord * splatUvScale[i], i).r;
-    splatNormRaw += splat[i] * texture_multi(u_texNormal, in_texcoord * splatUvScale[i], i).xyz;
+    const f32v2 pos = in_texcoord * splatUvScale[i];
+
+    /**
+    * Avoid visible texture repetition by blending between two (randomly picked) virtual patterns.
+    * Source https://iquilezles.org/articles/texturerepetition/ by 'Inigo Quilez'.
+    */
+
+    // Pick a virtual pattern based on a 2d value noise.
+    const f32   noiseVal   = noise_value_f32v2(pos * s_splatVariationScale) * 8.0;
+    const f32   noiseIndex = floor(noiseVal);
+    const f32   noiseFrac  = fract(noiseVal);
+
+    // Offsets for the different virtual patterns
+    const f32v2 offA = sin(f32v2(3.0, 7.0) * (noiseIndex + 0.0));
+    const f32v2 offB = sin(f32v2(3.0, 7.0) * (noiseIndex + 1.0));
+
+    // Derivatives for mip-mapping.
+    const f32v2 dx = dFdx(pos), dy = dFdy(pos);
+
+    base.color     += splat[i] * layer_tex(u_texColor, i, pos, offA, offB, noiseFrac, dx, dy).rgb;
+    attr.roughness += splat[i] * layer_tex(u_texRough, i, pos, offA, offB, noiseFrac, dx, dy).r;
+    splatNormRaw   += splat[i] * layer_tex(u_texNormal, i, pos, offA, offB, noiseFrac, dx, dy).xyz;
   }
 
   // Output base.
