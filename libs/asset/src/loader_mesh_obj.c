@@ -422,7 +422,7 @@ obj_load_fail(EcsWorld* world, const EcsEntityId entity, const String id, const 
       log_param("id", fmt_text(id)),
       log_param("entity", ecs_entity_fmt(entity)),
       log_param("error", fmt_text(obj_error_str(err))));
-  asset_mark_load_failure(world, entity);
+  asset_mark_load_failure(world, entity, obj_error_str(err), (i32)err);
 }
 
 static bool obj_import(

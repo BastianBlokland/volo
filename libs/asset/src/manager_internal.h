@@ -27,7 +27,7 @@ EcsEntityId asset_watch(EcsWorld*, AssetManagerComp*, String id);
  * Mark the completion of an asset load.
  * Pre-condition: Asset is currently loading.
  */
-void asset_mark_load_failure(EcsWorld*, EcsEntityId asset);
+void asset_mark_load_failure(EcsWorld*, EcsEntityId asset, String error, i32 errorCode);
 void asset_mark_load_success(EcsWorld*, EcsEntityId asset);
 
 /**

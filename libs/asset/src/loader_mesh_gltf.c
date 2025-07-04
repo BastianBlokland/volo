@@ -271,7 +271,7 @@ static void gltf_load_fail_msg(
       log_param("entity", ecs_entity_fmt(entity)),
       log_param("code", fmt_int(err)),
       log_param("error", fmt_text(msg)));
-  asset_mark_load_failure(world, entity);
+  asset_mark_load_failure(world, entity, msg, (i32)err);
 }
 
 static void

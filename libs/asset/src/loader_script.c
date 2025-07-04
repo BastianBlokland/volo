@@ -2,6 +2,7 @@
 #include "core_alloc.h"
 #include "core_bits.h"
 #include "core_diag.h"
+#include "core_dynstring.h"
 #include "core_stringtable.h"
 #include "data_read.h"
 #include "data_utils.h"
@@ -195,12 +196,15 @@ void asset_load_script(
   ScriptLookup* lookup = script_lookup_create(g_allocHeap);
   script_lookup_update(lookup, src->data);
 
+  DynString errorMsgBuilder = dynstring_create(g_allocScratch, 0);
+
   AssetScriptDomain domain;
   if (UNLIKELY(!asset_script_domain_match(id, &domain))) {
     log_e(
         "Failed to match script domain",
         log_param("id", fmt_text(id)),
         log_param("entity", ecs_entity_fmt(entity)));
+    dynstring_append(&errorMsgBuilder, string_lit("Failed to match script domain\n"));
     goto Error;
   }
   const ScriptBinder* domainBinder = asset_script_domain_binder(domain);
@@ -217,6 +221,9 @@ void asset_load_script(
         log_param("id", fmt_text(id)),
         log_param("entity", ecs_entity_fmt(entity)),
         log_param("error", fmt_text(msg)));
+
+    dynstring_append(&errorMsgBuilder, msg);
+    dynstring_append_char(&errorMsgBuilder, '\n');
   }
 
   script_diag_bag_destroy(diags);
@@ -237,6 +244,9 @@ void asset_load_script(
         log_param("id", fmt_text(id)),
         log_param("entity", ecs_entity_fmt(entity)),
         log_param("error", fmt_text(script_compile_error_str(compileErr))));
+
+    dynstring_append(&errorMsgBuilder, script_compile_error_str(compileErr));
+    dynstring_append_char(&errorMsgBuilder, '\n');
     goto Error;
   }
 
@@ -275,7 +285,7 @@ void asset_load_script(
   goto Cleanup;
 
 Error:
-  asset_mark_load_failure(world, entity);
+  asset_mark_load_failure(world, entity, dynstring_view(&errorMsgBuilder), -1 /* errorCode */);
 
 Cleanup:
   script_destroy(doc);
@@ -304,7 +314,7 @@ void asset_load_script_bin(
         log_param("entity", ecs_entity_fmt(entity)),
         log_param("error-code", fmt_int(result.error)),
         log_param("error", fmt_text(result.errorMsg)));
-    asset_mark_load_failure(world, entity);
+    asset_mark_load_failure(world, entity, result.errorMsg, (i32)result.error);
     asset_repo_source_close(src);
     return;
   }
@@ -317,7 +327,7 @@ void asset_load_script_bin(
         log_param("entity", ecs_entity_fmt(entity)));
 
     data_destroy(g_dataReg, g_allocHeap, g_assetScriptMeta, mem_var(script));
-    asset_mark_load_failure(world, entity);
+    asset_mark_load_failure(world, entity, string_lit("Malformed script"), -1 /* errorCode */);
     asset_repo_source_close(src);
     return;
   }

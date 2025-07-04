@@ -194,7 +194,7 @@ glsl_load_fail(EcsWorld* world, const EcsEntityId entity, const String id, const
       log_param("id", fmt_text(id)),
       log_param("entity", ecs_entity_fmt(entity)),
       log_param("error", fmt_text(glsl_error_str(err))));
-  asset_mark_load_failure(world, entity);
+  asset_mark_load_failure(world, entity, glsl_error_str(err), (i32)err);
 }
 
 static void glsl_load_fail_msg(
@@ -209,7 +209,7 @@ static void glsl_load_fail_msg(
       log_param("entity", ecs_entity_fmt(entity)),
       log_param("error", fmt_text(glsl_error_str(err))),
       log_param("text", fmt_text(msg)));
-  asset_mark_load_failure(world, entity);
+  asset_mark_load_failure(world, entity, msg, (i32)err);
 }
 
 static u32 glsl_shaderc_lib_names(String outPaths[PARAM_ARRAY_SIZE(glsl_shaderc_names_max)]) {

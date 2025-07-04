@@ -181,7 +181,7 @@ ecs_system_define(LoadWeaponAssetSys) {
         log_param("id", fmt_text(id)),
         log_param("entity", ecs_entity_fmt(entity)),
         log_param("error", fmt_text(errMsg)));
-    asset_mark_load_failure(world, entity);
+    asset_mark_load_failure(world, entity, errMsg, -1 /* errorCode */);
 
   Cleanup:
     dynarray_destroy(&weapons);
@@ -353,7 +353,7 @@ void asset_load_weapons(
         log_param("entity", ecs_entity_fmt(entity)),
         log_param("error-code", fmt_int(result.error)),
         log_param("error", fmt_text(result.errorMsg)));
-    asset_mark_load_failure(world, entity);
+    asset_mark_load_failure(world, entity, result.errorMsg, (i32)result.error);
     goto Ret;
   }
 

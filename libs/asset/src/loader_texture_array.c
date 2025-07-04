@@ -565,7 +565,7 @@ ecs_system_define(ArrayTexLoadUpdateSys) {
         log_param("id", fmt_text(id)),
         log_param("entity", ecs_entity_fmt(entity)),
         log_param("error", fmt_text(arraytex_error_str(err))));
-    asset_mark_load_failure(world, entity);
+    asset_mark_load_failure(world, entity, arraytex_error_str(err), (i32)err);
 
   Cleanup:
     ecs_world_remove_t(world, entity, AssetArrayLoadComp);
@@ -678,5 +678,5 @@ Error:
       log_param("error", fmt_text(errMsg)));
   data_destroy(g_dataReg, g_allocHeap, g_assetTexArrayDefMeta, mem_var(def));
   asset_repo_source_close(src);
-  asset_mark_load_failure(world, entity);
+  asset_mark_load_failure(world, entity, errMsg, -1 /* errorCode */);
 }

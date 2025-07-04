@@ -379,7 +379,7 @@ ecs_system_define(FontTexLoadAssetSys) {
         log_param("id", fmt_text(id)),
         log_param("entity", ecs_entity_fmt(entity)),
         log_param("error", fmt_text(fonttex_error_str(err))));
-    asset_mark_load_failure(world, entity);
+    asset_mark_load_failure(world, entity, fonttex_error_str(err), (i32)err);
 
   Cleanup:
     ecs_world_remove_t(world, entity, AssetFontTexLoadComp);
@@ -515,7 +515,7 @@ Error:
       log_param("error", fmt_text(errMsg)));
   data_destroy(g_dataReg, g_allocHeap, g_assetFontTexDefMeta, mem_var(def));
   asset_repo_source_close(src);
-  asset_mark_load_failure(world, entity);
+  asset_mark_load_failure(world, entity, errMsg, -1 /* errorCode */);
 }
 
 void asset_load_tex_font_bin(
@@ -539,7 +539,7 @@ void asset_load_tex_font_bin(
         log_param("error-code", fmt_int(result.error)),
         log_param("error", fmt_text(result.errorMsg)));
     asset_repo_source_close(src);
-    asset_mark_load_failure(world, entity);
+    asset_mark_load_failure(world, entity, result.errorMsg, (i32)result.error);
     return;
   }
 

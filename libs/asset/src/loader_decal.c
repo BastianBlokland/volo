@@ -189,7 +189,7 @@ Error:
       log_param("id", fmt_text(id)),
       log_param("entity", ecs_entity_fmt(entity)),
       log_param("error", fmt_text(errMsg)));
-  asset_mark_load_failure(world, entity);
+  asset_mark_load_failure(world, entity, errMsg, -1 /* errorCode */);
 
 Cleanup:
   data_destroy(g_dataReg, g_allocHeap, g_assetDecalDefMeta, mem_var(def));

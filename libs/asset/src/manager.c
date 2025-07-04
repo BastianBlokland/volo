@@ -235,7 +235,25 @@ static u32 asset_manager_loader_hash(const void* ctx, const String assetId) {
   return asset_loader_hash(importEnv, assetId);
 }
 
-static bool asset_manager_load(
+typedef enum {
+  AssetLoadResult_Started,
+  AssetLoadResult_Missing,
+  AssetLoadResult_Unsupported,
+} AssetLoadResult;
+
+static String asset_manager_load_result_str(const AssetLoadResult res) {
+  switch (res) {
+  case AssetLoadResult_Started:
+    return string_lit("Started");
+  case AssetLoadResult_Missing:
+    return string_lit("Source not found");
+  case AssetLoadResult_Unsupported:
+    return string_lit("Format unsupported");
+  }
+  UNREACHABLE
+}
+
+static AssetLoadResult asset_manager_load(
     EcsWorld*                 world,
     const AssetManagerComp*   manager,
     const AssetImportEnvComp* importEnv,
@@ -249,7 +267,7 @@ static bool asset_manager_load(
 
   AssetSource* source = asset_repo_source_open(manager->repo, asset->id, loaderHasher);
   if (!source) {
-    return false;
+    return AssetLoadResult_Missing;
   }
 
   if (manager->flags & AssetManagerFlags_TrackChanges) {
@@ -275,24 +293,24 @@ static bool asset_manager_load(
 
   AssetLoader loader = asset_loader(source->format);
 
-  bool success = true;
+  AssetLoadResult result = AssetLoadResult_Started;
   if (LIKELY(loader)) {
     trace_begin("asset_loader", TraceColor_Red);
     loader(world, importEnv, asset->id, assetEntity, source);
     trace_end();
   } else {
     log_e(
-        "Asset format cannot be loaded directly",
+        "Asset format unsupported",
         log_param("id", fmt_path(asset->id)),
         log_param("entity", ecs_entity_fmt(assetEntity)),
         log_param("format", fmt_text(asset_format_str(source->format))));
-    success = false;
+    result = AssetLoadResult_Unsupported;
   }
 
-  if (!success) {
+  if (UNLIKELY(result != AssetLoadResult_Started)) {
     asset_repo_source_close(source);
   }
-  return success;
+  return result;
 }
 
 ecs_view_define(GlobalUpdateView) {
@@ -339,7 +357,7 @@ ecs_system_define(AssetUpdateDirtySys) {
   if (!globalItr) {
     return; // Global dependencies not initialized.
   }
-  const AssetManagerComp*   manager   = ecs_view_read_t(globalItr, AssetManagerComp);
+  const AssetManagerComp*   man       = ecs_view_read_t(globalItr, AssetManagerComp);
   const AssetImportEnvComp* importEnv = ecs_view_read_t(globalItr, AssetImportEnvComp);
 
   TimeDuration loadTime   = 0;
@@ -380,11 +398,13 @@ ecs_system_define(AssetUpdateDirtySys) {
         MAYBE_UNUSED const String assetFileName = path_filename(assetComp->id);
         trace_begin_msg("asset_manager_load", TraceColor_Blue, "{}", fmt_text(assetFileName));
         {
-          if (asset_manager_load(world, manager, importEnv, assetComp, entity)) {
+          const AssetLoadResult res = asset_manager_load(world, man, importEnv, assetComp, entity);
+          if (res == AssetLoadResult_Started) {
             loadTime += time_steady_duration(loadStart, time_steady_clock());
             ecs_utils_maybe_remove_t(world, entity, AssetInstantUnloadComp);
           } else {
-            asset_mark_load_failure(world, entity);
+            const String error = asset_manager_load_result_str(res);
+            asset_mark_load_failure(world, entity, error, (i32)res);
           }
           ecs_utils_maybe_remove_t(world, entity, AssetChangedComp);
         }
@@ -410,7 +430,7 @@ ecs_system_define(AssetUpdateDirtySys) {
       goto AssetUpdateDone;
     }
 
-    const u32  unloadDelay = asset_unload_delay(world, manager, entity);
+    const u32  unloadDelay = asset_unload_delay(world, man, entity);
     const bool unload      = !assetComp->refCount && ++assetComp->unloadTicks >= unloadDelay;
     if (unload && assetComp->flags & AssetFlags_Failed) {
       /**
@@ -784,7 +804,10 @@ EcsEntityId asset_watch(EcsWorld* world, AssetManagerComp* manager, const String
   return assetEntity;
 }
 
-void asset_mark_load_failure(EcsWorld* world, const EcsEntityId asset) {
+void asset_mark_load_failure(
+    EcsWorld* world, const EcsEntityId asset, const String error, const i32 errorCode) {
+  (void)error;
+  (void)errorCode;
   ecs_world_add_empty_t(world, asset, AssetFailedComp);
 }
 

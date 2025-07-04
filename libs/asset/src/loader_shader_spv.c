@@ -971,7 +971,7 @@ void asset_load_shader_spv(
         log_param("error", fmt_text(spv_err_str(err))));
 
     asset_repo_source_close(src);
-    asset_mark_load_failure(world, entity);
+    asset_mark_load_failure(world, entity, spv_err_str(err), (i32)err);
   } else {
     ecs_world_add_t(world, entity, AssetShaderSourceComp, .src = src);
     asset_mark_load_success(world, entity);

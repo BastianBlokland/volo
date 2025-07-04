@@ -204,7 +204,7 @@ ecs_system_define(LoadIconAssetSys) {
         log_param("id", fmt_text(id)),
         log_param("entity", ecs_entity_fmt(entity)),
         log_param("error", fmt_text(icon_error_str(err))));
-    asset_mark_load_failure(world, entity);
+    asset_mark_load_failure(world, entity, icon_error_str(err), (i32)err);
 
   Cleanup:
     ecs_world_remove_t(world, entity, AssetIconLoadComp);
@@ -290,7 +290,7 @@ Error:
       log_param("entity", ecs_entity_fmt(entity)),
       log_param("error", fmt_text(errMsg)));
   data_destroy(g_dataReg, g_allocHeap, g_assetIconDefMeta, mem_var(iconDef));
-  asset_mark_load_failure(world, entity);
+  asset_mark_load_failure(world, entity, errMsg, -1 /* errorCode */);
 
 Cleanup:
   asset_repo_source_close(src);
@@ -316,7 +316,7 @@ void asset_load_icon_bin(
         log_param("error-code", fmt_int(result.error)),
         log_param("error", fmt_text(result.errorMsg)));
     asset_repo_source_close(src);
-    asset_mark_load_failure(world, entity);
+    asset_mark_load_failure(world, entity, result.errorMsg, result.error);
     return;
   }
 

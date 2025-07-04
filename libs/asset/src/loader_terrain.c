@@ -33,7 +33,7 @@ terrain_load_fail(EcsWorld* world, const EcsEntityId entity, const String id, co
       log_param("id", fmt_text(id)),
       log_param("entity", ecs_entity_fmt(entity)),
       log_param("error", fmt_text(msg)));
-  asset_mark_load_failure(world, entity);
+  asset_mark_load_failure(world, entity, msg, -1 /* errorCode */);
 }
 
 ecs_view_define(ManagerView) { ecs_access_write(AssetManagerComp); }

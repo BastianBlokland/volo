@@ -267,7 +267,7 @@ ecs_system_define(LoadProductAssetSys) {
         log_param("entity", ecs_entity_fmt(entity)),
         log_param("error", fmt_text(errMsg)));
     dynarray_for_t(&products, AssetProduct, prod) { string_maybe_free(g_allocHeap, prod->name); }
-    asset_mark_load_failure(world, entity);
+    asset_mark_load_failure(world, entity, errMsg, -1 /* errorCode */);
 
   Cleanup:
     dynarray_destroy(&sets);
@@ -369,7 +369,7 @@ void asset_load_products(
         log_param("entity", ecs_entity_fmt(entity)),
         log_param("error-code", fmt_int(result.error)),
         log_param("error", fmt_text(result.errorMsg)));
-    asset_mark_load_failure(world, entity);
+    asset_mark_load_failure(world, entity, result.errorMsg, (i32)result.error);
     goto Ret;
   }
 

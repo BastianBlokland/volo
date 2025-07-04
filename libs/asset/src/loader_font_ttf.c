@@ -1071,7 +1071,7 @@ ttf_load_fail(EcsWorld* world, const EcsEntityId entity, const String id, const 
       log_param("id", fmt_text(id)),
       log_param("entity", ecs_entity_fmt(entity)),
       log_param("error", fmt_text(ttf_error_str(err))));
-  asset_mark_load_failure(world, entity);
+  asset_mark_load_failure(world, entity, ttf_error_str(err), (i32)err);
 }
 
 void asset_load_font_ttf(

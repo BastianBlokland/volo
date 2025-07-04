@@ -390,5 +390,5 @@ Error:
       log_param("error", fmt_text(errMsg)));
   data_destroy(g_dataReg, g_allocHeap, g_assetTexProcDefMeta, mem_var(def));
   asset_repo_source_close(src);
-  asset_mark_load_failure(world, entity);
+  asset_mark_load_failure(world, entity, errMsg, -1 /* errorCode */);
 }

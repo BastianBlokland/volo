@@ -148,7 +148,7 @@ void asset_load_mesh_bin(
         log_param("error-code", fmt_int(result.error)),
         log_param("error", fmt_text(result.errorMsg)));
     asset_repo_source_close(src);
-    asset_mark_load_failure(world, entity);
+    asset_mark_load_failure(world, entity, result.errorMsg, (i32)result.error);
     return;
   }
 
