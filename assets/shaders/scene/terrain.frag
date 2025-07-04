@@ -44,14 +44,14 @@ f32v3 heightmap_normal(const f32v2 uv, const f32 size, const f32 heightScale) {
 }
 
 f32v4 layer_tex(
-    const sampler2DArray  tex,
-    const f32             layer,
-    const f32v2           texcoord,
-    const f32v2           offsetA,
-    const f32v2           offsetB,
-    const f32             frac,
-    const f32v2           dx,
-    const f32v2           dy) {
+    const sampler2DArray tex,
+    const f32            layer,
+    const f32v2          texcoord,
+    const f32v2          offsetA,
+    const f32v2          offsetB,
+    const f32            frac,
+    const f32v2          dx,
+    const f32v2          dy) {
 
   /**
    * Avoid visible texture repetition by blending between two (randomly picked) virtual patterns.
@@ -64,17 +64,17 @@ f32v4 layer_tex(
 
   // Interpolate between the two virtual patterns.
   const f32v4 delta = colorA - colorB;
-  const f32 blend = smoothstep(0.2, 0.8, frac - 0.1 * (delta.x + delta.y + delta.z));
+  const f32   blend = smoothstep(0.2, 0.8, frac - 0.1 * (delta.x + delta.y + delta.z));
 
   return mix(colorA, colorB, blend);
 }
 
 void main() {
   const f32 splatUvScale[] = {
-    s_splat1UvScale,
-    s_splat2UvScale,
-    s_splat3UvScale,
-    s_splat4UvScale,
+      s_splat1UvScale,
+      s_splat2UvScale,
+      s_splat3UvScale,
+      s_splat4UvScale,
   };
   const f32v4 splat = texture(u_texSplat, in_texcoord);
 
@@ -93,14 +93,14 @@ void main() {
     const f32v2 pos = in_texcoord * splatUvScale[i];
 
     /**
-    * Avoid visible texture repetition by blending between two (randomly picked) virtual patterns.
-    * Source https://iquilezles.org/articles/texturerepetition/ by 'Inigo Quilez'.
-    */
+     * Avoid visible texture repetition by blending between two (randomly picked) virtual patterns.
+     * Source https://iquilezles.org/articles/texturerepetition/ by 'Inigo Quilez'.
+     */
 
     // Pick a virtual pattern based on a 2d value noise.
-    const f32   noiseVal   = noise_value_f32v2(pos * s_splatVariationScale) * 8.0;
-    const f32   noiseIndex = floor(noiseVal);
-    const f32   noiseFrac  = fract(noiseVal);
+    const f32 noiseVal   = noise_value_f32v2(pos * s_splatVariationScale) * 8.0;
+    const f32 noiseIndex = floor(noiseVal);
+    const f32 noiseFrac  = fract(noiseVal);
 
     // Offsets for the different virtual patterns
     const f32v2 offA = sin(f32v2(3.0, 7.0) * (noiseIndex + 0.0));
@@ -109,9 +109,9 @@ void main() {
     // Derivatives for mip-mapping.
     const f32v2 dx = dFdx(pos), dy = dFdy(pos);
 
-    base.color     += splat[i] * layer_tex(u_texColor, i, pos, offA, offB, noiseFrac, dx, dy).rgb;
+    base.color += splat[i] * layer_tex(u_texColor, i, pos, offA, offB, noiseFrac, dx, dy).rgb;
     attr.roughness += splat[i] * layer_tex(u_texRough, i, pos, offA, offB, noiseFrac, dx, dy).r;
-    splatNormRaw   += splat[i] * layer_tex(u_texNormal, i, pos, offA, offB, noiseFrac, dx, dy).xyz;
+    splatNormRaw += splat[i] * layer_tex(u_texNormal, i, pos, offA, offB, noiseFrac, dx, dy).xyz;
   }
 
   // Output base.
@@ -121,7 +121,7 @@ void main() {
   out_attribute = geo_attr_encode(attr);
 
   // Compute the world-normal based on the normal map and the sampled detail normals.
-  const f32v3 splatNorm = normal_tex_decode(splatNormRaw);
+  const f32v3 splatNorm  = normal_tex_decode(splatNormRaw);
   const f32v3 baseNormal = heightmap_normal(in_texcoord, in_size, in_heightScale);
 
   // Output normal.
