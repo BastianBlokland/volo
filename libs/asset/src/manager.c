@@ -384,7 +384,7 @@ ecs_system_define(AssetUpdateDirtySys) {
             loadTime += time_steady_duration(loadStart, time_steady_clock());
             ecs_utils_maybe_remove_t(world, entity, AssetInstantUnloadComp);
           } else {
-            ecs_world_add_empty_t(world, entity, AssetFailedComp);
+            asset_mark_load_failure(world, entity);
           }
           ecs_utils_maybe_remove_t(world, entity, AssetChangedComp);
         }
@@ -782,6 +782,14 @@ EcsEntityId asset_watch(EcsWorld* world, AssetManagerComp* manager, const String
   }
 
   return assetEntity;
+}
+
+void asset_mark_load_failure(EcsWorld* world, const EcsEntityId asset) {
+  ecs_world_add_empty_t(world, asset, AssetFailedComp);
+}
+
+void asset_mark_load_success(EcsWorld* world, const EcsEntityId asset) {
+  ecs_world_add_empty_t(world, asset, AssetLoadedComp);
 }
 
 void asset_mark_external_load(

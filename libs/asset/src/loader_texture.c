@@ -16,6 +16,7 @@
 
 #include "import_internal.h"
 #include "loader_texture_internal.h"
+#include "manager_internal.h"
 #include "repo_internal.h"
 
 static const f32 g_textureSrgbToFloat[] = {
@@ -725,15 +726,15 @@ void asset_load_tex_bin(
         log_param("entity", ecs_entity_fmt(entity)),
         log_param("error-code", fmt_int(result.error)),
         log_param("error", fmt_text(result.errorMsg)));
-    ecs_world_add_empty_t(world, entity, AssetFailedComp);
     asset_repo_source_close(src);
+    asset_mark_load_failure(world, entity);
     return;
   }
 
   *ecs_world_add_t(world, entity, AssetTextureComp) = tex;
   ecs_world_add_t(world, entity, AssetTextureSourceComp, .src = src);
 
-  ecs_world_add_empty_t(world, entity, AssetLoadedComp);
+  asset_mark_load_success(world, entity);
 }
 
 String asset_texture_format_str(const AssetTextureFormat format) {

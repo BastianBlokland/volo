@@ -266,7 +266,7 @@ void asset_load_script(
       .strings.values   = strHashes,
       .strings.count    = strs.count);
 
-  ecs_world_add_empty_t(world, entity, AssetLoadedComp);
+  asset_mark_load_success(world, entity);
 
   if (scriptAsset) {
     asset_cache(world, entity, g_assetScriptMeta, mem_create(scriptAsset, sizeof(AssetScriptComp)));
@@ -275,7 +275,7 @@ void asset_load_script(
   goto Cleanup;
 
 Error:
-  ecs_world_add_empty_t(world, entity, AssetFailedComp);
+  asset_mark_load_failure(world, entity);
 
 Cleanup:
   script_destroy(doc);
@@ -304,7 +304,7 @@ void asset_load_script_bin(
         log_param("entity", ecs_entity_fmt(entity)),
         log_param("error-code", fmt_int(result.error)),
         log_param("error", fmt_text(result.errorMsg)));
-    ecs_world_add_empty_t(world, entity, AssetFailedComp);
+    asset_mark_load_failure(world, entity);
     asset_repo_source_close(src);
     return;
   }
@@ -317,7 +317,7 @@ void asset_load_script_bin(
         log_param("entity", ecs_entity_fmt(entity)));
 
     data_destroy(g_dataReg, g_allocHeap, g_assetScriptMeta, mem_var(script));
-    ecs_world_add_empty_t(world, entity, AssetFailedComp);
+    asset_mark_load_failure(world, entity);
     asset_repo_source_close(src);
     return;
   }
@@ -325,5 +325,5 @@ void asset_load_script_bin(
   *ecs_world_add_t(world, entity, AssetScriptComp) = script;
   ecs_world_add_t(world, entity, AssetScriptSourceComp, .src = src);
 
-  ecs_world_add_empty_t(world, entity, AssetLoadedComp);
+  asset_mark_load_success(world, entity);
 }

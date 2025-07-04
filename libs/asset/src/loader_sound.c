@@ -9,6 +9,7 @@
 #include "log_logger.h"
 
 #include "import_internal.h"
+#include "manager_internal.h"
 #include "repo_internal.h"
 
 DataMeta g_assetSoundMeta;
@@ -84,13 +85,13 @@ void asset_load_sound_bin(
         log_param("entity", ecs_entity_fmt(entity)),
         log_param("error-code", fmt_int(result.error)),
         log_param("error", fmt_text(result.errorMsg)));
-    ecs_world_add_empty_t(world, entity, AssetFailedComp);
     asset_repo_source_close(src);
+    asset_mark_load_failure(world, entity);
     return;
   }
 
   *ecs_world_add_t(world, entity, AssetSoundComp) = sound;
   ecs_world_add_t(world, entity, AssetSoundSourceComp, .src = src);
 
-  ecs_world_add_empty_t(world, entity, AssetLoadedComp);
+  asset_mark_load_success(world, entity);
 }

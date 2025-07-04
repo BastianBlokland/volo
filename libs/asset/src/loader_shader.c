@@ -11,6 +11,7 @@
 
 #include "import_internal.h"
 #include "loader_shader_internal.h"
+#include "manager_internal.h"
 
 ecs_comp_define_public(AssetShaderComp);
 ecs_comp_define_public(AssetShaderSourceComp);
@@ -115,7 +116,7 @@ void asset_load_shader_bin(
         log_param("entity", ecs_entity_fmt(entity)),
         log_param("error-code", fmt_int(result.error)),
         log_param("error", fmt_text(result.errorMsg)));
-    ecs_world_add_empty_t(world, entity, AssetFailedComp);
+    asset_mark_load_failure(world, entity);
     asset_repo_source_close(src);
     return;
   }
@@ -123,7 +124,7 @@ void asset_load_shader_bin(
   *ecs_world_add_t(world, entity, AssetShaderComp) = shader;
   ecs_world_add_t(world, entity, AssetShaderSourceComp, .src = src);
 
-  ecs_world_add_empty_t(world, entity, AssetLoadedComp);
+  asset_mark_load_success(world, entity);
 }
 
 String asset_shader_kind_name(const AssetShaderKind kind) {

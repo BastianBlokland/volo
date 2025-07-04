@@ -351,7 +351,7 @@ void asset_load_vfx(
     asset_cache(world, entity, g_assetVfxDefMeta, mem_var(def));
   }
 
-  ecs_world_add_empty_t(world, entity, AssetLoadedComp);
+  asset_mark_load_success(world, entity);
   goto Cleanup;
 
 Error:
@@ -360,7 +360,7 @@ Error:
       log_param("id", fmt_text(id)),
       log_param("entity", ecs_entity_fmt(entity)),
       log_param("error", fmt_text(errMsg)));
-  ecs_world_add_empty_t(world, entity, AssetFailedComp);
+  asset_mark_load_failure(world, entity);
 
 Cleanup:
   data_destroy(g_dataReg, g_allocHeap, g_assetVfxDefMeta, mem_var(def));

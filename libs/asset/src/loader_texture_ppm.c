@@ -181,7 +181,7 @@ ppm_load_fail(EcsWorld* world, const EcsEntityId entity, const String id, const 
       log_param("id", fmt_text(id)),
       log_param("entity", ecs_entity_fmt(entity)),
       log_param("error", fmt_text(pixmap_error_str(err))));
-  ecs_world_add_empty_t(world, entity, AssetFailedComp);
+  asset_mark_load_failure(world, entity);
 }
 
 void asset_load_tex_ppm(
@@ -244,7 +244,7 @@ void asset_load_tex_ppm(
 
   *ecs_world_add_t(world, entity, AssetTextureComp) = tex;
 
-  ecs_world_add_empty_t(world, entity, AssetLoadedComp);
+  asset_mark_load_success(world, entity);
   asset_cache(world, entity, g_assetTexMeta, mem_var(tex));
 
   alloc_free(g_allocHeap, pixelMem);

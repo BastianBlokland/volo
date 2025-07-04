@@ -33,7 +33,7 @@ terrain_load_fail(EcsWorld* world, const EcsEntityId entity, const String id, co
       log_param("id", fmt_text(id)),
       log_param("entity", ecs_entity_fmt(entity)),
       log_param("error", fmt_text(msg)));
-  ecs_world_add_empty_t(world, entity, AssetFailedComp);
+  asset_mark_load_failure(world, entity);
 }
 
 ecs_view_define(ManagerView) { ecs_access_write(AssetManagerComp); }
@@ -88,7 +88,7 @@ ecs_system_define(InitTerrainAssetSys) {
     }
 
     ecs_world_remove_t(world, entity, AssetTerrainInitComp);
-    ecs_world_add_empty_t(world, entity, AssetLoadedComp);
+    asset_mark_load_success(world, entity);
     continue;
 
   Error:

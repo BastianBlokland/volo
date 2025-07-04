@@ -30,7 +30,7 @@ static void graphic_load_fail(
       log_param("id", fmt_text(id)),
       log_param("entity", ecs_entity_fmt(entity)),
       log_param("error", fmt_text(message)));
-  ecs_world_add_empty_t(world, entity, AssetFailedComp);
+  asset_mark_load_failure(world, entity);
 }
 
 ecs_view_define(ManagerView) { ecs_access_write(AssetManagerComp); }
@@ -73,7 +73,7 @@ ecs_system_define(InitGraphicAssetSys) {
     }
 
     ecs_world_remove_t(world, entity, AssetGraphicInitComp);
-    ecs_world_add_empty_t(world, entity, AssetLoadedComp);
+    asset_mark_load_success(world, entity);
     continue;
 
   Error:

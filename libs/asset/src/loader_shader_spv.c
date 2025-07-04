@@ -970,10 +970,10 @@ void asset_load_shader_spv(
         log_param("entity", ecs_entity_fmt(entity)),
         log_param("error", fmt_text(spv_err_str(err))));
 
-    ecs_world_add_empty_t(world, entity, AssetFailedComp);
     asset_repo_source_close(src);
+    asset_mark_load_failure(world, entity);
   } else {
     ecs_world_add_t(world, entity, AssetShaderSourceComp, .src = src);
-    ecs_world_add_empty_t(world, entity, AssetLoadedComp);
+    asset_mark_load_success(world, entity);
   }
 }

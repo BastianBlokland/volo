@@ -555,7 +555,7 @@ ecs_system_define(ArrayTexLoadUpdateSys) {
     }
 
     *ecs_world_add_t(world, entity, AssetTextureComp) = texture;
-    ecs_world_add_empty_t(world, entity, AssetLoadedComp);
+    asset_mark_load_success(world, entity);
     asset_cache(world, entity, g_assetTexMeta, mem_var(texture));
     goto Cleanup;
 
@@ -565,7 +565,7 @@ ecs_system_define(ArrayTexLoadUpdateSys) {
         log_param("id", fmt_text(id)),
         log_param("entity", ecs_entity_fmt(entity)),
         log_param("error", fmt_text(arraytex_error_str(err))));
-    ecs_world_add_empty_t(world, entity, AssetFailedComp);
+    asset_mark_load_failure(world, entity);
 
   Cleanup:
     ecs_world_remove_t(world, entity, AssetArrayLoadComp);
@@ -676,7 +676,7 @@ Error:
       log_param("id", fmt_text(id)),
       log_param("entity", ecs_entity_fmt(entity)),
       log_param("error", fmt_text(errMsg)));
-  ecs_world_add_empty_t(world, entity, AssetFailedComp);
   data_destroy(g_dataReg, g_allocHeap, g_assetTexArrayDefMeta, mem_var(def));
   asset_repo_source_close(src);
+  asset_mark_load_failure(world, entity);
 }

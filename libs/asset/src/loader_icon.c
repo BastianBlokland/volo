@@ -192,7 +192,7 @@ ecs_system_define(LoadIconAssetSys) {
     AssetIconComp* icon = ecs_world_add_t(world, entity, AssetIconComp);
     asset_icon_generate(&load->def, texture, icon);
 
-    ecs_world_add_empty_t(world, entity, AssetLoadedComp);
+    asset_mark_load_success(world, entity);
 
     asset_cache(world, entity, g_assetIconMeta, mem_create(icon, sizeof(AssetIconComp)));
 
@@ -204,7 +204,7 @@ ecs_system_define(LoadIconAssetSys) {
         log_param("id", fmt_text(id)),
         log_param("entity", ecs_entity_fmt(entity)),
         log_param("error", fmt_text(icon_error_str(err))));
-    ecs_world_add_empty_t(world, entity, AssetFailedComp);
+    asset_mark_load_failure(world, entity);
 
   Cleanup:
     ecs_world_remove_t(world, entity, AssetIconLoadComp);
@@ -290,7 +290,7 @@ Error:
       log_param("entity", ecs_entity_fmt(entity)),
       log_param("error", fmt_text(errMsg)));
   data_destroy(g_dataReg, g_allocHeap, g_assetIconDefMeta, mem_var(iconDef));
-  ecs_world_add_empty_t(world, entity, AssetFailedComp);
+  asset_mark_load_failure(world, entity);
 
 Cleanup:
   asset_repo_source_close(src);
@@ -315,13 +315,13 @@ void asset_load_icon_bin(
         log_param("entity", ecs_entity_fmt(entity)),
         log_param("error-code", fmt_int(result.error)),
         log_param("error", fmt_text(result.errorMsg)));
-    ecs_world_add_empty_t(world, entity, AssetFailedComp);
     asset_repo_source_close(src);
+    asset_mark_load_failure(world, entity);
     return;
   }
 
   *ecs_world_add_t(world, entity, AssetIconComp) = icon;
   ecs_world_add_t(world, entity, AssetIconSourceComp, .src = src);
 
-  ecs_world_add_empty_t(world, entity, AssetLoadedComp);
+  asset_mark_load_success(world, entity);
 }

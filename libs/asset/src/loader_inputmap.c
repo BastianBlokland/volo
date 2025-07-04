@@ -291,7 +291,7 @@ void asset_load_inputs(
       .bindings.values = dynarray_copy_as_new(&bindings, g_allocHeap),
       .bindings.count  = bindings.size);
 
-  ecs_world_add_empty_t(world, entity, AssetLoadedComp);
+  asset_mark_load_success(world, entity);
   goto Cleanup;
 
 Error:
@@ -300,7 +300,7 @@ Error:
       log_param("id", fmt_text(id)),
       log_param("entity", ecs_entity_fmt(entity)),
       log_param("error", fmt_text(errMsg)));
-  ecs_world_add_empty_t(world, entity, AssetFailedComp);
+  asset_mark_load_failure(world, entity);
 
 Cleanup:
   asset_repo_source_close(src);

@@ -422,7 +422,7 @@ obj_load_fail(EcsWorld* world, const EcsEntityId entity, const String id, const 
       log_param("id", fmt_text(id)),
       log_param("entity", ecs_entity_fmt(entity)),
       log_param("error", fmt_text(obj_error_str(err))));
-  ecs_world_add_empty_t(world, entity, AssetFailedComp);
+  asset_mark_load_failure(world, entity);
 }
 
 static bool obj_import(
@@ -498,7 +498,7 @@ void asset_load_mesh_obj(
   meshBundle.mesh            = asset_mesh_create(builder);
 
   *ecs_world_add_t(world, entity, AssetMeshComp) = meshBundle.mesh;
-  ecs_world_add_empty_t(world, entity, AssetLoadedComp);
+  asset_mark_load_success(world, entity);
 
   asset_cache(world, entity, g_assetMeshBundleMeta, mem_var(meshBundle));
 

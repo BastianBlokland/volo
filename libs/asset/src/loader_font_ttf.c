@@ -10,6 +10,7 @@
 
 #include "import_internal.h"
 #include "loader_font_internal.h"
+#include "manager_internal.h"
 #include "repo_internal.h"
 
 /**
@@ -1042,7 +1043,6 @@ static void ttf_load_succeed(
     const DynArray*   segments,   // AssetFontSegment[]
     AssetFontGlyph*   glyphs,     // Moved into the result component which will take ownership.
     const usize       glyphCount) {
-  ecs_world_add_empty_t(world, entity, AssetLoadedComp);
   AssetFontComp* result = ecs_world_add_t(world, entity, AssetFontComp);
 
   // Copy the characters to the component.
@@ -1060,6 +1060,8 @@ static void ttf_load_succeed(
   // Move the glyphs to the component.
   result->glyphs.values = glyphs;
   result->glyphs.count  = glyphCount;
+
+  asset_mark_load_success(world, entity);
 }
 
 static void
@@ -1069,7 +1071,7 @@ ttf_load_fail(EcsWorld* world, const EcsEntityId entity, const String id, const 
       log_param("id", fmt_text(id)),
       log_param("entity", ecs_entity_fmt(entity)),
       log_param("error", fmt_text(ttf_error_str(err))));
-  ecs_world_add_empty_t(world, entity, AssetFailedComp);
+  asset_mark_load_failure(world, entity);
 }
 
 void asset_load_font_ttf(

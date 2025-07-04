@@ -271,7 +271,7 @@ static void gltf_load_fail_msg(
       log_param("entity", ecs_entity_fmt(entity)),
       log_param("code", fmt_int(err)),
       log_param("error", fmt_text(msg)));
-  ecs_world_add_empty_t(world, entity, AssetFailedComp);
+  asset_mark_load_failure(world, entity);
 }
 
 static void
@@ -1790,7 +1790,7 @@ ecs_system_define(GltfLoadAssetSys) {
         meshBundle.skeleton = null;
       }
 
-      ecs_world_add_empty_t(world, entity, AssetLoadedComp);
+      asset_mark_load_success(world, entity);
 
       asset_cache(world, entity, g_assetMeshBundleMeta, mem_var(meshBundle));
       goto Cleanup;
