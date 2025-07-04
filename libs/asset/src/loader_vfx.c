@@ -9,7 +9,6 @@
 #include "ecs_entity.h"
 #include "ecs_view.h"
 #include "ecs_world.h"
-#include "log_logger.h"
 
 #include "data_internal.h"
 #include "manager_internal.h"
@@ -355,12 +354,7 @@ void asset_load_vfx(
   goto Cleanup;
 
 Error:
-  log_e(
-      "Failed to load Vfx",
-      log_param("id", fmt_text(id)),
-      log_param("entity", ecs_entity_fmt(entity)),
-      log_param("error", fmt_text(errMsg)));
-  asset_mark_load_failure(world, entity, errMsg, -1 /* errorCode */);
+  asset_mark_load_failure(world, entity, id, errMsg, -1 /* errorCode */);
 
 Cleanup:
   data_destroy(g_dataReg, g_allocHeap, g_assetVfxDefMeta, mem_var(def));

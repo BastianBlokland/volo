@@ -299,11 +299,6 @@ static AssetLoadResult asset_manager_load(
     loader(world, importEnv, asset->id, assetEntity, source);
     trace_end();
   } else {
-    log_e(
-        "Asset format unsupported",
-        log_param("id", fmt_path(asset->id)),
-        log_param("entity", ecs_entity_fmt(assetEntity)),
-        log_param("format", fmt_text(asset_format_str(source->format))));
     result = AssetLoadResult_Unsupported;
   }
 
@@ -404,7 +399,7 @@ ecs_system_define(AssetUpdateDirtySys) {
             ecs_utils_maybe_remove_t(world, entity, AssetInstantUnloadComp);
           } else {
             const String error = asset_manager_load_result_str(res);
-            asset_mark_load_failure(world, entity, error, (i32)res);
+            asset_mark_load_failure(world, entity, assetComp->id, error, (i32)res);
           }
           ecs_utils_maybe_remove_t(world, entity, AssetChangedComp);
         }
@@ -805,9 +800,20 @@ EcsEntityId asset_watch(EcsWorld* world, AssetManagerComp* manager, const String
 }
 
 void asset_mark_load_failure(
-    EcsWorld* world, const EcsEntityId asset, const String error, const i32 errorCode) {
-  (void)error;
-  (void)errorCode;
+    EcsWorld*         world,
+    const EcsEntityId asset,
+    const String      id,
+    const String      error,
+    const i32         errorCode) {
+  const String errorTrimmed = string_trim_whitespace(error);
+
+  log_e(
+      "Failed to load asset",
+      log_param("id", fmt_text(id)),
+      log_param("entity", ecs_entity_fmt(asset)),
+      log_param("error", fmt_text(errorTrimmed)),
+      log_param("error-code", fmt_int(errorCode)));
+
   ecs_world_add_empty_t(world, asset, AssetFailedComp);
 }
 

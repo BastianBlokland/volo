@@ -130,12 +130,7 @@ void asset_load_level(
   goto Cleanup;
 
 Error:
-  log_e(
-      "Failed to load Level",
-      log_param("id", fmt_text(id)),
-      log_param("entity", ecs_entity_fmt(entity)),
-      log_param("error", fmt_text(errMsg)));
-  asset_mark_load_failure(world, entity, errMsg, -1 /* errorCode */);
+  asset_mark_load_failure(world, entity, id, errMsg, -1 /* errorCode */);
 
 Cleanup:
   asset_repo_source_close(src);

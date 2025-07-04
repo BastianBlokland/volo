@@ -3,7 +3,6 @@
 #include "core_bits.h"
 #include "ecs_entity.h"
 #include "ecs_world.h"
-#include "log_logger.h"
 
 #include "import_texture_internal.h"
 #include "loader_texture_internal.h"
@@ -339,16 +338,6 @@ static Mem tga_pixels_read(
   return tga_pixels_read_uncompressed(pixels, channels, flags, width, height, input, err);
 }
 
-static void
-tga_load_fail(EcsWorld* world, const EcsEntityId entity, const String id, const TgaError err) {
-  log_e(
-      "Failed to parse Tga texture",
-      log_param("id", fmt_text(id)),
-      log_param("entity", ecs_entity_fmt(entity)),
-      log_param("error", fmt_text(tga_error_str(err))));
-  asset_mark_load_failure(world, entity, tga_error_str(err), (i32)err);
-}
-
 void asset_load_tex_tga(
     EcsWorld*                 world,
     const AssetImportEnvComp* importEnv,
@@ -364,36 +353,43 @@ void asset_load_tex_tga(
   TgaHeader header;
   data = tga_read_header(data, &header, &res);
   if (res) {
-    tga_load_fail(world, entity, id, res);
+    asset_mark_load_failure(world, entity, id, tga_error_str(res), (i32)res);
     goto Ret;
   }
   if (header.colorMapType == TgaColorMapType_Present) {
-    tga_load_fail(world, entity, id, TgaError_UnsupportedColorMap);
+    res = TgaError_UnsupportedColorMap;
+    asset_mark_load_failure(world, entity, id, tga_error_str(res), (i32)res);
     goto Ret;
   }
   const TgaChannels channels = tga_channels_from_bit_depth(header.imageSpec.bitsPerPixel);
   if (channels == TgaChannels_Invalid) {
-    tga_load_fail(world, entity, id, TgaError_UnsupportedBitDepth);
+    res = TgaError_UnsupportedBitDepth;
+    asset_mark_load_failure(world, entity, id, tga_error_str(res), (i32)res);
     goto Ret;
   }
   if (channels == TgaChannels_RGBA && header.imageSpec.descriptor.attributeDepth != 8) {
-    tga_load_fail(world, entity, id, TgaError_UnsupportedAlphaChannelDepth);
+    res = TgaError_UnsupportedAlphaChannelDepth;
+    asset_mark_load_failure(world, entity, id, tga_error_str(res), (i32)res);
     goto Ret;
   }
   if (header.imageSpec.descriptor.interleave != TgaInterleave_None) {
-    tga_load_fail(world, entity, id, TgaError_UnsupportedInterleaved);
+    res = TgaError_UnsupportedInterleaved;
+    asset_mark_load_failure(world, entity, id, tga_error_str(res), (i32)res);
     goto Ret;
   }
   if (!tga_type_supported(header.imageType)) {
-    tga_load_fail(world, entity, id, TgaError_UnsupportedNonTrueColor);
+    res = TgaError_UnsupportedNonTrueColor;
+    asset_mark_load_failure(world, entity, id, tga_error_str(res), (i32)res);
     goto Ret;
   }
   if (!header.imageSpec.width || !header.imageSpec.height) {
-    tga_load_fail(world, entity, id, TgaError_UnsupportedSize);
+    res = TgaError_UnsupportedSize;
+    asset_mark_load_failure(world, entity, id, tga_error_str(res), (i32)res);
     goto Ret;
   }
   if (header.imageSpec.width > tga_max_width || header.imageSpec.height > tga_max_height) {
-    tga_load_fail(world, entity, id, TgaError_UnsupportedSize);
+    res = TgaError_UnsupportedSize;
+    asset_mark_load_failure(world, entity, id, tga_error_str(res), (i32)res);
     goto Ret;
   }
   if (header.imageType == TgaImageType_RleGrayscale ||
@@ -406,7 +402,8 @@ void asset_load_tex_tga(
   }
 
   if (data.size <= header.idLength) {
-    tga_load_fail(world, entity, id, TgaError_Malformed);
+    res = TgaError_Malformed;
+    asset_mark_load_failure(world, entity, id, tga_error_str(res), (i32)res);
     goto Ret;
   }
   data = mem_consume(data, header.idLength); // Skip over the id field.
@@ -418,7 +415,7 @@ void asset_load_tex_tga(
   data = tga_pixels_read(pixels.ptr, channels, flags, width, height, data, &res);
 
   if (res) {
-    tga_load_fail(world, entity, id, res);
+    asset_mark_load_failure(world, entity, id, tga_error_str(res), (i32)res);
     goto Ret;
   }
 
@@ -434,7 +431,8 @@ void asset_load_tex_tga(
           AssetImportTextureFlags_Mips,
           AssetImportTextureFlip_None,
           &tex)) {
-    tga_load_fail(world, entity, id, TgaError_ImportFailed);
+    res = TgaError_ImportFailed;
+    asset_mark_load_failure(world, entity, id, tga_error_str(res), (i32)res);
     goto Ret;
   }
 

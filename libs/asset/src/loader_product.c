@@ -4,14 +4,12 @@
 #include "core_dynarray.h"
 #include "core_math.h"
 #include "core_search.h"
-#include "core_stringtable.h"
 #include "core_time.h"
 #include "data_read.h"
 #include "data_utils.h"
 #include "ecs_entity.h"
 #include "ecs_utils.h"
 #include "ecs_view.h"
-#include "log_logger.h"
 
 #include "data_internal.h"
 #include "import_internal.h"
@@ -261,13 +259,8 @@ ecs_system_define(LoadProductAssetSys) {
     goto Cleanup;
 
   Error:
-    log_e(
-        "Failed to load ProductMap",
-        log_param("id", fmt_text(id)),
-        log_param("entity", ecs_entity_fmt(entity)),
-        log_param("error", fmt_text(errMsg)));
     dynarray_for_t(&products, AssetProduct, prod) { string_maybe_free(g_allocHeap, prod->name); }
-    asset_mark_load_failure(world, entity, errMsg, -1 /* errorCode */);
+    asset_mark_load_failure(world, entity, id, errMsg, -1 /* errorCode */);
 
   Cleanup:
     dynarray_destroy(&sets);
@@ -363,13 +356,7 @@ void asset_load_products(
   }
 
   if (UNLIKELY(result.error)) {
-    log_e(
-        "Failed to load product-map",
-        log_param("id", fmt_text(id)),
-        log_param("entity", ecs_entity_fmt(entity)),
-        log_param("error-code", fmt_int(result.error)),
-        log_param("error", fmt_text(result.errorMsg)));
-    asset_mark_load_failure(world, entity, result.errorMsg, (i32)result.error);
+    asset_mark_load_failure(world, entity, id, result.errorMsg, (i32)result.error);
     goto Ret;
   }
 

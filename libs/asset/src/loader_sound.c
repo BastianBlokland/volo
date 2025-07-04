@@ -6,7 +6,6 @@
 #include "ecs_utils.h"
 #include "ecs_view.h"
 #include "ecs_world.h"
-#include "log_logger.h"
 
 #include "import_internal.h"
 #include "manager_internal.h"
@@ -79,14 +78,8 @@ void asset_load_sound_bin(
   data_read_bin(g_dataReg, src->data, g_allocHeap, g_assetSoundMeta, mem_var(sound), &result);
 
   if (UNLIKELY(result.error)) {
-    log_e(
-        "Failed to load binary sound",
-        log_param("id", fmt_text(id)),
-        log_param("entity", ecs_entity_fmt(entity)),
-        log_param("error-code", fmt_int(result.error)),
-        log_param("error", fmt_text(result.errorMsg)));
     asset_repo_source_close(src);
-    asset_mark_load_failure(world, entity, result.errorMsg, (i32)result.error);
+    asset_mark_load_failure(world, entity, id, result.errorMsg, (i32)result.error);
     return;
   }
 

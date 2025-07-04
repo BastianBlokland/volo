@@ -12,7 +12,6 @@
 #include "ecs_entity.h"
 #include "ecs_utils.h"
 #include "ecs_view.h"
-#include "log_logger.h"
 
 #include "data_internal.h"
 #include "manager_internal.h"
@@ -429,12 +428,7 @@ ecs_system_define(LoadPrefabAssetSys) {
     goto Cleanup;
 
   Error:
-    log_e(
-        "Failed to load PrefabMap",
-        log_param("id", fmt_text(id)),
-        log_param("entity", ecs_entity_fmt(entity)),
-        log_param("error", fmt_text(errMsg)));
-    asset_mark_load_failure(world, entity, errMsg, -1 /* errorCode */);
+    asset_mark_load_failure(world, entity, id, errMsg, -1 /* errorCode */);
 
   Cleanup:
     dynarray_destroy(&prefabs);
@@ -730,13 +724,7 @@ void asset_load_prefabs(
   }
 
   if (UNLIKELY(result.error)) {
-    log_e(
-        "Failed to load prefab-map",
-        log_param("id", fmt_text(id)),
-        log_param("entity", ecs_entity_fmt(entity)),
-        log_param("error-code", fmt_int(result.error)),
-        log_param("error", fmt_text(result.errorMsg)));
-    asset_mark_load_failure(world, entity, result.errorMsg, (i32)result.error);
+    asset_mark_load_failure(world, entity, id, result.errorMsg, (i32)result.error);
     goto Ret;
   }
 

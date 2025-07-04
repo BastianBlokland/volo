@@ -4,7 +4,6 @@
 #include "core_dynarray.h"
 #include "ecs_entity.h"
 #include "ecs_world.h"
-#include "log_logger.h"
 
 #include "manager_internal.h"
 #include "repo_internal.h"
@@ -218,16 +217,6 @@ static void wav_load_succeed(
   asset_cache(world, entity, g_assetSoundMeta, mem_create(soundComp, sizeof(AssetSoundComp)));
 }
 
-static void
-wav_load_fail(EcsWorld* world, const EcsEntityId entity, const String id, const WavError err) {
-  log_e(
-      "Failed to parse Wave file",
-      log_param("id", fmt_text(id)),
-      log_param("entity", ecs_entity_fmt(entity)),
-      log_param("error", fmt_text(wav_error_str(err))));
-  asset_mark_load_failure(world, entity, wav_error_str(err), (i32)err);
-}
-
 void asset_load_sound_wav(
     EcsWorld*                 world,
     const AssetImportEnvComp* importEnv,
@@ -243,45 +232,49 @@ void asset_load_sound_wav(
   WavChunk rootChunk;
   wav_consume_chunk(src->data, &rootChunk, &err);
   if (err) {
-    wav_load_fail(world, entity, id, err);
+    asset_mark_load_failure(world, entity, id, wav_error_str(err), (i32)err);
     goto End;
   }
   if (!string_eq(rootChunk.tag, string_lit("RIFF"))) {
-    wav_load_fail(world, entity, id, WavError_RiffUnsupportedRootChunk);
+    err = WavError_RiffUnsupportedRootChunk;
+    asset_mark_load_failure(world, entity, id, wav_error_str(err), (i32)err);
     goto End;
   }
   wav_consume_chunk_list(rootChunk.data, &chunks, &err);
   if (err) {
-    wav_load_fail(world, entity, id, err);
+    asset_mark_load_failure(world, entity, id, wav_error_str(err), (i32)err);
     goto End;
   }
   WavFormat format;
   wav_read_format(&chunks, &format, &err);
   if (err) {
-    wav_load_fail(world, entity, id, err);
+    asset_mark_load_failure(world, entity, id, wav_error_str(err), (i32)err);
     goto End;
   }
   if (format.formatType != WavFormatType_PCM) {
-    wav_load_fail(world, entity, id, WavError_FormatTypeUnsupported);
+    err = WavError_FormatTypeUnsupported;
+    asset_mark_load_failure(world, entity, id, wav_error_str(err), (i32)err);
     goto End;
   }
   if (format.channels > wav_channels_max) {
-    wav_load_fail(world, entity, id, WavError_ChannelCountExceedsMaximum);
+    err = WavError_ChannelCountExceedsMaximum;
+    asset_mark_load_failure(world, entity, id, wav_error_str(err), (i32)err);
     goto End;
   }
   wav_read_frame_count(format, &chunks, &frameCount, &err);
   if (err) {
-    wav_load_fail(world, entity, id, err);
+    asset_mark_load_failure(world, entity, id, wav_error_str(err), (i32)err);
     goto End;
   }
   if (frameCount < wav_frames_min || frameCount > wav_frames_max) {
-    wav_load_fail(world, entity, id, WavError_FrameCountUnsupported);
+    err = WavError_FrameCountUnsupported;
+    asset_mark_load_failure(world, entity, id, wav_error_str(err), (i32)err);
     goto End;
   }
   sampleMem = alloc_alloc(g_allocHeap, sizeof(f32) * frameCount * format.channels, alignof(f32));
   wav_read_samples(format, &chunks, frameCount, sampleMem.ptr, &err);
   if (err) {
-    wav_load_fail(world, entity, id, err);
+    asset_mark_load_failure(world, entity, id, wav_error_str(err), (i32)err);
     goto End;
   }
 

@@ -200,10 +200,6 @@ void asset_load_script(
 
   AssetScriptDomain domain;
   if (UNLIKELY(!asset_script_domain_match(id, &domain))) {
-    log_e(
-        "Failed to match script domain",
-        log_param("id", fmt_text(id)),
-        log_param("entity", ecs_entity_fmt(entity)));
     dynstring_append(&errorMsgBuilder, string_lit("Failed to match script domain\n"));
     goto Error;
   }
@@ -215,14 +211,7 @@ void asset_load_script(
   const u32 diagCount = script_diag_count(diags, ScriptDiagFilter_All);
   for (u32 i = 0; i != diagCount; ++i) {
     const ScriptDiag* diag = script_diag_data(diags) + i;
-    const String      msg  = script_diag_pretty_scratch(lookup, diag);
-    log_e(
-        "Script read error",
-        log_param("id", fmt_text(id)),
-        log_param("entity", ecs_entity_fmt(entity)),
-        log_param("error", fmt_text(msg)));
-
-    dynstring_append(&errorMsgBuilder, msg);
+    dynstring_append(&errorMsgBuilder, script_diag_pretty_scratch(lookup, diag));
     dynstring_append_char(&errorMsgBuilder, '\n');
   }
 
@@ -239,12 +228,6 @@ void asset_load_script(
   ScriptProgram            prog;
   const ScriptCompileError compileErr = script_compile(doc, lookup, expr, g_allocHeap, &prog);
   if (UNLIKELY(compileErr)) {
-    log_e(
-        "Script compile error",
-        log_param("id", fmt_text(id)),
-        log_param("entity", ecs_entity_fmt(entity)),
-        log_param("error", fmt_text(script_compile_error_str(compileErr))));
-
     dynstring_append(&errorMsgBuilder, script_compile_error_str(compileErr));
     dynstring_append_char(&errorMsgBuilder, '\n');
     goto Error;
@@ -285,7 +268,7 @@ void asset_load_script(
   goto Cleanup;
 
 Error:
-  asset_mark_load_failure(world, entity, dynstring_view(&errorMsgBuilder), -1 /* errorCode */);
+  asset_mark_load_failure(world, entity, id, dynstring_view(&errorMsgBuilder), -1 /* errorCode */);
 
 Cleanup:
   script_destroy(doc);
@@ -308,26 +291,15 @@ void asset_load_script_bin(
   data_read_bin(g_dataReg, src->data, g_allocHeap, g_assetScriptMeta, mem_var(script), &result);
 
   if (UNLIKELY(result.error)) {
-    log_e(
-        "Failed to load binary script",
-        log_param("id", fmt_text(id)),
-        log_param("entity", ecs_entity_fmt(entity)),
-        log_param("error-code", fmt_int(result.error)),
-        log_param("error", fmt_text(result.errorMsg)));
-    asset_mark_load_failure(world, entity, result.errorMsg, (i32)result.error);
+    asset_mark_load_failure(world, entity, id, result.errorMsg, (i32)result.error);
     asset_repo_source_close(src);
     return;
   }
 
   const ScriptBinder* binder = asset_script_domain_binder(script.domain);
   if (UNLIKELY(!script_prog_validate(&script.prog, binder))) {
-    log_e(
-        "Malformed binary script",
-        log_param("id", fmt_text(id)),
-        log_param("entity", ecs_entity_fmt(entity)));
-
     data_destroy(g_dataReg, g_allocHeap, g_assetScriptMeta, mem_var(script));
-    asset_mark_load_failure(world, entity, string_lit("Malformed script"), -1 /* errorCode */);
+    asset_mark_load_failure(world, entity, id, string_lit("Malformed script"), -1 /* errorCode */);
     asset_repo_source_close(src);
     return;
   }

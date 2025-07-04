@@ -9,7 +9,6 @@
 #include "ecs_entity.h"
 #include "ecs_utils.h"
 #include "ecs_view.h"
-#include "log_logger.h"
 
 #include "data_internal.h"
 #include "manager_internal.h"
@@ -199,12 +198,7 @@ ecs_system_define(LoadIconAssetSys) {
     goto Cleanup;
 
   Error:
-    log_e(
-        "Failed to load icon",
-        log_param("id", fmt_text(id)),
-        log_param("entity", ecs_entity_fmt(entity)),
-        log_param("error", fmt_text(icon_error_str(err))));
-    asset_mark_load_failure(world, entity, icon_error_str(err), (i32)err);
+    asset_mark_load_failure(world, entity, id, icon_error_str(err), (i32)err);
 
   Cleanup:
     ecs_world_remove_t(world, entity, AssetIconLoadComp);
@@ -284,13 +278,8 @@ void asset_load_icon(
   goto Cleanup;
 
 Error:
-  log_e(
-      "Failed to load icon",
-      log_param("id", fmt_text(id)),
-      log_param("entity", ecs_entity_fmt(entity)),
-      log_param("error", fmt_text(errMsg)));
   data_destroy(g_dataReg, g_allocHeap, g_assetIconDefMeta, mem_var(iconDef));
-  asset_mark_load_failure(world, entity, errMsg, -1 /* errorCode */);
+  asset_mark_load_failure(world, entity, id, errMsg, -1 /* errorCode */);
 
 Cleanup:
   asset_repo_source_close(src);
@@ -309,14 +298,8 @@ void asset_load_icon_bin(
   data_read_bin(g_dataReg, src->data, g_allocHeap, g_assetIconMeta, mem_var(icon), &result);
 
   if (UNLIKELY(result.error)) {
-    log_e(
-        "Failed to load binary icon",
-        log_param("id", fmt_text(id)),
-        log_param("entity", ecs_entity_fmt(entity)),
-        log_param("error-code", fmt_int(result.error)),
-        log_param("error", fmt_text(result.errorMsg)));
     asset_repo_source_close(src);
-    asset_mark_load_failure(world, entity, result.errorMsg, result.error);
+    asset_mark_load_failure(world, entity, id, result.errorMsg, result.error);
     return;
   }
 

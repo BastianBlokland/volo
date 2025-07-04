@@ -12,7 +12,6 @@
 #include "ecs_utils.h"
 #include "ecs_view.h"
 #include "ecs_world.h"
-#include "log_logger.h"
 
 #include "loader_texture_internal.h"
 #include "manager_internal.h"
@@ -374,12 +373,7 @@ ecs_system_define(FontTexLoadAssetSys) {
     goto Cleanup;
 
   Error:
-    log_e(
-        "Failed to load font-texture",
-        log_param("id", fmt_text(id)),
-        log_param("entity", ecs_entity_fmt(entity)),
-        log_param("error", fmt_text(fonttex_error_str(err))));
-    asset_mark_load_failure(world, entity, fonttex_error_str(err), (i32)err);
+    asset_mark_load_failure(world, entity, id, fonttex_error_str(err), (i32)err);
 
   Cleanup:
     ecs_world_remove_t(world, entity, AssetFontTexLoadComp);
@@ -508,14 +502,9 @@ void asset_load_tex_font(
   return;
 
 Error:
-  log_e(
-      "Failed to load font-texture",
-      log_param("id", fmt_text(id)),
-      log_param("entity", ecs_entity_fmt(entity)),
-      log_param("error", fmt_text(errMsg)));
   data_destroy(g_dataReg, g_allocHeap, g_assetFontTexDefMeta, mem_var(def));
   asset_repo_source_close(src);
-  asset_mark_load_failure(world, entity, errMsg, -1 /* errorCode */);
+  asset_mark_load_failure(world, entity, id, errMsg, -1 /* errorCode */);
 }
 
 void asset_load_tex_font_bin(
@@ -532,14 +521,8 @@ void asset_load_tex_font_bin(
       g_dataReg, src->data, g_allocHeap, g_assetFontTexBundleMeta, mem_var(bundle), &result);
 
   if (UNLIKELY(result.error)) {
-    log_e(
-        "Failed to load binary fonttex",
-        log_param("id", fmt_text(id)),
-        log_param("entity", ecs_entity_fmt(entity)),
-        log_param("error-code", fmt_int(result.error)),
-        log_param("error", fmt_text(result.errorMsg)));
     asset_repo_source_close(src);
-    asset_mark_load_failure(world, entity, result.errorMsg, (i32)result.error);
+    asset_mark_load_failure(world, entity, id, result.errorMsg, (i32)result.error);
     return;
   }
 

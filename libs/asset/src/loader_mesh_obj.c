@@ -3,10 +3,10 @@
 #include "core_bits.h"
 #include "core_dynarray.h"
 #include "core_float.h"
+#include "core_format.h"
 #include "ecs_entity.h"
 #include "ecs_world.h"
 #include "geo_matrix.h"
-#include "log_logger.h"
 
 #include "import_mesh_internal.h"
 #include "loader_mesh_internal.h"
@@ -415,16 +415,6 @@ obj_triangulate(const ObjData* data, const AssetImportMesh* importData, AssetMes
   }
 }
 
-static void
-obj_load_fail(EcsWorld* world, const EcsEntityId entity, const String id, const ObjError err) {
-  log_e(
-      "Failed to parse WaveFront Obj Mesh",
-      log_param("id", fmt_text(id)),
-      log_param("entity", ecs_entity_fmt(entity)),
-      log_param("error", fmt_text(obj_error_str(err))));
-  asset_mark_load_failure(world, entity, obj_error_str(err), (i32)err);
-}
-
 static bool obj_import(
     const AssetImportEnvComp* importEnv,
     ObjData*                  data,
@@ -469,24 +459,27 @@ void asset_load_mesh_obj(
   obj_read_data(src->data, &data, &err);
   asset_repo_source_close(src);
   if (err) {
-    obj_load_fail(world, entity, id, err);
+    asset_mark_load_failure(world, entity, id, obj_error_str(err), (i32)err);
     goto Done;
   }
   if (!data.totalTris) {
-    obj_load_fail(world, entity, id, ObjError_NoFaces);
+    err = ObjError_NoFaces;
+    asset_mark_load_failure(world, entity, id, obj_error_str(err), (i32)err);
     goto Done;
   }
 
   const u32 numVerts = data.totalTris * 3;
   // TODO: This check is very conservative as the index buffer could reuse many vertices.
   if (numVerts > asset_mesh_vertices_max) {
-    obj_load_fail(world, entity, id, ObjError_TooManyVertices);
+    err = ObjError_TooManyVertices;
+    asset_mark_load_failure(world, entity, id, obj_error_str(err), (i32)err);
     goto Done;
   }
 
   AssetImportMesh importData;
   if (!obj_import(importEnv, &data, id, &importData)) {
-    obj_load_fail(world, entity, id, ObjError_ImportFailed);
+    err = ObjError_ImportFailed;
+    asset_mark_load_failure(world, entity, id, obj_error_str(err), (i32)err);
     goto Done;
   }
 

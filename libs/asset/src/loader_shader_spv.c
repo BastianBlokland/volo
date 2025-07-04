@@ -3,7 +3,6 @@
 #include "core_diag.h"
 #include "ecs_entity.h"
 #include "ecs_world.h"
-#include "log_logger.h"
 
 #include "loader_shader_internal.h"
 #include "manager_internal.h"
@@ -964,14 +963,8 @@ void asset_load_shader_spv(
 
   const SpvError err = spv_init(world, entity, data_mem_create_ext(src->data));
   if (err) {
-    log_e(
-        "Failed to load SpirV shader",
-        log_param("id", fmt_text(id)),
-        log_param("entity", ecs_entity_fmt(entity)),
-        log_param("error", fmt_text(spv_err_str(err))));
-
     asset_repo_source_close(src);
-    asset_mark_load_failure(world, entity, spv_err_str(err), (i32)err);
+    asset_mark_load_failure(world, entity, id, spv_err_str(err), (i32)err);
   } else {
     ecs_world_add_t(world, entity, AssetShaderSourceComp, .src = src);
     asset_mark_load_success(world, entity);
