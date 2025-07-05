@@ -53,13 +53,14 @@ typedef enum {
 typedef struct sDevLogEntry DevLogEntry;
 
 struct sDevLogEntry {
-  TimeReal    timestamp;
-  LogLevel    lvl : 8;
-  DevLogFlags flags : 8;
-  u8          paramCount;
-  u16         line;
-  u16         fileNameLen;
-  const u8*   fileNamePtr;
+  TimeReal  timestamp;
+  u8        lvl;   // LogLevel.
+  u8        flags; // DevLogFlags.
+  u8        paramCount;
+  u8        unused;
+  u16       line;
+  u16       fileNameLen;
+  const u8* fileNamePtr;
 };
 
 ASSERT(sizeof(DevLogEntry) == 24, "Unexpected log entry size");
