@@ -24,6 +24,11 @@ void net_socket_destroy(NetSocket*);
 NetResult net_socket_status(const NetSocket*);
 
 /**
+ * Retrieve the remote address of the socket.
+ */
+NetAddr net_socket_remote(const NetSocket*);
+
+/**
  * Synchronously write to the socket.
  */
 NetResult net_socket_write_sync(NetSocket*, String);
