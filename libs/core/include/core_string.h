@@ -37,8 +37,7 @@ typedef enum {
 /**
  * Create a string over a character literal.
  */
-#define string_static(_LIT_)                                                                       \
-  { .ptr = (_LIT_), .size = sizeof(_LIT_) - 1u, }
+#define string_static(_LIT_) {.ptr = (_LIT_), .size = sizeof(_LIT_) - 1u}
 
 /**
  * Create a string over a character literal.
@@ -204,6 +203,13 @@ String string_trim(String, String chars);
  * Trim any whitespace from the beginning and ending of the string.
  */
 String string_trim_whitespace(String);
+
+/**
+ * Split the string on the given characters.
+ * NOTE: Provide max amount of entries to write in 'outCount'; will be replaced with result count.
+ * NOTE: Returns the the remaining string after splitting up to 'outCount'.
+ */
+String string_split(String, u8 character, String out[], u32* outCount);
 
 /**
  * Create a formatting argument for a string hash.
