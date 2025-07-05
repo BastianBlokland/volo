@@ -309,7 +309,8 @@ static void asset_panel_draw(UiCanvasComp* canvas, DevAssetPanelComp* panelComp,
     ui_table_next_column(canvas, &table);
     ui_label(canvas, fmt_write_scratch("{}", fmt_int(asset->loadCount)));
     ui_table_next_column(canvas, &table);
-    if (asset->status == DevAssetStatus_LoadedUnreferenced) {
+    if (asset->status == DevAssetStatus_LoadedUnreferenced ||
+        asset->status == DevAssetStatus_Failed) {
       ui_label(canvas, fmt_write_scratch("{}", fmt_int(asset->ticksUntilUnload)));
     }
   }
