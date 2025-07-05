@@ -333,10 +333,13 @@ Ret:
   return NetResult_Success;
 }
 
-NetResult net_resolve_sync(const String host, NetIp* out) {
+NetResult net_resolve_sync(const String host, NetIp out[], u32* count) {
   if (UNLIKELY(!g_netInitialized)) {
     diag_crash_msg("Network subsystem not initialized");
   }
+  const u32 countMax = *count;
+  *count             = 0;
+
   if (UNLIKELY(string_is_empty(host))) {
     return NetResult_InvalidHost;
   }
@@ -354,7 +357,6 @@ NetResult net_resolve_sync(const String host, NetIp* out) {
     return net_pal_resolve_error(err);
   }
 
-  NetResult result = NetResult_NoEntry;
   for (struct addrinfo* a = addresses; a; a = a->ai_next) {
     if (a->ai_socktype != SOCK_STREAM || a->ai_protocol != IPPROTO_TCP) {
       continue; // Only TCP sockets are supported at the moment.
@@ -363,22 +365,26 @@ NetResult net_resolve_sync(const String host, NetIp* out) {
     case AF_INET: {
       const struct sockaddr_in* addr = (struct sockaddr_in*)a->ai_addr;
 
-      out->type = NetIpType_V4;
-      mem_cpy(mem_var(out->v4.data), mem_var(addr->sin_addr));
-
-      result = NetResult_Success;
-      goto Ret;
+      if (UNLIKELY(*count == countMax)) {
+        goto Ret;
+      }
+      NetIp* ip = &out[(*count)++];
+      ip->type  = NetIpType_V4;
+      mem_cpy(mem_var(ip->v4.data), mem_var(addr->sin_addr));
+      continue;
     }
     case AF_INET6: {
       const struct sockaddr_in6* addr = (struct sockaddr_in6*)a->ai_addr;
 
-      out->type = NetIpType_V6;
-      for (u32 i = 0; i != array_elems(out->v6.groups); ++i) {
-        mem_consume_be_u16(mem_var(addr->sin6_addr.s6_addr16[i]), &out->v6.groups[i]);
+      if (UNLIKELY(*count == countMax)) {
+        goto Ret;
       }
-
-      result = NetResult_Success;
-      goto Ret;
+      NetIp* ip = &out[(*count)++];
+      ip->type  = NetIpType_V6;
+      for (u32 i = 0; i != array_elems(ip->v6.groups); ++i) {
+        mem_consume_be_u16(mem_var(addr->sin6_addr.s6_addr16[i]), &ip->v6.groups[i]);
+      }
+      continue;
     }
     default:
       continue; // Unsupported family.
@@ -387,5 +393,5 @@ NetResult net_resolve_sync(const String host, NetIp* out) {
 
 Ret:
   freeaddrinfo(addresses);
-  return result;
+  return *count ? NetResult_Success : NetResult_NoEntry;
 }
