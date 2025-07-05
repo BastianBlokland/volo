@@ -1,4 +1,5 @@
 #include "core_alloc.h"
+#include "core_array.h"
 #include "core_bits.h"
 #include "core_diag.h"
 #include "core_dynstring.h"
@@ -323,11 +324,19 @@ static UiColor dev_log_inspect_title_color(const LogLevel lvl) {
 }
 
 static void dev_log_inspect_param(UiCanvasComp* c, UiTable* t, const String k, const String v) {
-  ui_table_next_row(c, t);
-  ui_table_draw_row_bg(c, t, ui_color(48, 48, 48, 192));
-  ui_label(c, k);
-  ui_table_next_column(c, t);
-  ui_label(c, v, .selectable = true);
+  String parts[16];
+  u32    partCount = array_elems(parts);
+  string_split(v, '\n', parts, &partCount);
+
+  for (u32 i = 0; i != partCount; ++i) {
+    ui_table_next_row(c, t);
+    ui_table_draw_row_bg(c, t, ui_color(48, 48, 48, 192));
+    if (!i) {
+      ui_label(c, k);
+    }
+    ui_table_next_column(c, t);
+    ui_label(c, parts[i], .selectable = true);
+  }
 }
 
 static f32 dev_log_inspect_desired_height(const DevLogEntry* entry) {
