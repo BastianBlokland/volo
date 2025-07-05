@@ -230,6 +230,7 @@ typedef struct sNetSocket {
   Allocator* alloc;
   NetResult  status;
   SOCKET     handle;
+  NetAddr    remoteAddr;
   NetDir     closedMask;
 } NetSocket;
 
@@ -251,7 +252,7 @@ NetSocket* net_socket_connect_sync(Allocator* alloc, const NetAddr addr) {
   }
   NetSocket* s = alloc_alloc_t(alloc, NetSocket);
 
-  *s = (NetSocket){.alloc = alloc, .handle = INVALID_SOCKET};
+  *s = (NetSocket){.alloc = alloc, .handle = INVALID_SOCKET, .remoteAddr = addr};
   if (UNLIKELY(!g_netWsLib.ready)) {
     s->status = NetResult_SystemFailure;
     return s;
@@ -315,6 +316,8 @@ NetResult net_socket_status(const NetSocket* s) {
   }
   return s->status;
 }
+
+NetAddr net_socket_remote(const NetSocket* s) { return s->remoteAddr; }
 
 NetResult net_socket_write_sync(NetSocket* s, const String data) {
   if (s->status != NetResult_Success) {
