@@ -384,7 +384,9 @@ static i32 fetch_run(
       log_param("origins", fmt_int(cfg->origins.count)),
       log_param("output-path", fmt_path(outPath)));
 
-  if (!net_ip_interfaces(null, 0, NetInterfaceQueryFlags_None)) {
+  NetIp ips[32];
+  u32   ipCount = array_elems(ips);
+  if (!net_ip_interfaces(ips, &ipCount, NetInterfaceQueryFlags_None) || !ipCount) {
     log_e("No network interface available");
     return 4;
   }
