@@ -26,7 +26,7 @@ NetResult net_socket_status(const NetSocket*);
 /**
  * Retrieve the remote address of the socket.
  */
-NetAddr net_socket_remote(const NetSocket*);
+const NetAddr* net_socket_remote(const NetSocket*);
 
 /**
  * Synchronously write to the socket.

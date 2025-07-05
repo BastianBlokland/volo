@@ -317,7 +317,7 @@ NetResult net_socket_status(const NetSocket* s) {
   return s->status;
 }
 
-NetAddr net_socket_remote(const NetSocket* s) { return s->remoteAddr; }
+const NetAddr* net_socket_remote(const NetSocket* s) { return &s->remoteAddr; }
 
 NetResult net_socket_write_sync(NetSocket* s, const String data) {
   if (s->status != NetResult_Success) {
