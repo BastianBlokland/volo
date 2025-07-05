@@ -215,6 +215,30 @@ String string_trim(const String value, const String chars) {
   return UNLIKELY(offset >= size) ? string_empty : string_slice(value, offset, size - offset);
 }
 
+String string_split(String str, const u8 character, String out[], u32* outCount) {
+  const u32 max = *outCount;
+
+  *outCount = 0;
+  while (!string_is_empty(str)) {
+    usize len = string_find_first_char(str, character);
+    if (!len) {
+      str = string_consume(str, 1);
+      continue; // Empty entry.
+    }
+    if (*outCount == max) {
+      break;
+    }
+    if (sentinel_check(len)) {
+      out[(*outCount)++] = str;
+      str                = string_empty; // End reached.
+      break;
+    }
+    out[(*outCount)++] = string_slice(str, 0, len);
+    str                = string_consume(str, len + 1);
+  }
+  return str;
+}
+
 String string_trim_whitespace(const String value) {
   return string_trim(value, string_lit(" \t\r\n\v\f"));
 }

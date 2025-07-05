@@ -1,5 +1,6 @@
 #include "check_spec.h"
 #include "core_alloc.h"
+#include "core_array.h"
 #include "core_dynarray.h"
 #include "core_sentinel.h"
 #include "core_string.h"
@@ -245,6 +246,33 @@ spec(string) {
     check_eq_string(string_trim_whitespace(string_lit("hello world")), string_lit("hello world"));
     check_eq_string(string_trim_whitespace(string_lit(" \t\n")), string_empty);
     check_eq_string(string_trim_whitespace(string_empty), string_empty);
+  }
+
+  it("can be split") {
+    const String strA = string_empty;
+    const String strB = string_lit("Hello\nWorld\n\nMore\n\n");
+
+    String out[3];
+    u32    outCount;
+
+    outCount = array_elems(out);
+    check_eq_string(string_split(strA, '\n', out, &outCount), string_empty);
+    check_eq_int(outCount, 0);
+
+    outCount = array_elems(out);
+    check_eq_string(string_split(strB, '\n', out, &outCount), string_empty);
+    check_eq_int(outCount, 3);
+
+    check_eq_string(out[0], string_lit("Hello"));
+    check_eq_string(out[1], string_lit("World"));
+    check_eq_string(out[2], string_lit("More"));
+
+    outCount = 2;
+    check_eq_string(string_split(strB, '\n', out, &outCount), string_lit("More\n\n"));
+    check_eq_int(outCount, 2);
+
+    check_eq_string(out[0], string_lit("Hello"));
+    check_eq_string(out[1], string_lit("World"));
   }
 
   it("can be sorted") {
