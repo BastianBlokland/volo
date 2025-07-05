@@ -264,6 +264,7 @@ ecs_comp_define(DevLogViewerComp) {
   DevLogEntry* inspectEntry;
   UiPanel      inspectPanel;
   UiScrollview inspectScrollView;
+  u32          inspectRows;
 };
 
 static void ecs_destruct_log_tracker(void* data) {
@@ -323,12 +324,13 @@ static UiColor dev_log_inspect_title_color(const LogLevel lvl) {
   diag_crash();
 }
 
-static void dev_log_inspect_param(UiCanvasComp* c, UiTable* t, const String k, const String v) {
+static u32 dev_log_inspect_param(UiCanvasComp* c, UiTable* t, const String k, const String v) {
   String parts[16];
   u32    partCount = array_elems(parts);
   string_split(v, '\n', parts, &partCount);
 
-  for (u32 i = 0; i != partCount; ++i) {
+  u32 i = 0;
+  for (; i != partCount; ++i) {
     ui_table_next_row(c, t);
     ui_table_draw_row_bg(c, t, ui_color(48, 48, 48, 192));
     if (!i) {
@@ -337,6 +339,7 @@ static void dev_log_inspect_param(UiCanvasComp* c, UiTable* t, const String k, c
     ui_table_next_column(c, t);
     ui_label(c, parts[i], .selectable = true);
   }
+  return i;
 }
 
 static f32 dev_log_inspect_desired_height(const DevLogEntry* entry) {
@@ -370,28 +373,31 @@ static void dev_log_inspect_draw(UiCanvasComp* c, DevLogViewerComp* viewer) {
   ui_table_add_column(&table, UiTableColumn_Fixed, 200);
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
-  const f32 totalHeight = ui_table_height(&table, 3 /* builtin params */ + entry->paramCount);
+  const f32 totalHeight = ui_table_height(&table, viewer->inspectRows);
   ui_scrollview_begin(c, &viewer->inspectScrollView, UiLayer_Normal, totalHeight);
 
   DevLogStr* strItr = dev_log_msg(entry);
-  dev_log_inspect_param(c, &table, string_lit("message"), dev_log_text(strItr));
+
+  u32 rows = 0;
+  rows += dev_log_inspect_param(c, &table, string_lit("message"), dev_log_text(strItr));
 
   for (u32 paramIdx = 0; paramIdx != entry->paramCount; ++paramIdx) {
     DevLogStr* paramName = dev_log_str_next(strItr);
     DevLogStr* paramVal  = dev_log_str_next(paramName);
-    dev_log_inspect_param(c, &table, dev_log_text(paramName), dev_log_text(paramVal));
+    rows += dev_log_inspect_param(c, &table, dev_log_text(paramName), dev_log_text(paramVal));
     strItr = paramVal;
   }
 
   const FormatTimeTerms timeTerms = FormatTimeTerms_Time | FormatTimeTerms_Milliseconds;
   const String          timeVal   = fmt_write_scratch(
       "{}", fmt_time(entry->timestamp, .terms = timeTerms, .timezone = viewer->timezone));
-  dev_log_inspect_param(c, &table, string_lit("time"), timeVal);
+  rows += dev_log_inspect_param(c, &table, string_lit("time"), timeVal);
 
   const String fileName  = mem_create(entry->fileNamePtr, entry->fileNameLen);
   const String sourceVal = fmt_write_scratch("{}:{}", fmt_path(fileName), fmt_int(entry->line));
-  dev_log_inspect_param(c, &table, string_lit("source"), sourceVal);
+  rows += dev_log_inspect_param(c, &table, string_lit("source"), sourceVal);
 
+  viewer->inspectRows = rows;
   ui_scrollview_end(c, &viewer->inspectScrollView);
   ui_panel_end(c, &viewer->inspectPanel);
 
