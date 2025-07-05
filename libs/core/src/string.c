@@ -216,29 +216,27 @@ String string_trim(const String value, const String chars) {
 }
 
 String string_split(String str, const u8 character, String out[], u32* outCount) {
-  if (string_is_empty(str)) {
-    *outCount = 0;
-    return str;
-  }
   const u32 max = *outCount;
 
   *outCount = 0;
-  for (;;) {
+  while (!string_is_empty(str)) {
     usize len = string_find_first_char(str, character);
     if (!len) {
       str = string_consume(str, 1);
       continue; // Empty entry.
     }
     if (*outCount == max) {
-      return str;
+      break;
     }
     if (sentinel_check(len)) {
       out[(*outCount)++] = str;
-      return string_empty; // End reached.
+      str                = string_empty; // End reached.
+      break;
     }
     out[(*outCount)++] = string_slice(str, 0, len);
     str                = string_consume(str, len + 1);
   }
+  return str;
 }
 
 String string_trim_whitespace(const String value) {
