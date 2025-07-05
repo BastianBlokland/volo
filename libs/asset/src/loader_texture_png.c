@@ -689,8 +689,8 @@ void asset_load_tex_png(
   }
 
   *ecs_world_add_t(world, entity, AssetTextureComp) = tex;
-  ecs_world_add_empty_t(world, entity, AssetLoadedComp);
   asset_cache(world, entity, g_assetTexMeta, mem_var(tex));
+  asset_mark_load_success(world, entity);
 
 Ret:
   dynarray_destroy(&buffer);

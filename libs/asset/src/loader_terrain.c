@@ -6,7 +6,6 @@
 #include "ecs_utils.h"
 #include "ecs_view.h"
 #include "ecs_world.h"
-#include "log_logger.h"
 
 #include "data_internal.h"
 #include "manager_internal.h"
@@ -24,16 +23,6 @@ static void ecs_destruct_terrain_comp(void* data) {
   AssetTerrainComp* comp = data;
   data_destroy(
       g_dataReg, g_allocHeap, g_assetTerrainDefMeta, mem_create(comp, sizeof(AssetTerrainComp)));
-}
-
-static void
-terrain_load_fail(EcsWorld* world, const EcsEntityId entity, const String id, const String msg) {
-  log_e(
-      "Failed to parse terrain",
-      log_param("id", fmt_text(id)),
-      log_param("entity", ecs_entity_fmt(entity)),
-      log_param("error", fmt_text(msg)));
-  ecs_world_add_empty_t(world, entity, AssetFailedComp);
 }
 
 ecs_view_define(ManagerView) { ecs_access_write(AssetManagerComp); }
@@ -66,29 +55,33 @@ ecs_system_define(InitTerrainAssetSys) {
     const Mem         terrainMem  = mem_create(terrainComp, sizeof(AssetTerrainComp));
 
     if (!asset_data_patch_refs(world, manager, g_assetTerrainDefMeta, terrainMem)) {
-      terrain_load_fail(world, entity, id, string_lit("Unable to resolve asset-reference"));
+      const String error = string_lit("Unable to resolve asset-reference");
+      asset_mark_load_failure(world, entity, id, error, -1 /* errorCode */);
       goto Error;
     }
     if (!terrainComp->size || terrainComp->size > terrain_max_size) {
-      terrain_load_fail(world, entity, id, string_lit("Invalid terrain size"));
+      const String error = string_lit("Invalid terrain size");
+      asset_mark_load_failure(world, entity, id, error, -1 /* errorCode */);
       goto Error;
     }
     if (!terrainComp->playSize || terrainComp->playSize > terrainComp->size) {
-      terrain_load_fail(world, entity, id, string_lit("Invalid terrain play size"));
+      const String error = string_lit("Invalid terrain play size");
+      asset_mark_load_failure(world, entity, id, error, -1 /* errorCode */);
       goto Error;
     }
     if (terrainComp->playSize % 2) {
-      terrain_load_fail(
-          world, entity, id, string_lit("Terrain play size has to be divisible by two"));
+      const String error = string_lit("Terrain play size has to be divisible by two");
+      asset_mark_load_failure(world, entity, id, error, -1 /* errorCode */);
       goto Error;
     }
     if (terrainComp->heightMax < 0.0f || terrainComp->heightMax > terrain_max_height) {
-      terrain_load_fail(world, entity, id, string_lit("Invalid terrain maximum height"));
+      const String error = string_lit("Invalid terrain maximum height");
+      asset_mark_load_failure(world, entity, id, error, -1 /* errorCode */);
       goto Error;
     }
 
     ecs_world_remove_t(world, entity, AssetTerrainInitComp);
-    ecs_world_add_empty_t(world, entity, AssetLoadedComp);
+    asset_mark_load_success(world, entity);
     continue;
 
   Error:
@@ -154,7 +147,7 @@ void asset_load_terrain(
     data_read_json(g_dataReg, src->data, g_allocHeap, g_assetTerrainDefMeta, terrainMem, &result);
   }
   if (result.error) {
-    terrain_load_fail(world, entity, id, result.errorMsg);
+    asset_mark_load_failure(world, entity, id, result.errorMsg, -1 /* errorCode */);
     goto Ret;
     // NOTE: 'AssetTerrainComp' will be cleaned up by 'UnloadTerrainAssetSys'.
   }

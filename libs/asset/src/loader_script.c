@@ -2,6 +2,7 @@
 #include "core_alloc.h"
 #include "core_bits.h"
 #include "core_diag.h"
+#include "core_dynstring.h"
 #include "core_stringtable.h"
 #include "data_read.h"
 #include "data_utils.h"
@@ -195,12 +196,11 @@ void asset_load_script(
   ScriptLookup* lookup = script_lookup_create(g_allocHeap);
   script_lookup_update(lookup, src->data);
 
+  DynString errorMsgBuilder = dynstring_create(g_allocScratch, 0);
+
   AssetScriptDomain domain;
   if (UNLIKELY(!asset_script_domain_match(id, &domain))) {
-    log_e(
-        "Failed to match script domain",
-        log_param("id", fmt_text(id)),
-        log_param("entity", ecs_entity_fmt(entity)));
+    dynstring_append(&errorMsgBuilder, string_lit("Failed to match script domain\n"));
     goto Error;
   }
   const ScriptBinder* domainBinder = asset_script_domain_binder(domain);
@@ -211,12 +211,8 @@ void asset_load_script(
   const u32 diagCount = script_diag_count(diags, ScriptDiagFilter_All);
   for (u32 i = 0; i != diagCount; ++i) {
     const ScriptDiag* diag = script_diag_data(diags) + i;
-    const String      msg  = script_diag_pretty_scratch(lookup, diag);
-    log_e(
-        "Script read error",
-        log_param("id", fmt_text(id)),
-        log_param("entity", ecs_entity_fmt(entity)),
-        log_param("error", fmt_text(msg)));
+    dynstring_append(&errorMsgBuilder, script_diag_pretty_scratch(lookup, diag));
+    dynstring_append_char(&errorMsgBuilder, '\n');
   }
 
   script_diag_bag_destroy(diags);
@@ -232,11 +228,8 @@ void asset_load_script(
   ScriptProgram            prog;
   const ScriptCompileError compileErr = script_compile(doc, lookup, expr, g_allocHeap, &prog);
   if (UNLIKELY(compileErr)) {
-    log_e(
-        "Script compile error",
-        log_param("id", fmt_text(id)),
-        log_param("entity", ecs_entity_fmt(entity)),
-        log_param("error", fmt_text(script_compile_error_str(compileErr))));
+    dynstring_append(&errorMsgBuilder, script_compile_error_str(compileErr));
+    dynstring_append_char(&errorMsgBuilder, '\n');
     goto Error;
   }
 
@@ -266,7 +259,7 @@ void asset_load_script(
       .strings.values   = strHashes,
       .strings.count    = strs.count);
 
-  ecs_world_add_empty_t(world, entity, AssetLoadedComp);
+  asset_mark_load_success(world, entity);
 
   if (scriptAsset) {
     asset_cache(world, entity, g_assetScriptMeta, mem_create(scriptAsset, sizeof(AssetScriptComp)));
@@ -275,7 +268,7 @@ void asset_load_script(
   goto Cleanup;
 
 Error:
-  ecs_world_add_empty_t(world, entity, AssetFailedComp);
+  asset_mark_load_failure(world, entity, id, dynstring_view(&errorMsgBuilder), -1 /* errorCode */);
 
 Cleanup:
   script_destroy(doc);
@@ -298,26 +291,15 @@ void asset_load_script_bin(
   data_read_bin(g_dataReg, src->data, g_allocHeap, g_assetScriptMeta, mem_var(script), &result);
 
   if (UNLIKELY(result.error)) {
-    log_e(
-        "Failed to load binary script",
-        log_param("id", fmt_text(id)),
-        log_param("entity", ecs_entity_fmt(entity)),
-        log_param("error-code", fmt_int(result.error)),
-        log_param("error", fmt_text(result.errorMsg)));
-    ecs_world_add_empty_t(world, entity, AssetFailedComp);
+    asset_mark_load_failure(world, entity, id, result.errorMsg, (i32)result.error);
     asset_repo_source_close(src);
     return;
   }
 
   const ScriptBinder* binder = asset_script_domain_binder(script.domain);
   if (UNLIKELY(!script_prog_validate(&script.prog, binder))) {
-    log_e(
-        "Malformed binary script",
-        log_param("id", fmt_text(id)),
-        log_param("entity", ecs_entity_fmt(entity)));
-
     data_destroy(g_dataReg, g_allocHeap, g_assetScriptMeta, mem_var(script));
-    ecs_world_add_empty_t(world, entity, AssetFailedComp);
+    asset_mark_load_failure(world, entity, id, string_lit("Malformed script"), -1 /* errorCode */);
     asset_repo_source_close(src);
     return;
   }
@@ -325,5 +307,5 @@ void asset_load_script_bin(
   *ecs_world_add_t(world, entity, AssetScriptComp) = script;
   ecs_world_add_t(world, entity, AssetScriptSourceComp, .src = src);
 
-  ecs_world_add_empty_t(world, entity, AssetLoadedComp);
+  asset_mark_load_success(world, entity);
 }

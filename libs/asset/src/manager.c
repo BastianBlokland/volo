@@ -32,7 +32,7 @@
  * This prevents loading the same asset multiple times if different systems request and release the
  * asset in quick succession.
  */
-#define asset_max_unload_delay 500
+#define asset_max_unload_delay 1000
 
 typedef struct {
   StringHash  idHash;
@@ -66,7 +66,10 @@ ecs_comp_define(AssetComp) {
 };
 
 ecs_comp_define(AssetLoadedComp);
-ecs_comp_define(AssetFailedComp);
+ecs_comp_define(AssetFailedComp) {
+  String error;
+  i32    errorCode;
+};
 ecs_comp_define(AssetChangedComp);
 ecs_comp_define(AssetCacheInitComp);
 ecs_comp_define(AssetDirtyComp) { u32 numAcquire, numRelease; };
@@ -168,6 +171,11 @@ static void ecs_destruct_manager_comp(void* data) {
   dynarray_destroy(&comp->lookup);
 }
 
+static void ecs_destruct_failed_comp(void* data) {
+  AssetFailedComp* comp = data;
+  string_maybe_free(g_allocHeap, comp->error);
+}
+
 static void ecs_combine_asset_dirty(void* dataA, void* dataB) {
   AssetDirtyComp* compA = dataA;
   AssetDirtyComp* compB = dataB;
@@ -235,7 +243,25 @@ static u32 asset_manager_loader_hash(const void* ctx, const String assetId) {
   return asset_loader_hash(importEnv, assetId);
 }
 
-static bool asset_manager_load(
+typedef enum {
+  AssetLoadResult_Started,
+  AssetLoadResult_Missing,
+  AssetLoadResult_Unsupported,
+} AssetLoadResult;
+
+static String asset_manager_load_result_str(const AssetLoadResult res) {
+  switch (res) {
+  case AssetLoadResult_Started:
+    return string_lit("Started");
+  case AssetLoadResult_Missing:
+    return string_lit("Source not found");
+  case AssetLoadResult_Unsupported:
+    return string_lit("Format unsupported");
+  }
+  UNREACHABLE
+}
+
+static AssetLoadResult asset_manager_load(
     EcsWorld*                 world,
     const AssetManagerComp*   manager,
     const AssetImportEnvComp* importEnv,
@@ -249,7 +275,7 @@ static bool asset_manager_load(
 
   AssetSource* source = asset_repo_source_open(manager->repo, asset->id, loaderHasher);
   if (!source) {
-    return false;
+    return AssetLoadResult_Missing;
   }
 
   if (manager->flags & AssetManagerFlags_TrackChanges) {
@@ -275,24 +301,19 @@ static bool asset_manager_load(
 
   AssetLoader loader = asset_loader(source->format);
 
-  bool success = true;
+  AssetLoadResult result = AssetLoadResult_Started;
   if (LIKELY(loader)) {
     trace_begin("asset_loader", TraceColor_Red);
     loader(world, importEnv, asset->id, assetEntity, source);
     trace_end();
   } else {
-    log_e(
-        "Asset format cannot be loaded directly",
-        log_param("id", fmt_path(asset->id)),
-        log_param("entity", ecs_entity_fmt(assetEntity)),
-        log_param("format", fmt_text(asset_format_str(source->format))));
-    success = false;
+    result = AssetLoadResult_Unsupported;
   }
 
-  if (!success) {
+  if (UNLIKELY(result != AssetLoadResult_Started)) {
     asset_repo_source_close(source);
   }
-  return success;
+  return result;
 }
 
 ecs_view_define(GlobalUpdateView) {
@@ -339,7 +360,7 @@ ecs_system_define(AssetUpdateDirtySys) {
   if (!globalItr) {
     return; // Global dependencies not initialized.
   }
-  const AssetManagerComp*   manager   = ecs_view_read_t(globalItr, AssetManagerComp);
+  const AssetManagerComp*   man       = ecs_view_read_t(globalItr, AssetManagerComp);
   const AssetImportEnvComp* importEnv = ecs_view_read_t(globalItr, AssetImportEnvComp);
 
   TimeDuration loadTime   = 0;
@@ -380,11 +401,13 @@ ecs_system_define(AssetUpdateDirtySys) {
         MAYBE_UNUSED const String assetFileName = path_filename(assetComp->id);
         trace_begin_msg("asset_manager_load", TraceColor_Blue, "{}", fmt_text(assetFileName));
         {
-          if (asset_manager_load(world, manager, importEnv, assetComp, entity)) {
+          const AssetLoadResult res = asset_manager_load(world, man, importEnv, assetComp, entity);
+          if (res == AssetLoadResult_Started) {
             loadTime += time_steady_duration(loadStart, time_steady_clock());
             ecs_utils_maybe_remove_t(world, entity, AssetInstantUnloadComp);
           } else {
-            ecs_world_add_empty_t(world, entity, AssetFailedComp);
+            const String error = asset_manager_load_result_str(res);
+            asset_mark_load_failure(world, entity, assetComp->id, error, (i32)res);
           }
           ecs_utils_maybe_remove_t(world, entity, AssetChangedComp);
         }
@@ -410,7 +433,7 @@ ecs_system_define(AssetUpdateDirtySys) {
       goto AssetUpdateDone;
     }
 
-    const u32  unloadDelay = asset_unload_delay(world, manager, entity);
+    const u32  unloadDelay = asset_unload_delay(world, man, entity);
     const bool unload      = !assetComp->refCount && ++assetComp->unloadTicks >= unloadDelay;
     if (unload && assetComp->flags & AssetFlags_Failed) {
       /**
@@ -618,7 +641,7 @@ ecs_system_define(AssetCacheSys) {
 ecs_module_init(asset_manager_module) {
   ecs_register_comp(AssetManagerComp, .destructor = ecs_destruct_manager_comp, .destructOrder = 30);
   ecs_register_comp(AssetComp);
-  ecs_register_comp_empty(AssetFailedComp);
+  ecs_register_comp(AssetFailedComp, .destructor = ecs_destruct_failed_comp);
   ecs_register_comp_empty(AssetLoadedComp);
   ecs_register_comp_empty(AssetChangedComp);
   ecs_register_comp_empty(AssetCacheInitComp);
@@ -661,6 +684,9 @@ ecs_module_init(asset_manager_module) {
 
 String     asset_id(const AssetComp* comp) { return comp->id; }
 StringHash asset_id_hash(const AssetComp* comp) { return string_hash(comp->id); }
+
+String asset_error(const AssetFailedComp* comp) { return comp->error; }
+i32    asset_error_code(const AssetFailedComp* comp) { return comp->errorCode; };
 
 bool asset_path(const AssetManagerComp* manager, const AssetComp* asset, DynString* out) {
   return asset_repo_path(manager->repo, asset->id, out);
@@ -782,6 +808,33 @@ EcsEntityId asset_watch(EcsWorld* world, AssetManagerComp* manager, const String
   }
 
   return assetEntity;
+}
+
+void asset_mark_load_failure(
+    EcsWorld*         world,
+    const EcsEntityId asset,
+    const String      id,
+    const String      error,
+    const i32         errorCode) {
+  const String errorTrimmed = string_trim_whitespace(error);
+
+  log_e(
+      "Failed to load asset",
+      log_param("id", fmt_text(id)),
+      log_param("entity", ecs_entity_fmt(asset)),
+      log_param("error", fmt_text(errorTrimmed)),
+      log_param("error-code", fmt_int(errorCode)));
+
+  ecs_world_add_t(
+      world,
+      asset,
+      AssetFailedComp,
+      .error     = string_maybe_dup(g_allocHeap, errorTrimmed),
+      .errorCode = errorCode);
+}
+
+void asset_mark_load_success(EcsWorld* world, const EcsEntityId asset) {
+  ecs_world_add_empty_t(world, asset, AssetLoadedComp);
 }
 
 void asset_mark_external_load(

@@ -8,6 +8,7 @@
 #include "ecs_entity.h"
 #include "ecs_view.h"
 #include "ecs_world.h"
+#include "trace_tracer.h"
 #include "ui_canvas.h"
 #include "ui_layout.h"
 #include "ui_panel.h"
@@ -45,9 +46,10 @@ typedef enum {
 typedef struct {
   String         id;
   EcsEntityId    entity;
-  DevAssetStatus status;
+  String         error; // Only valid this frame.
+  DevAssetStatus status : 8;
   bool           dirty;
-  u32            refCount, loadCount, ticksUntilUnload;
+  u16            refCount, loadCount, ticksUntilUnload;
 } DevAssetInfo;
 
 static const String g_statusNames[] = {
@@ -92,14 +94,20 @@ static i8 compare_asset_info_status(const void* a, const void* b) {
   const DevAssetInfo* assetA = a;
   const DevAssetInfo* assetB = b;
 
-  i8 statusOrder = compare_u32_reverse(&assetA->status, &assetB->status);
+  const DevAssetStatus statusA = assetA->status;
+  const DevAssetStatus statusB = assetB->status;
+
+  i8 statusOrder = compare_u32_reverse(&statusA, &statusB);
   if (!statusOrder) {
     statusOrder = compare_string(&assetA->id, &assetB->id);
   }
   return statusOrder;
 }
 
-ecs_view_define(AssetView) { ecs_access_read(AssetComp); }
+ecs_view_define(AssetView) {
+  ecs_access_read(AssetComp);
+  ecs_access_maybe_read(AssetFailedComp);
+}
 
 ecs_view_define(PanelUpdateView) {
   ecs_view_flags(EcsViewFlags_Exclusive); // DevAssetPanelComp's are exclusively managed here.
@@ -127,17 +135,20 @@ static void asset_info_query(DevAssetPanelComp* panelComp, EcsWorld* world) {
   dynarray_clear(&panelComp->assets);
   panelComp->countLoaded = 0;
 
+  trace_begin("info_query", TraceColor_Blue);
+
   EcsView* assetView = ecs_world_view_t(world, AssetView);
   for (EcsIterator* itr = ecs_view_itr(assetView); ecs_view_walk(itr);) {
-    const EcsEntityId entity    = ecs_view_entity(itr);
-    const AssetComp*  assetComp = ecs_view_read_t(itr, AssetComp);
+    const EcsEntityId      entity     = ecs_view_entity(itr);
+    const AssetComp*       assetComp  = ecs_view_read_t(itr, AssetComp);
+    const AssetFailedComp* failedComp = ecs_view_read_t(itr, AssetFailedComp);
 
     if (!asset_filter(panelComp, assetComp, entity)) {
       continue;
     }
 
     DevAssetStatus status;
-    if (ecs_world_has_t(world, entity, AssetFailedComp)) {
+    if (failedComp) {
       status = DevAssetStatus_Failed;
     } else if (asset_is_loading(assetComp)) {
       status = DevAssetStatus_Loading;
@@ -155,13 +166,16 @@ static void asset_info_query(DevAssetPanelComp* panelComp, EcsWorld* world) {
         .id               = asset_id(assetComp),
         .entity           = entity,
         .status           = status,
+        .error            = failedComp ? asset_error(failedComp) : string_empty,
         .dirty            = ecs_world_has_t(world, entity, AssetDirtyComp),
-        .refCount         = asset_ref_count(assetComp),
-        .loadCount        = asset_load_count(assetComp),
-        .ticksUntilUnload = asset_ticks_until_unload(assetComp),
+        .refCount         = (u16)asset_ref_count(assetComp),
+        .loadCount        = (u16)asset_load_count(assetComp),
+        .ticksUntilUnload = (u16)asset_ticks_until_unload(assetComp),
     };
   }
+  trace_end();
 
+  trace_begin("info_sort", TraceColor_Blue);
   switch (panelComp->sortMode) {
   case DevAssetSortMode_Id:
     dynarray_sort(&panelComp->assets, compare_asset_info_id);
@@ -172,6 +186,7 @@ static void asset_info_query(DevAssetPanelComp* panelComp, EcsWorld* world) {
   case DevAssetSortMode_Count:
     break;
   }
+  trace_end();
 }
 
 static UiColor asset_info_bg_color(const DevAssetInfo* asset) {
@@ -297,7 +312,12 @@ static void asset_panel_draw(UiCanvasComp* canvas, DevAssetPanelComp* panelComp,
     ui_table_next_column(canvas, &table);
     ui_label_entity(canvas, asset->entity);
     ui_table_next_column(canvas, &table);
-    ui_label(canvas, g_statusNames[asset->status]);
+    ui_style_push(canvas);
+    if (asset->status == DevAssetStatus_Failed) {
+      ui_style_weight(canvas, UiWeight_Bold);
+    }
+    ui_label(canvas, g_statusNames[asset->status], .tooltip = asset->error);
+    ui_style_pop(canvas);
     ui_table_next_column(canvas, &table);
     ui_label(canvas, asset->dirty ? string_lit("y") : string_lit("n"));
     asset_panel_draw_reload(canvas, asset, world);
@@ -309,7 +329,8 @@ static void asset_panel_draw(UiCanvasComp* canvas, DevAssetPanelComp* panelComp,
     ui_table_next_column(canvas, &table);
     ui_label(canvas, fmt_write_scratch("{}", fmt_int(asset->loadCount)));
     ui_table_next_column(canvas, &table);
-    if (asset->status == DevAssetStatus_LoadedUnreferenced) {
+    if (asset->status == DevAssetStatus_LoadedUnreferenced ||
+        asset->status == DevAssetStatus_Failed) {
       ui_label(canvas, fmt_write_scratch("{}", fmt_int(asset->ticksUntilUnload)));
     }
   }
@@ -333,7 +354,10 @@ ecs_system_define(DevAssetUpdatePanelSys) {
       continue;
     }
     asset_info_query(panelComp, world);
+
+    trace_begin("panel_draw", TraceColor_Green);
     asset_panel_draw(canvas, panelComp, world);
+    trace_end();
 
     if (ui_panel_closed(&panelComp->panel)) {
       ecs_world_entity_destroy(world, entity);

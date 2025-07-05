@@ -12,10 +12,10 @@
 #include "ecs_utils.h"
 #include "ecs_view.h"
 #include "ecs_world.h"
-#include "log_logger.h"
 
 #include "import_internal.h"
 #include "loader_texture_internal.h"
+#include "manager_internal.h"
 #include "repo_internal.h"
 
 static const f32 g_textureSrgbToFloat[] = {
@@ -719,21 +719,15 @@ void asset_load_tex_bin(
   data_read_bin(g_dataReg, src->data, g_allocHeap, g_assetTexMeta, mem_var(tex), &result);
 
   if (UNLIKELY(result.error)) {
-    log_e(
-        "Failed to load binary texture",
-        log_param("id", fmt_text(id)),
-        log_param("entity", ecs_entity_fmt(entity)),
-        log_param("error-code", fmt_int(result.error)),
-        log_param("error", fmt_text(result.errorMsg)));
-    ecs_world_add_empty_t(world, entity, AssetFailedComp);
     asset_repo_source_close(src);
+    asset_mark_load_failure(world, entity, id, result.errorMsg, (i32)result.error);
     return;
   }
 
   *ecs_world_add_t(world, entity, AssetTextureComp) = tex;
   ecs_world_add_t(world, entity, AssetTextureSourceComp, .src = src);
 
-  ecs_world_add_empty_t(world, entity, AssetLoadedComp);
+  asset_mark_load_success(world, entity);
 }
 
 String asset_texture_format_str(const AssetTextureFormat format) {

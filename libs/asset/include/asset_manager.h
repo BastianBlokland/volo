@@ -36,6 +36,12 @@ String     asset_id(const AssetComp*);
 StringHash asset_id_hash(const AssetComp*);
 
 /**
+ * Retrieve the reason for a failed asset load.
+ */
+String asset_error(const AssetFailedComp*);
+i32    asset_error_code(const AssetFailedComp*);
+
+/**
  * Retrieve the absolute path for the given asset.
  * NOTE: Returns false if the manager cannot retrieve the path.
  */

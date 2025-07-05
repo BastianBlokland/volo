@@ -16,7 +16,6 @@
 #include "geo_matrix.h"
 #include "json_doc.h"
 #include "json_read.h"
-#include "log_logger.h"
 #include "trace_tracer.h"
 
 #include "import_mesh_internal.h"
@@ -257,26 +256,6 @@ static String gltf_error_str(const GltfError err) {
   };
   ASSERT(array_elems(g_msgs) == GltfError_Count, "Incorrect number of gltf-error messages");
   return g_msgs[err];
-}
-
-static void gltf_load_fail_msg(
-    EcsWorld*         world,
-    const EcsEntityId entity,
-    const String      id,
-    const GltfError   err,
-    const String      msg) {
-  log_e(
-      "Failed to parse gltf mesh",
-      log_param("id", fmt_text(id)),
-      log_param("entity", ecs_entity_fmt(entity)),
-      log_param("code", fmt_int(err)),
-      log_param("error", fmt_text(msg)));
-  ecs_world_add_empty_t(world, entity, AssetFailedComp);
-}
-
-static void
-gltf_load_fail(EcsWorld* world, const EcsEntityId entity, const String id, const GltfError err) {
-  gltf_load_fail_msg(world, entity, id, err, gltf_error_str(err));
 }
 
 INLINE_HINT u32 gltf_comp_size(const GltfType type) {
@@ -1790,7 +1769,7 @@ ecs_system_define(GltfLoadAssetSys) {
         meshBundle.skeleton = null;
       }
 
-      ecs_world_add_empty_t(world, entity, AssetLoadedComp);
+      asset_mark_load_success(world, entity);
 
       asset_cache(world, entity, g_assetMeshBundleMeta, mem_var(meshBundle));
       goto Cleanup;
@@ -1798,7 +1777,7 @@ ecs_system_define(GltfLoadAssetSys) {
     }
 
   Error:
-    gltf_load_fail(world, entity, ld->assetId, err);
+    asset_mark_load_failure(world, entity, ld->assetId, gltf_error_str(err), (i32)err);
 
   Cleanup:
     for (GltfBuffer* buffer = ld->buffers; buffer != ld->buffers + ld->bufferCount; ++buffer) {
@@ -1840,13 +1819,14 @@ static GltfLoad* gltf_load(
   json_read(jsonDoc, data, JsonReadFlags_HashOnlyFieldNames, &jsonRes);
 
   if (UNLIKELY(jsonRes.type != JsonResultType_Success)) {
-    gltf_load_fail_msg(w, e, id, GltfError_InvalidJson, json_error_str(jsonRes.error));
+    asset_mark_load_failure(w, e, id, json_error_str(jsonRes.error), (i32)GltfError_InvalidJson);
     json_destroy(jsonDoc);
     return null;
   }
 
   if (UNLIKELY(json_type(jsonDoc, jsonRes.type) != JsonType_Object)) {
-    gltf_load_fail(w, e, id, GltfError_MalformedFile);
+    const String err = gltf_error_str(GltfError_MalformedFile);
+    asset_mark_load_failure(w, e, id, err, (i32)GltfError_MalformedFile);
     json_destroy(jsonDoc);
     return null;
   }
@@ -1925,15 +1905,17 @@ void asset_load_mesh_glb(
   GlbHeader header;
   Mem       data = glb_read_header(src->data, &header, &err);
   if (UNLIKELY(err)) {
-    gltf_load_fail(world, entity, id, err);
+    asset_mark_load_failure(world, entity, id, gltf_error_str(err), (i32)err);
     goto Failed;
   }
   if (UNLIKELY(header.version != 2)) {
-    gltf_load_fail(world, entity, id, GltfError_UnsupportedGlbVersion);
+    err = GltfError_UnsupportedGlbVersion;
+    asset_mark_load_failure(world, entity, id, gltf_error_str(err), (i32)err);
     goto Failed;
   }
   if (UNLIKELY(header.length != src->data.size)) {
-    gltf_load_fail(world, entity, id, GltfError_MalformedFile);
+    err = GltfError_MalformedFile;
+    asset_mark_load_failure(world, entity, id, gltf_error_str(err), (i32)err);
     goto Failed;
   }
 
@@ -1941,18 +1923,20 @@ void asset_load_mesh_glb(
   u32      chunkCount = 0;
   while (data.size) {
     if (UNLIKELY(chunkCount == glb_chunk_count_max)) {
-      gltf_load_fail(world, entity, id, GltfError_GlbChunkCountExceedsMaximum);
+      err = GltfError_GlbChunkCountExceedsMaximum;
+      asset_mark_load_failure(world, entity, id, gltf_error_str(err), (i32)err);
       goto Failed;
     }
     data = glb_read_chunk(data, &chunks[chunkCount++], &err);
     if (UNLIKELY(err)) {
-      gltf_load_fail(world, entity, id, err);
+      asset_mark_load_failure(world, entity, id, gltf_error_str(err), (i32)err);
       goto Failed;
     }
   }
 
   if (UNLIKELY(!chunkCount || chunks[0].type != GlbChunkType_Json)) {
-    gltf_load_fail(world, entity, id, GltfError_GlbJsonChunkMissing);
+    err = GltfError_GlbJsonChunkMissing;
+    asset_mark_load_failure(world, entity, id, gltf_error_str(err), (i32)err);
     goto Failed;
   }
 

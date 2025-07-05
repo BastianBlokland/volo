@@ -24,6 +24,13 @@ AssetSource* asset_source_open(const AssetManagerComp*, const AssetImportEnvComp
 EcsEntityId asset_watch(EcsWorld*, AssetManagerComp*, String id);
 
 /**
+ * Mark the completion of an asset load.
+ * Pre-condition: Asset is currently loading.
+ */
+void asset_mark_load_failure(EcsWorld*, EcsEntityId asset, String id, String error, i32 errorCode);
+void asset_mark_load_success(EcsWorld*, EcsEntityId asset);
+
+/**
  * Register an external load for the given asset.
  * Useful when loading files outside of the normal loaders.
  */

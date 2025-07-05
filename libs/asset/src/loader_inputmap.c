@@ -7,7 +7,6 @@
 #include "ecs_entity.h"
 #include "ecs_view.h"
 #include "ecs_world.h"
-#include "log_logger.h"
 
 #include "manager_internal.h"
 #include "repo_internal.h"
@@ -291,16 +290,11 @@ void asset_load_inputs(
       .bindings.values = dynarray_copy_as_new(&bindings, g_allocHeap),
       .bindings.count  = bindings.size);
 
-  ecs_world_add_empty_t(world, entity, AssetLoadedComp);
+  asset_mark_load_success(world, entity);
   goto Cleanup;
 
 Error:
-  log_e(
-      "Failed to load InputMap",
-      log_param("id", fmt_text(id)),
-      log_param("entity", ecs_entity_fmt(entity)),
-      log_param("error", fmt_text(errMsg)));
-  ecs_world_add_empty_t(world, entity, AssetFailedComp);
+  asset_mark_load_failure(world, entity, id, errMsg, -1 /* errorCode */);
 
 Cleanup:
   asset_repo_source_close(src);

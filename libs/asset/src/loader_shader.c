@@ -7,10 +7,10 @@
 #include "ecs_utils.h"
 #include "ecs_view.h"
 #include "ecs_world.h"
-#include "log_logger.h"
 
 #include "import_internal.h"
 #include "loader_shader_internal.h"
+#include "manager_internal.h"
 
 ecs_comp_define_public(AssetShaderComp);
 ecs_comp_define_public(AssetShaderSourceComp);
@@ -109,13 +109,7 @@ void asset_load_shader_bin(
   data_read_bin(g_dataReg, src->data, g_allocHeap, g_assetShaderMeta, mem_var(shader), &result);
 
   if (UNLIKELY(result.error)) {
-    log_e(
-        "Failed to load binary shader",
-        log_param("id", fmt_text(id)),
-        log_param("entity", ecs_entity_fmt(entity)),
-        log_param("error-code", fmt_int(result.error)),
-        log_param("error", fmt_text(result.errorMsg)));
-    ecs_world_add_empty_t(world, entity, AssetFailedComp);
+    asset_mark_load_failure(world, entity, id, result.errorMsg, (i32)result.error);
     asset_repo_source_close(src);
     return;
   }
@@ -123,7 +117,7 @@ void asset_load_shader_bin(
   *ecs_world_add_t(world, entity, AssetShaderComp) = shader;
   ecs_world_add_t(world, entity, AssetShaderSourceComp, .src = src);
 
-  ecs_world_add_empty_t(world, entity, AssetLoadedComp);
+  asset_mark_load_success(world, entity);
 }
 
 String asset_shader_kind_name(const AssetShaderKind kind) {

@@ -8,7 +8,6 @@
 #include "ecs_entity.h"
 #include "ecs_world.h"
 #include "geo_matrix.h"
-#include "log_logger.h"
 
 #include "loader_mesh_internal.h"
 #include "manager_internal.h"
@@ -578,19 +577,14 @@ void asset_load_mesh_proc(
   meshBundle.mesh            = asset_mesh_create(builder);
 
   *ecs_world_add_t(world, entity, AssetMeshComp) = meshBundle.mesh;
-  ecs_world_add_empty_t(world, entity, AssetLoadedComp);
+  asset_mark_load_success(world, entity);
 
   asset_cache(world, entity, g_assetMeshBundleMeta, mem_var(meshBundle));
 
   goto Done;
 
 Error:
-  log_e(
-      "Failed to load procmesh mesh",
-      log_param("id", fmt_text(id)),
-      log_param("entity", ecs_entity_fmt(entity)),
-      log_param("error", fmt_text(errMsg)));
-  ecs_world_add_empty_t(world, entity, AssetFailedComp);
+  asset_mark_load_failure(world, entity, id, errMsg, -1 /* errorCode */);
 
 Done:
   if (builder) {

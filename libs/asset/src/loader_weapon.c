@@ -10,7 +10,6 @@
 #include "ecs_entity.h"
 #include "ecs_utils.h"
 #include "ecs_view.h"
-#include "log_logger.h"
 
 #include "data_internal.h"
 #include "manager_internal.h"
@@ -172,16 +171,11 @@ ecs_system_define(LoadWeaponAssetSys) {
         .effects.values = dynarray_copy_as_new(&effects, g_allocHeap),
         .effects.count  = effects.size);
 
-    ecs_world_add_empty_t(world, entity, AssetLoadedComp);
+    asset_mark_load_success(world, entity);
     goto Cleanup;
 
   Error:
-    log_e(
-        "Failed to load WeaponMap",
-        log_param("id", fmt_text(id)),
-        log_param("entity", ecs_entity_fmt(entity)),
-        log_param("error", fmt_text(errMsg)));
-    ecs_world_add_empty_t(world, entity, AssetFailedComp);
+    asset_mark_load_failure(world, entity, id, errMsg, -1 /* errorCode */);
 
   Cleanup:
     dynarray_destroy(&weapons);
@@ -347,13 +341,7 @@ void asset_load_weapons(
   }
 
   if (UNLIKELY(result.error)) {
-    log_e(
-        "Failed to load weapon-map",
-        log_param("id", fmt_text(id)),
-        log_param("entity", ecs_entity_fmt(entity)),
-        log_param("error-code", fmt_int(result.error)),
-        log_param("error", fmt_text(result.errorMsg)));
-    ecs_world_add_empty_t(world, entity, AssetFailedComp);
+    asset_mark_load_failure(world, entity, id, result.errorMsg, (i32)result.error);
     goto Ret;
   }
 

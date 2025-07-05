@@ -187,31 +187,6 @@ static String glsl_error_str(const GlslError res) {
   return g_msgs[res];
 }
 
-static void
-glsl_load_fail(EcsWorld* world, const EcsEntityId entity, const String id, const GlslError err) {
-  log_e(
-      "Failed to load Glsl shader",
-      log_param("id", fmt_text(id)),
-      log_param("entity", ecs_entity_fmt(entity)),
-      log_param("error", fmt_text(glsl_error_str(err))));
-  ecs_world_add_empty_t(world, entity, AssetFailedComp);
-}
-
-static void glsl_load_fail_msg(
-    EcsWorld*         world,
-    const EcsEntityId entity,
-    const String      id,
-    const GlslError   err,
-    const String      msg) {
-  log_e(
-      "Failed to load Glsl shader",
-      log_param("id", fmt_text(id)),
-      log_param("entity", ecs_entity_fmt(entity)),
-      log_param("error", fmt_text(glsl_error_str(err))),
-      log_param("text", fmt_text(msg)));
-  ecs_world_add_empty_t(world, entity, AssetFailedComp);
-}
-
 static u32 glsl_shaderc_lib_names(String outPaths[PARAM_ARRAY_SIZE(glsl_shaderc_names_max)]) {
   const String vulkanSdkPath = env_var_scratch(string_lit("VULKAN_SDK"));
 
@@ -438,7 +413,8 @@ ecs_system_define(LoadGlslAssetSys) {
     glsl_include_ctx_prepare(glslEnv->includeCtx, &includeInvoc);
 
     if (!glslEnv->compiler || !glslEnv->options) {
-      glsl_load_fail(world, entity, id, GlslError_CompilerNotAvailable);
+      const GlslError err = GlslError_CompilerNotAvailable;
+      asset_mark_load_failure(world, entity, id, glsl_error_str(err), (i32)err);
       goto Done;
     }
 
@@ -453,8 +429,7 @@ ecs_system_define(LoadGlslAssetSys) {
 
     if (glslEnv->result_get_compilation_status(res) != ShadercCompilationStatus_Success) {
       const String msg = string_from_null_term(glslEnv->result_get_error_message(res));
-      glsl_load_fail_msg(
-          world, entity, id, GlslError_CompilationFailed, string_trim_whitespace(msg));
+      asset_mark_load_failure(world, entity, id, msg, (i32)GlslError_CompilationFailed);
       glslEnv->result_release(res);
       goto Done;
     }
@@ -467,11 +442,11 @@ ecs_system_define(LoadGlslAssetSys) {
     const SpvError spvErr = spv_init(world, entity, data_mem_create(spvData));
     if (spvErr) {
       const String msg = spv_err_str(spvErr);
-      glsl_load_fail_msg(world, entity, id, GlslError_InvalidSpv, msg);
+      asset_mark_load_failure(world, entity, id, msg, (i32)spvErr);
       goto Done;
     }
 
-    ecs_world_add_empty_t(world, entity, AssetLoadedComp);
+    asset_mark_load_success(world, entity);
 
   Done:
     glsl_include_ctx_clear(glslEnv->includeCtx);

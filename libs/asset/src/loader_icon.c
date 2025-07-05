@@ -9,7 +9,6 @@
 #include "ecs_entity.h"
 #include "ecs_utils.h"
 #include "ecs_view.h"
-#include "log_logger.h"
 
 #include "data_internal.h"
 #include "manager_internal.h"
@@ -192,19 +191,14 @@ ecs_system_define(LoadIconAssetSys) {
     AssetIconComp* icon = ecs_world_add_t(world, entity, AssetIconComp);
     asset_icon_generate(&load->def, texture, icon);
 
-    ecs_world_add_empty_t(world, entity, AssetLoadedComp);
+    asset_mark_load_success(world, entity);
 
     asset_cache(world, entity, g_assetIconMeta, mem_create(icon, sizeof(AssetIconComp)));
 
     goto Cleanup;
 
   Error:
-    log_e(
-        "Failed to load icon",
-        log_param("id", fmt_text(id)),
-        log_param("entity", ecs_entity_fmt(entity)),
-        log_param("error", fmt_text(icon_error_str(err))));
-    ecs_world_add_empty_t(world, entity, AssetFailedComp);
+    asset_mark_load_failure(world, entity, id, icon_error_str(err), (i32)err);
 
   Cleanup:
     ecs_world_remove_t(world, entity, AssetIconLoadComp);
@@ -284,13 +278,8 @@ void asset_load_icon(
   goto Cleanup;
 
 Error:
-  log_e(
-      "Failed to load icon",
-      log_param("id", fmt_text(id)),
-      log_param("entity", ecs_entity_fmt(entity)),
-      log_param("error", fmt_text(errMsg)));
   data_destroy(g_dataReg, g_allocHeap, g_assetIconDefMeta, mem_var(iconDef));
-  ecs_world_add_empty_t(world, entity, AssetFailedComp);
+  asset_mark_load_failure(world, entity, id, errMsg, -1 /* errorCode */);
 
 Cleanup:
   asset_repo_source_close(src);
@@ -309,19 +298,13 @@ void asset_load_icon_bin(
   data_read_bin(g_dataReg, src->data, g_allocHeap, g_assetIconMeta, mem_var(icon), &result);
 
   if (UNLIKELY(result.error)) {
-    log_e(
-        "Failed to load binary icon",
-        log_param("id", fmt_text(id)),
-        log_param("entity", ecs_entity_fmt(entity)),
-        log_param("error-code", fmt_int(result.error)),
-        log_param("error", fmt_text(result.errorMsg)));
-    ecs_world_add_empty_t(world, entity, AssetFailedComp);
     asset_repo_source_close(src);
+    asset_mark_load_failure(world, entity, id, result.errorMsg, result.error);
     return;
   }
 
   *ecs_world_add_t(world, entity, AssetIconComp) = icon;
   ecs_world_add_t(world, entity, AssetIconSourceComp, .src = src);
 
-  ecs_world_add_empty_t(world, entity, AssetLoadedComp);
+  asset_mark_load_success(world, entity);
 }

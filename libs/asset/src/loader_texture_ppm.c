@@ -1,9 +1,9 @@
 #include "asset_texture.h"
 #include "core_alloc.h"
 #include "core_array.h"
+#include "core_format.h"
 #include "ecs_entity.h"
 #include "ecs_world.h"
-#include "log_logger.h"
 
 #include "import_texture_internal.h"
 #include "loader_texture_internal.h"
@@ -174,16 +174,6 @@ static String ppm_read_pixels(String input, PixmapHeader* header, u8* out, Pixma
   return ppm_read_pixels_binary(input, header, out, err);
 }
 
-static void
-ppm_load_fail(EcsWorld* world, const EcsEntityId entity, const String id, const PixmapError err) {
-  log_e(
-      "Failed to parse Pixmap texture",
-      log_param("id", fmt_text(id)),
-      log_param("entity", ecs_entity_fmt(entity)),
-      log_param("error", fmt_text(pixmap_error_str(err))));
-  ecs_world_add_empty_t(world, entity, AssetFailedComp);
-}
-
 void asset_load_tex_ppm(
     EcsWorld*                 world,
     const AssetImportEnvComp* importEnv,
@@ -197,19 +187,23 @@ void asset_load_tex_ppm(
   PixmapHeader header;
   input = ppm_read_header(input, &header);
   if (header.type == PixmapType_Unknown) {
-    ppm_load_fail(world, entity, id, PixmapError_MalformedType);
+    const PixmapError err = PixmapError_MalformedType;
+    asset_mark_load_failure(world, entity, id, pixmap_error_str(err), (i32)err);
     goto Error;
   }
   if (!header.width || !header.height) {
-    ppm_load_fail(world, entity, id, PixmapError_UnsupportedSize);
+    const PixmapError err = PixmapError_UnsupportedSize;
+    asset_mark_load_failure(world, entity, id, pixmap_error_str(err), (i32)err);
     goto Error;
   }
   if (header.width > ppm_max_width || header.height > ppm_max_height) {
-    ppm_load_fail(world, entity, id, PixmapError_UnsupportedSize);
+    const PixmapError err = PixmapError_UnsupportedSize;
+    asset_mark_load_failure(world, entity, id, pixmap_error_str(err), (i32)err);
     goto Error;
   }
   if (header.maxValue != 255) {
-    ppm_load_fail(world, entity, id, PixmapError_UnsupportedBitDepth);
+    const PixmapError err = PixmapError_UnsupportedBitDepth;
+    asset_mark_load_failure(world, entity, id, pixmap_error_str(err), (i32)err);
     goto Error;
   }
 
@@ -219,7 +213,7 @@ void asset_load_tex_ppm(
   u8*       pixels   = pixelMem.ptr;
   input              = ppm_read_pixels(input, &header, pixels, &res);
   if (res) {
-    ppm_load_fail(world, entity, id, res);
+    asset_mark_load_failure(world, entity, id, pixmap_error_str(res), (i32)res);
     alloc_free(g_allocHeap, pixelMem);
     goto Error;
   }
@@ -236,7 +230,8 @@ void asset_load_tex_ppm(
           AssetImportTextureFlags_Mips,
           AssetImportTextureFlip_None,
           &tex)) {
-    ppm_load_fail(world, entity, id, PixmapError_ImportFailed);
+    const PixmapError err = PixmapError_ImportFailed;
+    asset_mark_load_failure(world, entity, id, pixmap_error_str(err), (i32)err);
     goto Error;
   }
 
@@ -244,7 +239,7 @@ void asset_load_tex_ppm(
 
   *ecs_world_add_t(world, entity, AssetTextureComp) = tex;
 
-  ecs_world_add_empty_t(world, entity, AssetLoadedComp);
+  asset_mark_load_success(world, entity);
   asset_cache(world, entity, g_assetTexMeta, mem_var(tex));
 
   alloc_free(g_allocHeap, pixelMem);

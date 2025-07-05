@@ -10,7 +10,6 @@
 #include "ecs_entity.h"
 #include "ecs_world.h"
 #include "geo_vector.h"
-#include "log_logger.h"
 
 #include "loader_texture_internal.h"
 #include "manager_internal.h"
@@ -376,19 +375,14 @@ void asset_load_tex_proc(
   proctex_generate(&def, &texture);
 
   *ecs_world_add_t(world, entity, AssetTextureComp) = texture;
-  ecs_world_add_empty_t(world, entity, AssetLoadedComp);
+  asset_mark_load_success(world, entity);
   asset_cache(world, entity, g_assetTexMeta, mem_var(texture));
 
   asset_repo_source_close(src);
   return;
 
 Error:
-  log_e(
-      "Failed to load proc texture",
-      log_param("id", fmt_text(id)),
-      log_param("entity", ecs_entity_fmt(entity)),
-      log_param("error", fmt_text(errMsg)));
-  ecs_world_add_empty_t(world, entity, AssetFailedComp);
   data_destroy(g_dataReg, g_allocHeap, g_assetTexProcDefMeta, mem_var(def));
   asset_repo_source_close(src);
+  asset_mark_load_failure(world, entity, id, errMsg, -1 /* errorCode */);
 }

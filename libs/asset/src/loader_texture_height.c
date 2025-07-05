@@ -4,7 +4,6 @@
 #include "core_math.h"
 #include "ecs_entity.h"
 #include "ecs_world.h"
-#include "log_logger.h"
 
 #include "import_texture_internal.h"
 #include "loader_texture_internal.h"
@@ -59,16 +58,6 @@ static String htex_error_str(const HtexError err) {
   return g_msgs[err];
 }
 
-static void
-htex_load_fail(EcsWorld* world, const EcsEntityId entity, const String id, const HtexError err) {
-  log_e(
-      "Failed to parse height texture",
-      log_param("id", fmt_text(id)),
-      log_param("entity", ecs_entity_fmt(entity)),
-      log_param("error", fmt_text(htex_error_str(err))));
-  ecs_world_add_empty_t(world, entity, AssetFailedComp);
-}
-
 static void htex_load(
     EcsWorld*                 world,
     const AssetImportEnvComp* importEnv,
@@ -80,17 +69,20 @@ static void htex_load(
   const AssetTextureType pixelType = htex_texture_type(type);
   const usize            pixelSize = asset_texture_type_stride(pixelType, 1);
   if (UNLIKELY(data.size % pixelSize)) {
-    htex_load_fail(world, entity, id, HtexError_Corrupt);
+    const HtexError err = HtexError_Corrupt;
+    asset_mark_load_failure(world, entity, id, htex_error_str(err), (i32)err);
     return;
   }
   const usize pixelCount = data.size / pixelSize;
   if (UNLIKELY(!pixelCount)) {
-    htex_load_fail(world, entity, id, HtexError_Empty);
+    const HtexError err = HtexError_Empty;
+    asset_mark_load_failure(world, entity, id, htex_error_str(err), (i32)err);
     return;
   }
   const u32 size = (u32)math_sqrt_f64(pixelCount);
   if (UNLIKELY(size * size != pixelCount)) {
-    htex_load_fail(world, entity, id, HtexError_NonPow2);
+    const HtexError err = HtexError_NonPow2;
+    asset_mark_load_failure(world, entity, id, htex_error_str(err), (i32)err);
     return;
   }
 
@@ -126,13 +118,14 @@ static void htex_load(
           AssetImportTextureFlags_None,
           AssetImportTextureFlip_None,
           &tex)) {
-    htex_load_fail(world, entity, id, HtexError_ImportFailed);
+    const HtexError err = HtexError_ImportFailed;
+    asset_mark_load_failure(world, entity, id, htex_error_str(err), (i32)err);
     alloc_free(g_allocHeap, pixelMem);
     return;
   }
 
   *ecs_world_add_t(world, entity, AssetTextureComp) = tex;
-  ecs_world_add_empty_t(world, entity, AssetLoadedComp);
+  asset_mark_load_success(world, entity);
   asset_cache(world, entity, g_assetTexMeta, mem_var(tex));
 
   alloc_free(g_allocHeap, pixelMem);

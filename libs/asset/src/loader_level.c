@@ -121,7 +121,7 @@ void asset_load_level(
   }
 
   ecs_world_add_t(world, entity, AssetLevelComp, .level = lvl);
-  ecs_world_add_empty_t(world, entity, AssetLoadedComp);
+  asset_mark_load_success(world, entity);
 
   if (src->format != AssetFormat_LevelBin) {
     asset_cache(world, entity, g_assetLevelDefMeta, mem_var(lvl));
@@ -130,12 +130,7 @@ void asset_load_level(
   goto Cleanup;
 
 Error:
-  log_e(
-      "Failed to load Level",
-      log_param("id", fmt_text(id)),
-      log_param("entity", ecs_entity_fmt(entity)),
-      log_param("error", fmt_text(errMsg)));
-  ecs_world_add_empty_t(world, entity, AssetFailedComp);
+  asset_mark_load_failure(world, entity, id, errMsg, -1 /* errorCode */);
 
 Cleanup:
   asset_repo_source_close(src);

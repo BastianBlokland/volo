@@ -3,6 +3,7 @@
 #include "ecs_world.h"
 
 #include "import_internal.h"
+#include "manager_internal.h"
 #include "repo_internal.h"
 
 ecs_comp_define_public(AssetRawComp);
@@ -51,5 +52,5 @@ void asset_load_raw(
 
   ecs_world_add_t(world, entity, AssetRawComp, .data = src->data);
   ecs_world_add_t(world, entity, AssetRawSourceComp, .src = src);
-  ecs_world_add_empty_t(world, entity, AssetLoadedComp);
+  asset_mark_load_success(world, entity);
 }
