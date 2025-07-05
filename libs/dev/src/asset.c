@@ -8,6 +8,7 @@
 #include "ecs_entity.h"
 #include "ecs_view.h"
 #include "ecs_world.h"
+#include "trace_tracer.h"
 #include "ui_canvas.h"
 #include "ui_layout.h"
 #include "ui_panel.h"
@@ -134,6 +135,8 @@ static void asset_info_query(DevAssetPanelComp* panelComp, EcsWorld* world) {
   dynarray_clear(&panelComp->assets);
   panelComp->countLoaded = 0;
 
+  trace_begin("info_query", TraceColor_Blue);
+
   EcsView* assetView = ecs_world_view_t(world, AssetView);
   for (EcsIterator* itr = ecs_view_itr(assetView); ecs_view_walk(itr);) {
     const EcsEntityId      entity     = ecs_view_entity(itr);
@@ -170,7 +173,9 @@ static void asset_info_query(DevAssetPanelComp* panelComp, EcsWorld* world) {
         .ticksUntilUnload = (u16)asset_ticks_until_unload(assetComp),
     };
   }
+  trace_end();
 
+  trace_begin("info_sort", TraceColor_Blue);
   switch (panelComp->sortMode) {
   case DevAssetSortMode_Id:
     dynarray_sort(&panelComp->assets, compare_asset_info_id);
@@ -181,6 +186,7 @@ static void asset_info_query(DevAssetPanelComp* panelComp, EcsWorld* world) {
   case DevAssetSortMode_Count:
     break;
   }
+  trace_end();
 }
 
 static UiColor asset_info_bg_color(const DevAssetInfo* asset) {
@@ -348,7 +354,10 @@ ecs_system_define(DevAssetUpdatePanelSys) {
       continue;
     }
     asset_info_query(panelComp, world);
+
+    trace_begin("panel_draw", TraceColor_Green);
     asset_panel_draw(canvas, panelComp, world);
+    trace_end();
 
     if (ui_panel_closed(&panelComp->panel)) {
       ecs_world_entity_destroy(world, entity);
