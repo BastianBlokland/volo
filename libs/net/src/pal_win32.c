@@ -230,6 +230,7 @@ typedef struct sNetSocket {
   Allocator* alloc;
   NetResult  status;
   SOCKET     handle;
+  NetAddr    remoteAddr;
   NetDir     closedMask;
 } NetSocket;
 
@@ -251,7 +252,7 @@ NetSocket* net_socket_connect_sync(Allocator* alloc, const NetAddr addr) {
   }
   NetSocket* s = alloc_alloc_t(alloc, NetSocket);
 
-  *s = (NetSocket){.alloc = alloc, .handle = INVALID_SOCKET};
+  *s = (NetSocket){.alloc = alloc, .handle = INVALID_SOCKET, .remoteAddr = addr};
   if (UNLIKELY(!g_netWsLib.ready)) {
     s->status = NetResult_SystemFailure;
     return s;
@@ -315,6 +316,8 @@ NetResult net_socket_status(const NetSocket* s) {
   }
   return s->status;
 }
+
+const NetAddr* net_socket_remote(const NetSocket* s) { return &s->remoteAddr; }
 
 NetResult net_socket_write_sync(NetSocket* s, const String data) {
   if (s->status != NetResult_Success) {
@@ -469,10 +472,13 @@ Ret:
   return NetResult_Success;
 }
 
-NetResult net_resolve_sync(const String host, NetIp* out) {
+NetResult net_resolve_sync(const String host, NetIp out[], u32* count) {
   if (UNLIKELY(!g_netInitialized)) {
     diag_crash_msg("Network subsystem not initialized");
   }
+  const u32 countMax = *count;
+  *count             = 0;
+
   if (UNLIKELY(!g_netWsLib.ready)) {
     return NetResult_SystemFailure;
   }
@@ -495,7 +501,6 @@ NetResult net_resolve_sync(const String host, NetIp* out) {
     return net_pal_resolve_error();
   }
 
-  NetResult result = NetResult_NoEntry;
   for (ADDRINFOW* a = addresses; a; a = a->ai_next) {
     if (a->ai_socktype != SOCK_STREAM || a->ai_protocol != IPPROTO_TCP) {
       continue; // Only TCP sockets are supported at the moment.
@@ -504,22 +509,28 @@ NetResult net_resolve_sync(const String host, NetIp* out) {
     case AF_INET: {
       const struct sockaddr_in* addr = (struct sockaddr_in*)a->ai_addr;
 
-      out->type = NetIpType_V4;
-      mem_cpy(mem_var(out->v4.data), mem_var(addr->sin_addr));
+      if (UNLIKELY(*count == countMax)) {
+        goto Ret;
+      }
 
-      result = NetResult_Success;
-      goto Ret;
+      NetIp* ip = &out[(*count)++];
+      ip->type  = NetIpType_V4;
+      mem_cpy(mem_var(ip->v4.data), mem_var(addr->sin_addr));
+      continue;
     }
     case AF_INET6: {
       const struct sockaddr_in6* addr = (struct sockaddr_in6*)a->ai_addr;
 
-      out->type = NetIpType_V6;
-      for (u32 i = 0; i != array_elems(out->v6.groups); ++i) {
-        mem_consume_be_u16(mem_var(addr->sin6_addr.u.Word[i]), &out->v6.groups[i]);
+      if (UNLIKELY(*count == countMax)) {
+        goto Ret;
       }
 
-      result = NetResult_Success;
-      goto Ret;
+      NetIp* ip = &out[(*count)++];
+      ip->type  = NetIpType_V6;
+      for (u32 i = 0; i != array_elems(ip->v6.groups); ++i) {
+        mem_consume_be_u16(mem_var(addr->sin6_addr.u.Word[i]), &ip->v6.groups[i]);
+      }
+      continue;
     }
     default:
       continue; // Unsupported family.
@@ -528,5 +539,5 @@ NetResult net_resolve_sync(const String host, NetIp* out) {
 
 Ret:
   g_netWsLib.FreeAddrInfoW(addresses);
-  return result;
+  return *count ? NetResult_Success : NetResult_NoEntry;
 }

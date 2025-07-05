@@ -57,9 +57,10 @@ typedef enum {
 NetResult net_ip_interfaces(NetIp out[], u32* count, NetInterfaceQueryFlags);
 
 /**
- * Synchonously resolve a host-name to an ip-address.
+ * Synchonously resolve a host-name to ip-addresses.
+ * NOTE: Provide the max amount of ips to query in 'count'; will be replaced with the result count.
  */
-NetResult net_resolve_sync(String host, NetIp* out);
+NetResult net_resolve_sync(String host, NetIp out[], u32* count);
 
 /**
  * Write the textual representation of the given ip.

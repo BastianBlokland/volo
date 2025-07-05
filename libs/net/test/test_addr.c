@@ -5,27 +5,35 @@
 
 spec(addr) {
   it("fails to resolve an empty host") {
-    NetIp           ip;
-    const NetResult res = net_resolve_sync(string_empty, &ip);
+    NetIp           ips[8];
+    u32             ipCount = array_elems(ips);
+    const NetResult res     = net_resolve_sync(string_empty, ips, &ipCount);
     check_eq_int(res, NetResult_InvalidHost);
+    check_eq_int(ipCount, 0);
   }
 
   it("can resolve localhost") {
-    NetIp           ip;
-    const NetResult res = net_resolve_sync(string_lit("localhost"), &ip);
+    NetIp           ips[8];
+    u32             ipCount = array_elems(ips);
+    const NetResult res     = net_resolve_sync(string_lit("localhost"), ips, &ipCount);
     check_eq_int(res, NetResult_Success);
+    check(ipCount > 0);
   }
 
   it("can resolve loopback") {
-    NetIp           ip;
-    const NetResult res = net_resolve_sync(string_lit("127.0.0.1"), &ip);
+    NetIp           ips[8];
+    u32             ipCount = array_elems(ips);
+    const NetResult res     = net_resolve_sync(string_lit("127.0.0.1"), ips, &ipCount);
     check_eq_int(res, NetResult_Success);
+    check(ipCount > 0);
   }
 
   skip_it("can resolve www.bastian.tech") {
-    NetIp           ip;
-    const NetResult res = net_resolve_sync(string_lit("www.bastian.tech"), &ip);
+    NetIp           ips[8];
+    u32             ipCount = array_elems(ips);
+    const NetResult res     = net_resolve_sync(string_lit("www.bastian.tech"), ips, &ipCount);
     check_eq_int(res, NetResult_Success);
+    check(ipCount > 0);
   }
 
   it("can format ip's") {
