@@ -449,7 +449,8 @@ NetHttp* net_http_connect_sync(Allocator* alloc, const String host, const NetHtt
 
   const TimeSteady resolveStart = time_steady_clock();
 
-  NetIp hostIps[8];
+  // TODO: Support trying to connect to multiple host ips.
+  NetIp hostIps[1];
   u32   hostIpCount = array_elems(hostIps);
 
   http->status = net_resolve_sync(host, hostIps, &hostIpCount);
