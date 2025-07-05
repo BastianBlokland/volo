@@ -386,7 +386,7 @@ static i32 fetch_run(
 
   NetIp ips[32];
   u32   ipCount = array_elems(ips);
-  if (!net_ip_interfaces(ips, &ipCount, NetInterfaceQueryFlags_None) || !ipCount) {
+  if (net_ip_interfaces(ips, &ipCount, NetInterfaceQueryFlags_None) || !ipCount) {
     log_e("No network interface available");
     return 4;
   }
