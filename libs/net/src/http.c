@@ -449,8 +449,10 @@ NetHttp* net_http_connect_sync(Allocator* alloc, const String host, const NetHtt
 
   const TimeSteady resolveStart = time_steady_clock();
 
-  NetIp hostIp;
-  http->status = net_resolve_sync(host, &hostIp);
+  NetIp hostIps[8];
+  u32   hostIpCount = array_elems(hostIps);
+
+  http->status = net_resolve_sync(host, hostIps, &hostIpCount);
   if (http->status != NetResult_Success) {
     const TimeDuration resolveDur = time_steady_duration(resolveStart, time_steady_clock());
     log_w(
@@ -460,7 +462,7 @@ NetHttp* net_http_connect_sync(Allocator* alloc, const String host, const NetHtt
         log_param("duration", fmt_duration(resolveDur)));
     return http;
   }
-  http->hostAddr = (NetAddr){.ip = hostIp, .port = flags & NetHttpFlags_Tls ? 443 : 80};
+  http->hostAddr = (NetAddr){.ip = hostIps[0], .port = flags & NetHttpFlags_Tls ? 443 : 80};
 
   const TimeDuration resolveDur = time_steady_duration(resolveStart, time_steady_clock());
   (void)resolveDur;
