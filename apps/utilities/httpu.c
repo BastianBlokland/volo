@@ -67,7 +67,7 @@ static void httpu_log_interfaces(void) {
 #ifndef VOLO_FAST
   NetIp ips[32];
   u32   ipCount = array_elems(ips);
-  if (UNLIKELY(net_ip_interfaces(ips, &ipCount, NetInterfaceQueryFlags_IncludeLinkLocal))) {
+  if (UNLIKELY(net_ip_interfaces(ips, &ipCount, NetInterfaceQueryFlags_None))) {
     log_e("Failed to query net interfaces");
     return;
   }
