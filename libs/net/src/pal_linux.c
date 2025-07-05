@@ -268,13 +268,17 @@ NetResult net_socket_shutdown(NetSocket* s, const NetDir dir) {
   return NetResult_Success;
 }
 
-u32 net_ip_interfaces(NetIp out[], const u32 outMax, const NetInterfaceQueryFlags flags) {
-  u32 outCount = 0;
+NetResult net_ip_interfaces(NetIp out[], u32* count, const NetInterfaceQueryFlags flags) {
+  if (UNLIKELY(!g_netInitialized)) {
+    diag_crash_msg("Network subsystem not initialized");
+  }
+  const u32 countMax = *count;
+  *count             = 0;
 
   struct ifaddrs* addrs;
   const int       res = getifaddrs(&addrs);
   if (UNLIKELY(res < 0)) {
-    return 0; // Failed to lookup addresses.
+    return NetResult_UnknownError; // Failed to lookup addresses.
   }
   for (struct ifaddrs* itr = addrs; itr; itr = itr->ifa_next) {
     if (!itr->ifa_addr) {
@@ -289,9 +293,7 @@ u32 net_ip_interfaces(NetIp out[], const u32 outMax, const NetInterfaceQueryFlag
     switch (itr->ifa_addr->sa_family) {
     case AF_INET: {
       const struct sockaddr_in* addr = (struct sockaddr_in*)itr->ifa_addr;
-      if (UNLIKELY(out && outCount == outMax)) {
-        goto Ret;
-      }
+
       NetIp ip;
       ip.type = NetIpType_V4;
       mem_cpy(mem_var(ip.v4.data), mem_var(addr->sin_addr));
@@ -299,18 +301,15 @@ u32 net_ip_interfaces(NetIp out[], const u32 outMax, const NetInterfaceQueryFlag
       if (!(flags & NetInterfaceQueryFlags_IncludeLinkLocal) && net_is_linklocal(ip)) {
         continue;
       }
-
-      if (out) {
-        out[outCount] = ip;
+      if (UNLIKELY(*count == countMax)) {
+        goto Ret;
       }
-      ++outCount;
+      out[(*count)++] = ip;
       continue;
     }
     case AF_INET6: {
       const struct sockaddr_in6* addr = (struct sockaddr_in6*)itr->ifa_addr;
-      if (UNLIKELY(out && outCount == outMax)) {
-        goto Ret;
-      }
+
       NetIp ip;
       ip.type = NetIpType_V6;
       for (u32 i = 0; i != array_elems(ip.v6.groups); ++i) {
@@ -320,11 +319,10 @@ u32 net_ip_interfaces(NetIp out[], const u32 outMax, const NetInterfaceQueryFlag
       if (!(flags & NetInterfaceQueryFlags_IncludeLinkLocal) && net_is_linklocal(ip)) {
         continue;
       }
-
-      if (out) {
-        out[outCount] = ip;
+      if (UNLIKELY(*count == countMax)) {
+        goto Ret;
       }
-      ++outCount;
+      out[(*count)++] = ip;
       continue;
     }
     }
@@ -332,7 +330,7 @@ u32 net_ip_interfaces(NetIp out[], const u32 outMax, const NetInterfaceQueryFlag
 
 Ret:
   freeifaddrs(addrs);
-  return outCount;
+  return NetResult_Success;
 }
 
 NetResult net_resolve_sync(const String host, NetIp* out) {
