@@ -22,6 +22,7 @@
 #define log_tracker_mask (LogMask_Info | LogMask_Warn | LogMask_Error)
 #define log_tracker_buffer_size (64 * usize_kibibyte)
 #define log_tracker_max_age time_seconds(10)
+#define log_tracker_string_max_size 1024
 
 typedef enum {
   DevLogFlags_Combine = 1 << 0,
@@ -35,15 +36,18 @@ typedef enum {
  * which indicates that the next entry is at the beginning of the buffer.
  *
  * Entry memory layout:
- * base:              DevLogEntry (24 bytes)
- * message-meta:      DevLogStr   (1 byte)
- * message-data       byte[]      (n bytes)
+ * base:                DevLogEntry (24 bytes)
+ * message-meta:        DevLogStr   (2 byte)
+ * message-data:        byte[]      (n bytes)
+ * message-padding:     *           (0-1 bytes)
  *
  * Followed n log parameters:
- * param-name-meta:   DevLogStr   (1 byte)
- * param-name-data:   byte[]      (n bytes)
- * param-value-meta:  DevLogStr   (1 byte)
- * param-value-data:  byte[]      (n bytes)
+ * param-name-meta:     DevLogStr   (2 byte)
+ * param-name-data:     byte[]      (n bytes)
+ * param-name-padding:  *           (0-1 bytes)
+ * param-value-meta:    DevLogStr   (2 byte)
+ * param-value-data:    byte[]      (n bytes)
+ * param-value-padding: *           (0-1 bytes)
  */
 
 typedef struct sDevLogEntry DevLogEntry;
@@ -58,12 +62,15 @@ struct sDevLogEntry {
   const u8*   fileNamePtr;
 };
 
+ASSERT(sizeof(DevLogEntry) == 24, "Unexpected log entry size");
+
 typedef struct {
-  u8 length;
-  u8 data[];
+  u16 length;
+  u8  data[];
 } DevLogStr;
 
-ASSERT(alignof(DevLogStr) == 1, "Log strings should not require padding");
+ASSERT(sizeof(DevLogStr) == 2, "Unexpected log string size");
+ASSERT(alignof(DevLogEntry) >= alignof(DevLogStr), "Padding not supported between entry / string");
 
 /**
  * Sink that will receive log messages.
@@ -81,7 +88,7 @@ typedef struct {
 } DevLogSink;
 
 static DevLogStr* dev_log_str_next(DevLogStr* str) {
-  return bits_ptr_offset(str, sizeof(DevLogStr) + str->length);
+  return bits_ptr_offset(str, sizeof(DevLogStr) + bits_align_32(str->length, alignof(DevLogStr)));
 }
 
 static String dev_log_text(const DevLogStr* str) { return mem_create(str->data, str->length); }
@@ -126,8 +133,9 @@ static void dev_log_write_text(DynString* out, const String text) {
   DevLogStr* ptr = dynstring_push(out, sizeof(DevLogStr)).ptr;
   diag_assert(bits_aligned_ptr(ptr, alignof(DevLogStr)));
 
-  ptr->length = (u8)math_min(u8_max, text.size);
+  ptr->length = (u16)math_min(log_tracker_string_max_size, text.size);
   dynstring_append(out, string_slice(text, 0, ptr->length));
+  dynstring_append_chars(out, 0, bits_padding_32(ptr->length, alignof(DevLogStr)));
 }
 
 static void dev_log_write_arg(DynString* out, const FormatArg* arg) {
@@ -136,8 +144,9 @@ static void dev_log_write_arg(DynString* out, const FormatArg* arg) {
 
   const usize sizeStart = out->size;
   format_write_arg(out, arg);
-  ptr->length = (u8)math_min(u8_max, out->size - sizeStart);
+  ptr->length = (u16)math_min(log_tracker_string_max_size, out->size - sizeStart);
   out->size   = sizeStart + ptr->length; // Erase the part that did not fit.
+  out->size += bits_padding_32(ptr->length, alignof(DevLogStr));
 }
 
 static void dev_log_write_entry(
@@ -197,7 +206,7 @@ static void dev_log_sink_write(
   if ((log_tracker_mask & (1 << lvl)) == 0) {
     return;
   }
-  const Mem scratchMem = alloc_alloc(g_allocScratch, 4 * usize_kibibyte, 1);
+  const Mem scratchMem = alloc_alloc(g_allocScratch, 16 * usize_kibibyte, 1);
   DynString scratchStr = dynstring_create_over(scratchMem);
   dev_log_write_entry(&scratchStr, lvl, srcLoc, timestamp, msg, params);
 
