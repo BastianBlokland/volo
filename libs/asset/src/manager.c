@@ -66,7 +66,10 @@ ecs_comp_define(AssetComp) {
 };
 
 ecs_comp_define(AssetLoadedComp);
-ecs_comp_define(AssetFailedComp);
+ecs_comp_define(AssetFailedComp) {
+  String error;
+  i32    errorCode;
+};
 ecs_comp_define(AssetChangedComp);
 ecs_comp_define(AssetCacheInitComp);
 ecs_comp_define(AssetDirtyComp) { u32 numAcquire, numRelease; };
@@ -166,6 +169,11 @@ static void ecs_destruct_manager_comp(void* data) {
   AssetManagerComp* comp = data;
   asset_repo_destroy(comp->repo);
   dynarray_destroy(&comp->lookup);
+}
+
+static void ecs_destruct_failed_comp(void* data) {
+  AssetFailedComp* comp = data;
+  string_maybe_free(g_allocHeap, comp->error);
 }
 
 static void ecs_combine_asset_dirty(void* dataA, void* dataB) {
@@ -633,7 +641,7 @@ ecs_system_define(AssetCacheSys) {
 ecs_module_init(asset_manager_module) {
   ecs_register_comp(AssetManagerComp, .destructor = ecs_destruct_manager_comp, .destructOrder = 30);
   ecs_register_comp(AssetComp);
-  ecs_register_comp_empty(AssetFailedComp);
+  ecs_register_comp(AssetFailedComp, .destructor = ecs_destruct_failed_comp);
   ecs_register_comp_empty(AssetLoadedComp);
   ecs_register_comp_empty(AssetChangedComp);
   ecs_register_comp_empty(AssetCacheInitComp);
@@ -676,6 +684,9 @@ ecs_module_init(asset_manager_module) {
 
 String     asset_id(const AssetComp* comp) { return comp->id; }
 StringHash asset_id_hash(const AssetComp* comp) { return string_hash(comp->id); }
+
+String asset_error(const AssetFailedComp* comp) { return comp->error; }
+i32    asset_error_code(const AssetFailedComp* comp) { return comp->errorCode; };
 
 bool asset_path(const AssetManagerComp* manager, const AssetComp* asset, DynString* out) {
   return asset_repo_path(manager->repo, asset->id, out);
@@ -814,7 +825,12 @@ void asset_mark_load_failure(
       log_param("error", fmt_text(errorTrimmed)),
       log_param("error-code", fmt_int(errorCode)));
 
-  ecs_world_add_empty_t(world, asset, AssetFailedComp);
+  ecs_world_add_t(
+      world,
+      asset,
+      AssetFailedComp,
+      .error     = string_maybe_dup(g_allocHeap, errorTrimmed),
+      .errorCode = errorCode);
 }
 
 void asset_mark_load_success(EcsWorld* world, const EcsEntityId asset) {
