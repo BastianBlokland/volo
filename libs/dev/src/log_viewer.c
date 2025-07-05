@@ -346,7 +346,7 @@ static u32 dev_log_inspect_param(UiCanvasComp* c, UiTable* t, const String k, co
       ui_label(c, k);
     }
     ui_table_next_column(c, t);
-    ui_label(c, parts[i], .selectable = true);
+    ui_label(c, parts[i], .selectable = true, .tooltip = parts[i]);
   }
   return i;
 }
