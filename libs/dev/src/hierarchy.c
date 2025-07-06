@@ -40,7 +40,7 @@
 
 static const String g_tooltipFilter     = string_static("Filter entries by name.\nSupports glob characters \a.b*\ar and \a.b?\ar (\a.b!\ar prefix to invert).");
 static const String g_tooltipFreeze     = string_static("Freeze the data set (halts data collection).");
-static const String g_tooltipSets       = string_static("Include sets in the hierarchy.");
+static const String g_tooltipLinks      = string_static("Select which links to visualize.");
 static const String g_tooltipFoldOpen   = string_static("Show children.");
 static const String g_tooltipFoldClose  = string_static("Hide children.");
 static const String g_tooltipFoldFilter = string_static("Filter is active; unable to toggle children.");
@@ -116,12 +116,12 @@ typedef struct {
 ASSERT(sizeof(HierarchyLinkEntityRequest) <= 16, "Hierarchy link request too big");
 
 ecs_comp_define(DevHierarchyPanelComp) {
-  UiPanel      panel;
-  u32          panelRowCount;
-  UiScrollview scrollview;
-  bool         freeze;
-  bool         includeSets;
-  bool         focusOnSelection;
+  UiPanel           panel;
+  u32               panelRowCount;
+  UiScrollview      scrollview;
+  bool              freeze;
+  bool              focusOnSelection;
+  HierarchyLinkMask linkMask;
 
   bool      filterActive;
   DynString filterName;
@@ -350,6 +350,9 @@ static void hierarchy_link_entity_request(
   if (!ecs_world_exists(ctx->world, parent) || !ecs_world_exists(ctx->world, child)) {
     return; // Entity does not exist anymore.
   }
+  if (!(type & ctx->panel->linkMask)) {
+    return; // Link collection disabled.
+  }
   *dynarray_push_t(&ctx->panel->linkEntityRequests, HierarchyLinkEntityRequest) =
       (HierarchyLinkEntityRequest){
           .type             = type,
@@ -370,6 +373,9 @@ static void hierarchy_link_entity_to_set_request(
     const HierarchyLinkMask type) {
   if (!ecs_world_exists(ctx->world, child)) {
     return; // Entity does not exist anymore.
+  }
+  if (!(type & ctx->panel->linkMask)) {
+    return; // Link collection disabled.
   }
   *dynarray_push_t(&ctx->panel->linkEntityRequests, HierarchyLinkEntityRequest) =
       (HierarchyLinkEntityRequest){
@@ -503,7 +509,7 @@ static void hierarchy_query(HierarchyContext* ctx) {
       hierarchy_link_entity_request(ctx, attachComp->target, entity, HierarchyLinkMask_Attachment);
     }
     const SceneSetMemberComp* setMember = ecs_view_read_t(itr, SceneSetMemberComp);
-    if (setMember && ctx->panel->includeSets) {
+    if (setMember) {
       StringHash sets[scene_set_member_max_sets];
       const u32  setCount = scene_set_member_all(setMember, sets);
       for (u32 setIdx = 0; setIdx != setCount; ++setIdx) {
@@ -524,27 +530,25 @@ static void hierarchy_query(HierarchyContext* ctx) {
   }
   trace_end();
 
-  if (ctx->panel->includeSets) {
-    trace_begin("find_sets", TraceColor_Red);
-    const u32 slotSetCount = scene_set_slot_count(ctx->setEnv);
-    for (u32 setSlotIdx = 0; setSlotIdx != slotSetCount; ++setSlotIdx) {
-      const StringHash set = scene_set_slot_get(ctx->setEnv, setSlotIdx);
-      if (!set) {
-        continue; // Empty slot.
-      }
-      if (!set || set == g_sceneSetSelected) {
-        continue; // Filter out selected set as it doesn't add much value
-      }
-      *dynarray_push_t(&ctx->panel->entries, HierarchyEntry) = (HierarchyEntry){
-          .nameHash        = set,
-          .linkHead        = sentinel_u32,
-          .linkTail        = sentinel_u32,
-          .firstHardParent = sentinel_u32,
-          .stableId        = hierarchy_stable_id_set(setSlotIdx),
-      };
+  trace_begin("find_sets", TraceColor_Red);
+  const u32 slotSetCount = scene_set_slot_count(ctx->setEnv);
+  for (u32 setSlotIdx = 0; setSlotIdx != slotSetCount; ++setSlotIdx) {
+    const StringHash set = scene_set_slot_get(ctx->setEnv, setSlotIdx);
+    if (!set) {
+      continue; // Empty slot.
     }
-    trace_end();
+    if (!set || set == g_sceneSetSelected) {
+      continue; // Filter out selected set as it doesn't add much value
+    }
+    *dynarray_push_t(&ctx->panel->entries, HierarchyEntry) = (HierarchyEntry){
+        .nameHash        = set,
+        .linkHead        = sentinel_u32,
+        .linkTail        = sentinel_u32,
+        .firstHardParent = sentinel_u32,
+        .stableId        = hierarchy_stable_id_set(setSlotIdx),
+    };
   }
+  trace_end();
 
   trace_begin("sort", TraceColor_Red);
   dynarray_sort(&ctx->panel->entries, hierarchy_compare_entry);
@@ -944,12 +948,11 @@ static void hierarchy_options_draw(HierarchyContext* ctx, UiCanvasComp* c) {
   ui_layout_push(c);
 
   UiTable table = ui_table(.spacing = ui_vector(10, 5), .rowHeight = 20);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 55);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 150);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 60);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 140);
   ui_table_add_column(&table, UiTableColumn_Fixed, 70);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 50);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 55);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 50);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 25);
+  ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
   ui_table_next_row(c, &table);
   ui_label(c, string_lit("Filter:"));
@@ -965,9 +968,14 @@ static void hierarchy_options_draw(HierarchyContext* ctx, UiCanvasComp* c) {
   ui_toggle(c, &ctx->panel->freeze, .tooltip = g_tooltipFreeze);
 
   ui_table_next_column(c, &table);
-  ui_label(c, string_lit("Sets:"));
-  ui_table_next_column(c, &table);
-  if (ui_toggle(c, &ctx->panel->includeSets, .tooltip = g_tooltipSets)) {
+
+  if (ui_select_bits(
+          c,
+          bitset_from_var(ctx->panel->linkMask),
+          g_linkNames,
+          HierarchyLinkMask_Count,
+          .placeholder = string_lit("Links"),
+          .tooltip     = g_tooltipLinks)) {
     ctx->panel->focusOnSelection = true;
   }
 
@@ -1158,7 +1166,7 @@ dev_hierarchy_panel_open(EcsWorld* world, const EcsEntityId window, const DevPan
       DevHierarchyPanelComp,
       .panel        = ui_panel(.position = ui_vector(1.0f, 0.0f), .size = ui_vector(500, 350)),
       .scrollview   = ui_scrollview(),
-      .includeSets  = true,
+      .linkMask     = HierarchyLinkMask_All,
       .filterName   = dynstring_create(g_allocHeap, 32),
       .filterResult = dynbitset_create(g_allocHeap, 0),
       .entries      = dynarray_create_t(g_allocHeap, HierarchyEntry, 1024),
