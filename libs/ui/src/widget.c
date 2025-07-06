@@ -577,7 +577,7 @@ bool ui_select_with_opts(
   if (isOpen) {
     selectFlags |= ui_select_dropdown(canvas, headerId, input, options, optionCount, opts);
   } else {
-    ui_canvas_id_skip(canvas, optionCount * 2);
+    ui_canvas_id_skip(canvas, 1 + optionCount * 2);
   }
   if (selectFlags & UiSelectFlags_Changed || disabled) {
     ui_canvas_persistent_flags_unset(canvas, headerId, UiPersistentFlags_Open);
