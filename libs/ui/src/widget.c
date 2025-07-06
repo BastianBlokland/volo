@@ -620,16 +620,18 @@ static UiSelectFlags ui_select_bits_dropdown(
     const u32           optionCount,
     const UiSelectOpts* opts) {
   if (!optionCount) {
-    ui_canvas_id_skip(canvas, 1); // Skip the background.
+    ui_canvas_id_skip(canvas, 2 * 2 /* buttons */ + 1 /* background */);
     ui_scrollview_skip(canvas);
     return 0;
   }
   static const f32 g_spacing = 2;
 
-  UiSelectFlags selectFlags = 0;
-  const UiRect  lastRect    = ui_canvas_elem_rect(canvas, id);
-  const f32     totalHeight = optionCount * lastRect.height + (optionCount - 1) * g_spacing;
-  const f32     height      = math_min(totalHeight, opts->maxHeight);
+  UiSelectFlags selectFlags   = 0;
+  const UiFlags interactFlags = UiFlags_InteractAllowSwitch;
+  const u32     rowCount      = optionCount + 1;
+  const UiRect  lastRect      = ui_canvas_elem_rect(canvas, id);
+  const f32     totalHeight   = rowCount * lastRect.height + (rowCount - 1) * g_spacing;
+  const f32     height        = math_min(totalHeight, opts->maxHeight);
   ui_layout_push(canvas);
 
   const UiDir dir = (lastRect.y - height) > 0.0f ? Ui_Down : Ui_Up;
@@ -661,8 +663,22 @@ static UiSelectFlags ui_select_bits_dropdown(
   ui_layout_move_to(canvas, UiBase_Current, anchor, Ui_Y);
   ui_layout_resize(canvas, anchor, ui_vector(0, lastRect.height), UiBase_Absolute, Ui_Y);
 
+  ui_layout_push(canvas);
+  ui_layout_grow(canvas, UiAlign_MiddleCenter, ui_vector(-6, -3), UiBase_Absolute, Ui_XY);
+  ui_layout_grow(canvas, UiAlign_BottomLeft, ui_vector(-0.5f, 0), UiBase_Current, Ui_X);
+  ui_layout_grow(canvas, UiAlign_BottomLeft, ui_vector(-1, 0), UiBase_Absolute, Ui_X);
+  if (ui_button(canvas, .label = string_lit("All"), .fontSize = 14, .flags = interactFlags)) {
+    bitset_set_all(value, math_min(bitset_size(value), optionCount));
+  }
+  ui_layout_next(canvas, Ui_Right, 2);
+  if (ui_button(canvas, .label = string_lit("None"), .fontSize = 14, .flags = interactFlags)) {
+    bitset_clear_all(value);
+  }
+  ui_layout_pop(canvas);
+  ui_layout_next(canvas, dir, g_spacing);
+
   for (u32 i = 0; i != optionCount; ++i) {
-    if (ui_scrollview_cull(&scrollview, i * (lastRect.height + g_spacing), lastRect.height)) {
+    if (ui_scrollview_cull(&scrollview, (i + 1) * (lastRect.height + g_spacing), lastRect.height)) {
       ui_canvas_id_skip(canvas, 3 /* ui_toggle() consumes 2 ids */);
       ui_layout_next(canvas, dir, g_spacing);
       continue;
@@ -681,7 +697,7 @@ static UiSelectFlags ui_select_bits_dropdown(
       if (ui_toggle(
               canvas,
               &optionActive,
-              .flags = UiWidget_InteractAllowSwitch,
+              .flags = interactFlags,
               .align = UiAlign_MiddleRight,
               .size  = 18)) {
         if (optionActive) {
@@ -740,7 +756,7 @@ bool ui_select_bits_with_opts(
     selectFlags |= ui_select_bits_dropdown(canvas, headerId, value, options, optionCount, opts);
   } else {
     ui_scrollview_skip(canvas);
-    ui_canvas_id_skip(canvas, 1 /* bg */ + optionCount * 3 /* label + toggle */);
+    ui_canvas_id_skip(canvas, 2 * 2 /* btns */ + 1 /* bg */ + optionCount * 3 /* label + toggle */);
   }
   if (disabled) {
     ui_canvas_persistent_flags_unset(canvas, headerId, UiPersistentFlags_Open);
