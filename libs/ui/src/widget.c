@@ -626,12 +626,12 @@ static UiSelectFlags ui_select_bits_dropdown(
   }
   static const f32 g_spacing = 2;
 
-  UiSelectFlags selectFlags   = 0;
-  const UiFlags interactFlags = UiFlags_InteractAllowSwitch;
-  const u32     rowCount      = optionCount + 1;
-  const UiRect  lastRect      = ui_canvas_elem_rect(canvas, id);
-  const f32     totalHeight   = rowCount * lastRect.height + (rowCount - 1) * g_spacing;
-  const f32     height        = math_min(totalHeight, opts->maxHeight);
+  UiSelectFlags       selectFlags   = 0;
+  const UiWidgetFlags interactFlags = UiWidget_InteractAllowSwitch;
+  const u32           rowCount      = optionCount + 1;
+  const UiRect        lastRect      = ui_canvas_elem_rect(canvas, id);
+  const f32           totalHeight   = rowCount * lastRect.height + (rowCount - 1) * g_spacing;
+  const f32           height        = math_min(totalHeight, opts->maxHeight);
   ui_layout_push(canvas);
 
   const UiDir dir = (lastRect.y - height) > 0.0f ? Ui_Down : Ui_Up;
