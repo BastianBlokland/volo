@@ -104,12 +104,16 @@ bool ui_button_with_opts(UiCanvasComp* canvas, const UiButtonOpts* opts) {
   const bool     disabled = (opts->flags & UiWidget_Disabled) != 0;
   const UiStatus status   = disabled ? UiStatus_Idle : ui_canvas_elem_status(canvas, id);
 
+  UiFlags interactFlags = UiFlags_Interactable;
+  if (opts->flags & UiWidget_InteractAllowSwitch) {
+    interactFlags |= UiFlags_InteractAllowSwitch;
+  }
   if (opts->noFrame) {
-    ui_canvas_draw_glyph(canvas, UiShape_Empty, 0, UiFlags_Interactable);
+    ui_canvas_draw_glyph(canvas, UiShape_Empty, 0, interactFlags);
   } else {
     ui_style_push(canvas);
     ui_interactable_frame_style(canvas, opts->frameColor, status);
-    ui_canvas_draw_glyph(canvas, UiShape_Circle, 10, UiFlags_Interactable);
+    ui_canvas_draw_glyph(canvas, UiShape_Circle, 10, interactFlags);
     ui_style_pop(canvas);
   }
 
