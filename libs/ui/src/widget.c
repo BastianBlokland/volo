@@ -461,6 +461,8 @@ static UiSelectFlags ui_select_dropdown(
     const UiSelectOpts* opts) {
   const u32 entryCount = optionCount + opts->allowNone;
   if (!entryCount) {
+    ui_canvas_id_skip(canvas, 1); // Skip the background.
+    ui_scrollview_skip(canvas);
     return 0;
   }
   static const f32 g_spacing = 2;
@@ -581,7 +583,8 @@ bool ui_select_with_opts(
   if (isOpen) {
     selectFlags |= ui_select_dropdown(canvas, headerId, input, options, optionCount, opts);
   } else {
-    ui_canvas_id_skip(canvas, 1 + optionCount * 2);
+    ui_scrollview_skip(canvas);
+    ui_canvas_id_skip(canvas, 1 /* bg */ + optionCount * 2 /* hitbox + label */);
   }
   if (selectFlags & UiSelectFlags_Changed || disabled) {
     ui_canvas_persistent_flags_unset(canvas, headerId, UiPersistentFlags_Open);
