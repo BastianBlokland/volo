@@ -68,6 +68,9 @@ typedef enum {
   HierarchyLinkMask_Reference  = 1 << 4,
 
   HierarchyLinkMask_Hard = ~HierarchyLinkMask_Reference,
+
+  HierarchyLinkMask_Count = 5,
+  HierarchyLinkMask_All   = bit_range_32(0, HierarchyLinkMask_Count),
 } HierarchyLinkMask;
 
 static const String g_linkNames[] = {
@@ -77,6 +80,8 @@ static const String g_linkNames[] = {
     string_static("Attachment"),
     string_static("Reference"),
 };
+
+ASSERT(array_elems(g_linkNames) == HierarchyLinkMask_Count, "Mismatched link name count");
 
 typedef struct {
   HierarchyLinkMask mask;
