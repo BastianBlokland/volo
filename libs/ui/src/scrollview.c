@@ -7,6 +7,8 @@
 #include "ui_shape.h"
 #include "ui_style.h"
 
+#define ui_scrollview_canvas_ids 3
+
 static const f32 g_scrollSensitivity = 30;
 static const f32 g_scrollBarWidth    = 10;
 
@@ -157,6 +159,8 @@ UiScrollviewOutput ui_scrollview_begin(
   diag_assert(height >= 0);
   scrollview->flags |= UiScrollviewFlags_Active;
 
+  MAYBE_UNUSED const UiId idStart = ui_canvas_id_peek(canvas);
+
   const UiScrollviewStatus status = ui_scrollview_query_status(canvas, scrollview, height);
   ui_scrollview_update(canvas, scrollview, &status, layer);
 
@@ -168,6 +172,8 @@ UiScrollviewOutput ui_scrollview_begin(
 
   if (status.viewport.height > 0.0f) {
     ui_scrollview_draw_bar(canvas, &status);
+  } else {
+    ui_canvas_id_skip(canvas, 2);
   }
   ui_style_pop(canvas);
 
@@ -190,6 +196,8 @@ UiScrollviewOutput ui_scrollview_begin(
   if (status.flags & UiScrollviewStatus_HoveringViewport) {
     output |= UiScrollviewOutput_Hovering;
   }
+
+  diag_assert((ui_canvas_id_peek(canvas) - idStart) == ui_scrollview_canvas_ids);
   return output;
 }
 
@@ -206,6 +214,10 @@ void ui_scrollview_end(UiCanvasComp* canvas, UiScrollview* scrollview) {
 
   ui_layout_container_pop(canvas);
   ui_layout_container_pop(canvas);
+}
+
+void ui_scrollview_skip(UiCanvasComp* canvas) {
+  ui_canvas_id_skip(canvas, ui_scrollview_canvas_ids);
 }
 
 UiScrollviewCull ui_scrollview_cull(UiScrollview* scrollview, const f32 y, const f32 height) {

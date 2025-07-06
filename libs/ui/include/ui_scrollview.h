@@ -32,6 +32,11 @@ typedef enum eUiScrollviewOutput {
 UiScrollviewOutput ui_scrollview_begin(UiCanvasComp*, UiScrollview*, UiLayer, f32 height);
 void               ui_scrollview_end(UiCanvasComp*, UiScrollview*);
 
+/**
+ * Skip over a scrollview (consumes the same amount of canvas ids as drawing a scrollview).
+ */
+void ui_scrollview_skip(UiCanvasComp*);
+
 typedef enum {
   UiScrollviewCull_Inside,
   UiScrollviewCull_Before,
