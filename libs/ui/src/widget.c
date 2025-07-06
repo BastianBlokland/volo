@@ -308,7 +308,7 @@ bool ui_toggle_with_opts(UiCanvasComp* canvas, bool* input, const UiToggleOpts* 
     *input ^= true;
   }
   ui_layout_push(canvas);
-  ui_layout_inner(canvas, UiBase_Current, UiAlign_MiddleLeft, size, UiBase_Absolute);
+  ui_layout_inner(canvas, UiBase_Current, opts->align, size, UiBase_Absolute);
 
   ui_style_push(canvas);
   switch (status) {

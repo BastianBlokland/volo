@@ -50,6 +50,7 @@ typedef struct {
 typedef struct {
   UiWidgetFlags flags;
   f32           size;
+  UiAlign       align;
   UiColor       bgColor;
   String        tooltip;
 } UiToggleOpts;
@@ -169,6 +170,7 @@ typedef struct {
 #define ui_toggle(_CANVAS_, _VALUE_, ...) ui_toggle_with_opts((_CANVAS_), (_VALUE_),               \
   &((UiToggleOpts){                                                                                \
     .size    = 20,                                                                                 \
+    .align   = UiAlign_MiddleLeft,                                                                 \
     .bgColor = ui_color(32, 32, 32, 192),                                                          \
     __VA_ARGS__}))
 
