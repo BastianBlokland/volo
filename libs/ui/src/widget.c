@@ -327,7 +327,11 @@ bool ui_toggle_with_opts(UiCanvasComp* canvas, bool* input, const UiToggleOpts* 
     ui_style_outline(canvas, 2);
     break;
   }
-  ui_canvas_draw_glyph(canvas, UiShape_Circle, 5, UiFlags_Interactable);
+  UiFlags glyphFlags = UiFlags_Interactable;
+  if (opts->flags & UiWidget_InteractAllowSwitch) {
+    glyphFlags |= UiFlags_InteractAllowSwitch;
+  }
+  ui_canvas_draw_glyph(canvas, UiShape_Circle, 5, glyphFlags);
 
   ui_style_pop(canvas);
 

@@ -6,9 +6,10 @@
 #include "ui_vector.h"
 
 typedef enum eUiWidgetFlags {
-  UiWidget_Default           = 0,
-  UiWidget_Disabled          = 1 << 0,
-  UiWidget_DirtyWhileEditing = 1 << 1, // Always dirty during edit even if no changes occurred.
+  UiWidget_Default             = 0,
+  UiWidget_Disabled            = 1 << 0,
+  UiWidget_DirtyWhileEditing   = 1 << 1, // Always dirty during edit even if no changes occurred.
+  UiWidget_InteractAllowSwitch = 1 << 2, // Allow switching targets while holding input down.
 } UiWidgetFlags;
 
 typedef enum {
