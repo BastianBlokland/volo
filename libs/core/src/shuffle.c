@@ -1,4 +1,3 @@
-#include "core_diag.h"
 #include "core_rng.h"
 #include "core_shuffle.h"
 

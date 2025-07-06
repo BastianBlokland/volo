@@ -104,12 +104,16 @@ bool ui_button_with_opts(UiCanvasComp* canvas, const UiButtonOpts* opts) {
   const bool     disabled = (opts->flags & UiWidget_Disabled) != 0;
   const UiStatus status   = disabled ? UiStatus_Idle : ui_canvas_elem_status(canvas, id);
 
+  UiFlags interactFlags = UiFlags_Interactable;
+  if (opts->flags & UiWidget_InteractAllowSwitch) {
+    interactFlags |= UiFlags_InteractAllowSwitch;
+  }
   if (opts->noFrame) {
-    ui_canvas_draw_glyph(canvas, UiShape_Empty, 0, UiFlags_Interactable);
+    ui_canvas_draw_glyph(canvas, UiShape_Empty, 0, interactFlags);
   } else {
     ui_style_push(canvas);
     ui_interactable_frame_style(canvas, opts->frameColor, status);
-    ui_canvas_draw_glyph(canvas, UiShape_Circle, 10, UiFlags_Interactable);
+    ui_canvas_draw_glyph(canvas, UiShape_Circle, 10, interactFlags);
     ui_style_pop(canvas);
   }
 
@@ -308,7 +312,7 @@ bool ui_toggle_with_opts(UiCanvasComp* canvas, bool* input, const UiToggleOpts* 
     *input ^= true;
   }
   ui_layout_push(canvas);
-  ui_layout_inner(canvas, UiBase_Current, UiAlign_MiddleLeft, size, UiBase_Absolute);
+  ui_layout_inner(canvas, UiBase_Current, opts->align, size, UiBase_Absolute);
 
   ui_style_push(canvas);
   switch (status) {
@@ -327,7 +331,11 @@ bool ui_toggle_with_opts(UiCanvasComp* canvas, bool* input, const UiToggleOpts* 
     ui_style_outline(canvas, 2);
     break;
   }
-  ui_canvas_draw_glyph(canvas, UiShape_Circle, 5, UiFlags_Interactable);
+  UiFlags glyphFlags = UiFlags_Interactable;
+  if (opts->flags & UiWidget_InteractAllowSwitch) {
+    glyphFlags |= UiFlags_InteractAllowSwitch;
+  }
+  ui_canvas_draw_glyph(canvas, UiShape_Circle, 5, glyphFlags);
 
   ui_style_pop(canvas);
 
@@ -457,6 +465,8 @@ static UiSelectFlags ui_select_dropdown(
     const UiSelectOpts* opts) {
   const u32 entryCount = optionCount + opts->allowNone;
   if (!entryCount) {
+    ui_canvas_id_skip(canvas, 1); // Skip the background.
+    ui_scrollview_skip(canvas);
     return 0;
   }
   static const f32 g_spacing = 2;
@@ -577,7 +587,8 @@ bool ui_select_with_opts(
   if (isOpen) {
     selectFlags |= ui_select_dropdown(canvas, headerId, input, options, optionCount, opts);
   } else {
-    ui_canvas_id_skip(canvas, optionCount * 2);
+    ui_scrollview_skip(canvas);
+    ui_canvas_id_skip(canvas, 1 /* bg */ + optionCount * 2 /* hitbox + label */);
   }
   if (selectFlags & UiSelectFlags_Changed || disabled) {
     ui_canvas_persistent_flags_unset(canvas, headerId, UiPersistentFlags_Open);
@@ -594,6 +605,174 @@ bool ui_select_with_opts(
     ui_canvas_interact_type(canvas, UiInteractType_Action);
   }
   if (headerStatus == UiStatus_Activated || selectFlags & UiSelectFlags_Changed) {
+    ui_canvas_sound(canvas, UiSoundType_Click);
+  }
+
+  ui_style_pop(canvas);
+  return (selectFlags & UiSelectFlags_Changed) != 0;
+}
+
+static UiSelectFlags ui_select_bits_dropdown(
+    UiCanvasComp*       canvas,
+    const UiId          id,
+    const BitSet        value,
+    const String*       options,
+    const u32           optionCount,
+    const UiSelectOpts* opts) {
+  if (!optionCount) {
+    ui_canvas_id_skip(canvas, 2 * 2 /* buttons */ + 1 /* background */);
+    ui_scrollview_skip(canvas);
+    return 0;
+  }
+  static const f32 g_spacing = 2;
+
+  UiSelectFlags       selectFlags   = 0;
+  const UiWidgetFlags interactFlags = UiWidget_InteractAllowSwitch;
+  const u32           rowCount      = optionCount + 1;
+  const UiRect        lastRect      = ui_canvas_elem_rect(canvas, id);
+  const f32           totalHeight   = rowCount * lastRect.height + (rowCount - 1) * g_spacing;
+  const f32           height        = math_min(totalHeight, opts->maxHeight);
+  ui_layout_push(canvas);
+
+  const UiDir dir = (lastRect.y - height) > 0.0f ? Ui_Down : Ui_Up;
+
+  // Set the size of the dropdown.
+  ui_layout_next(canvas, dir, g_spacing);
+  const UiAlign anchor = dir == Ui_Up ? UiAlign_BottomCenter : UiAlign_TopCenter;
+  ui_layout_move_to(canvas, UiBase_Current, anchor, Ui_Y);
+  ui_layout_resize(canvas, anchor, ui_vector(0, height), UiBase_Absolute, Ui_Y);
+
+  // Draw background.
+  ui_style_push(canvas);
+  ui_style_outline(canvas, 2);
+  ui_style_color(canvas, opts->dropFrameColor);
+  ui_canvas_draw_glyph(canvas, UiShape_Square, 10, UiFlags_None);
+  ui_style_pop(canvas);
+
+  UiScrollview scrollview;
+  if (ui_canvas_elem_status(canvas, id) == UiStatus_Activated) {
+    scrollview = (UiScrollview){0}; // Reset the scrollview on open.
+  } else {
+    scrollview = *ui_canvas_persistent_scrollview(canvas, id);
+  }
+
+  if (ui_scrollview_begin(canvas, &scrollview, UiLayer_Overlay, totalHeight)) {
+    selectFlags |= UiSelectFlags_Hovered;
+  }
+
+  ui_layout_move_to(canvas, UiBase_Current, anchor, Ui_Y);
+  ui_layout_resize(canvas, anchor, ui_vector(0, lastRect.height), UiBase_Absolute, Ui_Y);
+
+  ui_layout_push(canvas);
+  ui_layout_grow(canvas, UiAlign_MiddleCenter, ui_vector(-6, -3), UiBase_Absolute, Ui_XY);
+  ui_layout_grow(canvas, UiAlign_BottomLeft, ui_vector(-0.5f, 0), UiBase_Current, Ui_X);
+  ui_layout_grow(canvas, UiAlign_BottomLeft, ui_vector(-1, 0), UiBase_Absolute, Ui_X);
+  if (ui_button(canvas, .label = string_lit("All"), .fontSize = 14, .flags = interactFlags)) {
+    bitset_set_all(value, math_min(bitset_size(value), optionCount));
+  }
+  ui_layout_next(canvas, Ui_Right, 2);
+  if (ui_button(canvas, .label = string_lit("None"), .fontSize = 14, .flags = interactFlags)) {
+    bitset_clear_all(value);
+  }
+  ui_layout_pop(canvas);
+  ui_layout_next(canvas, dir, g_spacing);
+
+  for (u32 i = 0; i != optionCount; ++i) {
+    if (ui_scrollview_cull(&scrollview, (i + 1) * (lastRect.height + g_spacing), lastRect.height)) {
+      ui_canvas_id_skip(canvas, 3 /* ui_toggle() consumes 2 ids */);
+      ui_layout_next(canvas, dir, g_spacing);
+      continue;
+    }
+    const u32 optionIndex  = dir == Ui_Up ? optionCount - 1 - i : i;
+    bool      optionActive = bitset_test(value, optionIndex);
+
+    ui_layout_push(canvas);
+    ui_layout_grow(canvas, UiAlign_MiddleCenter, ui_vector(-10, 0), UiBase_Absolute, Ui_X);
+    ui_canvas_draw_text(canvas, options[optionIndex], opts->fontSize, UiAlign_MiddleLeft, 0);
+
+    if (optionIndex < bitset_size(value)) {
+      if (ui_canvas_elem_status(canvas, ui_canvas_id_peek(canvas)) >= UiStatus_Hovered) {
+        selectFlags |= UiSelectFlags_Hovered;
+      }
+      if (ui_toggle(
+              canvas,
+              &optionActive,
+              .flags = interactFlags,
+              .align = UiAlign_MiddleRight,
+              .size  = 18)) {
+        if (optionActive) {
+          bitset_set(value, optionIndex);
+        } else {
+          bitset_clear(value, optionIndex);
+        }
+        selectFlags |= UiSelectFlags_Changed;
+      }
+    } else {
+      ui_canvas_id_skip(canvas, 2);
+    }
+    ui_layout_pop(canvas);
+    ui_layout_next(canvas, dir, g_spacing);
+  }
+  ui_scrollview_end(canvas, &scrollview);
+  *ui_canvas_persistent_scrollview(canvas, id) = scrollview; // Store scrollview state.
+  ui_layout_pop(canvas);
+  return selectFlags;
+}
+
+bool ui_select_bits_with_opts(
+    UiCanvasComp*       canvas,
+    const BitSet        value,
+    const String*       options,
+    const u32           optionCount,
+    const UiSelectOpts* opts) {
+
+  const UiId     headerId     = ui_canvas_id_peek(canvas);
+  const bool     disabled     = (opts->flags & UiWidget_Disabled) != 0 || !optionCount;
+  const UiStatus headerStatus = disabled ? UiStatus_Idle : ui_canvas_elem_status(canvas, headerId);
+  UiSelectFlags  selectFlags  = 0;
+
+  if (headerStatus >= UiStatus_Hovered) {
+    selectFlags |= UiSelectFlags_Hovered;
+  }
+  if (headerStatus == UiStatus_Activated) {
+    ui_canvas_persistent_flags_toggle(canvas, headerId, UiPersistentFlags_Open);
+  }
+  const bool isOpen = (ui_canvas_persistent_flags(canvas, headerId) & UiPersistentFlags_Open) != 0;
+  const String headerName = opts->placeholder.size ? opts->placeholder : string_lit("Options");
+  const String headerLabel =
+      fmt_write_scratch("{} ({})", fmt_text(headerName), fmt_int(bitset_count(value)));
+
+  ui_style_push(canvas);
+  if (isOpen) {
+    ui_style_layer(canvas, UiLayer_Overlay);
+    ui_canvas_min_interact_layer(canvas, UiLayer_Overlay);
+  }
+  if (disabled) {
+    ui_style_color_mult(canvas, g_uiDisabledMult);
+  }
+  ui_select_header(canvas, headerLabel, headerStatus, isOpen, opts);
+
+  if (isOpen) {
+    selectFlags |= ui_select_bits_dropdown(canvas, headerId, value, options, optionCount, opts);
+  } else {
+    ui_scrollview_skip(canvas);
+    ui_canvas_id_skip(canvas, 2 * 2 /* btns */ + 1 /* bg */ + optionCount * 3 /* label + toggle */);
+  }
+  if (disabled) {
+    ui_canvas_persistent_flags_unset(canvas, headerId, UiPersistentFlags_Open);
+  }
+  if (!(selectFlags & UiSelectFlags_Hovered) && ui_canvas_input_any(canvas)) {
+    ui_canvas_persistent_flags_unset(canvas, headerId, UiPersistentFlags_Open);
+  }
+
+  if (!string_is_empty(opts->tooltip)) {
+    ui_tooltip(canvas, headerId, opts->tooltip);
+  }
+
+  if (headerStatus >= UiStatus_Hovered) {
+    ui_canvas_interact_type(canvas, UiInteractType_Action);
+  }
+  if (headerStatus == UiStatus_Activated) {
     ui_canvas_sound(canvas, UiSoundType_Click);
   }
 

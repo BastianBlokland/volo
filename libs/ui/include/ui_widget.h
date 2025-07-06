@@ -6,9 +6,10 @@
 #include "ui_vector.h"
 
 typedef enum eUiWidgetFlags {
-  UiWidget_Default           = 0,
-  UiWidget_Disabled          = 1 << 0,
-  UiWidget_DirtyWhileEditing = 1 << 1, // Always dirty during edit even if no changes occurred.
+  UiWidget_Default             = 0,
+  UiWidget_Disabled            = 1 << 0,
+  UiWidget_DirtyWhileEditing   = 1 << 1, // Always dirty during edit even if no changes occurred.
+  UiWidget_InteractAllowSwitch = 1 << 2, // Allow switching targets while holding input down.
 } UiWidgetFlags;
 
 typedef enum {
@@ -49,6 +50,7 @@ typedef struct {
 typedef struct {
   UiWidgetFlags flags;
   f32           size;
+  UiAlign       align;
   UiColor       bgColor;
   String        tooltip;
 } UiToggleOpts;
@@ -168,6 +170,7 @@ typedef struct {
 #define ui_toggle(_CANVAS_, _VALUE_, ...) ui_toggle_with_opts((_CANVAS_), (_VALUE_),               \
   &((UiToggleOpts){                                                                                \
     .size    = 20,                                                                                 \
+    .align   = UiAlign_MiddleLeft,                                                                 \
     .bgColor = ui_color(32, 32, 32, 192),                                                          \
     __VA_ARGS__}))
 
@@ -205,6 +208,19 @@ typedef struct {
     .frameColor     = ui_color(32, 32, 32, 192),                                                   \
     .dropFrameColor = ui_color(64, 64, 64, 235),                                                   \
     .placeholder    = string_lit("< None >"),                                                      \
+    __VA_ARGS__}))
+
+/**
+ * Draw a bit-select dropdown in the currently active canvas rectangle.
+ * BitSet value is modified based on the user input.
+ * NOTE: Its important that the widget has a stable identifier in the canvas.
+ */
+#define ui_select_bits(_CANVAS_, _VALUE_, _OPT_LABELS_, _OPT_COUNT_, ...)                          \
+  ui_select_bits_with_opts((_CANVAS_), (_VALUE_), (_OPT_LABELS_), (_OPT_COUNT_), &((UiSelectOpts){ \
+    .fontSize       = 16,                                                                          \
+    .maxHeight      = 150,                                                                         \
+    .frameColor     = ui_color(32, 32, 32, 192),                                                   \
+    .dropFrameColor = ui_color(64, 64, 64, 235),                                                   \
     __VA_ARGS__}))
 
 /**
@@ -291,6 +307,8 @@ bool ui_toggle_flag_with_opts(UiCanvasComp*, u32* value, u32 flag, const UiToggl
 bool ui_fold_with_opts(UiCanvasComp*, bool* value, const UiFoldOpts*);
 bool ui_select_with_opts(
     UiCanvasComp*, i32* value, const String* options, u32 optionCount, const UiSelectOpts*);
+bool ui_select_bits_with_opts(
+    UiCanvasComp*, BitSet value, const String* options, u32 optionCount, const UiSelectOpts*);
 bool ui_tooltip_with_opts(UiCanvasComp*, UiId, String text, const UiTooltipOpts*);
 bool ui_section_with_opts(UiCanvasComp*, const UiSectionOpts*);
 bool ui_textbox_with_opts(UiCanvasComp*, DynString*, const UiTextboxOpts*);
