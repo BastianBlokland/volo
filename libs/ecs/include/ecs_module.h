@@ -45,6 +45,11 @@ typedef enum {
    */
   EcsSystemFlags_Exclusive = 1 << 1,
 
+  /**
+   * This system has an unpredictable cost.
+   */
+  EcsSystemFlags_UnpredictableCost = 1 << 2,
+
 } EcsSystemFlags;
 
 typedef enum {

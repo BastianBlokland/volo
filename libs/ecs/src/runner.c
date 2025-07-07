@@ -47,6 +47,7 @@ typedef struct {
 
 typedef struct {
   EcsSystemId      id;
+  u16              flags;
   u16              parCount, parIndex;
   const EcsRunner* runner;
   EcsSystemRoutine routine;
@@ -225,8 +226,11 @@ static u64 runner_estimate_task(const RunnerEstimateContext* ctx, const JobTaskI
     }
   }
   // Task is not a meta task; assume its a system.
-  const TaskContextSystem* sysTaskCtx     = jobs_graph_task_ctx(ctx->plan->graph, task).ptr;
-  const TimeDuration       sysTotalDurAvg = ctx->runner->sysStats[sysTaskCtx->id].totalDurAvg;
+  const TaskContextSystem* sysTaskCtx = jobs_graph_task_ctx(ctx->plan->graph, task).ptr;
+  if (sysTaskCtx->flags & EcsSystemFlags_UnpredictableCost) {
+    return 1;
+  }
+  const TimeDuration sysTotalDurAvg = ctx->runner->sysStats[sysTaskCtx->id].totalDurAvg;
   return math_max(sysTotalDurAvg, sysTaskCtx->parCount) / sysTaskCtx->parCount;
 }
 
@@ -289,6 +293,7 @@ static EcsTaskSet runner_insert_system(
         mem_struct(
             TaskContextSystem,
             .id       = systemId,
+            .flags    = (u16)systemDef->flags,
             .parCount = (u16)parallelCount,
             .parIndex = parIndex,
             .runner   = runner,

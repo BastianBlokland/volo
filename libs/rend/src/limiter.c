@@ -94,7 +94,7 @@ ecs_module_init(rend_limiter_module) {
 
   ecs_register_system_with_flags(
       RendFrameLimiterSys,
-      EcsSystemFlags_Exclusive,
+      EcsSystemFlags_Exclusive | EcsSystemFlags_UnpredictableCost,
       ecs_view_id(GlobalView),
       ecs_view_id(PainterView));
   ecs_order(RendFrameLimiterSys, RendOrder_FrameLimiter);
