@@ -39,7 +39,7 @@ void file_pal_init(void) {
   }
 }
 
-static FileResult fileresult_from_lasterror(void) {
+NO_INLINE_HINT static FileResult fileresult_from_lasterror(void) {
   switch (GetLastError()) {
   case ERROR_ACCESS_DENIED:
     return FileResult_NoAccess;
@@ -221,17 +221,36 @@ FileResult file_read_sync(File* file, DynString* dynstr) {
   return fileresult_from_lasterror();
 }
 
-FileResult file_seek_sync(File* file, usize position) {
+FileResult file_seek_sync(File* file, const usize position) {
+  diag_assert(file);
+
   LARGE_INTEGER li;
   li.QuadPart = position;
   li.LowPart  = SetFilePointer(file->handle, li.LowPart, &li.HighPart, FILE_BEGIN);
-  if (li.LowPart == INVALID_SET_FILE_POINTER && GetLastError() != NO_ERROR) {
+  if (UNLIKELY(li.LowPart == INVALID_SET_FILE_POINTER && GetLastError() != NO_ERROR)) {
+    return fileresult_from_lasterror();
+  }
+  return FileResult_Success;
+}
+
+FileResult file_resize_sync(File* file, const usize size) {
+  diag_assert(file);
+  diag_assert_msg(file->access & FileAccess_Write, "File handle does not have write access");
+
+  LARGE_INTEGER endPos;
+  endPos.QuadPart = size;
+  if (UNLIKELY(!SetFilePointerEx(file->handle, endPos, null, FILE_BEGIN))) {
+    return fileresult_from_lasterror();
+  }
+  if (UNLIKELY(!SetEndOfFile(file->handle))) {
     return fileresult_from_lasterror();
   }
   return FileResult_Success;
 }
 
 FileInfo file_stat_sync(File* file) {
+  diag_assert(file);
+
   BY_HANDLE_FILE_INFORMATION info;
   const BOOL                 success = GetFileInformationByHandle(file->handle, &info);
   if (UNLIKELY(!success)) {

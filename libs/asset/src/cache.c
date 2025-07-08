@@ -87,9 +87,9 @@ static bool cache_reg_save(AssetCache* c) {
   data_write_bin(g_dataReg, &blobBuffer, g_assetCacheMeta, mem_var(c->reg));
 
   FileResult fileRes;
-  if ((fileRes = file_seek_sync(c->regFile, 0))) {
+  if ((fileRes = file_resize_sync(c->regFile, 0))) {
     log_w(
-        "Failed to rewind asset cache registry file",
+        "Failed to clear asset cache registry file",
         log_param("error", fmt_text(file_result_str(fileRes))));
     result = false;
   }

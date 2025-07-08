@@ -19,12 +19,14 @@ File* g_fileStdIn  = &(File){.handle = 0, .access = FileAccess_Read};
 File* g_fileStdOut = &(File){.handle = 1, .access = FileAccess_Write};
 File* g_fileStdErr = &(File){.handle = 2, .access = FileAccess_Write};
 
-static FileResult fileresult_from_errno(void) {
+NO_INLINE_HINT static FileResult fileresult_from_errno(void) {
   switch (errno) {
   case EACCES:
   case EPERM:
   case EROFS:
     return FileResult_NoAccess;
+  case EFBIG:
+    return FileResult_FileTooBig;
   case ETXTBSY:
     return FileResult_Locked;
   case EDQUOT:
@@ -190,14 +192,31 @@ FileResult file_read_sync(File* file, DynString* dynstr) {
   }
 }
 
-FileResult file_seek_sync(File* file, usize position) {
-  if (lseek(file->handle, position, SEEK_SET) < 0) {
+FileResult file_seek_sync(File* file, const usize position) {
+  diag_assert(file);
+
+  if (UNLIKELY(lseek(file->handle, position, SEEK_SET) < 0)) {
+    return fileresult_from_errno();
+  }
+  return FileResult_Success;
+}
+
+FileResult file_resize_sync(File* file, const usize size) {
+  diag_assert(file);
+  diag_assert_msg(file->access & FileAccess_Write, "File handle does not have write access");
+
+  if (UNLIKELY(ftruncate(file->handle, size) < 0)) {
+    return fileresult_from_errno();
+  }
+  if (UNLIKELY(lseek(file->handle, size, SEEK_SET) < 0)) {
     return fileresult_from_errno();
   }
   return FileResult_Success;
 }
 
 FileInfo file_stat_sync(File* file) {
+  diag_assert(file);
+
   struct stat statOutput;
   const int   res = fstat(file->handle, &statOutput);
   if (UNLIKELY(res != 0)) {

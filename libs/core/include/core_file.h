@@ -24,6 +24,7 @@ typedef enum eFileResult {
   FileResult_IsDirectory,
   FileResult_AllocationFailed,
   FileResult_FileEmpty,
+  FileResult_FileTooBig,
   FileResult_UnknownError,
 
   FileResult_Count,
@@ -137,6 +138,12 @@ FileResult file_read_to_end_sync(File*, DynString*);
  * Synchronously seek an open file to the specified position.
  */
 FileResult file_seek_sync(File*, usize position);
+
+/**
+ * Synchronously resize the file.
+ * NOTE: File position is updated to the new end of the file.
+ */
+FileResult file_resize_sync(File*, usize size);
 
 /**
  * Synchronously retrieve information about a file.
