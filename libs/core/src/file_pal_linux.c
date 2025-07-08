@@ -19,7 +19,7 @@ File* g_fileStdIn  = &(File){.handle = 0, .access = FileAccess_Read};
 File* g_fileStdOut = &(File){.handle = 1, .access = FileAccess_Write};
 File* g_fileStdErr = &(File){.handle = 2, .access = FileAccess_Write};
 
-static FileResult fileresult_from_errno(void) {
+NO_INLINE_HINT static FileResult fileresult_from_errno(void) {
   switch (errno) {
   case EACCES:
   case EPERM:
