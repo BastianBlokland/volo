@@ -93,6 +93,12 @@ static bool cache_reg_save(AssetCache* c) {
         log_param("error", fmt_text(file_result_str(fileRes))));
     result = false;
   }
+  if ((fileRes = file_resize_sync(c->regFile, 0))) {
+    log_w(
+        "Failed to resize asset cache registry file",
+        log_param("error", fmt_text(file_result_str(fileRes))));
+    result = false;
+  }
   if ((fileRes = file_write_sync(c->regFile, dynstring_view(&blobBuffer)))) {
     log_w(
         "Failed to write asset cache registry",
