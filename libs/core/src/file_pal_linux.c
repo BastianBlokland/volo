@@ -208,6 +208,9 @@ FileResult file_resize_sync(File* file, const usize size) {
   if (UNLIKELY(ftruncate(file->handle, size) < 0)) {
     return fileresult_from_errno();
   }
+  if (UNLIKELY(lseek(file->handle, size, SEEK_SET) < 0)) {
+    return fileresult_from_errno();
+  }
   return FileResult_Success;
 }
 
