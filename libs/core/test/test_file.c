@@ -238,7 +238,6 @@ spec(file) {
   it("can rewrite a file") {
     check_eq_int(file_write_sync(tmpFile, string_lit("Test")), FileResult_Success);
     check_eq_int(file_resize_sync(tmpFile, 0), FileResult_Success);
-    check_eq_int(file_seek_sync(tmpFile, 0), FileResult_Success);
 
     check_eq_int(file_write_sync(tmpFile, string_lit("Hello World!")), FileResult_Success);
 
@@ -248,9 +247,10 @@ spec(file) {
     check_eq_string(mapping, string_lit("Hello World!"));
   }
 
-  it("can be cleared using truncate") {
+  it("can be cleared using resize and seek") {
     check_eq_int(file_write_sync(tmpFile, string_lit("Test")), FileResult_Success);
     check_eq_int(file_resize_sync(tmpFile, 0), FileResult_Success);
+    check_eq_int(file_seek_sync(tmpFile, 4), FileResult_Success);
 
     check_eq_int(file_write_sync(tmpFile, string_lit("Hello World!")), FileResult_Success);
 

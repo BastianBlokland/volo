@@ -141,8 +141,7 @@ FileResult file_seek_sync(File*, usize position);
 
 /**
  * Synchronously resize the file.
- * NOTE: File position is not modified.
- * NOTE: When growing the size the new part will be filled with zeroes.
+ * NOTE: File position is updated to the new end of the file.
  */
 FileResult file_resize_sync(File*, usize size);
 
