@@ -224,6 +224,17 @@ spec(file) {
     check_eq_int(file_delete_sync(pathB), FileResult_Success);
   }
 
+  it("can overwrite part of a file") {
+    check_eq_int(file_write_sync(tmpFile, string_lit("Hello World!")), FileResult_Success);
+    check_eq_int(file_seek_sync(tmpFile, 6), FileResult_Success);
+    check_eq_int(file_write_sync(tmpFile, string_lit("  Bye")), FileResult_Success);
+
+    check_eq_int(file_seek_sync(tmpFile, 0), FileResult_Success);
+    String mapping;
+    check_eq_int(file_map(tmpFile, &mapping, FileHints_None), FileResult_Success);
+    check_eq_string(mapping, string_lit("Hello   Bye!"));
+  }
+
   teardown() {
     file_destroy(tmpFile);
     dynstring_destroy(&buffer);
