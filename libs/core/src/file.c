@@ -25,6 +25,7 @@ static const String g_fileResultStrs[] = {
     string_static("FileIsDirectory"),
     string_static("FileAllocationFailed"),
     string_static("FileEmpty"),
+    string_static("FileTooBig"),
     string_static("FileUnknownError"),
 };
 
