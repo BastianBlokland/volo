@@ -135,6 +135,11 @@ FileResult file_read_sync(File*, DynString*);
 FileResult file_read_to_end_sync(File*, DynString*);
 
 /**
+ * Synchronously query the current file position.
+ */
+FileResult file_position_sync(File*, usize* outPosition);
+
+/**
  * Synchronously seek an open file to the specified position.
  */
 FileResult file_seek_sync(File*, usize position);

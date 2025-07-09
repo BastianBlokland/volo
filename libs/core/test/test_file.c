@@ -82,6 +82,20 @@ spec(file) {
     check(time_real_duration(info.modTime, time_real_clock()) < time_minute);
   }
 
+  it("can query the current position") {
+    usize position;
+    check_eq_int(file_position_sync(tmpFile, &position), FileResult_Success);
+    check_eq_int(position, 0);
+
+    file_write_sync(tmpFile, string_lit("Hello World!"));
+    check_eq_int(file_position_sync(tmpFile, &position), FileResult_Success);
+    check_eq_int(position, 12);
+
+    check_eq_int(file_seek_sync(tmpFile, 42), FileResult_Success);
+    check_eq_int(file_position_sync(tmpFile, &position), FileResult_Success);
+    check_eq_int(position, 42);
+  }
+
   it("can read file contents through a memory map") {
     file_write_sync(tmpFile, string_lit("Hello World!"));
 

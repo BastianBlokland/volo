@@ -192,6 +192,17 @@ FileResult file_read_sync(File* file, DynString* dynstr) {
   }
 }
 
+FileResult file_position_sync(File* file, usize* outPosition) {
+  diag_assert(file);
+
+  const off_t result = lseek(file->handle, 0, SEEK_CUR);
+  if (UNLIKELY(result < 0)) {
+    return fileresult_from_errno();
+  }
+  *outPosition = (usize)result;
+  return FileResult_Success;
+}
+
 FileResult file_seek_sync(File* file, const usize position) {
   diag_assert(file);
 
