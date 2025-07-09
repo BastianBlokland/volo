@@ -221,6 +221,18 @@ FileResult file_read_sync(File* file, DynString* dynstr) {
   return fileresult_from_lasterror();
 }
 
+FileResult file_position_sync(File* file, usize* outPosition) {
+  diag_assert(file);
+
+  LARGE_INTEGER pos;
+  if (UNLIKELY(!SetFilePointerEx(file->handle, (LARGE_INTEGER){0}, &pos, FILE_CURRENT))) {
+    return fileresult_from_lasterror();
+  }
+
+  *outPosition = (usize)pos.QuadPart;
+  return FileResult_Success;
+}
+
 FileResult file_seek_sync(File* file, const usize position) {
   diag_assert(file);
 
