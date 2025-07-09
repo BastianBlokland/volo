@@ -25,6 +25,7 @@ typedef enum eFileResult {
   FileResult_AllocationFailed,
   FileResult_FileEmpty,
   FileResult_FileTooBig,
+  FileResult_InvalidMapping,
   FileResult_UnknownError,
 
   FileResult_Count,
