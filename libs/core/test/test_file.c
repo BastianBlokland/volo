@@ -136,6 +136,12 @@ spec(file) {
     check_eq_string(mapping2, string_lit("Hello World!"));
   }
 
+  it("fails if attempting to map at an invalid offset") {
+    String mapping;
+    check_eq_int(file_map(tmpFile, 42, 0, FileHints_None, &mapping), FileResult_InvalidMapping);
+    check_eq_int(file_map(tmpFile, 0, 0, FileHints_None, &mapping), FileResult_FileEmpty);
+  }
+
   it("can check if a file exists") {
     const String existingPath    = g_pathExecutable;
     const String nonExistingPath = string_lit("path_to_non_existent_file_42");
