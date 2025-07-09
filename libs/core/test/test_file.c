@@ -117,6 +117,7 @@ spec(file) {
 
     String mapping;
     check_eq_int(file_map(tmpFile, 0, 0, FileHints_None, &mapping), FileResult_Success);
+    check_eq_int(mapping.size, 12);
     mem_cpy(mapping, string_lit("Hello World!"));
 
     check_eq_string(mapping, string_lit("Hello World!"));
@@ -134,6 +135,22 @@ spec(file) {
     String mapping2;
     check_eq_int(file_map(tmpFile, 0, 0, FileHints_None, &mapping2), FileResult_Success);
     check_eq_string(mapping2, string_lit("Hello World!"));
+  }
+
+  it("can map part of a file") {
+    check_eq_int(file_resize_sync(tmpFile, 1024 * 8), FileResult_Success);
+
+    String mapping;
+    check_eq_int(file_map(tmpFile, 1024 * 4, 12, FileHints_None, &mapping), FileResult_Success);
+    check_eq_int(mapping.size, 12);
+
+    mem_cpy(mapping, string_lit("Hello World!"));
+    check_eq_int(file_unmap(tmpFile), FileResult_Success);
+
+    check_eq_int(file_map(tmpFile, 0, 0, FileHints_None, &mapping), FileResult_Success);
+    check_eq_int(mapping.size, 1024 * 8);
+    check(mem_all(string_slice(mapping, 0, 1024 * 4), 0));
+    check_eq_string(string_slice(mapping, 1024 * 4, 12), string_lit("Hello World!"));
   }
 
   it("fails if attempting to map at an invalid offset") {
