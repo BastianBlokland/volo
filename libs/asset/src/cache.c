@@ -124,7 +124,7 @@ static bool cache_reg_open(AssetCache* c) {
   }
 
   String data;
-  fileRes = file_map(c->regFile, &data, FileHints_Prefetch);
+  fileRes = file_map(c->regFile, 0 /* offset */, 0 /* size */, FileHints_Prefetch, &data);
   if (UNLIKELY(fileRes != FileResult_Success)) {
     log_w(
         "Failed to map asset cache registry",

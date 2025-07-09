@@ -118,7 +118,7 @@ GamePrefsComp* prefs_init(EcsWorld* world) {
 
   // Map the file data.
   String fileData;
-  if (UNLIKELY(fileRes = file_map(file, &fileData, FileHints_Prefetch))) {
+  if (UNLIKELY(fileRes = file_map(file, 0, 0, FileHints_Prefetch, &fileData))) {
     log_e("Failed to map preference file", log_param("err", fmt_text(file_result_str(fileRes))));
     goto RetDefault;
   }

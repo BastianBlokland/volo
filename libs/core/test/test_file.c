@@ -100,7 +100,7 @@ spec(file) {
     file_write_sync(tmpFile, string_lit("Hello World!"));
 
     String mapping;
-    check_eq_int(file_map(tmpFile, &mapping, FileHints_None), FileResult_Success);
+    check_eq_int(file_map(tmpFile, 0, 0, FileHints_None, &mapping), FileResult_Success);
     check_eq_string(mapping, string_lit("Hello World!"));
   }
 
@@ -108,7 +108,7 @@ spec(file) {
     file_write_sync(tmpFile, string_lit("Hello World!"));
 
     String mapping;
-    check_eq_int(file_map(tmpFile, &mapping, FileHints_Prefetch), FileResult_Success);
+    check_eq_int(file_map(tmpFile, 0, 0, FileHints_Prefetch, &mapping), FileResult_Success);
     check_eq_string(mapping, string_lit("Hello World!"));
   }
 
@@ -116,7 +116,7 @@ spec(file) {
     file_resize_sync(tmpFile, 12);
 
     String mapping;
-    check_eq_int(file_map(tmpFile, &mapping, FileHints_None), FileResult_Success);
+    check_eq_int(file_map(tmpFile, 0, 0, FileHints_None, &mapping), FileResult_Success);
     mem_cpy(mapping, string_lit("Hello World!"));
 
     check_eq_string(mapping, string_lit("Hello World!"));
@@ -126,13 +126,13 @@ spec(file) {
     file_write_sync(tmpFile, string_lit("Hello World!"));
 
     String mapping1;
-    check_eq_int(file_map(tmpFile, &mapping1, FileHints_None), FileResult_Success);
+    check_eq_int(file_map(tmpFile, 0, 0, FileHints_None, &mapping1), FileResult_Success);
     check_eq_string(mapping1, string_lit("Hello World!"));
 
     check_eq_int(file_unmap(tmpFile), FileResult_Success);
 
     String mapping2;
-    check_eq_int(file_map(tmpFile, &mapping2, FileHints_None), FileResult_Success);
+    check_eq_int(file_map(tmpFile, 0, 0, FileHints_None, &mapping2), FileResult_Success);
     check_eq_string(mapping2, string_lit("Hello World!"));
   }
 
@@ -245,7 +245,7 @@ spec(file) {
 
     check_eq_int(file_seek_sync(tmpFile, 0), FileResult_Success);
     String mapping;
-    check_eq_int(file_map(tmpFile, &mapping, FileHints_None), FileResult_Success);
+    check_eq_int(file_map(tmpFile, 0, 0, FileHints_None, &mapping), FileResult_Success);
     check_eq_string(mapping, string_lit("Hello   Bye!"));
   }
 
@@ -257,7 +257,7 @@ spec(file) {
 
     check_eq_int(file_seek_sync(tmpFile, 0), FileResult_Success);
     String mapping;
-    check_eq_int(file_map(tmpFile, &mapping, FileHints_None), FileResult_Success);
+    check_eq_int(file_map(tmpFile, 0, 0, FileHints_None, &mapping), FileResult_Success);
     check_eq_string(mapping, string_lit("Hello World!"));
   }
 
@@ -270,7 +270,7 @@ spec(file) {
 
     check_eq_int(file_seek_sync(tmpFile, 0), FileResult_Success);
     String mapping;
-    check_eq_int(file_map(tmpFile, &mapping, FileHints_None), FileResult_Success);
+    check_eq_int(file_map(tmpFile, 0, 0, FileHints_None, &mapping), FileResult_Success);
     check_eq_string(mapping, string_lit("\0\0\0\0Hello World!"));
   }
 
