@@ -307,6 +307,10 @@ file_pal_map(File* file, const usize offset, usize size, const FileHints hints, 
   }
   if (!size) {
     size = file_stat_sync(file).size;
+    if (UNLIKELY(offset > size)) {
+      return FileResult_InvalidMapping;
+    }
+    size -= offset;
   }
   if (UNLIKELY(!size)) {
     return FileResult_FileEmpty;
