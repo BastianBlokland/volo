@@ -1,5 +1,6 @@
 #include "core_alloc.h"
 #include "core_array.h"
+#include "core_bits.h"
 #include "core_diag.h"
 #include "core_dynstring.h"
 #include "core_file.h"
@@ -15,6 +16,8 @@
 File* g_fileStdIn;
 File* g_fileStdOut;
 File* g_fileStdErr;
+
+static usize g_fileAllocGranularity;
 
 void file_pal_init(void) {
   static File stdIn = {0};
@@ -36,6 +39,13 @@ void file_pal_init(void) {
   stdErr.access      = FileAccess_Write;
   if (stdErr.handle != INVALID_HANDLE_VALUE) {
     g_fileStdErr = &stdErr;
+  }
+
+  SYSTEM_INFO si;
+  GetSystemInfo(&si);
+  g_fileAllocGranularity = si.dwAllocationGranularity;
+  if (UNLIKELY(!bits_ispow2(g_fileAllocGranularity))) {
+    diag_crash_msg("Non pow2 file allocation granularity is not supported");
   }
 }
 
@@ -61,6 +71,8 @@ NO_INLINE_HINT static FileResult fileresult_from_lasterror(void) {
   case ERROR_FILE_EXISTS:
   case ERROR_ALREADY_EXISTS:
     return FileResult_AlreadyExists;
+  case ERROR_MAPPED_ALIGNMENT:
+    return FileResult_InvalidMapping;
   }
   return FileResult_UnknownError;
 }
@@ -343,26 +355,37 @@ FileResult file_delete_dir_sync(String path) {
   return success ? FileResult_Success : fileresult_from_lasterror();
 }
 
-FileResult file_pal_map(File* file, FileMapping* out, const FileHints hints) {
+FileResult
+file_pal_map(File* file, const usize offset, usize size, const FileHints hints, FileMapping* out) {
   diag_assert_msg(file->access != 0, "File handle does not have read or write access");
 
-  LARGE_INTEGER size;
-  size.QuadPart = file_stat_sync(file).size;
-  if (UNLIKELY(!size.QuadPart)) {
+  const usize offsetAligned = offset / g_fileAllocGranularity * g_fileAllocGranularity;
+  const usize padding       = offset - offsetAligned;
+
+  if (!size) {
+    size = file_stat_sync(file).size;
+    if (UNLIKELY(offset > size)) {
+      return FileResult_InvalidMapping;
+    }
+    size -= offset;
+  }
+  if (UNLIKELY(!size)) {
     return FileResult_FileEmpty;
   }
 
   const DWORD  protect = (file->access & FileAccess_Write) ? PAGE_READWRITE : PAGE_READONLY;
-  const HANDLE mapObj = CreateFileMapping(file->handle, 0, protect, size.HighPart, size.LowPart, 0);
+  const HANDLE mapObj  = CreateFileMapping(file->handle, null, protect, 0, 0, null);
   if (UNLIKELY(!mapObj)) {
     return fileresult_from_lasterror();
   }
 
-  const DWORD access = (file->access & FileAccess_Write) ? FILE_MAP_WRITE : FILE_MAP_READ;
-  void*       addr   = MapViewOfFile(mapObj, access, 0, 0, size.QuadPart);
+  const LARGE_INTEGER offsetReq = {.QuadPart = offsetAligned};
+  const usize         sizeReq   = size + padding;
+  const DWORD         access = (file->access & FileAccess_Write) ? FILE_MAP_WRITE : FILE_MAP_READ;
+
+  void* addr = MapViewOfFile(mapObj, access, offsetReq.HighPart, offsetReq.LowPart, sizeReq);
   if (UNLIKELY(!addr)) {
-    const bool success = CloseHandle(mapObj);
-    if (UNLIKELY(!success)) {
+    if (UNLIKELY(!CloseHandle(mapObj))) {
       diag_crash_msg("CloseHandle() failed");
     }
     return fileresult_from_lasterror();
@@ -370,7 +393,7 @@ FileResult file_pal_map(File* file, FileMapping* out, const FileHints hints) {
 
   if (hints & FileHints_Prefetch) {
     WIN32_MEMORY_RANGE_ENTRY entries[] = {
-        {.VirtualAddress = addr, .NumberOfBytes = size.QuadPart},
+        {.VirtualAddress = addr, .NumberOfBytes = sizeReq},
     };
     HANDLE process = GetCurrentProcess();
     if (UNLIKELY(!PrefetchVirtualMemory(process, array_elems(entries), entries, 0))) {
@@ -378,7 +401,12 @@ FileResult file_pal_map(File* file, FileMapping* out, const FileHints hints) {
     }
   }
 
-  *out = (FileMapping){.handle = (uptr)mapObj, .ptr = addr, .size = (usize)size.QuadPart};
+  *out = (FileMapping){
+      .handle = (uptr)mapObj,
+      .offset = offset,
+      .ptr    = bits_ptr_offset(addr, padding),
+      .size   = size,
+  };
   return FileResult_Success;
 }
 
@@ -386,7 +414,11 @@ FileResult file_pal_unmap(File* file, FileMapping* mapping) {
   (void)file;
   diag_assert_msg(mapping->ptr, "Invalid mapping");
 
-  const bool success = UnmapViewOfFile(mapping->ptr) && CloseHandle((HANDLE)mapping->handle);
+  const usize offsetAligned = mapping->offset / g_fileAllocGranularity * g_fileAllocGranularity;
+  const usize padding       = mapping->offset - offsetAligned;
+  void*       alignedPtr    = bits_ptr_offset(mapping->ptr, -(iptr)padding);
+
+  const bool success = UnmapViewOfFile(alignedPtr) && CloseHandle((HANDLE)mapping->handle);
   if (UNLIKELY(!success)) {
     diag_crash_msg("UnmapViewOfFile() or CloseHandle() failed");
   }
