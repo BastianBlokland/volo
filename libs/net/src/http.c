@@ -449,8 +449,7 @@ NetHttp* net_http_connect_sync(Allocator* alloc, const String host, const NetHtt
 
   const TimeSteady resolveStart = time_steady_clock();
 
-  // TODO: Support trying to connect to multiple host ips.
-  NetIp hostIps[1];
+  NetIp hostIps[32];
   u32   hostIpCount = array_elems(hostIps);
 
   http->status = net_resolve_sync(host, hostIps, &hostIpCount);
@@ -463,26 +462,28 @@ NetHttp* net_http_connect_sync(Allocator* alloc, const String host, const NetHtt
         log_param("duration", fmt_duration(resolveDur)));
     return http;
   }
-  http->hostAddr = (NetAddr){.ip = hostIps[0], .port = flags & NetHttpFlags_Tls ? 443 : 80};
-
   const TimeDuration resolveDur = time_steady_duration(resolveStart, time_steady_clock());
   (void)resolveDur;
 
   log_d(
       "Http: Host resolved",
       log_param("host", fmt_text(host)),
-      log_param("addr", fmt_text(net_addr_str_scratch(&http->hostAddr))),
+      log_param("ip-count", hostIpCount),
       log_param("duration", fmt_duration(resolveDur)));
 
   const TimeSteady connectStart = time_steady_clock();
 
-  http->socket = net_socket_connect_sync(alloc, http->hostAddr);
-  http->status = net_socket_status(http->socket);
+  const u16 hostPort = flags & NetHttpFlags_Tls ? 443 : 80;
+  http->socket       = net_socket_connect_any_sync(alloc, hostIps, hostIpCount, hostPort);
+  http->status       = net_socket_status(http->socket);
+  http->hostAddr     = *net_socket_remote(http->socket);
+
   if (http->status != NetResult_Success) {
     const TimeDuration connectDur = time_steady_duration(connectStart, time_steady_clock());
     log_w(
         "Http: Failed to connect to host",
         log_param("error", fmt_text(net_result_str(http->status))),
+        log_param("host", fmt_text(host)),
         log_param("address", fmt_text(net_addr_str_scratch(&http->hostAddr))),
         log_param("duration", fmt_duration(connectDur)));
     return http;
