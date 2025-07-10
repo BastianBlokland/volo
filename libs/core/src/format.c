@@ -173,57 +173,56 @@ void format_write_arg(DynString* str, const FormatArg* arg) {
   case FormatArgType_Nop:
     break;
   case FormatArgType_List:
-    dynstring_append(str, ((const FormatOptsList*)arg->settings)->prefix);
+    dynstring_append(str, arg->opts_list.prefix);
     for (const FormatArg* child = arg->value_list; child->type != FormatArgType_End; ++child) {
       if (child != arg->value_list) {
-        dynstring_append(str, ((const FormatOptsList*)arg->settings)->separator);
+        dynstring_append(str, arg->opts_list.separator);
       }
       format_write_arg(str, child);
     }
-    dynstring_append(str, ((const FormatOptsList*)arg->settings)->suffix);
+    dynstring_append(str, arg->opts_list.suffix);
     break;
   case FormatArgType_i64:
-    format_write_i64(str, arg->value_i64, arg->settings);
+    format_write_i64(str, arg->value_i64, &arg->opts_int);
     break;
   case FormatArgType_u64:
-    format_write_u64(str, arg->value_u64, arg->settings);
+    format_write_u64(str, arg->value_u64, &arg->opts_int);
     break;
   case FormatArgType_f64:
-    format_write_f64(str, arg->value_f64, arg->settings);
+    format_write_f64(str, arg->value_f64, &arg->opts_float);
     break;
   case FormatArgType_bool:
     format_write_bool(str, arg->value_bool);
     break;
   case FormatArgType_BitSet:
-    format_write_bitset(str, arg->value_bitset, arg->settings);
+    format_write_bitset(str, arg->value_bitset, &arg->opts_bitset);
     break;
   case FormatArgType_Mem:
     format_write_mem(str, arg->value_mem);
     break;
   case FormatArgType_Duration:
-    format_write_time_duration_pretty(str, arg->value_duration, arg->settings);
+    format_write_time_duration_pretty(str, arg->value_duration, &arg->opts_float);
     break;
   case FormatArgType_Time:
-    format_write_time_iso8601(str, arg->value_time, arg->settings);
+    format_write_time_iso8601(str, arg->value_time, &arg->opts_time);
     break;
   case FormatArgType_Size:
     format_write_size_pretty(str, arg->value_size);
     break;
   case FormatArgType_Text: {
-    const FormatOptsText* textOpts = arg->settings;
-    String                text     = arg->value_text;
+    String text = arg->value_text;
     if (text.size > fmt_txt_len_max) {
       text = string_slice(text, 0, fmt_txt_len_max);
     }
-    if (textOpts->flags) {
-      format_write_text(str, text, arg->settings);
+    if (arg->opts_text.flags) {
+      format_write_text(str, text, &arg->opts_text);
     } else {
       dynstring_append(str, text); // Fast path for raw text.
     }
     break;
   }
   case FormatArgType_Char:
-    format_write_char(str, arg->value_char, arg->settings);
+    format_write_char(str, arg->value_char, &arg->opts_text);
     break;
   case FormatArgType_Path:
     path_canonize(str, arg->value_path);
@@ -341,7 +340,7 @@ static FormatF64Parts format_f64_decompose(const f64 val, const FormatOptsFloat*
   FormatF64Parts res;
   res.expPart   = exp.exp;
   res.decDigits = math_min(opts->maxDecDigits, 19);
-  res.intPart   = exp.remaining < u64_max ? (u64)exp.remaining : u64_max;
+  res.intPart   = (u64)exp.remaining < u64_max ? (u64)exp.remaining : u64_max;
 
   const u64 maxDecPart = math_pow10_u64(res.decDigits);
   f64       remainder  = (exp.remaining - (f64)res.intPart) * (f64)maxDecPart;
