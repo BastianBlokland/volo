@@ -667,7 +667,7 @@ static ScriptBinder* repl_read_binder_file(const String path) {
     goto Ret;
   }
   String fileData;
-  if ((fileRes = file_map(file, &fileData, FileHints_Prefetch))) {
+  if ((fileRes = file_map(file, 0 /* offset */, 0 /* size */, FileHints_Prefetch, &fileData))) {
     file_write_sync(g_fileStdErr, string_lit("ERROR: Failed to map binder file.\n"));
     goto Ret;
   }

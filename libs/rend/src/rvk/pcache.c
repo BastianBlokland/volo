@@ -76,7 +76,7 @@ VkPipelineCache rvk_pcache_load(RvkDevice* dev) {
   if (file_create(g_allocHeap, path, FileMode_Open, FileAccess_Read, &file)) {
     goto Done;
   }
-  if (file_map(file, &data, FileHints_Prefetch)) {
+  if (file_map(file, 0 /* offset */, 0 /* size */, FileHints_Prefetch, &data)) {
     log_w("Failed to map Vulkan pipeline cache", log_param("path", fmt_path(path)));
     goto Done;
   }

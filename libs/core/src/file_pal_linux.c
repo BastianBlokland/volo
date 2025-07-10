@@ -1,4 +1,5 @@
 #include "core_alloc.h"
+#include "core_bits.h"
 #include "core_diag.h"
 #include "core_dynstring.h"
 #include "core_file.h"
@@ -18,6 +19,8 @@
 File* g_fileStdIn  = &(File){.handle = 0, .access = FileAccess_Read};
 File* g_fileStdOut = &(File){.handle = 1, .access = FileAccess_Write};
 File* g_fileStdErr = &(File){.handle = 2, .access = FileAccess_Write};
+
+static usize g_filePageSize;
 
 NO_INLINE_HINT static FileResult fileresult_from_errno(void) {
   switch (errno) {
@@ -64,7 +67,12 @@ static FileInfo fileinfo_from_stat(const struct stat* stat) {
   };
 }
 
-void file_pal_init(void) {}
+void file_pal_init(void) {
+  g_filePageSize = getpagesize();
+  if (UNLIKELY(!bits_ispow2(g_filePageSize))) {
+    diag_crash_msg("Non pow2 page-size is not supported");
+  }
+}
 
 FileResult
 file_pal_create(Allocator* alloc, String path, FileMode mode, FileAccessFlags access, File** file) {
@@ -290,10 +298,20 @@ FileResult file_delete_dir_sync(String path) {
   return FileResult_Success;
 }
 
-FileResult file_pal_map(File* file, FileMapping* out, const FileHints hints) {
+FileResult
+file_pal_map(File* file, const usize offset, usize size, const FileHints hints, FileMapping* out) {
   diag_assert_msg(file->access != 0, "File handle does not have read or write access");
 
-  const usize size = file_stat_sync(file).size;
+  const usize offsetAligned = offset / g_filePageSize * g_filePageSize;
+  const usize padding       = offset - offsetAligned;
+
+  if (!size) {
+    size = file_stat_sync(file).size;
+    if (UNLIKELY(offset > size)) {
+      return FileResult_InvalidMapping;
+    }
+    size -= offset;
+  }
   if (UNLIKELY(!size)) {
     return FileResult_FileEmpty;
   }
@@ -305,18 +323,23 @@ FileResult file_pal_map(File* file, FileMapping* out, const FileHints hints) {
   if (file->access & FileAccess_Write) {
     prot |= PROT_WRITE;
   }
-  void* addr = mmap(null, size, prot, MAP_SHARED, file->handle, 0);
+  void* addr = mmap(null, size + padding, prot, MAP_SHARED, file->handle, offsetAligned);
   if (UNLIKELY(!addr)) {
-    return fileresult_from_errno();
+    return errno == EINVAL ? FileResult_InvalidMapping : fileresult_from_errno();
   }
 
   if (hints & FileHints_Prefetch) {
-    if (UNLIKELY(posix_fadvise(file->handle, 0, size, POSIX_FADV_WILLNEED) != 0)) {
+    const int advice = POSIX_FADV_WILLNEED;
+    if (UNLIKELY(posix_fadvise(file->handle, offsetAligned, size + padding, advice) != 0)) {
       diag_crash_msg("posix_fadvise() (errno: {})", fmt_int(errno));
     }
   }
 
-  *out = (FileMapping){.ptr = addr, .size = size};
+  *out = (FileMapping){
+      .offset = offset,
+      .ptr    = bits_ptr_offset(addr, padding),
+      .size   = size,
+  };
   return FileResult_Success;
 }
 
@@ -324,7 +347,11 @@ FileResult file_pal_unmap(File* file, FileMapping* mapping) {
   (void)file;
   diag_assert_msg(mapping->ptr, "Invalid mapping");
 
-  const int res = munmap(mapping->ptr, mapping->size);
+  const usize offsetAligned = mapping->offset / g_filePageSize * g_filePageSize;
+  const usize padding       = mapping->offset - offsetAligned;
+  void*       alignedPtr    = bits_ptr_offset(mapping->ptr, -(iptr)padding);
+
+  const int res = munmap(alignedPtr, mapping->size + padding);
   if (UNLIKELY(res != 0)) {
     diag_crash_msg("munmap() failed: {} (errno: {})", fmt_int(res), fmt_int(errno));
   }

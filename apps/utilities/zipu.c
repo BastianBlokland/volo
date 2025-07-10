@@ -130,7 +130,7 @@ static i32 zipu_decompress(const String inputPath) {
   }
 
   String inputData;
-  if ((fileRes = file_map(inputFile, &inputData, FileHints_Prefetch))) {
+  if ((fileRes = file_map(inputFile, 0, 0, FileHints_Prefetch, &inputData))) {
     log_e(
         "Failed to map input file",
         log_param("path", fmt_path(inputPath)),

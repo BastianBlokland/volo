@@ -107,7 +107,7 @@ static bool fetch_config_load(const String path, FetchConfig* out) {
     goto Ret;
   }
   String data;
-  if ((fileRes = file_map(file, &data, FileHints_Prefetch))) {
+  if ((fileRes = file_map(file, 0 /* offset */, 0 /* size */, FileHints_Prefetch, &data))) {
     log_e("Failed to map config file", log_param("err", fmt_text(file_result_str(fileRes))));
     goto Ret;
   }
@@ -189,7 +189,7 @@ static void fetch_registry_load_or_default(const String outputPath, FetchRegistr
     goto Default;
   }
   String data;
-  if ((fileRes = file_map(file, &data, FileHints_Prefetch))) {
+  if ((fileRes = file_map(file, 0 /* offset */, 0 /* size */, FileHints_Prefetch, &data))) {
     goto Default;
   }
   DataReadResult readRes;

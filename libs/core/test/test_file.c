@@ -100,7 +100,8 @@ spec(file) {
     file_write_sync(tmpFile, string_lit("Hello World!"));
 
     String mapping;
-    check_eq_int(file_map(tmpFile, &mapping, FileHints_None), FileResult_Success);
+    check_eq_int(file_map(tmpFile, 0, 0, FileHints_None, &mapping), FileResult_Success);
+    check_eq_int(mapping.size, 12);
     check_eq_string(mapping, string_lit("Hello World!"));
   }
 
@@ -108,7 +109,7 @@ spec(file) {
     file_write_sync(tmpFile, string_lit("Hello World!"));
 
     String mapping;
-    check_eq_int(file_map(tmpFile, &mapping, FileHints_Prefetch), FileResult_Success);
+    check_eq_int(file_map(tmpFile, 0, 0, FileHints_Prefetch, &mapping), FileResult_Success);
     check_eq_string(mapping, string_lit("Hello World!"));
   }
 
@@ -116,7 +117,8 @@ spec(file) {
     file_resize_sync(tmpFile, 12);
 
     String mapping;
-    check_eq_int(file_map(tmpFile, &mapping, FileHints_None), FileResult_Success);
+    check_eq_int(file_map(tmpFile, 0, 0, FileHints_None, &mapping), FileResult_Success);
+    check_eq_int(mapping.size, 12);
     mem_cpy(mapping, string_lit("Hello World!"));
 
     check_eq_string(mapping, string_lit("Hello World!"));
@@ -126,14 +128,44 @@ spec(file) {
     file_write_sync(tmpFile, string_lit("Hello World!"));
 
     String mapping1;
-    check_eq_int(file_map(tmpFile, &mapping1, FileHints_None), FileResult_Success);
+    check_eq_int(file_map(tmpFile, 0, 0, FileHints_None, &mapping1), FileResult_Success);
     check_eq_string(mapping1, string_lit("Hello World!"));
 
     check_eq_int(file_unmap(tmpFile), FileResult_Success);
 
     String mapping2;
-    check_eq_int(file_map(tmpFile, &mapping2, FileHints_None), FileResult_Success);
+    check_eq_int(file_map(tmpFile, 0, 0, FileHints_None, &mapping2), FileResult_Success);
     check_eq_string(mapping2, string_lit("Hello World!"));
+  }
+
+  it("can map part of a file") {
+    check_eq_int(file_resize_sync(tmpFile, 1024 * 8), FileResult_Success);
+
+    String mapping;
+    check_eq_int(file_map(tmpFile, 6, 4, FileHints_None, &mapping), FileResult_Success);
+    check_eq_int(mapping.size, 4);
+    mem_cpy(mapping, string_lit("Test"));
+
+    check_eq_int(file_unmap(tmpFile), FileResult_Success);
+
+    check_eq_int(file_map(tmpFile, 1024 * 4, 12, FileHints_None, &mapping), FileResult_Success);
+    check_eq_int(mapping.size, 12);
+
+    mem_cpy(mapping, string_lit("Hello World!"));
+    check_eq_int(file_unmap(tmpFile), FileResult_Success);
+
+    check_eq_int(file_map(tmpFile, 0, 0, FileHints_None, &mapping), FileResult_Success);
+    check_eq_int(mapping.size, 1024 * 8);
+    check(mem_all(string_slice(mapping, 0, 6), 0));
+    check_eq_string(string_slice(mapping, 6, 4), string_lit("Test"));
+    check(mem_all(string_slice(mapping, 10, 1024 * 4 - 10), 0));
+    check_eq_string(string_slice(mapping, 1024 * 4, 12), string_lit("Hello World!"));
+  }
+
+  it("fails if attempting to map at an invalid offset") {
+    String mapping;
+    check_eq_int(file_map(tmpFile, 42, 0, FileHints_None, &mapping), FileResult_InvalidMapping);
+    check_eq_int(file_map(tmpFile, 0, 0, FileHints_None, &mapping), FileResult_FileEmpty);
   }
 
   it("can check if a file exists") {
@@ -245,7 +277,7 @@ spec(file) {
 
     check_eq_int(file_seek_sync(tmpFile, 0), FileResult_Success);
     String mapping;
-    check_eq_int(file_map(tmpFile, &mapping, FileHints_None), FileResult_Success);
+    check_eq_int(file_map(tmpFile, 0, 0, FileHints_None, &mapping), FileResult_Success);
     check_eq_string(mapping, string_lit("Hello   Bye!"));
   }
 
@@ -257,7 +289,7 @@ spec(file) {
 
     check_eq_int(file_seek_sync(tmpFile, 0), FileResult_Success);
     String mapping;
-    check_eq_int(file_map(tmpFile, &mapping, FileHints_None), FileResult_Success);
+    check_eq_int(file_map(tmpFile, 0, 0, FileHints_None, &mapping), FileResult_Success);
     check_eq_string(mapping, string_lit("Hello World!"));
   }
 
@@ -270,7 +302,7 @@ spec(file) {
 
     check_eq_int(file_seek_sync(tmpFile, 0), FileResult_Success);
     String mapping;
-    check_eq_int(file_map(tmpFile, &mapping, FileHints_None), FileResult_Success);
+    check_eq_int(file_map(tmpFile, 0, 0, FileHints_None, &mapping), FileResult_Success);
     check_eq_string(mapping, string_lit("\0\0\0\0Hello World!"));
   }
 

@@ -25,6 +25,7 @@ typedef enum eFileResult {
   FileResult_AllocationFailed,
   FileResult_FileEmpty,
   FileResult_FileTooBig,
+  FileResult_InvalidMapping,
   FileResult_UnknownError,
 
   FileResult_Count,
@@ -170,10 +171,9 @@ FileResult file_delete_dir_sync(String path);
  * Memory map the given file.
  * On success the mapped memory will be assigned to the output pointer. Memory mappings are
  * automatically closed when the file-handle is destroyed (or when calling 'file_unmap()').
- *
- * Pre-condition: file has not been mapped yet.
+ * NOTE: Provide size 0 to map the whole file.
  */
-FileResult file_map(File*, String* output, FileHints);
+FileResult file_map(File*, usize offset, usize size, FileHints, String* output);
 
 /**
  * Release the memory of the given file.

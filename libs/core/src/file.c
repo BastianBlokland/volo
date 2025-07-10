@@ -26,6 +26,7 @@ static const String g_fileResultStrs[] = {
     string_static("FileAllocationFailed"),
     string_static("FileEmpty"),
     string_static("FileTooBig"),
+    string_static("InvalidMapping"),
     string_static("FileUnknownError"),
 };
 
@@ -80,10 +81,11 @@ void file_destroy(File* file) {
   }
 }
 
-FileResult file_map(File* file, String* output, const FileHints hints) {
+FileResult
+file_map(File* file, const usize offset, const usize size, const FileHints hints, String* output) {
   diag_assert_msg(!file->mapping.ptr, "File is already mapped");
 
-  const FileResult res = file_pal_map(file, &file->mapping, hints);
+  const FileResult res = file_pal_map(file, offset, size, hints, &file->mapping);
   if (res == FileResult_Success) {
     thread_atomic_add_i64(&g_fileMappingSize, (i64)file->mapping.size);
     *output = mem_create(file->mapping.ptr, file->mapping.size);
