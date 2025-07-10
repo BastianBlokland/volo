@@ -141,6 +141,12 @@ spec(file) {
     check_eq_int(file_resize_sync(tmpFile, 1024 * 8), FileResult_Success);
 
     String mapping;
+    check_eq_int(file_map(tmpFile, 6, 4, FileHints_None, &mapping), FileResult_Success);
+    check_eq_int(mapping.size, 4);
+    mem_cpy(mapping, string_lit("Test"));
+
+    check_eq_int(file_unmap(tmpFile), FileResult_Success);
+
     check_eq_int(file_map(tmpFile, 1024 * 4, 12, FileHints_None, &mapping), FileResult_Success);
     check_eq_int(mapping.size, 12);
 
@@ -149,7 +155,9 @@ spec(file) {
 
     check_eq_int(file_map(tmpFile, 0, 0, FileHints_None, &mapping), FileResult_Success);
     check_eq_int(mapping.size, 1024 * 8);
-    check(mem_all(string_slice(mapping, 0, 1024 * 4), 0));
+    check(mem_all(string_slice(mapping, 0, 6), 0));
+    check_eq_string(string_slice(mapping, 6, 4), string_lit("Test"));
+    check(mem_all(string_slice(mapping, 10, 1024 * 4 - 10), 0));
     check_eq_string(string_slice(mapping, 1024 * 4, 12), string_lit("Hello World!"));
   }
 

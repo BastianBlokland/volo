@@ -171,7 +171,6 @@ FileResult file_delete_dir_sync(String path);
  * Memory map the given file.
  * On success the mapped memory will be assigned to the output pointer. Memory mappings are
  * automatically closed when the file-handle is destroyed (or when calling 'file_unmap()').
- * NOTE: offset has to be page aligned.
  * NOTE: Provide size 0 to map the whole file.
  */
 FileResult file_map(File*, usize offset, usize size, FileHints, String* output);

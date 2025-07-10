@@ -302,9 +302,9 @@ FileResult
 file_pal_map(File* file, const usize offset, usize size, const FileHints hints, FileMapping* out) {
   diag_assert_msg(file->access != 0, "File handle does not have read or write access");
 
-  if (UNLIKELY(!bits_aligned(offset, g_filePageSize))) {
-    return FileResult_InvalidMapping;
-  }
+  const usize offsetAligned = offset / g_filePageSize * g_filePageSize;
+  const usize padding       = offset - offsetAligned;
+
   if (!size) {
     size = file_stat_sync(file).size;
     if (UNLIKELY(offset > size)) {
@@ -323,18 +323,23 @@ file_pal_map(File* file, const usize offset, usize size, const FileHints hints, 
   if (file->access & FileAccess_Write) {
     prot |= PROT_WRITE;
   }
-  void* addr = mmap(null, size, prot, MAP_SHARED, file->handle, offset);
+  void* addr = mmap(null, size + padding, prot, MAP_SHARED, file->handle, offsetAligned);
   if (UNLIKELY(!addr)) {
     return errno == EINVAL ? FileResult_InvalidMapping : fileresult_from_errno();
   }
 
   if (hints & FileHints_Prefetch) {
-    if (UNLIKELY(posix_fadvise(file->handle, offset, size, POSIX_FADV_WILLNEED) != 0)) {
+    const int advice = POSIX_FADV_WILLNEED;
+    if (UNLIKELY(posix_fadvise(file->handle, offsetAligned, size + padding, advice) != 0)) {
       diag_crash_msg("posix_fadvise() (errno: {})", fmt_int(errno));
     }
   }
 
-  *out = (FileMapping){.ptr = addr, .size = size};
+  *out = (FileMapping){
+      .offset = offset,
+      .ptr    = bits_ptr_offset(addr, padding),
+      .size   = size,
+  };
   return FileResult_Success;
 }
 
@@ -342,7 +347,11 @@ FileResult file_pal_unmap(File* file, FileMapping* mapping) {
   (void)file;
   diag_assert_msg(mapping->ptr, "Invalid mapping");
 
-  const int res = munmap(mapping->ptr, mapping->size);
+  const usize offsetAligned = mapping->offset / g_filePageSize * g_filePageSize;
+  const usize padding       = mapping->offset - offsetAligned;
+  void*       alignedPtr    = bits_ptr_offset(mapping->ptr, -(iptr)padding);
+
+  const int res = munmap(alignedPtr, mapping->size + padding);
   if (UNLIKELY(res != 0)) {
     diag_crash_msg("munmap() failed: {} (errno: {})", fmt_int(res), fmt_int(errno));
   }

@@ -5,6 +5,7 @@ typedef struct {
 #if defined(VOLO_WIN32)
   uptr handle;
 #endif
+  usize offset; // Offset into the file.
   void* ptr;
   usize size;
 } FileMapping;
