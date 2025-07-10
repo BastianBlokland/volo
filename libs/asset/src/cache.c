@@ -153,7 +153,7 @@ static bool cache_reg_open(AssetCache* c) {
       log_param("size", fmt_size(data.size)),
       log_param("entries", fmt_int(c->reg.entries.size)));
 
-  file_unmap(c->regFile);
+  file_unmap(c->regFile, data);
   return true;
 }
 

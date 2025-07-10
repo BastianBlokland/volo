@@ -176,11 +176,9 @@ FileResult file_delete_dir_sync(String path);
 FileResult file_map(File*, usize offset, usize size, FileHints, String* output);
 
 /**
- * Release the memory of the given file.
- *
- * Pre-condition: file has been mapped.
+ * Release the given file mapping.
  */
-FileResult file_unmap(File*);
+FileResult file_unmap(File*, String mapping);
 
 /**
  * Rename the file at the given path.

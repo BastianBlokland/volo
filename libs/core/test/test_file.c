@@ -131,11 +131,16 @@ spec(file) {
     check_eq_int(file_map(tmpFile, 0, 0, FileHints_None, &mapping1), FileResult_Success);
     check_eq_string(mapping1, string_lit("Hello World!"));
 
-    check_eq_int(file_unmap(tmpFile), FileResult_Success);
+    check_eq_int(file_unmap(tmpFile, mem_slice(mapping1, 0, 4)), FileResult_InvalidMapping);
+    check_eq_int(file_unmap(tmpFile, mapping1), FileResult_Success);
+    check_eq_int(file_unmap(tmpFile, mapping1), FileResult_InvalidMapping);
 
     String mapping2;
     check_eq_int(file_map(tmpFile, 0, 0, FileHints_None, &mapping2), FileResult_Success);
     check_eq_string(mapping2, string_lit("Hello World!"));
+
+    check_eq_int(file_unmap(tmpFile, string_empty), FileResult_InvalidMapping);
+    check_eq_int(file_unmap(tmpFile, mem_var(buffer)), FileResult_InvalidMapping);
   }
 
   it("can map part of a file") {
@@ -146,13 +151,13 @@ spec(file) {
     check_eq_int(mapping.size, 4);
     mem_cpy(mapping, string_lit("Test"));
 
-    check_eq_int(file_unmap(tmpFile), FileResult_Success);
+    check_eq_int(file_unmap(tmpFile, mapping), FileResult_Success);
 
     check_eq_int(file_map(tmpFile, 1024 * 4, 12, FileHints_None, &mapping), FileResult_Success);
     check_eq_int(mapping.size, 12);
 
     mem_cpy(mapping, string_lit("Hello World!"));
-    check_eq_int(file_unmap(tmpFile), FileResult_Success);
+    check_eq_int(file_unmap(tmpFile, mapping), FileResult_Success);
 
     check_eq_int(file_map(tmpFile, 0, 0, FileHints_None, &mapping), FileResult_Success);
     check_eq_int(mapping.size, 1024 * 8);
