@@ -115,9 +115,10 @@ file_pal_create(Allocator* alloc, String path, FileMode mode, FileAccessFlags ac
 
   *file  = alloc_alloc_t(alloc, File);
   **file = (File){
-      .handle = fd,
-      .access = access,
-      .alloc  = alloc,
+      .handle   = fd,
+      .access   = access,
+      .alloc    = alloc,
+      .mappings = dynarray_create_t(alloc, FileMapping, 0),
   };
   return FileResult_Success;
 }
@@ -139,16 +140,21 @@ FileResult file_pal_temp(Allocator* alloc, File** file) {
 
   *file  = alloc_alloc_t(alloc, File);
   **file = (File){
-      .handle = fd,
-      .access = FileAccess_Read | FileAccess_Write,
-      .alloc  = alloc,
+      .handle   = fd,
+      .access   = FileAccess_Read | FileAccess_Write,
+      .alloc    = alloc,
+      .mappings = dynarray_create_t(alloc, FileMapping, 0),
   };
   return FileResult_Success;
 }
 
 void file_pal_destroy(File* file) {
   diag_assert_msg(file->alloc, "Invalid file");
+  diag_assert_msg(!file->mappings.size, "Mappings left open");
 
+  if (file->mappings.stride) {
+    dynarray_destroy(&file->mappings);
+  }
   close(file->handle);
   alloc_free_t(file->alloc, file);
 }

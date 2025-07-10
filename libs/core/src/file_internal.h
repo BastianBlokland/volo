@@ -1,4 +1,5 @@
 #pragma once
+#include "core_dynarray.h"
 #include "core_file.h"
 
 typedef struct {
@@ -21,8 +22,8 @@ typedef void* FileHandle;
 struct sFile {
   FileHandle      handle;
   FileAccessFlags access;
-  FileMapping     mapping;
   Allocator*      alloc;
+  DynArray        mappings; // FileMapping[], sorted on ptr.
 };
 
 void       file_pal_init(void);
