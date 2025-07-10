@@ -93,7 +93,10 @@ file_map(File* file, const usize offset, const usize size, const FileHints hints
   return res;
 }
 
-FileResult file_unmap(File* file) {
+FileResult file_unmap(File* file, const String mapping) {
+  if (UNLIKELY(mapping.ptr != file->mapping.ptr || mapping.size != file->mapping.size)) {
+    return FileResult_InvalidMapping;
+  }
   diag_assert_msg(file->mapping.ptr, "File not mapped");
 
   const FileResult res = file_pal_unmap(file, &file->mapping);
