@@ -9,8 +9,6 @@
  * Configuration struct for formatting lists of arguments.
  */
 typedef struct {
-  String prefix;
-  String suffix;
   String separator;
 } FormatOptsList;
 
@@ -105,8 +103,6 @@ typedef struct {
 // clang-format off
 
 #define format_opts_list(...) ((FormatOptsList){                                                   \
-  .prefix     = string_empty,                                                                      \
-  .suffix     = string_empty,                                                                      \
   .separator  = string_lit(", "),                                                                  \
   __VA_ARGS__ })
 

@@ -173,14 +173,12 @@ void format_write_arg(DynString* str, const FormatArg* arg) {
   case FormatArgType_Nop:
     break;
   case FormatArgType_List:
-    dynstring_append(str, arg->opts_list.prefix);
     for (const FormatArg* child = arg->value_list; child->type != FormatArgType_End; ++child) {
       if (child != arg->value_list) {
         dynstring_append(str, arg->opts_list.separator);
       }
       format_write_arg(str, child);
     }
-    dynstring_append(str, arg->opts_list.suffix);
     break;
   case FormatArgType_i64:
     format_write_i64(str, arg->value_i64, &arg->opts_int);
@@ -340,7 +338,7 @@ static FormatF64Parts format_f64_decompose(const f64 val, const FormatOptsFloat*
   FormatF64Parts res;
   res.expPart   = exp.exp;
   res.decDigits = math_min(opts->maxDecDigits, 19);
-  res.intPart   = (u64)exp.remaining < u64_max ? (u64)exp.remaining : u64_max;
+  res.intPart   = exp.remaining < (f64)u64_max ? (u64)exp.remaining : u64_max;
 
   const u64 maxDecPart = math_pow10_u64(res.decDigits);
   f64       remainder  = (exp.remaining - (f64)res.intPart) * (f64)maxDecPart;
