@@ -101,6 +101,7 @@ spec(file) {
 
     String mapping;
     check_eq_int(file_map(tmpFile, 0, 0, FileHints_None, &mapping), FileResult_Success);
+    check_eq_int(mapping.size, 12);
     check_eq_string(mapping, string_lit("Hello World!"));
   }
 
