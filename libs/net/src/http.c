@@ -468,7 +468,7 @@ NetHttp* net_http_connect_sync(Allocator* alloc, const String host, const NetHtt
   log_d(
       "Http: Host resolved",
       log_param("host", fmt_text(host)),
-      log_param("ip-count", hostIpCount),
+      log_param("ip-count", fmt_int(hostIpCount)),
       log_param("duration", fmt_duration(resolveDur)));
 
   const TimeSteady connectStart = time_steady_clock();
