@@ -165,6 +165,7 @@ void rvk_canvas_stats(const RvkCanvas* canvas, RvkCanvasStats* out) {
   }
 }
 
+#ifdef VOLO_TRACE
 void rvk_canvas_push_traces(const RvkCanvas* canvas) {
   const RvkCanvasFrame* frame = &canvas->frames[canvas->jobIdx];
   diag_assert(rvk_job_is_done(frame->job));
@@ -220,6 +221,7 @@ void rvk_canvas_push_traces(const RvkCanvas* canvas) {
   const TimeDuration jobDur = time_steady_duration(jobStats.gpuTimeBegin, jobStats.gpuTimeEnd);
   trace_custom_end("gpu", jobStats.gpuTimeBegin, jobDur);
 }
+#endif // VOLO_TRACE
 
 bool rvk_canvas_begin(
     RvkCanvas* canvas, const RendSettingsComp* settings, const u64 frameIdx, const RvkSize size) {
