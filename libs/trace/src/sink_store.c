@@ -268,7 +268,15 @@ static void trace_sink_store_event_end(TraceSink* sink) {
 
   // Pop the top-most event from the stack.
   TraceStoreEvent* evt = &b->events[b->stack[--b->stackCount]];
-  diag_assert_msg(!evt->timeDur, "trace: Event ended twice");
+  if (UNLIKELY(evt->timeDur)) {
+    /**
+     * Event has already ended.
+     * NOTE: This can happen for very long-running events where the task-id was reused before the
+     * event ended. Here we have no choice but to drop the event, if this often happens then the
+     * buffer size should be increased.
+     */
+    return;
+  }
 
   // Compute the event time.
   const TimeDuration dur = time_steady_duration(evt->timeStart, time_steady_clock());
