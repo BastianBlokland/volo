@@ -335,6 +335,17 @@ void symbol_stack_write(const SymbolStack* stack, DynString* out) {
   }
 }
 
+String symbol_stack_write_scratch(const SymbolStack* stack) {
+  Mem       scratchMem = alloc_alloc(g_allocScratch, 4 * usize_kibibyte, 1);
+  DynString str        = dynstring_create_over(scratchMem);
+
+  symbol_stack_write(stack, &str);
+
+  String res = dynstring_view(&str);
+  dynstring_destroy(&str);
+  return res;
+}
+
 SymbolAddrRel symbol_addr_rel(const SymbolAddr addr) { return sym_addr_rel(addr); }
 SymbolAddrRel symbol_addr_rel_ptr(const Symbol symbol) { return sym_addr_rel((SymbolAddr)symbol); }
 SymbolAddr    symbol_addr_abs(const SymbolAddrRel addr) { return sym_addr_abs(addr); }

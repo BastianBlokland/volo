@@ -24,7 +24,8 @@ bool        symbol_stack_valid(const SymbolStack*);
  * Pretty print the stack to the given string.
  * NOTE: Requires debug information for pretty names / function base addresses.
  */
-void symbol_stack_write(const SymbolStack*, DynString* out);
+void   symbol_stack_write(const SymbolStack*, DynString* out);
+String symbol_stack_write_scratch(const SymbolStack*);
 
 /**
  * Utilities for converting between relative and absolute addresses.
