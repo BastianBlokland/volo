@@ -12,6 +12,8 @@
 #include "log_logger.h"
 #include "log_sink_json.h"
 #include "trace_init.h"
+#include "trace_sink_store.h"
+#include "trace_tracer.h"
 
 static CliId g_optOutputPassingTests, g_optJobWorkers, g_optHelp;
 
@@ -40,6 +42,11 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
 
   i32 exitCode = 0;
   log_add_sink(g_logger, log_sink_json_default(g_allocHeap, LogMask_All));
+
+#ifdef VOLO_TRACE
+  TraceSink* traceStore = trace_sink_store(g_allocHeap);
+  trace_add_sink(g_tracer, traceStore);
+#endif
 
   if (cli_parse_provided(invoc, g_optHelp)) {
     cli_help_write_file(app, g_fileStdOut);
