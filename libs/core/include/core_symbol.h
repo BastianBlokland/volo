@@ -19,6 +19,7 @@ typedef struct sSymbolStack {
  */
 SymbolStack symbol_stack_walk(void);
 bool        symbol_stack_valid(const SymbolStack*);
+bool        symbol_stack_equal(const SymbolStack*, const SymbolStack*);
 
 /**
  * Pretty print the stack to the given string.

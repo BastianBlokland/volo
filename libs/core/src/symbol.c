@@ -298,6 +298,10 @@ NO_INLINE_HINT FLATTEN_HINT NO_ASAN SymbolStack symbol_stack_walk(void) {
 
 bool symbol_stack_valid(const SymbolStack* stack) { return !sentinel_check(stack->frames[0]); }
 
+bool symbol_stack_equal(const SymbolStack* a, const SymbolStack* b) {
+  return mem_eq(array_mem(a->frames), array_mem(b->frames));
+}
+
 void symbol_stack_write(const SymbolStack* stack, DynString* out) {
   const SymbolReg* reg        = symbol_reg_get();
   const SymbolAddr addrOffset = reg ? reg->addrOffset : 0;
