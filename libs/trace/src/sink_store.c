@@ -243,11 +243,11 @@ INLINE_HINT static void trace_buffer_begin(
   }
   thread_spinlock_unlock(&evt->lock);
 
-  // Add it to the stack.
-  b->stack[b->stackCount++] = b->eventCursor;
-  if (UNLIKELY(b->stackCount > trace_store_buffer_max_depth)) {
+  if (UNLIKELY(b->stackCount >= trace_store_buffer_max_depth)) {
     diag_crash_msg("trace: Trace event exceeded the maximum stack depth");
   }
+  // Add it to the stack.
+  b->stack[b->stackCount++] = b->eventCursor;
 
   // Advance the cursor.
   trace_buffer_advance(b);
