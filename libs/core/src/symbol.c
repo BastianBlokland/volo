@@ -298,6 +298,10 @@ NO_INLINE_HINT FLATTEN_HINT NO_ASAN SymbolStack symbol_stack_walk(void) {
 
 bool symbol_stack_valid(const SymbolStack* stack) { return !sentinel_check(stack->frames[0]); }
 
+bool symbol_stack_equal(const SymbolStack* a, const SymbolStack* b) {
+  return mem_eq(array_mem(a->frames), array_mem(b->frames));
+}
+
 void symbol_stack_write(const SymbolStack* stack, DynString* out) {
   const SymbolReg* reg        = symbol_reg_get();
   const SymbolAddr addrOffset = reg ? reg->addrOffset : 0;
@@ -333,6 +337,17 @@ void symbol_stack_write(const SymbolStack* stack, DynString* out) {
           fmt_int(addrAbs, .base = 16, .minDigits = 16));
     }
   }
+}
+
+String symbol_stack_write_scratch(const SymbolStack* stack) {
+  Mem       scratchMem = alloc_alloc(g_allocScratch, 4 * usize_kibibyte, 1);
+  DynString str        = dynstring_create_over(scratchMem);
+
+  symbol_stack_write(stack, &str);
+
+  String res = dynstring_view(&str);
+  dynstring_destroy(&str);
+  return res;
 }
 
 SymbolAddrRel symbol_addr_rel(const SymbolAddr addr) { return sym_addr_rel(addr); }

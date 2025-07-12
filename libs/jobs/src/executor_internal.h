@@ -9,3 +9,4 @@ void executor_run(Job*);
  * Returns true if we executed any work or false if there was no work to execute.
  */
 bool executor_help(void);
+bool executor_help_job(JobId);

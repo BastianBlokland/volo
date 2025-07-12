@@ -79,6 +79,25 @@ static WorkItem executor_work_pop(const JobWorkerId wId) {
   return workqueue_pop(&g_workerQueues[wId]);
 }
 
+static WorkItem executor_work_pop_for_job(const JobWorkerId wId, const JobId jobId) {
+  if (wId == g_affinityWorker) {
+    // This worker is the assigned 'Affinity worker', affinity work always takes precedence.
+    const WorkItem affinityItem = affqueue_pop(&g_affinityQueue);
+    if (workitem_valid(affinityItem)) {
+      return affinityItem;
+    }
+  }
+  const WorkItem item = workqueue_pop(&g_workerQueues[wId]);
+  if (workitem_valid(item)) {
+    if (item.job->id == jobId) {
+      return item;
+    }
+    // Not for this job; push it back to the queue.
+    workqueue_push(&g_workerQueues[wId], item.job, item.task);
+  }
+  return (WorkItem){0};
+}
+
 static WorkItem executor_work_steal(const JobWorkerId wId) {
   /**
    * Attempt to steal work from any other worker, starting from a random worker to reduce
@@ -398,6 +417,19 @@ bool executor_help(void) {
 
   // Otherwise attempt to steal a work item.
   work = executor_work_steal(wId);
+  if (workitem_valid(work)) {
+    executor_perform_work(wId, work);
+    return true;
+  }
+
+  return false;
+}
+
+bool executor_help_job(const JobId jobId) {
+  const JobWorkerId wId = g_jobsWorkerId;
+
+  // Attempt get a work item that contributes to the given job.
+  WorkItem work = executor_work_pop_for_job(wId, jobId);
   if (workitem_valid(work)) {
     executor_perform_work(wId, work);
     return true;

@@ -6,6 +6,7 @@
 #include "jobs_graph.h"
 #include "jobs_scheduler.h"
 #include "log_logger.h"
+#include "trace_tracer.h"
 
 #include "output_log_internal.h"
 #include "output_mocha_internal.h"
@@ -47,6 +48,8 @@ static void check_test_task(const void* context) {
 
 CheckResultType check_run(CheckDef* check, const CheckRunFlags flags) {
   const TimeSteady startTime = time_steady_clock();
+
+  trace_begin("check_prep", TraceColor_Green);
 
   // Setup outputs.
   CheckOutputPtr outputs[] = {
@@ -94,8 +97,12 @@ CheckResultType check_run(CheckDef* check, const CheckRunFlags flags) {
     }
   }
 
+  trace_end();
+
   // Execute all tasks.
   jobs_scheduler_wait_help(jobs_scheduler_run(graph, g_allocHeap));
+
+  trace_begin("check_finish", TraceColor_Green);
 
   // Observe the results.
   const usize           numFailed  = ctx.numFailedTests;
@@ -106,6 +113,8 @@ CheckResultType check_run(CheckDef* check, const CheckRunFlags flags) {
   array_for_t(outputs, CheckOutputPtr, out) {
     (*out)->runFinished(*out, resultType, runTime, numPassed, numFailed, numSkipped);
   }
+
+  trace_end();
 
   // Cleanup.
   jobs_graph_destroy(graph);
