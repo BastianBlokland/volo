@@ -102,6 +102,8 @@ CheckResultType check_run(CheckDef* check, const CheckRunFlags flags) {
   // Execute all tasks.
   jobs_scheduler_wait_help(jobs_scheduler_run(graph, g_allocHeap));
 
+  trace_begin("check_finish", TraceColor_Green);
+
   // Observe the results.
   const usize           numFailed  = ctx.numFailedTests;
   const usize           numPassed  = numTests - numSkipped - numFailed;
@@ -111,6 +113,8 @@ CheckResultType check_run(CheckDef* check, const CheckRunFlags flags) {
   array_for_t(outputs, CheckOutputPtr, out) {
     (*out)->runFinished(*out, resultType, runTime, numPassed, numFailed, numSkipped);
   }
+
+  trace_end();
 
   // Cleanup.
   jobs_graph_destroy(graph);
