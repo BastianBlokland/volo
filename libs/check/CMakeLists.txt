@@ -16,7 +16,7 @@ add_library(lib_check STATIC
   )
 target_include_directories(lib_check PUBLIC include)
 target_link_libraries(lib_check PUBLIC lib_core)
-target_link_libraries(lib_check PRIVATE lib_jobs lib_json lib_log)
+target_link_libraries(lib_check PRIVATE lib_jobs lib_json lib_log lib_trace)
 
 add_executable(test_lib_check
   test/config.c
