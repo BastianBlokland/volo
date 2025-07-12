@@ -66,7 +66,9 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
     exitCode = 1; // Tests failed.
   }
 
+#ifdef VOLO_TRACE
   trace_dump_eventtrace_to_path_default(traceStore);
+#endif
 
   app_check_teardown();
   check_destroy(check);
