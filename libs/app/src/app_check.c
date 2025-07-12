@@ -11,6 +11,7 @@
 #include "jobs_init.h"
 #include "log_logger.h"
 #include "log_sink_json.h"
+#include "trace_dump.h"
 #include "trace_init.h"
 #include "trace_sink_store.h"
 #include "trace_tracer.h"
@@ -64,6 +65,8 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   if (check_run(check, app_check_runflags(invoc))) {
     exitCode = 1; // Tests failed.
   }
+
+  trace_dump_eventtrace_to_path_default(traceStore);
 
   app_check_teardown();
   check_destroy(check);
