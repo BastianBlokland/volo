@@ -1,5 +1,6 @@
 #include "app_ecs.h"
 #include "asset_graphic.h"
+#include "asset_level.h"
 #include "asset_manager.h"
 #include "asset_prefab.h"
 #include "asset_product.h"
@@ -110,11 +111,15 @@ static void pack_push_asset(EcsWorld* world, PackComp* comp, const EcsEntityId e
   *entry = (PackAsset){.entity = entity, .state = PackState_Loading};
 }
 
-ecs_view_define(PackGlobalView) { ecs_access_write(PackComp); }
+ecs_view_define(PackGlobalView) {
+  ecs_access_write(PackComp);
+  ecs_access_write(AssetManagerComp);
+}
 
 ecs_view_define(PackAssetView) {
   ecs_access_read(AssetComp);
   ecs_access_maybe_read(AssetGraphicComp);
+  ecs_access_maybe_read(AssetLevelComp);
   ecs_access_maybe_read(AssetPrefabMapComp);
   ecs_access_maybe_read(AssetProductMapComp);
   ecs_access_maybe_read(AssetWeaponMapComp);
@@ -131,7 +136,8 @@ ecs_system_define(PackUpdateSys) {
   if (UNLIKELY(!globalItr)) {
     return; // Initialization failed; application will be terminated.
   }
-  PackComp* pack = ecs_view_write_t(globalItr, PackComp);
+  PackComp*         pack     = ecs_view_write_t(globalItr, PackComp);
+  AssetManagerComp* assetMan = ecs_view_write_t(globalItr, AssetManagerComp);
 
   if (signal_is_received(Signal_Terminate) || signal_is_received(Signal_Interrupt)) {
     log_w("Packing interrupted", log_param("total-frames", fmt_int(pack->frameIdx)));
@@ -166,6 +172,11 @@ ecs_system_define(PackUpdateSys) {
       const AssetGraphicComp* graphicComp = ecs_view_read_t(assetItr, AssetGraphicComp);
       if (graphicComp) {
         refCount += asset_graphic_refs(graphicComp, refs + refCount, array_elems(refs) - refCount);
+      }
+      const AssetLevelComp* levelComp = ecs_view_read_t(assetItr, AssetLevelComp);
+      if (levelComp) {
+        refCount += asset_level_refs(
+            levelComp, world, assetMan, refs + refCount, array_elems(refs) - refCount);
       }
       const AssetPrefabMapComp* prefabMap = ecs_view_read_t(assetItr, AssetPrefabMapComp);
       if (prefabMap) {

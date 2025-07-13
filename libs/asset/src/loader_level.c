@@ -1,4 +1,5 @@
 #include "asset_level.h"
+#include "asset_property.h"
 #include "core_alloc.h"
 #include "core_dynstring.h"
 #include "core_float.h"
@@ -134,6 +135,28 @@ Error:
 
 Cleanup:
   asset_repo_source_close(src);
+}
+
+u32 asset_level_refs(
+    const AssetLevelComp* comp,
+    EcsWorld*             world,
+    AssetManagerComp*     assets,
+    EcsEntityId           out[],
+    const u32             outMax) {
+  u32 outCount = 0;
+  if (comp->level.terrain.id && outCount != outMax) {
+    out[outCount++] = asset_ref_resolve(world, assets, &comp->level.terrain);
+  }
+  for (u32 objIdx = 0; objIdx != comp->level.objects.count; ++objIdx) {
+    const AssetLevelObject* obj = &comp->level.objects.values[objIdx];
+    for (u32 propIdx = 0; propIdx != obj->properties.count; ++propIdx) {
+      const AssetProperty* prop = &obj->properties.values[propIdx];
+      if (prop->type == AssetProperty_Asset && outCount != outMax) {
+        out[outCount++] = asset_ref_resolve(world, assets, &prop->data_asset);
+      }
+    }
+  }
+  return outCount;
 }
 
 const AssetLevelObject* asset_level_find(const AssetLevel* lvl, const u32 persistentId) {
