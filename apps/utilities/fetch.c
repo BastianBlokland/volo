@@ -535,7 +535,7 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
    * NOTE: If fetch fails but the local registry is complete return 0 to indicate the game can be
    * launched. This makes development while being offline for extended periods nicer.
    */
-  if (fetchResult != FetchResult_Success && !fetch_is_complete(&cfg, &reg, outPath)) {
+  if (fetchResult && ((flags & FetchFlags_Force) || !fetch_is_complete(&cfg, &reg, outPath))) {
     retCode = (i32)fetchResult;
   }
   net_teardown();
