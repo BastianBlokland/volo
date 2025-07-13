@@ -30,7 +30,7 @@ target_link_libraries(app_pack PRIVATE lib_app_ecs lib_log lib_asset)
 configure_debuggable(app_pack)
 
 add_custom_target(run.pack COMMAND app_pack
-  "${CMAKE_SOURCE_DIR}/assets/pack.json" VERBATIM USES_TERMINAL)
+  "--assets" "${CMAKE_SOURCE_DIR}/assets" "${CMAKE_SOURCE_DIR}/assets/pack.json" VERBATIM USES_TERMINAL)
 
 message(STATUS "> application: dbgsetup")
 
