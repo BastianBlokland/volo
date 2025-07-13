@@ -7,6 +7,7 @@
 #include "cli_read.h"
 #include "cli_validate.h"
 #include "core_alloc.h"
+#include "core_array.h"
 #include "core_file.h"
 #include "core_signal.h"
 #include "data_read.h"
@@ -72,6 +73,11 @@ ecs_comp_define(PackComp) {
 static void ecs_destruct_texture_comp(void* data) {
   PackComp* comp = data;
   data_destroy(g_dataReg, g_allocHeap, g_packConfigMeta, mem_var(comp->cfg));
+}
+
+static void pack_push_asset(PackComp* comp, const EcsEntityId entity) {
+  (void)comp;
+  (void)entity;
 }
 
 ecs_view_define(GlobalView) {
@@ -152,13 +158,20 @@ void app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
   }
 
   PackComp* packComp = ecs_world_add_t(world, ecs_world_global(world), PackComp, .cfg = cfg);
-  (void)packComp;
 
   const AssetManagerFlags assetFlg = AssetManagerFlags_DelayUnload;
   AssetManagerComp*       assets   = asset_manager_create_fs(world, assetFlg, assetPath);
 
-  (void)assets;
-  // TODO: Lookup asset roots.
+  EcsEntityId queryBuffer[asset_query_max_results];
+  heap_array_for_t(cfg.roots, String, root) {
+    const u32 count = asset_query(world, assets, *root, queryBuffer);
+    for (u32 i = 0; i != count; ++i) {
+      pack_push_asset(packComp, queryBuffer[i]);
+    }
+    if (UNLIKELY(!count)) {
+      log_w("No assets found for root", log_param("root", fmt_text(*root)));
+    }
+  }
 }
 
 void app_ecs_set_frame(EcsWorld* world, const u64 frameIdx) {
