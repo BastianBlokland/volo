@@ -144,7 +144,7 @@ extern DataMeta g_assetGraphicDefMeta;
 /**
  * Find all asset references in the given graphic.
  */
-u32 asset_graphic_refs(const AssetGraphicComp* map, EcsEntityId out[], u32 outMax);
+u32 asset_graphic_refs(const AssetGraphicComp*, EcsEntityId out[], u32 outMax);
 
 String asset_graphic_pass_name(AssetGraphicPass);
 String asset_graphic_topology_name(AssetGraphicTopology);

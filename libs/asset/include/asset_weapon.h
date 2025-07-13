@@ -99,13 +99,13 @@ extern DataMeta g_assetWeaponDefMeta;
 /**
  * Find all asset references in the given weapon map.
  */
-u32 asset_weapon_refs(const AssetWeaponMapComp* map, EcsEntityId out[], u32 outMax);
+u32 asset_weapon_refs(const AssetWeaponMapComp*, EcsEntityId out[], u32 outMax);
 
 /**
  * Lookup weapon statistics.
  */
-f32 asset_weapon_damage(const AssetWeaponMapComp* map, const AssetWeapon*);
-u8  asset_weapon_applies_status(const AssetWeaponMapComp* map, const AssetWeapon*);
+f32 asset_weapon_damage(const AssetWeaponMapComp*, const AssetWeapon*);
+u8  asset_weapon_applies_status(const AssetWeaponMapComp*, const AssetWeapon*);
 
 /**
  * Lookup a weapon by the hash of its name.
