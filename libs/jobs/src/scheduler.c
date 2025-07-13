@@ -86,16 +86,29 @@ void jobs_scheduler_wait(const JobId job) {
 void jobs_scheduler_wait_help(const JobId job) {
   diag_assert_msg(g_jobsIsWorker, "Only job-workers can help out");
 
-  static const u32 g_maxYields = 100;
+  static THREAD_LOCAL u32 g_recursionCount;
+  ++g_recursionCount;
 
-  for (u32 yieldsRem = g_maxYields;;) {
-    // Execute all currently available tasks.
-    while (executor_help()) {
-      yieldsRem = g_maxYields;
+  enum { MaxYields = 100 };
+  for (u32 yieldsRem = MaxYields;;) {
+    if (UNLIKELY(g_recursionCount > 1)) {
+      /**
+       * We've recursed into the job_scheduler, this means there is a job that is starting
+       * additional jobs. To avoid recursing too deeply first finish this job before executing other
+       * tasks (which might spawn more jobs).
+       */
+      if (executor_help_job(job)) {
+        yieldsRem = MaxYields;
+      }
+    } else {
+      // Execute all currently available tasks.
+      while (executor_help()) {
+        yieldsRem = MaxYields;
+      }
     }
 
     if (jobs_scheduler_is_finished(job)) {
-      return; // The given job is finished.
+      goto Done; // The given job is finished.
     }
 
     // No tasks more available but the job is not finished; yield our time-slice.
@@ -109,7 +122,7 @@ void jobs_scheduler_wait_help(const JobId job) {
        * When nesting jobs (calling jobs_scheduler_wait_help() inside a job task) we should not
        * sleep the thread as doing so could starve the job-system and lead to a deadlock.
        */
-      yieldsRem = g_maxYields;
+      yieldsRem = MaxYields;
       continue;
     }
 
@@ -127,10 +140,13 @@ void jobs_scheduler_wait_help(const JobId job) {
     thread_atomic_sub_i32(&g_sleepingHelpers, 1);
     thread_mutex_unlock(g_jobMutex);
     if (finished) {
-      return;
+      goto Done;
     }
-    yieldsRem = g_maxYields;
+    yieldsRem = MaxYields;
   }
+
+Done:
+  --g_recursionCount;
 }
 
 void jobs_scheduler_wake_helpers(void) {

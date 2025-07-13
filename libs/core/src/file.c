@@ -32,6 +32,30 @@ static const String g_fileResultStrs[] = {
 
 ASSERT(array_elems(g_fileResultStrs) == FileResult_Count, "Incorrect number of FileResult strings");
 
+static i8 file_mapping_compare(const void* a, const void* b) {
+  const FileMapping* mappingA = a;
+  const FileMapping* mappingB = b;
+  return compare_uptr(&mappingA->ptr, &mappingB->ptr);
+}
+
+static FileMapping* file_mapping_find(File* file, void* ptr) {
+  const FileMapping target = {.ptr = ptr};
+  return dynarray_search_binary(&file->mappings, file_mapping_compare, &target);
+}
+
+static void file_mapping_add(File* file, const FileMapping* mapping) {
+  *dynarray_insert_sorted_t(&file->mappings, FileMapping, file_mapping_compare, mapping) = *mapping;
+}
+
+static void file_mapping_remove(File* file, const FileMapping* mapping) {
+  diag_assert(file->mappings.size);
+
+  const usize index = mapping - dynarray_begin_t(&file->mappings, FileMapping);
+  diag_assert(index < file->mappings.size);
+
+  dynarray_remove(&file->mappings, index, 1);
+}
+
 String file_result_str(const FileResult result) {
   diag_assert(result < FileResult_Count);
   return g_fileResultStrs[result];
@@ -70,10 +94,11 @@ FileResult file_temp(Allocator* alloc, File** file) {
 }
 
 void file_destroy(File* file) {
-  if (file->mapping.ptr) {
-    file_pal_unmap(file, &file->mapping);
-    thread_atomic_sub_i64(&g_fileMappingSize, (i64)file->mapping.size);
+  dynarray_for_t(&file->mappings, FileMapping, mapping) {
+    file_pal_unmap(file, mapping);
+    thread_atomic_sub_i64(&g_fileMappingSize, (i64)mapping->size);
   }
+  dynarray_clear(&file->mappings);
 
   file_pal_destroy(file);
   if (UNLIKELY(thread_atomic_sub_i64(&g_fileCount, 1) <= 0)) {
@@ -83,26 +108,30 @@ void file_destroy(File* file) {
 
 FileResult
 file_map(File* file, const usize offset, const usize size, const FileHints hints, String* output) {
-  diag_assert_msg(!file->mapping.ptr, "File is already mapped");
+  if (UNLIKELY(!file->mappings.stride)) {
+    return FileResult_InvalidMapping; // File does not support mapping.
+  }
 
-  const FileResult res = file_pal_map(file, offset, size, hints, &file->mapping);
+  FileMapping      mapping;
+  const FileResult res = file_pal_map(file, offset, size, hints, &mapping);
   if (res == FileResult_Success) {
-    thread_atomic_add_i64(&g_fileMappingSize, (i64)file->mapping.size);
-    *output = mem_create(file->mapping.ptr, file->mapping.size);
+    thread_atomic_add_i64(&g_fileMappingSize, (i64)mapping.size);
+    file_mapping_add(file, &mapping);
+    *output = mem_create(mapping.ptr, mapping.size);
   }
   return res;
 }
 
 FileResult file_unmap(File* file, const String mapping) {
-  if (UNLIKELY(mapping.ptr != file->mapping.ptr || mapping.size != file->mapping.size)) {
+  FileMapping* mappingInfo = file_mapping_find(file, mapping.ptr);
+  if (UNLIKELY(!mappingInfo || mappingInfo->size != mapping.size)) {
     return FileResult_InvalidMapping;
   }
-  diag_assert_msg(file->mapping.ptr, "File not mapped");
 
-  const FileResult res = file_pal_unmap(file, &file->mapping);
+  const FileResult res = file_pal_unmap(file, mappingInfo);
   if (res == FileResult_Success) {
-    thread_atomic_sub_i64(&g_fileMappingSize, (i64)file->mapping.size);
-    file->mapping = (FileMapping){0};
+    thread_atomic_sub_i64(&g_fileMappingSize, (i64)mappingInfo->size);
+    file_mapping_remove(file, mappingInfo);
   }
   return res;
 }
