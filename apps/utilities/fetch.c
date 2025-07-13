@@ -351,6 +351,15 @@ static FetchResult fetch_run_origin(
     };
   }
 
+  // Verify there's a network interface available.
+  if (requests.size) {
+    NetIp ips[32];
+    u32   ipCount = array_elems(ips);
+    if (net_ip_interfaces(ips, &ipCount, NetInterfaceQueryFlags_None) || !ipCount) {
+      result = FetchResult_NetworkUnavailable;
+    }
+  }
+
   // Process the results.
   while (requests.size && result == FetchResult_Success) {
     thread_sleep(time_milliseconds(100));
@@ -402,13 +411,6 @@ static FetchResult fetch_run(
       "Fetching assets",
       log_param("origins", fmt_int(cfg->origins.count)),
       log_param("output-path", fmt_path(outPath)));
-
-  NetIp ips[32];
-  u32   ipCount = array_elems(ips);
-  if (net_ip_interfaces(ips, &ipCount, NetInterfaceQueryFlags_None) || !ipCount) {
-    log_e("No network interface available");
-    return FetchResult_NetworkUnavailable;
-  }
 
   const u32 maxRequests = fetch_config_max_origin_assets(cfg);
   if (maxRequests) {
