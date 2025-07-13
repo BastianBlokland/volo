@@ -41,3 +41,4 @@ extern DataType g_assetGeoMatrixType;
 extern DataType g_assetGeoPlaneType;
 
 bool asset_data_patch_refs(EcsWorld*, AssetManagerComp*, DataMeta, Mem data);
+u32  asset_data_query_refs(DataMeta, Mem data, EcsEntityId out[], u32 outMax);

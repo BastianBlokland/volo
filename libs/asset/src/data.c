@@ -322,3 +322,23 @@ bool asset_data_patch_refs(
   data_visit(g_dataReg, meta, data, g_assetRefType, &ctx, asset_data_patch_refs_visitor);
   return ctx.success;
 }
+
+typedef struct {
+  EcsEntityId* out;
+  u32          outCount, outMax;
+} AssetDataQueryCtx;
+
+static void asset_data_query_refs_visitor(void* ctx, const Mem data) {
+  AssetDataQueryCtx* queryCtx = ctx;
+  const AssetRef*    refData  = mem_as_t(data, AssetRef);
+
+  if (refData->entity && LIKELY(queryCtx->outCount != queryCtx->outMax)) {
+    queryCtx->out[queryCtx->outCount++] = refData->entity;
+  }
+}
+
+u32 asset_data_query_refs(const DataMeta meta, const Mem data, EcsEntityId out[], u32 outMax) {
+  AssetDataQueryCtx ctx = {.out = out, .outMax = outMax};
+  data_visit(g_dataReg, meta, data, g_assetRefType, &ctx, asset_data_query_refs_visitor);
+  return ctx.outCount;
+}
