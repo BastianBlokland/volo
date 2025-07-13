@@ -5,6 +5,7 @@
     "levels/*.level",
     "fonts/builtin/*.fonttex",
     "graphics/builtin/*.graphic",
-    "graphics/dev/*.graphic"
+    "graphics/dev/*.graphic",
+    "textures/builtin/*.atlas"
   ]
 }

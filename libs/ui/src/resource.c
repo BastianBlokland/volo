@@ -10,7 +10,7 @@
 
 static const String g_uiAtlasIds[UiAtlasRes_Count] = {
     [UiAtlasRes_Font]  = string_static("fonts/builtin/ui.fonttex"),
-    [UiAtlasRes_Image] = string_static("textures/ui/image.atlas"),
+    [UiAtlasRes_Image] = string_static("textures/builtin/image.atlas"),
 };
 static const String g_uiGraphicIds[UiGraphicRes_Count] = {
     [UiGraphicRes_Normal] = string_static("graphics/builtin/canvas.graphic"),
