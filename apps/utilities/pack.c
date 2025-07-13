@@ -5,6 +5,7 @@
 #include "asset_prefab.h"
 #include "asset_product.h"
 #include "asset_register.h"
+#include "asset_terrain.h"
 #include "asset_weapon.h"
 #include "cli_app.h"
 #include "cli_help.h"
@@ -122,6 +123,7 @@ ecs_view_define(PackAssetView) {
   ecs_access_maybe_read(AssetLevelComp);
   ecs_access_maybe_read(AssetPrefabMapComp);
   ecs_access_maybe_read(AssetProductMapComp);
+  ecs_access_maybe_read(AssetTerrainComp);
   ecs_access_maybe_read(AssetWeaponMapComp);
 }
 
@@ -185,6 +187,10 @@ ecs_system_define(PackUpdateSys) {
       const AssetProductMapComp* productMap = ecs_view_read_t(assetItr, AssetProductMapComp);
       if (productMap) {
         refCount += asset_product_refs(productMap, refs + refCount, array_elems(refs) - refCount);
+      }
+      const AssetTerrainComp* terrainComp = ecs_view_read_t(assetItr, AssetTerrainComp);
+      if (terrainComp) {
+        refCount += asset_terrain_refs(terrainComp, refs + refCount, array_elems(refs) - refCount);
       }
       const AssetWeaponMapComp* weaponMap = ecs_view_read_t(assetItr, AssetWeaponMapComp);
       if (weaponMap) {
