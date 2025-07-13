@@ -9,7 +9,7 @@
 #include "resource_internal.h"
 
 static const String g_uiAtlasIds[UiAtlasRes_Count] = {
-    [UiAtlasRes_Font]  = string_static("fonts/ui.fonttex"),
+    [UiAtlasRes_Font]  = string_static("fonts/builtin/ui.fonttex"),
     [UiAtlasRes_Image] = string_static("textures/ui/image.atlas"),
 };
 static const String g_uiGraphicIds[UiGraphicRes_Count] = {

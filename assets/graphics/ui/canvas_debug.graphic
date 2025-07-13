@@ -10,7 +10,7 @@
     }
   ],
   "samplers": [
-    { "texture": "fonts/ui.fonttex" },
+    { "texture": "fonts/builtin/ui.fonttex" },
     { "texture": "textures/ui/image.atlas" }
   ],
   "vertexCount": 6,

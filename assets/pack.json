@@ -1,9 +1,9 @@
 {
   "roots": [
     "global/*",
-    "fonts/ui.fonttex",
     "icons/*.icon",
     "levels/*.level",
+    "fonts/builtin/*.fonttex",
     "graphics/builtin/*.graphic",
     "graphics/dev/*.graphic"
   ]
