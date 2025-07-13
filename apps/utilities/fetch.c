@@ -300,13 +300,32 @@ typedef struct {
   String    asset;
 } FetchRequest;
 
-static i32 fetch_run_origin(
+typedef enum {
+  FetchResult_Success,
+  FetchResult_NetworkUnavailable,
+  FetchResult_DownloadFailed,
+  FetchResult_SaveFailed,
+  FetchResult_Interupted,
+} FetchResult;
+
+static String fetch_result_str(const FetchResult result) {
+  static const String g_resultNames[] = {
+      [FetchResult_Success]            = string_static("Success"),
+      [FetchResult_NetworkUnavailable] = string_static("NetworkUnavailable"),
+      [FetchResult_DownloadFailed]     = string_static("DownloadFailed"),
+      [FetchResult_SaveFailed]         = string_static("SaveFailed"),
+      [FetchResult_Interupted]         = string_static("Interupted"),
+  };
+  return g_resultNames[result];
+}
+
+static FetchResult fetch_run_origin(
     const FetchOrigin* origin,
     FetchRegistry*     reg,
     const FetchFlags   flags,
     const String       outPath,
     NetRest*           rest) {
-  i32 retCode = 0;
+  FetchResult result = FetchResult_Success;
 
   const TimeReal     now      = time_real_clock();
   const NetHttpAuth  auth     = fetch_origin_auth(origin);
@@ -332,12 +351,21 @@ static i32 fetch_run_origin(
     };
   }
 
+  // Verify there's a network interface available.
+  if (requests.size) {
+    NetIp ips[32];
+    u32   ipCount = array_elems(ips);
+    if (net_ip_interfaces(ips, &ipCount, NetInterfaceQueryFlags_None) || !ipCount) {
+      result = FetchResult_NetworkUnavailable;
+    }
+  }
+
   // Process the results.
-  while (requests.size) {
+  while (requests.size && result == FetchResult_Success) {
     thread_sleep(time_milliseconds(100));
 
     if (signal_is_received(Signal_Interrupt) || signal_is_received(Signal_Terminate)) {
-      retCode = 3;
+      result = FetchResult_Interupted;
       break;
     }
 
@@ -346,22 +374,22 @@ static i32 fetch_run_origin(
       if (!net_rest_done(rest, req->id)) {
         continue;
       }
-      const NetResult result = net_rest_result(rest, req->id);
-      switch (result) {
+      const NetResult reqResult = net_rest_result(rest, req->id);
+      switch (reqResult) {
       case NetResult_HttpNotModified:
         fetch_registry_update(reg, req->asset); // Update the lastSyncTime in the registry.
         break;
       case NetResult_Success:
         if (!fetch_asset_save(reg, outPath, req->asset, rest, req->id)) {
-          retCode = 2;
+          result = FetchResult_SaveFailed;
         }
         break;
       default:
         log_e(
             "Asset fetch failed: '{}'",
             log_param("asset", fmt_text(req->asset)),
-            log_param("error", fmt_text(net_result_str(result))));
-        retCode = 1;
+            log_param("error", fmt_text(net_result_str(reqResult))));
+        result = FetchResult_DownloadFailed;
         break;
       }
       net_rest_release(rest, req->id);
@@ -370,12 +398,12 @@ static i32 fetch_run_origin(
   }
 
   dynarray_destroy(&requests);
-  return retCode;
+  return result;
 }
 
-static i32 fetch_run(
+static FetchResult fetch_run(
     const FetchConfig* cfg, FetchRegistry* reg, const FetchFlags flags, const String outPath) {
-  i32              retCode   = 0;
+  FetchResult      result    = FetchResult_Success;
   NetRest*         rest      = null;
   const TimeSteady timeStart = time_steady_clock();
 
@@ -384,33 +412,31 @@ static i32 fetch_run(
       log_param("origins", fmt_int(cfg->origins.count)),
       log_param("output-path", fmt_path(outPath)));
 
-  NetIp ips[32];
-  u32   ipCount = array_elems(ips);
-  if (net_ip_interfaces(ips, &ipCount, NetInterfaceQueryFlags_None) || !ipCount) {
-    log_e("No network interface available");
-    return 4;
-  }
-
   const u32 maxRequests = fetch_config_max_origin_assets(cfg);
   if (maxRequests) {
     rest = net_rest_create(g_allocHeap, fetch_worker_count, maxRequests, fetch_http_flags());
 
     heap_array_for_t(cfg->origins, FetchOrigin, origin) {
-      i32 originRet = 0;
+      FetchResult originResult = FetchResult_Success;
       if (origin->assets.count) {
-        originRet = fetch_run_origin(origin, reg, flags, outPath, rest);
+        originResult = fetch_run_origin(origin, reg, flags, outPath, rest);
       }
-      retCode = math_max(retCode, originRet);
+      result = math_max(result, originResult);
 
       if (signal_is_received(Signal_Interrupt) || signal_is_received(Signal_Terminate)) {
-        retCode = 3;
+        result = FetchResult_Interupted;
         break;
       }
     }
   }
+
+  if (rest) {
+    net_rest_destroy(rest);
+  }
+
   const TimeDuration duration = time_steady_duration(timeStart, time_steady_clock());
   const NetStats     netStats = net_stats_query();
-  if (!retCode) {
+  if (result == FetchResult_Success) {
     log_i(
         "Fetch finished",
         log_param("duration", fmt_duration(duration)),
@@ -421,16 +447,31 @@ static i32 fetch_run(
   } else {
     log_e(
         "Fetch failed",
+        log_param("error", fmt_text(fetch_result_str(result))),
         log_param("duration", fmt_duration(duration)),
         log_param("resolves", fmt_int(netStats.totalResolves)),
         log_param("connects", fmt_int(netStats.totalConnects)),
         log_param("bytes-in", fmt_size(netStats.totalBytesRead)),
         log_param("bytes-out", fmt_size(netStats.totalBytesWrite)));
   }
-  if (rest) {
-    net_rest_destroy(rest);
+  return result;
+}
+
+static bool fetch_is_complete(const FetchConfig* cfg, FetchRegistry* reg, const String outPath) {
+  heap_array_for_t(cfg->origins, FetchOrigin, origin) {
+    heap_array_for_t(origin->assets, String, asset) {
+      const FileInfo fileInfo = file_stat_path_sync(path_build_scratch(outPath, *asset));
+      if (fileInfo.type != FileType_Regular) {
+        return false; // File is missing.
+      }
+      FetchRegistryEntry* regEntry = fetch_registry_get(reg, *asset);
+      if (!regEntry) {
+        return false; // File was never synced with the remote.
+      }
+      // NOTE: File might be out-of-date but its present.
+    }
   }
-  return retCode;
+  return true;
 }
 
 static CliId g_optConfigPath, g_optVerbose, g_optForce, g_optHelp;
@@ -489,7 +530,14 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   signal_intercept_enable(); // Custom interrupt handling.
 
   net_init();
-  retCode = fetch_run(&cfg, &reg, flags, outPath);
+  const FetchResult fetchResult = fetch_run(&cfg, &reg, flags, outPath);
+  /**
+   * NOTE: If fetch fails but the local registry is complete return 0 to indicate the game can be
+   * launched. This makes development while being offline for extended periods nicer.
+   */
+  if (fetchResult && ((flags & FetchFlags_Force) || !fetch_is_complete(&cfg, &reg, outPath))) {
+    retCode = (i32)fetchResult;
+  }
   net_teardown();
 
   fetch_registry_save(&reg, outPath);
