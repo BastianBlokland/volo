@@ -3,6 +3,8 @@
     "global/*",
     "fonts/ui.fonttex",
     "icons/*.icon",
-    "levels/*.level"
+    "levels/*.level",
+    "graphics/builtin/*.graphic",
+    "graphics/dev/*.graphic"
   ]
 }

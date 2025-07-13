@@ -25,8 +25,8 @@
 
 // clang-format off
 
-static const String g_rendInstanceShadow                = string_static("graphics/shadow.graphic");
-static const String g_rendInstanceShadowSkinned         = string_static("graphics/shadow_skinned.graphic");
+static const String g_rendInstanceShadow                = string_static("graphics/builtin/shadow.graphic");
+static const String g_rendInstanceShadowSkinned         = string_static("graphics/builtin/shadow_skinned.graphic");
 static const String g_rendInstanceDebugSkinning         = string_static("graphics/dev/skinning.graphic");
 static const String g_rendInstanceDebugWireframe        = string_static("graphics/dev/wireframe.graphic");
 static const String g_rendInstanceDebugWireframeSkinned = string_static("graphics/dev/wireframe_skinned.graphic");
