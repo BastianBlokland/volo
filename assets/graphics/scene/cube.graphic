@@ -8,5 +8,5 @@
     { "texture": "textures/builtin/white.proctex" },
     { "texture": "textures/builtin/zero.proctex" }
   ],
-  "mesh": "meshes/cube.procmesh"
+  "mesh": "meshes/builtin/cube.procmesh"
 }

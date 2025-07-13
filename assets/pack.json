@@ -8,6 +8,7 @@
     "graphics/dev/*.graphic",
     "textures/builtin/*.atlas",
     "textures/builtin/*.proctex",
-    "textures/builtin/*.arraytex"
+    "textures/builtin/*.arraytex",
+    "meshes/builtin/*.procmesh"
   ]
 }

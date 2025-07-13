@@ -52,7 +52,7 @@ static const RendResGlobalDef g_rendResGlobal[] = {
   { .repoId = RvkRepositoryId_FogBlurHorGraphic,            .assetId = string_static("graphics/builtin/fog_blur_hor.graphic") },
   { .repoId = RvkRepositoryId_FogBlurVerGraphic,            .assetId = string_static("graphics/builtin/fog_blur_ver.graphic") },
   { .repoId = RvkRepositoryId_FogGraphic,                   .assetId = string_static("graphics/builtin/fog.graphic") },
-  { .repoId = RvkRepositoryId_MissingMesh,                  .assetId = string_static("meshes/missing.procmesh"), .ignoreAssetChanges = true, .graphicRequirement = true },
+  { .repoId = RvkRepositoryId_MissingMesh,                  .assetId = string_static("meshes/builtin/missing.procmesh"), .ignoreAssetChanges = true, .graphicRequirement = true },
   { .repoId = RvkRepositoryId_MissingTexture,               .assetId = string_static("textures/builtin/missing.proctex"), .ignoreAssetChanges = true, .graphicRequirement = true  },
   { .repoId = RvkRepositoryId_MissingTextureArray,          .assetId = string_static("textures/builtin/missing_array.arraytex"), .ignoreAssetChanges = true, .graphicRequirement = true  },
   { .repoId = RvkRepositoryId_MissingTextureCube,           .assetId = string_static("textures/builtin/missing_cube.arraytex"), .ignoreAssetChanges = true, .graphicRequirement = true  },
