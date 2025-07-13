@@ -6,16 +6,73 @@
 #include "cli_parse.h"
 #include "cli_read.h"
 #include "cli_validate.h"
+#include "core_alloc.h"
 #include "core_file.h"
 #include "core_signal.h"
+#include "data_read.h"
+#include "data_utils.h"
 #include "ecs_utils.h"
 #include "ecs_view.h"
 #include "log_logger.h"
 
+/**
+ * Pack - Utility to pack assets.
+ */
+
+typedef struct {
+  HeapArray_t(String) roots;
+} PackConfig;
+
+static DataMeta g_packConfigMeta;
+
+static void pack_data_init(void) {
+  // clang-format off
+  data_reg_struct_t(g_dataReg, PackConfig);
+  data_reg_field_t(g_dataReg, PackConfig, roots, data_prim_t(String), .container = DataContainer_HeapArray, .flags = DataFlags_NotEmpty);
+  // clang-format on
+
+  g_packConfigMeta = data_meta_t(t_PackConfig);
+}
+
+static bool pack_config_load(const String path, PackConfig* out) {
+  bool       success = false;
+  File*      file    = null;
+  FileResult fileRes;
+  if ((fileRes = file_create(g_allocHeap, path, FileMode_Open, FileAccess_Read, &file))) {
+    log_e("Failed to open config file", log_param("err", fmt_text(file_result_str(fileRes))));
+    goto Ret;
+  }
+  String data;
+  if ((fileRes = file_map(file, 0 /* offset */, 0 /* size */, FileHints_Prefetch, &data))) {
+    log_e("Failed to map config file", log_param("err", fmt_text(file_result_str(fileRes))));
+    goto Ret;
+  }
+  DataReadResult result;
+  const Mem      outMem = mem_create(out, sizeof(PackConfig));
+  data_read_json(g_dataReg, data, g_allocHeap, g_packConfigMeta, outMem, &result);
+  if (result.error) {
+    log_e("Failed to parse config file", log_param("err", fmt_text(result.errorMsg)));
+    goto Ret;
+  }
+  success = true;
+
+Ret:
+  if (file) {
+    file_destroy(file);
+  }
+  return success;
+}
+
 ecs_comp_define(PackComp) {
-  u64  frameIdx;
-  bool done;
+  PackConfig cfg;
+  u64        frameIdx;
+  bool       done;
 };
+
+static void ecs_destruct_texture_comp(void* data) {
+  PackComp* comp = data;
+  data_destroy(g_dataReg, g_allocHeap, g_packConfigMeta, mem_var(comp->cfg));
+}
 
 ecs_view_define(GlobalView) {
   ecs_access_write(PackComp);
@@ -24,8 +81,10 @@ ecs_view_define(GlobalView) {
 
 ecs_system_define(PackUpdateSys) {
   EcsView*     globalView = ecs_world_view_t(world, GlobalView);
-  EcsIterator* globalItr  = ecs_view_at(globalView, ecs_world_global(world));
-
+  EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
+  if (UNLIKELY(!globalItr)) {
+    return; // Initialization failed; application will be terminated.
+  }
   PackComp*         pack   = ecs_view_write_t(globalItr, PackComp);
   AssetManagerComp* assets = ecs_view_write_t(globalItr, AssetManagerComp);
 
@@ -38,7 +97,7 @@ ecs_system_define(PackUpdateSys) {
 }
 
 ecs_module_init(pack_module) {
-  ecs_register_comp(PackComp);
+  ecs_register_comp(PackComp, .destructor = ecs_destruct_texture_comp);
 
   ecs_register_view(GlobalView);
 
@@ -73,6 +132,8 @@ bool app_ecs_validate(const CliApp* app, const CliInvocation* invoc) {
 }
 
 void app_ecs_register(EcsDef* def, MAYBE_UNUSED const CliInvocation* invoc) {
+  pack_data_init();
+
   asset_register(def);
 
   ecs_register_module(def, pack_module);
@@ -84,8 +145,13 @@ void app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
     log_e("Asset directory not found", log_param("path", fmt_path(assetPath)));
     return;
   }
+  const String cfgPath = cli_read_string(invoc, g_optConfigPath, string_empty);
+  PackConfig   cfg;
+  if (!pack_config_load(cfgPath, &cfg)) {
+    return;
+  }
 
-  PackComp* packComp = ecs_world_add_t(world, ecs_world_global(world), PackComp);
+  PackComp* packComp = ecs_world_add_t(world, ecs_world_global(world), PackComp, .cfg = cfg);
   (void)packComp;
 
   const AssetManagerFlags assetFlg = AssetManagerFlags_DelayUnload;
@@ -96,9 +162,13 @@ void app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
 }
 
 void app_ecs_set_frame(EcsWorld* world, const u64 frameIdx) {
-  ecs_utils_write_first_t(world, GlobalView, PackComp)->frameIdx = frameIdx;
+  PackComp* packComp = ecs_utils_write_first_t(world, GlobalView, PackComp);
+  if (LIKELY(packComp)) {
+    packComp->frameIdx = frameIdx;
+  }
 }
 
 bool app_ecs_query_quit(EcsWorld* world) {
-  return ecs_utils_write_first_t(world, GlobalView, PackComp)->done;
+  PackComp* packComp = ecs_utils_write_first_t(world, GlobalView, PackComp);
+  return !packComp || packComp->done;
 }
