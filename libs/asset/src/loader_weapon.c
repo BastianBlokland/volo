@@ -356,6 +356,26 @@ Ret:
   asset_repo_source_close(src);
 }
 
+u32 asset_weapon_asset_refs(const AssetWeaponMapComp* map, AssetRef out[], const u32 outMax) {
+  u32 outCount = 0;
+  for (u32 i = 0; i != map->effects.count && outCount != outMax; ++i) {
+    const AssetWeaponEffect* effect = &map->effects.values[i];
+    switch (effect->type) {
+    case AssetWeaponEffect_Projectile:
+    case AssetWeaponEffect_Damage:
+    case AssetWeaponEffect_Animation:
+      break;
+    case AssetWeaponEffect_Vfx: {
+      out[outCount++] = effect->data_vfx.asset;
+    } break;
+    case AssetWeaponEffect_Sound: {
+      out[outCount++] = effect->data_sound.asset;
+    } break;
+    }
+  }
+  return outCount;
+}
+
 f32 asset_weapon_damage(const AssetWeaponMapComp* map, const AssetWeapon* weapon) {
   f32 damage = 0;
   for (u16 i = 0; i != weapon->effectCount; ++i) {

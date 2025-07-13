@@ -97,6 +97,11 @@ ecs_comp_extern_public(AssetWeaponMapComp) {
 extern DataMeta g_assetWeaponDefMeta;
 
 /**
+ * Find all asset references in the given weapon map.
+ */
+u32 asset_weapon_asset_refs(const AssetWeaponMapComp* map, AssetRef out[], u32 outMax);
+
+/**
  * Lookup weapon statistics.
  */
 f32 asset_weapon_damage(const AssetWeaponMapComp* map, const AssetWeapon*);
