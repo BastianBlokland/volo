@@ -3,16 +3,25 @@
     "global/*",
 
     "external/sound/builtin/*.wav",
+
     "fonts/builtin/*.fonttex",
-    "graphics/builtin/*.graphic",
+
     "icons/builtin/*.icon",
+
     "meshes/builtin/*.procmesh",
+    "meshes/dev/*.procmesh",
+
     "textures/builtin/*.arraytex",
     "textures/builtin/*.atlas",
     "textures/builtin/*.proctex",
+    "textures/vfx/*.atlas",
 
-    "levels/*.level",
+    "graphics/builtin/*.graphic",
+    "graphics/dev/*.graphic",
+    "graphics/hud/*.graphic",
+    "graphics/light/*.graphic",
+    "graphics/vfx/*.graphic",
 
-    "graphics/dev/*.graphic"
+    "levels/*.level"
   ]
 }
