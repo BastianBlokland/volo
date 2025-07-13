@@ -455,6 +455,23 @@ static FetchResult fetch_run(
   return result;
 }
 
+static bool fetch_is_complete(const FetchConfig* cfg, FetchRegistry* reg, const String outPath) {
+  heap_array_for_t(cfg->origins, FetchOrigin, origin) {
+    heap_array_for_t(origin->assets, String, asset) {
+      const FileInfo fileInfo = file_stat_path_sync(path_build_scratch(outPath, *asset));
+      if (fileInfo.type != FileType_Regular) {
+        return false; // File is missing.
+      }
+      FetchRegistryEntry* regEntry = fetch_registry_get(reg, *asset);
+      if (!regEntry) {
+        return false; // File was never synced with the remote.
+      }
+      // NOTE: File might be out-of-date but its present.
+    }
+  }
+  return true;
+}
+
 static CliId g_optConfigPath, g_optVerbose, g_optForce, g_optHelp;
 
 void app_cli_configure(CliApp* app) {
@@ -511,7 +528,14 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   signal_intercept_enable(); // Custom interrupt handling.
 
   net_init();
-  retCode = (i32)fetch_run(&cfg, &reg, flags, outPath);
+  const FetchResult fetchResult = fetch_run(&cfg, &reg, flags, outPath);
+  /**
+   * NOTE: If fetch fails but the local registry is complete return 0 to indicate the game can be
+   * launched. This makes development while being offline for extended periods nicer.
+   */
+  if (fetchResult != FetchResult_Success && !fetch_is_complete(&cfg, &reg, outPath)) {
+    retCode = (i32)fetchResult;
+  }
   net_teardown();
 
   fetch_registry_save(&reg, outPath);
