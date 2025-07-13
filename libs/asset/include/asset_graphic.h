@@ -141,6 +141,11 @@ ecs_comp_extern_public(AssetGraphicComp) {
 
 extern DataMeta g_assetGraphicDefMeta;
 
+/**
+ * Find all asset references in the given graphic.
+ */
+u32 asset_graphic_refs(const AssetGraphicComp* map, EcsEntityId out[], u32 outMax);
+
 String asset_graphic_pass_name(AssetGraphicPass);
 String asset_graphic_topology_name(AssetGraphicTopology);
 String asset_graphic_rasterizer_name(AssetGraphicRasterizer);

@@ -1,4 +1,5 @@
 #include "app_ecs.h"
+#include "asset_graphic.h"
 #include "asset_manager.h"
 #include "asset_prefab.h"
 #include "asset_product.h"
@@ -113,6 +114,7 @@ ecs_view_define(PackGlobalView) { ecs_access_write(PackComp); }
 
 ecs_view_define(PackAssetView) {
   ecs_access_read(AssetComp);
+  ecs_access_maybe_read(AssetGraphicComp);
   ecs_access_maybe_read(AssetPrefabMapComp);
   ecs_access_maybe_read(AssetProductMapComp);
   ecs_access_maybe_read(AssetWeaponMapComp);
@@ -160,7 +162,11 @@ ecs_system_define(PackUpdateSys) {
         ++pack->errorCount;
         break; // Asset failed to load.
       }
-      u32                       refCount  = 0;
+      u32                     refCount    = 0;
+      const AssetGraphicComp* graphicComp = ecs_view_read_t(assetItr, AssetGraphicComp);
+      if (graphicComp) {
+        refCount += asset_graphic_refs(graphicComp, refs + refCount, array_elems(refs) - refCount);
+      }
       const AssetPrefabMapComp* prefabMap = ecs_view_read_t(assetItr, AssetPrefabMapComp);
       if (prefabMap) {
         refCount += asset_prefab_refs(prefabMap, refs + refCount, array_elems(refs) - refCount);
