@@ -266,6 +266,11 @@ ecs_comp_extern_public(AssetPrefabMapComp) {
 
 extern DataMeta g_assetPrefabDefMeta;
 
+/**
+ * Find all asset references in the given weapon map.
+ */
+u32 asset_prefab_refs(const AssetPrefabMapComp* map, AssetRef out[], u32 outMax);
+
 const AssetPrefab* asset_prefab_find(const AssetPrefabMapComp*, StringHash nameHash);
 u16                asset_prefab_find_index(const AssetPrefabMapComp*, StringHash nameHash);
 

@@ -1,5 +1,6 @@
 #include "app_ecs.h"
 #include "asset_manager.h"
+#include "asset_prefab.h"
 #include "asset_product.h"
 #include "asset_register.h"
 #include "asset_weapon.h"
@@ -112,8 +113,9 @@ ecs_view_define(PackGlobalView) { ecs_access_write(PackComp); }
 
 ecs_view_define(PackAssetView) {
   ecs_access_read(AssetComp);
-  ecs_access_maybe_read(AssetWeaponMapComp);
+  ecs_access_maybe_read(AssetPrefabMapComp);
   ecs_access_maybe_read(AssetProductMapComp);
+  ecs_access_maybe_read(AssetWeaponMapComp);
 }
 
 static bool pack_asset_is_loaded(EcsWorld* world, const EcsEntityId asset) {
@@ -159,13 +161,17 @@ ecs_system_define(PackUpdateSys) {
         break; // Asset failed to load.
       }
       u32                       refCount  = 0;
-      const AssetWeaponMapComp* weaponMap = ecs_view_read_t(assetItr, AssetWeaponMapComp);
-      if (weaponMap) {
-        refCount += asset_weapon_refs(weaponMap, refs + refCount, array_elems(refs) - refCount);
+      const AssetPrefabMapComp* prefabMap = ecs_view_read_t(assetItr, AssetPrefabMapComp);
+      if (prefabMap) {
+        refCount += asset_prefab_refs(prefabMap, refs + refCount, array_elems(refs) - refCount);
       }
       const AssetProductMapComp* productMap = ecs_view_read_t(assetItr, AssetProductMapComp);
       if (productMap) {
         refCount += asset_product_refs(productMap, refs + refCount, array_elems(refs) - refCount);
+      }
+      const AssetWeaponMapComp* weaponMap = ecs_view_read_t(assetItr, AssetWeaponMapComp);
+      if (weaponMap) {
+        refCount += asset_weapon_refs(weaponMap, refs + refCount, array_elems(refs) - refCount);
       }
       for (u32 i = 0; i != refCount; ++i) {
         diag_assert(refs[i].entity);

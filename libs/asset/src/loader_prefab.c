@@ -739,6 +739,13 @@ Ret:
   asset_repo_source_close(src);
 }
 
+u32 asset_prefab_refs(const AssetPrefabMapComp* map, AssetRef out[], const u32 outMax) {
+  (void)map;
+  (void)out;
+  (void)outMax;
+  return 0;
+}
+
 const AssetPrefab* asset_prefab_find(const AssetPrefabMapComp* map, const StringHash name) {
   return search_binary_t(
       map->prefabs,
