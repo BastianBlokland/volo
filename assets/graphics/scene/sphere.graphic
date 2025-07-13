@@ -5,8 +5,8 @@
     { "program": "shaders/standard.frag" }
   ],
   "samplers": [
-    { "texture": "textures/white.proctex" },
-    { "texture": "textures/zero.proctex" }
+    { "texture": "textures/builtin/white.proctex" },
+    { "texture": "textures/builtin/zero.proctex" }
   ],
   "mesh": "meshes/sphere.procmesh"
 }

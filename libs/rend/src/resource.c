@@ -53,14 +53,14 @@ static const RendResGlobalDef g_rendResGlobal[] = {
   { .repoId = RvkRepositoryId_FogBlurVerGraphic,            .assetId = string_static("graphics/builtin/fog_blur_ver.graphic") },
   { .repoId = RvkRepositoryId_FogGraphic,                   .assetId = string_static("graphics/builtin/fog.graphic") },
   { .repoId = RvkRepositoryId_MissingMesh,                  .assetId = string_static("meshes/missing.procmesh"), .ignoreAssetChanges = true, .graphicRequirement = true },
-  { .repoId = RvkRepositoryId_MissingTexture,               .assetId = string_static("textures/missing.proctex"), .ignoreAssetChanges = true, .graphicRequirement = true  },
-  { .repoId = RvkRepositoryId_MissingTextureArray,          .assetId = string_static("textures/missing_array.arraytex"), .ignoreAssetChanges = true, .graphicRequirement = true  },
-  { .repoId = RvkRepositoryId_MissingTextureCube,           .assetId = string_static("textures/missing_cube.arraytex"), .ignoreAssetChanges = true, .graphicRequirement = true  },
+  { .repoId = RvkRepositoryId_MissingTexture,               .assetId = string_static("textures/builtin/missing.proctex"), .ignoreAssetChanges = true, .graphicRequirement = true  },
+  { .repoId = RvkRepositoryId_MissingTextureArray,          .assetId = string_static("textures/builtin/missing_array.arraytex"), .ignoreAssetChanges = true, .graphicRequirement = true  },
+  { .repoId = RvkRepositoryId_MissingTextureCube,           .assetId = string_static("textures/builtin/missing_cube.arraytex"), .ignoreAssetChanges = true, .graphicRequirement = true  },
   { .repoId = RvkRepositoryId_OutlineGraphic,               .assetId = string_static("graphics/builtin/outline.graphic") },
   { .repoId = RvkRepositoryId_SkyCubeMapGraphic,            .assetId = string_static("graphics/builtin/sky_cubemap.graphic") },
   { .repoId = RvkRepositoryId_SkyGradientGraphic,           .assetId = string_static("graphics/builtin/sky_gradient.graphic") },
   { .repoId = RvkRepositoryId_TonemapperGraphic,            .assetId = string_static("graphics/builtin/tonemapper.graphic") },
-  { .repoId = RvkRepositoryId_WhiteTexture,                 .assetId = string_static("textures/white.proctex"), .ignoreAssetChanges = true },
+  { .repoId = RvkRepositoryId_WhiteTexture,                 .assetId = string_static("textures/builtin/white.proctex"), .ignoreAssetChanges = true },
 };
 // clang-format on
 

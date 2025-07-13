@@ -6,6 +6,8 @@
     "fonts/builtin/*.fonttex",
     "graphics/builtin/*.graphic",
     "graphics/dev/*.graphic",
-    "textures/builtin/*.atlas"
+    "textures/builtin/*.atlas",
+    "textures/builtin/*.proctex",
+    "textures/builtin/*.arraytex"
   ]
 }

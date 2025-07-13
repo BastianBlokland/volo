@@ -1,0 +1,14 @@
+{
+  "type": "Cube",
+  "channels": "One",
+  "mipmaps": false,
+  "nearest": true,
+  "textures": [
+    "textures/builtin/missing.proctex",
+    "textures/builtin/missing.proctex",
+    "textures/builtin/missing.proctex",
+    "textures/builtin/missing.proctex",
+    "textures/builtin/missing.proctex",
+    "textures/builtin/missing.proctex"
+  ]
+}
