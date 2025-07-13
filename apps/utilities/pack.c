@@ -8,10 +8,12 @@
 #include "cli_validate.h"
 #include "core_alloc.h"
 #include "core_array.h"
+#include "core_dynarray.h"
 #include "core_file.h"
 #include "core_signal.h"
 #include "data_read.h"
 #include "data_utils.h"
+#include "ecs_entity.h"
 #include "ecs_utils.h"
 #include "ecs_view.h"
 #include "log_logger.h"
@@ -64,8 +66,18 @@ Ret:
   return success;
 }
 
+typedef enum {
+  PackState_Acquired,
+} PackState;
+
+typedef struct {
+  EcsEntityId entity;
+  PackState   state;
+} PackAsset;
+
 ecs_comp_define(PackComp) {
   PackConfig cfg;
+  DynArray   assets; // PackAsset[], sorted on entity.
   u64        frameIdx;
   bool       done;
 };
@@ -73,11 +85,21 @@ ecs_comp_define(PackComp) {
 static void ecs_destruct_texture_comp(void* data) {
   PackComp* comp = data;
   data_destroy(g_dataReg, g_allocHeap, g_packConfigMeta, mem_var(comp->cfg));
+  dynarray_destroy(&comp->assets);
 }
 
-static void pack_push_asset(PackComp* comp, const EcsEntityId entity) {
-  (void)comp;
-  (void)entity;
+static i8 pack_compare_asset(const void* a, const void* b) {
+  return ecs_compare_entity(field_ptr(a, PackAsset, entity), field_ptr(b, PackAsset, entity));
+}
+
+static void pack_push_asset(EcsWorld* world, PackComp* comp, const EcsEntityId entity) {
+  const PackAsset target = {.entity = entity};
+  PackAsset* entry = dynarray_find_or_insert_sorted(&comp->assets, pack_compare_asset, &target);
+  if (entry->entity) {
+    return; // Asset already added.
+  }
+  asset_acquire(world, entity);
+  *entry = (PackAsset){.entity = entity, .state = PackState_Acquired};
 }
 
 ecs_view_define(GlobalView) {
@@ -91,10 +113,10 @@ ecs_system_define(PackUpdateSys) {
   if (UNLIKELY(!globalItr)) {
     return; // Initialization failed; application will be terminated.
   }
-  PackComp*         pack   = ecs_view_write_t(globalItr, PackComp);
-  AssetManagerComp* assets = ecs_view_write_t(globalItr, AssetManagerComp);
+  PackComp*         pack     = ecs_view_write_t(globalItr, PackComp);
+  AssetManagerComp* assetMan = ecs_view_write_t(globalItr, AssetManagerComp);
 
-  (void)assets;
+  (void)assetMan;
 
   if (signal_is_received(Signal_Terminate) || signal_is_received(Signal_Interrupt)) {
     log_w("Packing interrupted", log_param("total-frames", fmt_int(pack->frameIdx)));
@@ -157,16 +179,21 @@ void app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
     return;
   }
 
-  PackComp* packComp = ecs_world_add_t(world, ecs_world_global(world), PackComp, .cfg = cfg);
+  PackComp* packComp = ecs_world_add_t(
+      world,
+      ecs_world_global(world),
+      PackComp,
+      .cfg    = cfg,
+      .assets = dynarray_create_t(g_allocHeap, PackAsset, 512));
 
   const AssetManagerFlags assetFlg = AssetManagerFlags_DelayUnload;
-  AssetManagerComp*       assets   = asset_manager_create_fs(world, assetFlg, assetPath);
+  AssetManagerComp*       assetMan = asset_manager_create_fs(world, assetFlg, assetPath);
 
   EcsEntityId queryBuffer[asset_query_max_results];
   heap_array_for_t(cfg.roots, String, root) {
-    const u32 count = asset_query(world, assets, *root, queryBuffer);
+    const u32 count = asset_query(world, assetMan, *root, queryBuffer);
     for (u32 i = 0; i != count; ++i) {
-      pack_push_asset(packComp, queryBuffer[i]);
+      pack_push_asset(world, packComp, queryBuffer[i]);
     }
     if (UNLIKELY(!count)) {
       log_w("No assets found for root", log_param("root", fmt_text(*root)));
