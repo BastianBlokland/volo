@@ -371,6 +371,32 @@ Ret:
   asset_repo_source_close(src);
 }
 
+u32 asset_product_asset_refs(const AssetProductMapComp* map, AssetRef out[], const u32 outMax) {
+#define PUSH_SOUND(_SND_)                                                                          \
+  if ((_SND_).asset.entity && outCount != outMax) {                                                \
+    out[outCount++] = (_SND_).asset;                                                               \
+  }
+
+  u32 outCount = 0;
+  for (u32 i = 0; i != map->products.count && outCount != outMax; ++i) {
+    const AssetProduct* product = &map->products.values[i];
+    PUSH_SOUND(product->soundBuilding);
+    PUSH_SOUND(product->soundReady);
+    PUSH_SOUND(product->soundCancel);
+    PUSH_SOUND(product->soundSuccess);
+    switch (product->type) {
+    case AssetProduct_Unit:
+      break;
+    case AssetProduct_Placable:
+      PUSH_SOUND(product->data_placable.soundBlocked);
+      break;
+    }
+  }
+
+#undef PUSH_SOUND
+  return outCount;
+}
+
 const AssetProductSet*
 asset_productset_get(const AssetProductMapComp* map, const StringHash nameHash) {
   return search_binary_t(

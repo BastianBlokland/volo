@@ -1,5 +1,6 @@
 #include "app_ecs.h"
 #include "asset_manager.h"
+#include "asset_product.h"
 #include "asset_register.h"
 #include "asset_weapon.h"
 #include "cli_app.h"
@@ -112,6 +113,7 @@ ecs_view_define(PackGlobalView) { ecs_access_write(PackComp); }
 ecs_view_define(PackAssetView) {
   ecs_access_read(AssetComp);
   ecs_access_maybe_read(AssetWeaponMapComp);
+  ecs_access_maybe_read(AssetProductMapComp);
 }
 
 static bool pack_asset_is_loaded(EcsWorld* world, const EcsEntityId asset) {
@@ -160,6 +162,10 @@ ecs_system_define(PackUpdateSys) {
       const AssetWeaponMapComp* weaponMap = ecs_view_read_t(assetItr, AssetWeaponMapComp);
       if (weaponMap) {
         refCnt += asset_weapon_asset_refs(weaponMap, refs + refCnt, array_elems(refs) - refCnt);
+      }
+      const AssetProductMapComp* productMap = ecs_view_read_t(assetItr, AssetProductMapComp);
+      if (productMap) {
+        refCnt += asset_product_asset_refs(productMap, refs + refCnt, array_elems(refs) - refCnt);
       }
       for (u32 i = 0; i != refCnt; ++i) {
         diag_assert(refs[i].entity);
