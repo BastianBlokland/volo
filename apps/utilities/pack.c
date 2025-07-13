@@ -67,18 +67,21 @@ Ret:
 }
 
 typedef enum {
-  PackState_Acquired,
+  PackState_Loading,
+  PackState_Finished,
 } PackState;
 
 typedef struct {
   EcsEntityId entity;
   PackState   state;
+  String      id; // NOTE: Available when load is finished.
 } PackAsset;
 
 ecs_comp_define(PackComp) {
   PackConfig cfg;
   DynArray   assets; // PackAsset[], sorted on entity.
   u64        frameIdx;
+  u32        errorCount;
   bool       done;
 };
 
@@ -99,37 +102,82 @@ static void pack_push_asset(EcsWorld* world, PackComp* comp, const EcsEntityId e
     return; // Asset already added.
   }
   asset_acquire(world, entity);
-  *entry = (PackAsset){.entity = entity, .state = PackState_Acquired};
+  *entry = (PackAsset){.entity = entity, .state = PackState_Loading};
 }
 
-ecs_view_define(GlobalView) {
-  ecs_access_write(PackComp);
-  ecs_access_write(AssetManagerComp);
+ecs_view_define(PackGlobalView) { ecs_access_write(PackComp); }
+
+ecs_view_define(PackAssetView) {
+  ecs_access_read(AssetComp);
+  ecs_access_maybe_read(AssetFailedComp);
+}
+
+static bool pack_asset_is_loaded(EcsWorld* world, const EcsEntityId asset) {
+  return ecs_world_has_t(world, asset, AssetLoadedComp) ||
+         ecs_world_has_t(world, asset, AssetFailedComp);
 }
 
 ecs_system_define(PackUpdateSys) {
-  EcsView*     globalView = ecs_world_view_t(world, GlobalView);
+  EcsView*     globalView = ecs_world_view_t(world, PackGlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   if (UNLIKELY(!globalItr)) {
     return; // Initialization failed; application will be terminated.
   }
-  PackComp*         pack     = ecs_view_write_t(globalItr, PackComp);
-  AssetManagerComp* assetMan = ecs_view_write_t(globalItr, AssetManagerComp);
-
-  (void)assetMan;
+  PackComp* pack = ecs_view_write_t(globalItr, PackComp);
 
   if (signal_is_received(Signal_Terminate) || signal_is_received(Signal_Interrupt)) {
     log_w("Packing interrupted", log_param("total-frames", fmt_int(pack->frameIdx)));
     pack->done = true;
+    return;
+  }
+
+  EcsView*     assetView = ecs_world_view_t(world, PackAssetView);
+  EcsIterator* assetItr  = ecs_view_itr(assetView);
+
+  u32 busyAssets = 0;
+  dynarray_for_t(&pack->assets, PackAsset, packAsset) {
+    switch (packAsset->state) {
+    case PackState_Loading: {
+      ++busyAssets;
+      if (!pack_asset_is_loaded(world, packAsset->entity)) {
+        break; // Asset has not loaded yet; wait.
+      }
+      ecs_view_jump(assetItr, packAsset->entity);
+      packAsset->state = PackState_Finished;
+      packAsset->id    = asset_id(ecs_view_read_t(assetItr, AssetComp));
+
+      asset_release(world, packAsset->entity); // Unload the asset.
+
+      const AssetFailedComp* failedComp = ecs_view_read_t(assetItr, AssetFailedComp);
+      if (UNLIKELY(failedComp)) {
+        log_e(
+            "Asset load failed",
+            log_param("id", fmt_text(packAsset->id)),
+            log_param("error", fmt_text(asset_error(failedComp))),
+            log_param("error-code", fmt_int(asset_error_code(failedComp))));
+        ++pack->errorCount;
+        break; // Asset failed to load.
+      }
+      // TODO: Push references.
+      log_i("Added asset", log_param("id", fmt_text(packAsset->id)));
+    } break;
+    case PackState_Finished:
+      break;
+    }
+  }
+  pack->done = !busyAssets;
+  if (pack->done) {
+    log_i("Packing finished", log_param("total-frames", fmt_int(pack->frameIdx)));
   }
 }
 
 ecs_module_init(pack_module) {
   ecs_register_comp(PackComp, .destructor = ecs_destruct_texture_comp);
 
-  ecs_register_view(GlobalView);
+  ecs_register_view(PackGlobalView);
+  ecs_register_view(PackAssetView);
 
-  ecs_register_system(PackUpdateSys, ecs_view_id(GlobalView));
+  ecs_register_system(PackUpdateSys, ecs_view_id(PackGlobalView), ecs_view_id(PackAssetView));
 }
 
 static CliId g_optConfigPath, g_optAssets, g_optHelp;
@@ -202,13 +250,13 @@ void app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
 }
 
 void app_ecs_set_frame(EcsWorld* world, const u64 frameIdx) {
-  PackComp* packComp = ecs_utils_write_first_t(world, GlobalView, PackComp);
+  PackComp* packComp = ecs_utils_write_first_t(world, PackGlobalView, PackComp);
   if (LIKELY(packComp)) {
     packComp->frameIdx = frameIdx;
   }
 }
 
 bool app_ecs_query_quit(EcsWorld* world) {
-  PackComp* packComp = ecs_utils_write_first_t(world, GlobalView, PackComp);
+  PackComp* packComp = ecs_utils_write_first_t(world, PackGlobalView, PackComp);
   return !packComp || packComp->done;
 }
