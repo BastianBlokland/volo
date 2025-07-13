@@ -9,6 +9,7 @@
 #include "cli_validate.h"
 #include "core_alloc.h"
 #include "core_array.h"
+#include "core_diag.h"
 #include "core_dynarray.h"
 #include "core_file.h"
 #include "core_signal.h"
@@ -161,9 +162,8 @@ ecs_system_define(PackUpdateSys) {
         refCnt += asset_weapon_asset_refs(weaponMap, refs + refCnt, array_elems(refs) - refCnt);
       }
       for (u32 i = 0; i != refCnt; ++i) {
-        if (refs[i].entity) {
-          pack_push_asset(world, pack, refs[i].entity);
-        }
+        diag_assert(refs[i].entity);
+        pack_push_asset(world, pack, refs[i].entity);
       }
       log_i(
           "Added asset",

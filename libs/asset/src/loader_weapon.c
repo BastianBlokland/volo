@@ -365,12 +365,16 @@ u32 asset_weapon_asset_refs(const AssetWeaponMapComp* map, AssetRef out[], const
     case AssetWeaponEffect_Damage:
     case AssetWeaponEffect_Animation:
       break;
-    case AssetWeaponEffect_Vfx: {
-      out[outCount++] = effect->data_vfx.asset;
-    } break;
-    case AssetWeaponEffect_Sound: {
-      out[outCount++] = effect->data_sound.asset;
-    } break;
+    case AssetWeaponEffect_Vfx:
+      if (effect->data_vfx.asset.entity) {
+        out[outCount++] = effect->data_vfx.asset;
+      }
+      break;
+    case AssetWeaponEffect_Sound:
+      if (effect->data_sound.asset.entity) {
+        out[outCount++] = effect->data_sound.asset;
+      }
+      break;
     }
   }
   return outCount;
