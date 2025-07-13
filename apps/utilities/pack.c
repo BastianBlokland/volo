@@ -107,10 +107,7 @@ static void pack_push_asset(EcsWorld* world, PackComp* comp, const EcsEntityId e
 
 ecs_view_define(PackGlobalView) { ecs_access_write(PackComp); }
 
-ecs_view_define(PackAssetView) {
-  ecs_access_read(AssetComp);
-  ecs_access_maybe_read(AssetFailedComp);
-}
+ecs_view_define(PackAssetView) { ecs_access_read(AssetComp); }
 
 static bool pack_asset_is_loaded(EcsWorld* world, const EcsEntityId asset) {
   return ecs_world_has_t(world, asset, AssetLoadedComp) ||
@@ -148,13 +145,7 @@ ecs_system_define(PackUpdateSys) {
 
       asset_release(world, packAsset->entity); // Unload the asset.
 
-      const AssetFailedComp* failedComp = ecs_view_read_t(assetItr, AssetFailedComp);
-      if (UNLIKELY(failedComp)) {
-        log_e(
-            "Asset load failed",
-            log_param("id", fmt_text(packAsset->id)),
-            log_param("error", fmt_text(asset_error(failedComp))),
-            log_param("error-code", fmt_int(asset_error_code(failedComp))));
+      if (UNLIKELY(ecs_world_has_t(world, packAsset->entity, AssetFailedComp))) {
         ++pack->errorCount;
         break; // Asset failed to load.
       }
@@ -167,7 +158,18 @@ ecs_system_define(PackUpdateSys) {
   }
   pack->done = !busyAssets;
   if (pack->done) {
-    log_i("Packing finished", log_param("total-frames", fmt_int(pack->frameIdx)));
+    if (pack->errorCount) {
+      log_e(
+          "Packing failed",
+          log_param("errors", fmt_int(pack->errorCount)),
+          log_param("assets", fmt_int(pack->assets.size)),
+          log_param("total-frames", fmt_int(pack->frameIdx)));
+    } else {
+      log_i(
+          "Packing finished",
+          log_param("assets", fmt_int(pack->assets.size)),
+          log_param("total-frames", fmt_int(pack->frameIdx)));
+    }
   }
 }
 
@@ -256,7 +258,10 @@ bool app_ecs_query_quit(EcsWorld* world) {
 
 i32 app_ecs_exit_code(EcsWorld* world) {
   PackComp* packComp = ecs_utils_write_first_t(world, PackGlobalView, PackComp);
-  return packComp->errorCount ? 1 : 0;
+  if (!packComp) {
+    return 1;
+  }
+  return packComp->errorCount ? 2 : 0;
 }
 
 void app_ecs_set_frame(EcsWorld* world, const u64 frameIdx) {
