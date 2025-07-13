@@ -1,6 +1,7 @@
 #include "app_ecs.h"
 #include "asset_manager.h"
 #include "asset_register.h"
+#include "asset_weapon.h"
 #include "cli_app.h"
 #include "cli_help.h"
 #include "cli_parse.h"
@@ -107,7 +108,10 @@ static void pack_push_asset(EcsWorld* world, PackComp* comp, const EcsEntityId e
 
 ecs_view_define(PackGlobalView) { ecs_access_write(PackComp); }
 
-ecs_view_define(PackAssetView) { ecs_access_read(AssetComp); }
+ecs_view_define(PackAssetView) {
+  ecs_access_read(AssetComp);
+  ecs_access_maybe_read(AssetWeaponMapComp);
+}
 
 static bool pack_asset_is_loaded(EcsWorld* world, const EcsEntityId asset) {
   return ecs_world_has_t(world, asset, AssetLoadedComp) ||
@@ -131,6 +135,8 @@ ecs_system_define(PackUpdateSys) {
   EcsView*     assetView = ecs_world_view_t(world, PackAssetView);
   EcsIterator* assetItr  = ecs_view_itr(assetView);
 
+  AssetRef refs[512];
+
   u32 busyAssets = 0;
   dynarray_for_t(&pack->assets, PackAsset, packAsset) {
     switch (packAsset->state) {
@@ -149,8 +155,20 @@ ecs_system_define(PackUpdateSys) {
         ++pack->errorCount;
         break; // Asset failed to load.
       }
-      // TODO: Push references.
-      log_i("Added asset", log_param("id", fmt_text(packAsset->id)));
+      u32                       refCnt    = 0;
+      const AssetWeaponMapComp* weaponMap = ecs_view_read_t(assetItr, AssetWeaponMapComp);
+      if (weaponMap) {
+        refCnt += asset_weapon_asset_refs(weaponMap, refs + refCnt, array_elems(refs) - refCnt);
+      }
+      for (u32 i = 0; i != refCnt; ++i) {
+        if (refs[i].entity) {
+          pack_push_asset(world, pack, refs[i].entity);
+        }
+      }
+      log_i(
+          "Added asset",
+          log_param("id", fmt_text(packAsset->id)),
+          log_param("refs", fmt_int(refCnt)));
     } break;
     case PackState_Finished:
       break;
