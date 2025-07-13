@@ -356,7 +356,7 @@ Ret:
   asset_repo_source_close(src);
 }
 
-u32 asset_weapon_asset_refs(const AssetWeaponMapComp* map, AssetRef out[], const u32 outMax) {
+u32 asset_weapon_refs(const AssetWeaponMapComp* map, AssetRef out[], const u32 outMax) {
   u32 outCount = 0;
   for (u32 i = 0; i != map->effects.count && outCount != outMax; ++i) {
     const AssetWeaponEffect* effect = &map->effects.values[i];

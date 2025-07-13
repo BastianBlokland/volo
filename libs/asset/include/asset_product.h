@@ -58,7 +58,7 @@ extern DataMeta g_assetProductDefMeta;
 /**
  * Find all asset references in the given weapon map.
  */
-u32 asset_product_asset_refs(const AssetProductMapComp* map, AssetRef out[], u32 outMax);
+u32 asset_product_refs(const AssetProductMapComp* map, AssetRef out[], u32 outMax);
 
 /**
  * Lookup a product-set by the hash of its name.

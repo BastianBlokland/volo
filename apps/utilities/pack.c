@@ -158,23 +158,23 @@ ecs_system_define(PackUpdateSys) {
         ++pack->errorCount;
         break; // Asset failed to load.
       }
-      u32                       refCnt    = 0;
+      u32                       refCount  = 0;
       const AssetWeaponMapComp* weaponMap = ecs_view_read_t(assetItr, AssetWeaponMapComp);
       if (weaponMap) {
-        refCnt += asset_weapon_asset_refs(weaponMap, refs + refCnt, array_elems(refs) - refCnt);
+        refCount += asset_weapon_refs(weaponMap, refs + refCount, array_elems(refs) - refCount);
       }
       const AssetProductMapComp* productMap = ecs_view_read_t(assetItr, AssetProductMapComp);
       if (productMap) {
-        refCnt += asset_product_asset_refs(productMap, refs + refCnt, array_elems(refs) - refCnt);
+        refCount += asset_product_refs(productMap, refs + refCount, array_elems(refs) - refCount);
       }
-      for (u32 i = 0; i != refCnt; ++i) {
+      for (u32 i = 0; i != refCount; ++i) {
         diag_assert(refs[i].entity);
         pack_push_asset(world, pack, refs[i].entity);
       }
       log_i(
           "Added asset",
           log_param("id", fmt_text(packAsset->id)),
-          log_param("refs", fmt_int(refCnt)));
+          log_param("refs", fmt_int(refCount)));
     } break;
     case PackState_Finished:
       break;
