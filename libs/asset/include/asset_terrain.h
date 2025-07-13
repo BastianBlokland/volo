@@ -15,3 +15,8 @@ ecs_comp_extern_public(AssetTerrainComp) {
 };
 
 extern DataMeta g_assetTerrainDefMeta;
+
+/**
+ * Find all asset references in the given terrain.
+ */
+u32 asset_terrain_refs(const AssetTerrainComp*, EcsEntityId out[], u32 outMax);

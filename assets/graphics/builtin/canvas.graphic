@@ -5,8 +5,8 @@
     { "program": "shaders/ui/canvas.frag" }
   ],
   "samplers": [
-    { "texture": "fonts/ui.fonttex" },
-    { "texture": "textures/ui/image.atlas" }
+    { "texture": "fonts/builtin/ui.fonttex" },
+    { "texture": "textures/builtin/image.atlas" }
   ],
   "vertexCount": 6,
   "blend": "Alpha",

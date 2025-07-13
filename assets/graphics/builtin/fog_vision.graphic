@@ -4,7 +4,7 @@
     { "program": "shaders/fog_vision.vert" },
     { "program": "shaders/fog_vision.frag" }
   ],
-  "mesh": "meshes/sphere.procmesh",
+  "mesh": "meshes/builtin/sphere.procmesh",
   "depth": "AlwaysNoWrite",
   "depthClamp": true
 }

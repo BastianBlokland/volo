@@ -12,7 +12,7 @@
   "samplers": [
     { "texture": "external/tent/tent_medical_2_color.png", "anisotropy": "x2" },
     { "texture": "external/tent/tent_medical_2_rough.png", "anisotropy": "x2" },
-    { "texture": "textures/zero.proctex" },
+    { "texture": "textures/builtin/zero.proctex" },
     { "texture": "external/tent/tent_2_normal.png", "anisotropy": "x2" }
   ],
   "mesh": "external/tent/tent.gltf"

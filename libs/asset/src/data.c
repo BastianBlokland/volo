@@ -322,3 +322,50 @@ bool asset_data_patch_refs(
   data_visit(g_dataReg, meta, data, g_assetRefType, &ctx, asset_data_patch_refs_visitor);
   return ctx.success;
 }
+
+typedef struct {
+  EcsWorld*         world;
+  AssetManagerComp* manager;
+  EcsEntityId*      out;
+  u32               outCount, outMax;
+} AssetDataQueryCtx;
+
+static void asset_data_query_refs_visitor(void* ctx, const Mem data) {
+  AssetDataQueryCtx* queryCtx = ctx;
+  const AssetRef*    refData  = mem_as_t(data, AssetRef);
+
+  if (UNLIKELY(queryCtx->outCount == queryCtx->outMax)) {
+    return;
+  }
+
+  if (refData->entity) {
+    queryCtx->out[queryCtx->outCount++] = refData->entity;
+  } else if (refData->id && queryCtx->manager) {
+    const EcsEntityId entity = asset_ref_resolve(queryCtx->world, queryCtx->manager, refData);
+    queryCtx->out[queryCtx->outCount++] = entity;
+  }
+}
+
+u32 asset_data_query_refs(
+    const DataMeta meta, const Mem data, EcsEntityId out[], const u32 outMax) {
+  AssetDataQueryCtx ctx = {.out = out, .outMax = outMax};
+  data_visit(g_dataReg, meta, data, g_assetRefType, &ctx, asset_data_query_refs_visitor);
+  return ctx.outCount;
+}
+
+u32 asset_data_query_refs_unpatched(
+    EcsWorld*         world,
+    AssetManagerComp* manager,
+    const DataMeta    meta,
+    const Mem         data,
+    EcsEntityId       out[],
+    const u32         outMax) {
+  AssetDataQueryCtx ctx = {
+      .world   = world,
+      .manager = manager,
+      .out     = out,
+      .outMax  = outMax,
+  };
+  data_visit(g_dataReg, meta, data, g_assetRefType, &ctx, asset_data_query_refs_visitor);
+  return ctx.outCount;
+}

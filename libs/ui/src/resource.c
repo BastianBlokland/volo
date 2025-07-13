@@ -9,16 +9,16 @@
 #include "resource_internal.h"
 
 static const String g_uiAtlasIds[UiAtlasRes_Count] = {
-    [UiAtlasRes_Font]  = string_static("fonts/ui.fonttex"),
-    [UiAtlasRes_Image] = string_static("textures/ui/image.atlas"),
+    [UiAtlasRes_Font]  = string_static("fonts/builtin/ui.fonttex"),
+    [UiAtlasRes_Image] = string_static("textures/builtin/image.atlas"),
 };
 static const String g_uiGraphicIds[UiGraphicRes_Count] = {
-    [UiGraphicRes_Normal] = string_static("graphics/ui/canvas.graphic"),
-    [UiGraphicRes_Debug]  = string_static("graphics/ui/canvas_debug.graphic"),
+    [UiGraphicRes_Normal] = string_static("graphics/builtin/canvas.graphic"),
+    [UiGraphicRes_Debug]  = string_static("graphics/builtin/canvas_debug.graphic"),
 };
 static const String g_uiSoundIds[UiSoundRes_Count] = {
-    [UiSoundRes_Click]    = string_static("external/sound/click-02.wav"),
-    [UiSoundRes_ClickAlt] = string_static("external/sound/click-03.wav"),
+    [UiSoundRes_Click]    = string_static("external/sound/builtin/click-01.wav"),
+    [UiSoundRes_ClickAlt] = string_static("external/sound/builtin/click-02.wav"),
 };
 
 static const String g_uiAtlasResNames[] = {

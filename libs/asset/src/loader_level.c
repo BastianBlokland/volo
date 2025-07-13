@@ -1,4 +1,5 @@
 #include "asset_level.h"
+#include "asset_property.h"
 #include "core_alloc.h"
 #include "core_dynstring.h"
 #include "core_float.h"
@@ -134,6 +135,16 @@ Error:
 
 Cleanup:
   asset_repo_source_close(src);
+}
+
+u32 asset_level_refs(
+    const AssetLevelComp* comp,
+    EcsWorld*             world,
+    AssetManagerComp*     assets,
+    EcsEntityId           out[],
+    const u32             outMax) {
+  const Mem levelMem = mem_var(comp->level);
+  return asset_data_query_refs_unpatched(world, assets, g_assetLevelDefMeta, levelMem, out, outMax);
 }
 
 const AssetLevelObject* asset_level_find(const AssetLevel* lvl, const u32 persistentId) {

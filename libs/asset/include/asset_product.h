@@ -56,6 +56,11 @@ ecs_comp_extern_public(AssetProductMapComp) {
 extern DataMeta g_assetProductDefMeta;
 
 /**
+ * Find all asset references in the given product map.
+ */
+u32 asset_product_refs(const AssetProductMapComp*, EcsEntityId out[], u32 outMax);
+
+/**
  * Lookup a product-set by the hash of its name.
  */
 const AssetProductSet* asset_productset_get(const AssetProductMapComp*, StringHash nameHash);

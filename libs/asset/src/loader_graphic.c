@@ -237,6 +237,11 @@ Ret:
   asset_repo_source_close(src);
 }
 
+u32 asset_graphic_refs(const AssetGraphicComp* map, EcsEntityId out[], const u32 outMax) {
+  const Mem graphicMem = mem_create(map, sizeof(AssetGraphicComp));
+  return asset_data_query_refs(g_assetGraphicDefMeta, graphicMem, out, outMax);
+}
+
 String asset_graphic_pass_name(const AssetGraphicPass pass) {
   static const String g_names[] = {
       string_static("Geometry"),

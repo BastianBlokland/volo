@@ -17,7 +17,7 @@
     { "name": "sign_radioactive", "texture": "external/decal/radioactive.tga" },
     { "name": "square_alpha_trail", "texture": "external/decal/square_alpha_trail.tga" },
     { "name": "square_alpha", "texture": "external/decal/square_alpha.tga" },
-    { "name": "square", "texture": "textures/white.proctex" },
+    { "name": "square", "texture": "textures/builtin/white.proctex" },
     { "name": "tarp", "texture": "external/decal/tarp.tga" },
     { "name": "text_volo", "texture": "external/decal/text_volo.tga" }
   ]

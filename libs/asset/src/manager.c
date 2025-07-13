@@ -447,6 +447,12 @@ ecs_system_define(AssetUpdateDirtySys) {
       /**
        * Asset was loaded and should now be unloaded.
        */
+#if VOLO_ASSET_LOGGING
+      log_d(
+          "Asset unload",
+          log_param("id", fmt_path(assetComp->id)),
+          log_param("entity", ecs_entity_fmt(entity)));
+#endif
       ecs_world_remove_t(world, entity, AssetLoadedComp);
       assetComp->flags &= ~AssetFlags_Loaded;
       assetComp->flags |= AssetFlags_Cleanup; // Mark this asset as cleaning up (will take a frame).
@@ -593,10 +599,11 @@ ecs_system_define(AssetCacheSys) {
       case AssetDepStorageType_Single: {
         ecs_view_jump(depItr, depComp->dependencies.single);
         const AssetComp* depAssetComp = ecs_view_read_t(depItr, AssetComp);
-        deps[depCount++]              = (AssetRepoDep){
-                         .id         = depAssetComp->id,
-                         .modTime    = depAssetComp->loadModTime,
-                         .loaderHash = depAssetComp->loaderHash,
+
+        deps[depCount++] = (AssetRepoDep){
+            .id         = depAssetComp->id,
+            .modTime    = depAssetComp->loadModTime,
+            .loaderHash = depAssetComp->loaderHash,
         };
       } break;
       case AssetDepStorageType_Many:
@@ -606,10 +613,11 @@ ecs_system_define(AssetCacheSys) {
           }
           ecs_view_jump(depItr, *asset);
           const AssetComp* depAssetComp = ecs_view_read_t(depItr, AssetComp);
-          deps[depCount++]              = (AssetRepoDep){
-                           .id         = depAssetComp->id,
-                           .modTime    = depAssetComp->loadModTime,
-                           .loaderHash = depAssetComp->loaderHash,
+
+          deps[depCount++] = (AssetRepoDep){
+              .id         = depAssetComp->id,
+              .modTime    = depAssetComp->loadModTime,
+              .loaderHash = depAssetComp->loaderHash,
           };
         }
         break;

@@ -1,0 +1,27 @@
+{
+  "roots": [
+    "global/*",
+
+    "external/sound/builtin/*.wav",
+
+    "fonts/builtin/*.fonttex",
+
+    "icons/builtin/*.icon",
+
+    "meshes/builtin/*.procmesh",
+    "meshes/dev/*.procmesh",
+
+    "textures/builtin/*.arraytex",
+    "textures/builtin/*.atlas",
+    "textures/builtin/*.proctex",
+    "textures/vfx/*.atlas",
+
+    "graphics/builtin/*.graphic",
+    "graphics/dev/*.graphic",
+    "graphics/hud/*.graphic",
+    "graphics/light/*.graphic",
+    "graphics/vfx/*.graphic",
+
+    "levels/*.level"
+  ]
+}

@@ -739,6 +739,78 @@ Ret:
   asset_repo_source_close(src);
 }
 
+u32 asset_prefab_refs(const AssetPrefabMapComp* map, EcsEntityId out[], const u32 outMax) {
+#define PUSH_ASSET(_ASSET_REF_)                                                                    \
+  if ((_ASSET_REF_).entity && outCount != outMax) {                                                \
+    out[outCount++] = (_ASSET_REF_).entity;                                                        \
+  }
+
+  u32 outCount = 0;
+  for (u32 traitIdx = 0; traitIdx != map->traits.count && outCount != outMax; ++traitIdx) {
+    const AssetPrefabTrait* trait = &map->traits.values[traitIdx];
+    switch (trait->type) {
+    case AssetPrefabTrait_Renderable:
+      PUSH_ASSET(trait->data_renderable.graphic);
+      break;
+    case AssetPrefabTrait_Vfx:
+      PUSH_ASSET(trait->data_vfx.asset);
+      break;
+    case AssetPrefabTrait_Decal:
+      PUSH_ASSET(trait->data_decal.asset);
+      break;
+    case AssetPrefabTrait_Sound:
+      for (u32 soundIdx = 0; soundIdx != asset_prefab_sounds_max; ++soundIdx) {
+        PUSH_ASSET(trait->data_sound.assets[soundIdx]);
+      }
+      break;
+    case AssetPrefabTrait_Footstep:
+      PUSH_ASSET(trait->data_footstep.decalA);
+      PUSH_ASSET(trait->data_footstep.decalB);
+      break;
+    case AssetPrefabTrait_Production:
+      PUSH_ASSET(trait->data_production.rallySound);
+      break;
+    case AssetPrefabTrait_Script:
+      for (u32 scriptIdx = 0; scriptIdx != asset_prefab_scripts_max; ++scriptIdx) {
+        if (trait->data_script.scripts[scriptIdx] && outCount != outMax) {
+          out[outCount++] = trait->data_script.scripts[scriptIdx];
+        }
+      }
+      break;
+    case AssetPrefabTrait_Name:
+    case AssetPrefabTrait_Property:
+    case AssetPrefabTrait_SetMember:
+    case AssetPrefabTrait_LightPoint:
+    case AssetPrefabTrait_LightSpot:
+    case AssetPrefabTrait_LightLine:
+    case AssetPrefabTrait_LightDir:
+    case AssetPrefabTrait_LightAmbient:
+    case AssetPrefabTrait_Lifetime:
+    case AssetPrefabTrait_Movement:
+    case AssetPrefabTrait_Health:
+    case AssetPrefabTrait_Attack:
+    case AssetPrefabTrait_Collision:
+    case AssetPrefabTrait_Bark:
+    case AssetPrefabTrait_Location:
+    case AssetPrefabTrait_Status:
+    case AssetPrefabTrait_Vision:
+    case AssetPrefabTrait_Attachment:
+    case AssetPrefabTrait_Scalable:
+    case AssetPrefabTrait_Count:
+      break;
+    }
+  }
+  for (u32 propIdx = 0; propIdx != map->properties.count && outCount != outMax; ++propIdx) {
+    if (map->properties.values[propIdx].type == AssetProperty_Asset) {
+      PUSH_ASSET(map->properties.values[propIdx].data_asset);
+    }
+  }
+  for (u32 sndIdx = 0; sndIdx != map->persistentSounds.count && outCount != outMax; ++sndIdx) {
+    PUSH_ASSET(map->persistentSounds.values[sndIdx]);
+  }
+  return outCount;
+}
+
 const AssetPrefab* asset_prefab_find(const AssetPrefabMapComp* map, const StringHash name) {
   return search_binary_t(
       map->prefabs,

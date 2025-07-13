@@ -96,11 +96,13 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
     ++frameIdx;
   } while (!app_ecs_query_quit(world));
 
+  exitCode = app_ecs_exit_code(world);
+
   ecs_runner_destroy(runner);
   ecs_world_destroy(world);
   ecs_def_destroy(def);
 
-  log_i("Application shutdown");
+  log_i("Application shutdown", log_param("exit-code", fmt_int(exitCode)));
 
 Exit:
   jobs_teardown();

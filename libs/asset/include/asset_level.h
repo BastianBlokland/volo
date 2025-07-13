@@ -46,6 +46,12 @@ ecs_comp_extern_public(AssetLevelComp) { AssetLevel level; };
 
 extern DataMeta g_assetLevelDefMeta;
 
+/**
+ * Find all asset references in the given level.
+ */
+u32 asset_level_refs(
+    const AssetLevelComp*, EcsWorld* world, AssetManagerComp*, EcsEntityId out[], u32 outMax);
+
 const AssetLevelObject* asset_level_find(const AssetLevel*, u32 persistentId);
 u32                     asset_level_find_index(const AssetLevel*, u32 persistentId);
 

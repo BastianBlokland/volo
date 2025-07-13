@@ -11,7 +11,7 @@
   "samplers": [
     { "texture": "external/tank/tank_3_color.png", "anisotropy": "x2" },
     { "texture": "external/tank/tank_3_rough.png", "anisotropy": "x2" },
-    { "texture": "textures/zero.proctex" }
+    { "texture": "textures/builtin/zero.proctex" }
   ],
   "mesh": "external/tank/tank_04.gltf"
 }

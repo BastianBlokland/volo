@@ -6,6 +6,6 @@
   "maxMipMaps": 3,
   "srgb": false,
   "entries": [
-    { "name": "test", "texture": "textures/zero.proctex" }
+    { "name": "test", "texture": "textures/builtin/zero.proctex" }
   ]
 }

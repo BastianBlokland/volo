@@ -161,3 +161,8 @@ void asset_load_terrain(
 Ret:
   asset_repo_source_close(src);
 }
+
+u32 asset_terrain_refs(const AssetTerrainComp* terrain, EcsEntityId out[], const u32 outMax) {
+  const Mem terrainMem = mem_create(terrain, sizeof(AssetTerrainComp));
+  return asset_data_query_refs(g_assetTerrainDefMeta, terrainMem, out, outMax);
+}

@@ -9,21 +9,21 @@
 #include "platform_internal.h"
 
 static const String g_gapIconAssets[GapIcon_Count] = {
-    [GapIcon_Main] = string_static("icons/window_main.icon"),
-    [GapIcon_Tool] = string_static("icons/window_tool.icon"),
+    [GapIcon_Main] = string_static("icons/builtin/window_main.icon"),
+    [GapIcon_Tool] = string_static("icons/builtin/window_tool.icon"),
 };
 
 static const String g_gapCursorAssets[GapCursor_Count] = {
-    [GapCursor_Normal]         = string_static("icons/cursor_normal.icon"),
-    [GapCursor_Text]           = string_static("icons/cursor_text.icon"),
-    [GapCursor_Click]          = string_static("icons/cursor_click.icon"),
-    [GapCursor_Select]         = string_static("icons/cursor_select.icon"),
-    [GapCursor_SelectAdd]      = string_static("icons/cursor_select-add.icon"),
-    [GapCursor_SelectSubtract] = string_static("icons/cursor_select-subtract.icon"),
-    [GapCursor_Target]         = string_static("icons/cursor_target.icon"),
-    [GapCursor_Resize]         = string_static("icons/cursor_resize.icon"),
-    [GapCursor_DragHorizontal] = string_static("icons/cursor_drag-horizontal.icon"),
-    [GapCursor_DragVertical]   = string_static("icons/cursor_drag-vertical.icon"),
+    [GapCursor_Normal]         = string_static("icons/builtin/cursor_normal.icon"),
+    [GapCursor_Text]           = string_static("icons/builtin/cursor_text.icon"),
+    [GapCursor_Click]          = string_static("icons/builtin/cursor_click.icon"),
+    [GapCursor_Select]         = string_static("icons/builtin/cursor_select.icon"),
+    [GapCursor_SelectAdd]      = string_static("icons/builtin/cursor_select-add.icon"),
+    [GapCursor_SelectSubtract] = string_static("icons/builtin/cursor_select-subtract.icon"),
+    [GapCursor_Target]         = string_static("icons/builtin/cursor_target.icon"),
+    [GapCursor_Resize]         = string_static("icons/builtin/cursor_resize.icon"),
+    [GapCursor_DragHorizontal] = string_static("icons/builtin/cursor_drag-horizontal.icon"),
+    [GapCursor_DragVertical]   = string_static("icons/builtin/cursor_drag-vertical.icon"),
 };
 
 ecs_comp_define_public(GapPlatformComp);
