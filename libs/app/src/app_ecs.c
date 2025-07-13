@@ -102,7 +102,7 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   ecs_world_destroy(world);
   ecs_def_destroy(def);
 
-  log_i("Application shutdown");
+  log_i("Application shutdown", log_param("exit-code", fmt_int(exitCode)));
 
 Exit:
   jobs_teardown();
