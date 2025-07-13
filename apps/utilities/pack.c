@@ -289,8 +289,7 @@ void app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
       .cfg    = cfg,
       .assets = dynarray_create_t(g_allocHeap, PackAsset, 512));
 
-  const AssetManagerFlags assetFlg = AssetManagerFlags_DelayUnload;
-  AssetManagerComp*       assetMan = asset_manager_create_fs(world, assetFlg, assetPath);
+  AssetManagerComp* assetMan = asset_manager_create_fs(world, AssetManagerFlags_None, assetPath);
 
   EcsEntityId queryBuffer[asset_query_max_results];
   heap_array_for_t(cfg.roots, String, root) {
