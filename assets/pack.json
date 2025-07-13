@@ -1,5 +1,7 @@
 {
   "roots": [
-    "global/*"
+    "global/*",
+    "icons/*.icon",
+    "levels/*.level"
   ]
 }
