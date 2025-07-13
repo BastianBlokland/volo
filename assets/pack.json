@@ -2,6 +2,7 @@
   "roots": [
     "global/*",
 
+    "external/sound/builtin/*.wav",
     "fonts/builtin/*.fonttex",
     "graphics/builtin/*.graphic",
     "icons/builtin/*.icon",

@@ -17,8 +17,8 @@ static const String g_uiGraphicIds[UiGraphicRes_Count] = {
     [UiGraphicRes_Debug]  = string_static("graphics/builtin/canvas_debug.graphic"),
 };
 static const String g_uiSoundIds[UiSoundRes_Count] = {
-    [UiSoundRes_Click]    = string_static("external/sound/click-02.wav"),
-    [UiSoundRes_ClickAlt] = string_static("external/sound/click-03.wav"),
+    [UiSoundRes_Click]    = string_static("external/sound/builtin/click-01.wav"),
+    [UiSoundRes_ClickAlt] = string_static("external/sound/builtin/click-02.wav"),
 };
 
 static const String g_uiAtlasResNames[] = {
