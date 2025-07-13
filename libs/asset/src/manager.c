@@ -447,6 +447,12 @@ ecs_system_define(AssetUpdateDirtySys) {
       /**
        * Asset was loaded and should now be unloaded.
        */
+#if VOLO_ASSET_LOGGING
+      log_d(
+          "Asset unload",
+          log_param("id", fmt_path(assetComp->id)),
+          log_param("entity", ecs_entity_fmt(entity)));
+#endif
       ecs_world_remove_t(world, entity, AssetLoadedComp);
       assetComp->flags &= ~AssetFlags_Loaded;
       assetComp->flags |= AssetFlags_Cleanup; // Mark this asset as cleaning up (will take a frame).
