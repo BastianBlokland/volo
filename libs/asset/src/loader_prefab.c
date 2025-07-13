@@ -739,7 +739,7 @@ Ret:
   asset_repo_source_close(src);
 }
 
-u32 asset_prefab_refs(const AssetPrefabMapComp* map, AssetRef out[], const u32 outMax) {
+u32 asset_prefab_refs(const AssetPrefabMapComp* map, EcsEntityId out[], const u32 outMax) {
   (void)map;
   (void)out;
   (void)outMax;

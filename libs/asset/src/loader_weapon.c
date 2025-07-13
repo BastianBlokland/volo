@@ -356,7 +356,7 @@ Ret:
   asset_repo_source_close(src);
 }
 
-u32 asset_weapon_refs(const AssetWeaponMapComp* map, AssetRef out[], const u32 outMax) {
+u32 asset_weapon_refs(const AssetWeaponMapComp* map, EcsEntityId out[], const u32 outMax) {
   u32 outCount = 0;
   for (u32 i = 0; i != map->effects.count && outCount != outMax; ++i) {
     const AssetWeaponEffect* effect = &map->effects.values[i];
@@ -367,12 +367,12 @@ u32 asset_weapon_refs(const AssetWeaponMapComp* map, AssetRef out[], const u32 o
       break;
     case AssetWeaponEffect_Vfx:
       if (effect->data_vfx.asset.entity) {
-        out[outCount++] = effect->data_vfx.asset;
+        out[outCount++] = effect->data_vfx.asset.entity;
       }
       break;
     case AssetWeaponEffect_Sound:
       if (effect->data_sound.asset.entity) {
-        out[outCount++] = effect->data_sound.asset;
+        out[outCount++] = effect->data_sound.asset.entity;
       }
       break;
     }

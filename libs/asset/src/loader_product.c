@@ -371,10 +371,10 @@ Ret:
   asset_repo_source_close(src);
 }
 
-u32 asset_product_refs(const AssetProductMapComp* map, AssetRef out[], const u32 outMax) {
+u32 asset_product_refs(const AssetProductMapComp* map, EcsEntityId out[], const u32 outMax) {
 #define PUSH_SOUND(_SND_)                                                                          \
   if ((_SND_).asset.entity && outCount != outMax) {                                                \
-    out[outCount++] = (_SND_).asset;                                                               \
+    out[outCount++] = (_SND_).asset.entity;                                                        \
   }
 
   u32 outCount = 0;

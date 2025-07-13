@@ -140,7 +140,7 @@ ecs_system_define(PackUpdateSys) {
   EcsView*     assetView = ecs_world_view_t(world, PackAssetView);
   EcsIterator* assetItr  = ecs_view_itr(assetView);
 
-  AssetRef refs[512];
+  EcsEntityId refs[512];
 
   u32 busyAssets = 0;
   dynarray_for_t(&pack->assets, PackAsset, packAsset) {
@@ -174,8 +174,8 @@ ecs_system_define(PackUpdateSys) {
         refCount += asset_weapon_refs(weaponMap, refs + refCount, array_elems(refs) - refCount);
       }
       for (u32 i = 0; i != refCount; ++i) {
-        diag_assert(refs[i].entity);
-        pack_push_asset(world, pack, refs[i].entity);
+        diag_assert(refs[i]);
+        pack_push_asset(world, pack, refs[i]);
       }
       log_i(
           "Added asset",
