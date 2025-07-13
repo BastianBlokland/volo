@@ -56,7 +56,7 @@ ecs_comp_extern_public(AssetProductMapComp) {
 extern DataMeta g_assetProductDefMeta;
 
 /**
- * Find all asset references in the given weapon map.
+ * Find all asset references in the given product map.
  */
 u32 asset_product_refs(const AssetProductMapComp* map, EcsEntityId out[], u32 outMax);
 

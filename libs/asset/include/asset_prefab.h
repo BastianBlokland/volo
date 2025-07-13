@@ -267,7 +267,7 @@ ecs_comp_extern_public(AssetPrefabMapComp) {
 extern DataMeta g_assetPrefabDefMeta;
 
 /**
- * Find all asset references in the given weapon map.
+ * Find all asset references in the given prefab map.
  */
 u32 asset_prefab_refs(const AssetPrefabMapComp* map, EcsEntityId out[], u32 outMax);
 
