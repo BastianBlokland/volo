@@ -1,14 +1,17 @@
 {
   "roots": [
     "global/*",
-    "icons/*.icon",
-    "levels/*.level",
+
     "fonts/builtin/*.fonttex",
     "graphics/builtin/*.graphic",
-    "graphics/dev/*.graphic",
+    "icons/builtin/*.icon",
+    "meshes/builtin/*.procmesh",
+    "textures/builtin/*.arraytex",
     "textures/builtin/*.atlas",
     "textures/builtin/*.proctex",
-    "textures/builtin/*.arraytex",
-    "meshes/builtin/*.procmesh"
+
+    "levels/*.level",
+
+    "graphics/dev/*.graphic"
   ]
 }
