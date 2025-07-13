@@ -676,11 +676,16 @@ void app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
   scene_product_init(world, string_lit("global/game.products"));
 }
 
+bool app_ecs_query_quit(EcsWorld* world) { return !ecs_utils_any(world, MainWindowView); }
+
+i32 app_ecs_exit_code(EcsWorld* world) {
+  (void)world;
+  return 0;
+}
+
 void app_ecs_set_frame(EcsWorld* world, const u64 frameIdx) {
   SceneTimeComp* time = ecs_utils_write_first_t(world, AppTimeView, SceneTimeComp);
   if (LIKELY(time)) {
     time->frameIdx = frameIdx;
   }
 }
-
-bool app_ecs_query_quit(EcsWorld* world) { return !ecs_utils_any(world, MainWindowView); }

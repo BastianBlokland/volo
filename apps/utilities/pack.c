@@ -249,14 +249,19 @@ void app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
   }
 }
 
+bool app_ecs_query_quit(EcsWorld* world) {
+  PackComp* packComp = ecs_utils_write_first_t(world, PackGlobalView, PackComp);
+  return !packComp || packComp->done;
+}
+
+i32 app_ecs_exit_code(EcsWorld* world) {
+  PackComp* packComp = ecs_utils_write_first_t(world, PackGlobalView, PackComp);
+  return packComp->errorCount ? 1 : 0;
+}
+
 void app_ecs_set_frame(EcsWorld* world, const u64 frameIdx) {
   PackComp* packComp = ecs_utils_write_first_t(world, PackGlobalView, PackComp);
   if (LIKELY(packComp)) {
     packComp->frameIdx = frameIdx;
   }
-}
-
-bool app_ecs_query_quit(EcsWorld* world) {
-  PackComp* packComp = ecs_utils_write_first_t(world, PackGlobalView, PackComp);
-  return !packComp || packComp->done;
 }

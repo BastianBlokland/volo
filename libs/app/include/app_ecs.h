@@ -36,6 +36,13 @@ void app_ecs_init(EcsWorld*, const CliInvocation*);
 bool app_ecs_query_quit(EcsWorld*);
 
 /**
+ * Query application exit-code.
+ * Called once at application exit.
+ * NOTE: Runs outside of the Ecs update loop so any view can be used to observe the state.
+ */
+i32 app_ecs_exit_code(EcsWorld*);
+
+/**
  * Set application state.
  * NOTE: Runs outside of the Ecs update loop so any view can be used to observe the state.
  */
