@@ -73,6 +73,15 @@ Ret:
   return success;
 }
 
+typedef enum {
+  PackState_Gathering,
+  PackState_Waiting, // Wait a single frame to flush loads to the cache.
+
+  PackState_Interupted,
+  PackState_Failed,
+  PackState_Finished,
+} PackState;
+
 typedef struct {
   EcsEntityId entity;
   bool        loading;
@@ -83,8 +92,7 @@ ecs_comp_define(PackComp) {
   PackConfig cfg;
   DynArray   assets; // PackAsset[], sorted on entity.
   u64        frameIdx;
-  u32        errorCount;
-  bool       done;
+  PackState  state;
 };
 
 static void ecs_destruct_texture_comp(void* data) {
@@ -95,16 +103,6 @@ static void ecs_destruct_texture_comp(void* data) {
 
 static i8 pack_compare_asset(const void* a, const void* b) {
   return ecs_compare_entity(field_ptr(a, PackAsset, entity), field_ptr(b, PackAsset, entity));
-}
-
-static void pack_push_asset(EcsWorld* world, PackComp* comp, const EcsEntityId entity) {
-  const PackAsset target = {.entity = entity};
-  PackAsset* entry = dynarray_find_or_insert_sorted(&comp->assets, pack_compare_asset, &target);
-  if (entry->entity) {
-    return; // Asset already added.
-  }
-  asset_acquire(world, entity);
-  *entry = (PackAsset){.entity = entity, .loading = true};
 }
 
 ecs_view_define(PackGlobalView) {
@@ -122,39 +120,40 @@ ecs_view_define(PackAssetView) {
   ecs_access_maybe_read(AssetWeaponMapComp);
 }
 
-static bool pack_asset_is_loaded(EcsWorld* world, const EcsEntityId asset) {
+static bool pack_is_loaded(EcsWorld* world, const EcsEntityId asset) {
   return ecs_world_has_t(world, asset, AssetLoadedComp) ||
          ecs_world_has_t(world, asset, AssetFailedComp);
 }
 
-ecs_system_define(PackUpdateSys) {
-  EcsView*     globalView = ecs_world_view_t(world, PackGlobalView);
-  EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
-  if (UNLIKELY(!globalItr)) {
-    return; // Initialization failed; application will be terminated.
+typedef enum {
+  PackGatherResult_Busy,
+  PackGatherResult_Failed,
+  PackGatherResult_Finished,
+} PackGatherResult;
+
+static void pack_gather_asset(EcsWorld* world, PackComp* comp, const EcsEntityId entity) {
+  const PackAsset target = {.entity = entity};
+  PackAsset* entry = dynarray_find_or_insert_sorted(&comp->assets, pack_compare_asset, &target);
+  if (entry->entity) {
+    return; // Asset already added.
   }
-  PackComp*         pack     = ecs_view_write_t(globalItr, PackComp);
-  AssetManagerComp* assetMan = ecs_view_write_t(globalItr, AssetManagerComp);
+  asset_acquire(world, entity);
+  *entry = (PackAsset){.entity = entity, .loading = true};
+}
 
-  if (signal_is_received(Signal_Terminate) || signal_is_received(Signal_Interrupt)) {
-    log_w("Packing interrupted", log_param("total-frames", fmt_int(pack->frameIdx)));
-    pack->done = true;
-    return;
-  }
-
-  EcsView*     assetView = ecs_world_view_t(world, PackAssetView);
-  EcsIterator* assetItr  = ecs_view_itr(assetView);
-
+static PackGatherResult pack_gather_update(
+    EcsWorld* world, PackComp* pack, AssetManagerComp* assetMan, EcsIterator* assetItr) {
   EcsEntityId refs[512];
+  bool        done  = true;
+  bool        error = false;
 
-  u32 busyAssets = 0;
   dynarray_for_t(&pack->assets, PackAsset, packAsset) {
     if (!packAsset->loading) {
       continue; // Already processed.
     }
-    ++busyAssets;
-    if (!pack_asset_is_loaded(world, packAsset->entity)) {
-      break; // Asset has not loaded yet; wait.
+    done = false;
+    if (!pack_is_loaded(world, packAsset->entity)) {
+      continue; // Asset has not loaded yet; wait.
     }
     ecs_view_jump(assetItr, packAsset->entity);
     packAsset->loading = false;
@@ -163,8 +162,8 @@ ecs_system_define(PackUpdateSys) {
     asset_release(world, packAsset->entity); // Unload the asset.
 
     if (UNLIKELY(ecs_world_has_t(world, packAsset->entity, AssetFailedComp))) {
-      ++pack->errorCount;
-      break; // Asset failed to load.
+      error = true;
+      continue; // Asset failed to load.
     }
     u32                     refCount    = 0;
     const AssetGraphicComp* graphicComp = ecs_view_read_t(assetItr, AssetGraphicComp);
@@ -194,27 +193,59 @@ ecs_system_define(PackUpdateSys) {
     }
     for (u32 i = 0; i != refCount; ++i) {
       diag_assert(refs[i]);
-      pack_push_asset(world, pack, refs[i]);
+      pack_gather_asset(world, pack, refs[i]);
     }
     log_i(
-        "Added asset",
+        "Gathered asset",
         log_param("id", fmt_text(packAsset->id)),
         log_param("refs", fmt_int(refCount)));
   }
-  pack->done = !busyAssets;
-  if (pack->done) {
-    if (pack->errorCount) {
-      log_e(
-          "Packing failed",
-          log_param("errors", fmt_int(pack->errorCount)),
-          log_param("assets", fmt_int(pack->assets.size)),
-          log_param("total-frames", fmt_int(pack->frameIdx)));
-    } else {
-      log_i(
-          "Packing finished",
-          log_param("assets", fmt_int(pack->assets.size)),
-          log_param("total-frames", fmt_int(pack->frameIdx)));
+  return error ? PackGatherResult_Failed : done ? PackGatherResult_Finished : PackGatherResult_Busy;
+}
+
+ecs_system_define(PackUpdateSys) {
+  EcsView*     globalView = ecs_world_view_t(world, PackGlobalView);
+  EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
+  if (UNLIKELY(!globalItr)) {
+    return; // Initialization failed; application will be terminated.
+  }
+  PackComp*         pack     = ecs_view_write_t(globalItr, PackComp);
+  AssetManagerComp* assetMan = ecs_view_write_t(globalItr, AssetManagerComp);
+
+  if (signal_is_received(Signal_Terminate) || signal_is_received(Signal_Interrupt)) {
+    pack->state = PackState_Interupted;
+  }
+
+  EcsView*     assetView = ecs_world_view_t(world, PackAssetView);
+  EcsIterator* assetItr  = ecs_view_itr(assetView);
+
+  switch (pack->state) {
+  case PackState_Gathering: {
+    const PackGatherResult gatherRes = pack_gather_update(world, pack, assetMan, assetItr);
+    if (gatherRes == PackGatherResult_Failed) {
+      pack->state = PackState_Failed;
+    } else if (gatherRes == PackGatherResult_Finished) {
+      ++pack->state;
     }
+  } break;
+  case PackState_Waiting:
+    pack->state = PackState_Finished;
+    break;
+  case PackState_Interupted:
+    log_w("Packing interrupted", log_param("total-frames", fmt_int(pack->frameIdx)));
+    break;
+  case PackState_Failed:
+    log_e(
+        "Packing failed",
+        log_param("assets", fmt_int(pack->assets.size)),
+        log_param("total-frames", fmt_int(pack->frameIdx)));
+    break;
+  case PackState_Finished:
+    log_i(
+        "Packing finished",
+        log_param("assets", fmt_int(pack->assets.size)),
+        log_param("total-frames", fmt_int(pack->frameIdx)));
+    break;
   }
 }
 
@@ -287,7 +318,7 @@ void app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
   heap_array_for_t(cfg.roots, String, root) {
     const u32 count = asset_query(world, assetMan, *root, queryBuffer);
     for (u32 i = 0; i != count; ++i) {
-      pack_push_asset(world, packComp, queryBuffer[i]);
+      pack_gather_asset(world, packComp, queryBuffer[i]);
     }
     if (UNLIKELY(!count)) {
       log_w("No assets found for root", log_param("root", fmt_text(*root)));
@@ -297,7 +328,7 @@ void app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
 
 bool app_ecs_query_quit(EcsWorld* world) {
   PackComp* packComp = ecs_utils_write_first_t(world, PackGlobalView, PackComp);
-  return !packComp || packComp->done;
+  return !packComp || packComp->state >= PackState_Interupted;
 }
 
 i32 app_ecs_exit_code(EcsWorld* world) {
@@ -305,7 +336,10 @@ i32 app_ecs_exit_code(EcsWorld* world) {
   if (!packComp) {
     return 1;
   }
-  return packComp->errorCount ? 2 : 0;
+  if (packComp->state == PackState_Interupted || packComp->state == PackState_Failed) {
+    return 2;
+  }
+  return 0;
 }
 
 void app_ecs_set_frame(EcsWorld* world, const u64 frameIdx) {
