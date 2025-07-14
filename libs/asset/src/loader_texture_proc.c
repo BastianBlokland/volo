@@ -378,11 +378,11 @@ void asset_load_tex_proc(
   asset_mark_load_success(world, entity);
   asset_cache(world, entity, g_assetTexMeta, mem_var(texture));
 
-  asset_repo_source_close(src);
+  asset_repo_close(src);
   return;
 
 Error:
   data_destroy(g_dataReg, g_allocHeap, g_assetTexProcDefMeta, mem_var(def));
-  asset_repo_source_close(src);
+  asset_repo_close(src);
   asset_mark_load_failure(world, entity, id, errMsg, -1 /* errorCode */);
 }

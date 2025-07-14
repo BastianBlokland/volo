@@ -66,7 +66,7 @@ static void ecs_destruct_icon_load_comp(void* data) {
 
 static void ecs_destruct_icon_source_comp(void* data) {
   AssetIconSourceComp* comp = data;
-  asset_repo_source_close(comp->src);
+  asset_repo_close(comp->src);
 }
 
 static AssetIconPixel asset_icon_pixel(const GeoColor color) {
@@ -282,7 +282,7 @@ Error:
   asset_mark_load_failure(world, entity, id, errMsg, -1 /* errorCode */);
 
 Cleanup:
-  asset_repo_source_close(src);
+  asset_repo_close(src);
 }
 
 void asset_load_icon_bin(
@@ -298,7 +298,7 @@ void asset_load_icon_bin(
   data_read_bin(g_dataReg, src->data, g_allocHeap, g_assetIconMeta, mem_var(icon), &result);
 
   if (UNLIKELY(result.error)) {
-    asset_repo_source_close(src);
+    asset_repo_close(src);
     asset_mark_load_failure(world, entity, id, result.errorMsg, result.error);
     return;
   }

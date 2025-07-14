@@ -457,7 +457,7 @@ void asset_load_mesh_obj(
       .faces     = dynarray_create_t(g_allocHeap, ObjFace, 32),
   };
   obj_read_data(src->data, &data, &err);
-  asset_repo_source_close(src);
+  asset_repo_close(src);
   if (err) {
     asset_mark_load_failure(world, entity, id, obj_error_str(err), (i32)err);
     goto Done;

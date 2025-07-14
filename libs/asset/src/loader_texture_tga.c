@@ -442,5 +442,5 @@ void asset_load_tex_tga(
 
 Ret:
   alloc_maybe_free(g_allocHeap, pixels);
-  asset_repo_source_close(src);
+  asset_repo_close(src);
 }

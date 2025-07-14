@@ -353,7 +353,7 @@ void asset_load_weapons(
   ecs_world_add_t(world, entity, AssetWeaponLoadComp, .def = def);
 
 Ret:
-  asset_repo_source_close(src);
+  asset_repo_close(src);
 }
 
 u32 asset_weapon_refs(const AssetWeaponMapComp* map, EcsEntityId out[], const u32 outMax) {

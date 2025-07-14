@@ -498,12 +498,12 @@ void asset_load_tex_font(
   }
 
   ecs_world_add_t(world, entity, AssetFontTexLoadComp, .def = def);
-  asset_repo_source_close(src);
+  asset_repo_close(src);
   return;
 
 Error:
   data_destroy(g_dataReg, g_allocHeap, g_assetFontTexDefMeta, mem_var(def));
-  asset_repo_source_close(src);
+  asset_repo_close(src);
   asset_mark_load_failure(world, entity, id, errMsg, -1 /* errorCode */);
 }
 
@@ -521,7 +521,7 @@ void asset_load_tex_font_bin(
       g_dataReg, src->data, g_allocHeap, g_assetFontTexBundleMeta, mem_var(bundle), &result);
 
   if (UNLIKELY(result.error)) {
-    asset_repo_source_close(src);
+    asset_repo_close(src);
     asset_mark_load_failure(world, entity, id, result.errorMsg, (i32)result.error);
     return;
   }

@@ -10,6 +10,12 @@ typedef struct sAssetRepo   AssetRepo;
 typedef struct sAssetSource AssetSource;
 
 typedef struct {
+  usize       size;
+  AssetFormat format;
+  TimeReal    modTime;
+} AssetInfo;
+
+typedef struct {
   String   id;
   TimeReal modTime;
   u32      loaderHash;
@@ -41,6 +47,7 @@ typedef enum {
  */
 struct sAssetRepo {
   bool (*path)(AssetRepo*, String id, DynString* out);
+  bool (*stat)(AssetRepo*, String id, AssetRepoLoaderHasher, AssetInfo* out);
   AssetSource* (*open)(AssetRepo*, String id, AssetRepoLoaderHasher);
   bool (*save)(AssetRepo*, String id, String data);
   void (*destroy)(AssetRepo*);
@@ -81,9 +88,10 @@ AssetRepo* asset_repo_create_mem(const AssetMemRecord* records, usize recordCoun
 void       asset_repo_destroy(AssetRepo*);
 
 bool         asset_repo_path(AssetRepo* repo, String id, DynString* out);
-AssetSource* asset_repo_source_open(AssetRepo*, String id, AssetRepoLoaderHasher);
+bool         asset_repo_stat(AssetRepo*, String id, AssetRepoLoaderHasher, AssetInfo* out);
+AssetSource* asset_repo_open(AssetRepo*, String id, AssetRepoLoaderHasher);
+void         asset_repo_close(AssetSource*);
 bool         asset_repo_save(AssetRepo*, String id, String data);
-void         asset_repo_source_close(AssetSource*);
 
 void                 asset_repo_changes_watch(AssetRepo*, String id, u64 userData);
 bool                 asset_repo_changes_poll(AssetRepo*, u64* outUserData);

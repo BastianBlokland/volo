@@ -273,7 +273,7 @@ static AssetLoadResult asset_manager_load(
       .computeHash = asset_manager_loader_hash,
   };
 
-  AssetSource* source = asset_repo_source_open(manager->repo, asset->id, loaderHasher);
+  AssetSource* source = asset_repo_open(manager->repo, asset->id, loaderHasher);
   if (!source) {
     return AssetLoadResult_Missing;
   }
@@ -311,7 +311,7 @@ static AssetLoadResult asset_manager_load(
   }
 
   if (UNLIKELY(result != AssetLoadResult_Started)) {
-    asset_repo_source_close(source);
+    asset_repo_close(source);
   }
   return result;
 }
@@ -805,7 +805,7 @@ AssetSource* asset_source_open(
       .ctx         = importEnv,
       .computeHash = asset_manager_loader_hash,
   };
-  return asset_repo_source_open(manager->repo, id, loaderHasher);
+  return asset_repo_open(manager->repo, id, loaderHasher);
 }
 
 EcsEntityId asset_watch(EcsWorld* world, AssetManagerComp* manager, const String id) {

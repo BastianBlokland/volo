@@ -736,7 +736,7 @@ void asset_load_prefabs(
   ecs_world_add_t(world, entity, AssetPrefabLoadComp, .def = def);
 
 Ret:
-  asset_repo_source_close(src);
+  asset_repo_close(src);
 }
 
 u32 asset_prefab_refs(const AssetPrefabMapComp* map, EcsEntityId out[], const u32 outMax) {
