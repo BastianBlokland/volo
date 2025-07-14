@@ -267,6 +267,7 @@ static AssetLoadResult asset_manager_load(
     const AssetImportEnvComp* importEnv,
     AssetComp*                asset,
     const EcsEntityId         assetEntity) {
+  diag_assert(asset_import_ready(importEnv, asset->id));
 
   const AssetRepoLoaderHasher loaderHasher = {
       .ctx         = importEnv,
@@ -803,6 +804,8 @@ bool asset_source_stat(
     const AssetImportEnvComp* importEnv,
     const String              id,
     AssetInfo*                out) {
+  diag_assert(asset_import_ready(importEnv, id));
+
   const AssetRepoLoaderHasher loaderHasher = {
       .ctx         = importEnv,
       .computeHash = asset_manager_loader_hash,
@@ -812,6 +815,7 @@ bool asset_source_stat(
 
 AssetSource* asset_source_open(
     const AssetManagerComp* manager, const AssetImportEnvComp* importEnv, const String id) {
+  diag_assert(asset_import_ready(importEnv, id));
 
   const AssetRepoLoaderHasher loaderHasher = {
       .ctx         = importEnv,
