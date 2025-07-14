@@ -47,6 +47,7 @@ add_library(lib_asset STATIC
   src/loader.c
   src/manager.c
   src/mesh_utils.c
+  src/pack.c
   src/property.c
   src/ref.c
   src/register.c
