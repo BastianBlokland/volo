@@ -73,14 +73,9 @@ Ret:
   return success;
 }
 
-typedef enum {
-  PackState_Loading,
-  PackState_Finished,
-} PackState;
-
 typedef struct {
   EcsEntityId entity;
-  PackState   state;
+  bool        loading;
   String      id; // NOTE: Available when load is finished.
 } PackAsset;
 
@@ -109,7 +104,7 @@ static void pack_push_asset(EcsWorld* world, PackComp* comp, const EcsEntityId e
     return; // Asset already added.
   }
   asset_acquire(world, entity);
-  *entry = (PackAsset){.entity = entity, .state = PackState_Loading};
+  *entry = (PackAsset){.entity = entity, .loading = true};
 }
 
 ecs_view_define(PackGlobalView) {
@@ -154,60 +149,57 @@ ecs_system_define(PackUpdateSys) {
 
   u32 busyAssets = 0;
   dynarray_for_t(&pack->assets, PackAsset, packAsset) {
-    switch (packAsset->state) {
-    case PackState_Loading: {
-      ++busyAssets;
-      if (!pack_asset_is_loaded(world, packAsset->entity)) {
-        break; // Asset has not loaded yet; wait.
-      }
-      ecs_view_jump(assetItr, packAsset->entity);
-      packAsset->state = PackState_Finished;
-      packAsset->id    = asset_id(ecs_view_read_t(assetItr, AssetComp));
-
-      asset_release(world, packAsset->entity); // Unload the asset.
-
-      if (UNLIKELY(ecs_world_has_t(world, packAsset->entity, AssetFailedComp))) {
-        ++pack->errorCount;
-        break; // Asset failed to load.
-      }
-      u32                     refCount    = 0;
-      const AssetGraphicComp* graphicComp = ecs_view_read_t(assetItr, AssetGraphicComp);
-      if (graphicComp) {
-        refCount += asset_graphic_refs(graphicComp, refs + refCount, array_elems(refs) - refCount);
-      }
-      const AssetLevelComp* levelComp = ecs_view_read_t(assetItr, AssetLevelComp);
-      if (levelComp) {
-        refCount += asset_level_refs(
-            levelComp, world, assetMan, refs + refCount, array_elems(refs) - refCount);
-      }
-      const AssetPrefabMapComp* prefabMap = ecs_view_read_t(assetItr, AssetPrefabMapComp);
-      if (prefabMap) {
-        refCount += asset_prefab_refs(prefabMap, refs + refCount, array_elems(refs) - refCount);
-      }
-      const AssetProductMapComp* productMap = ecs_view_read_t(assetItr, AssetProductMapComp);
-      if (productMap) {
-        refCount += asset_product_refs(productMap, refs + refCount, array_elems(refs) - refCount);
-      }
-      const AssetTerrainComp* terrainComp = ecs_view_read_t(assetItr, AssetTerrainComp);
-      if (terrainComp) {
-        refCount += asset_terrain_refs(terrainComp, refs + refCount, array_elems(refs) - refCount);
-      }
-      const AssetWeaponMapComp* weaponMap = ecs_view_read_t(assetItr, AssetWeaponMapComp);
-      if (weaponMap) {
-        refCount += asset_weapon_refs(weaponMap, refs + refCount, array_elems(refs) - refCount);
-      }
-      for (u32 i = 0; i != refCount; ++i) {
-        diag_assert(refs[i]);
-        pack_push_asset(world, pack, refs[i]);
-      }
-      log_i(
-          "Added asset",
-          log_param("id", fmt_text(packAsset->id)),
-          log_param("refs", fmt_int(refCount)));
-    } break;
-    case PackState_Finished:
-      break;
+    if (!packAsset->loading) {
+      continue; // Already processed.
     }
+    ++busyAssets;
+    if (!pack_asset_is_loaded(world, packAsset->entity)) {
+      break; // Asset has not loaded yet; wait.
+    }
+    ecs_view_jump(assetItr, packAsset->entity);
+    packAsset->loading = false;
+    packAsset->id      = asset_id(ecs_view_read_t(assetItr, AssetComp));
+
+    asset_release(world, packAsset->entity); // Unload the asset.
+
+    if (UNLIKELY(ecs_world_has_t(world, packAsset->entity, AssetFailedComp))) {
+      ++pack->errorCount;
+      break; // Asset failed to load.
+    }
+    u32                     refCount    = 0;
+    const AssetGraphicComp* graphicComp = ecs_view_read_t(assetItr, AssetGraphicComp);
+    if (graphicComp) {
+      refCount += asset_graphic_refs(graphicComp, refs + refCount, array_elems(refs) - refCount);
+    }
+    const AssetLevelComp* levelComp = ecs_view_read_t(assetItr, AssetLevelComp);
+    if (levelComp) {
+      refCount += asset_level_refs(
+          levelComp, world, assetMan, refs + refCount, array_elems(refs) - refCount);
+    }
+    const AssetPrefabMapComp* prefabMap = ecs_view_read_t(assetItr, AssetPrefabMapComp);
+    if (prefabMap) {
+      refCount += asset_prefab_refs(prefabMap, refs + refCount, array_elems(refs) - refCount);
+    }
+    const AssetProductMapComp* productMap = ecs_view_read_t(assetItr, AssetProductMapComp);
+    if (productMap) {
+      refCount += asset_product_refs(productMap, refs + refCount, array_elems(refs) - refCount);
+    }
+    const AssetTerrainComp* terrainComp = ecs_view_read_t(assetItr, AssetTerrainComp);
+    if (terrainComp) {
+      refCount += asset_terrain_refs(terrainComp, refs + refCount, array_elems(refs) - refCount);
+    }
+    const AssetWeaponMapComp* weaponMap = ecs_view_read_t(assetItr, AssetWeaponMapComp);
+    if (weaponMap) {
+      refCount += asset_weapon_refs(weaponMap, refs + refCount, array_elems(refs) - refCount);
+    }
+    for (u32 i = 0; i != refCount; ++i) {
+      diag_assert(refs[i]);
+      pack_push_asset(world, pack, refs[i]);
+    }
+    log_i(
+        "Added asset",
+        log_param("id", fmt_text(packAsset->id)),
+        log_param("refs", fmt_int(refCount)));
   }
   pack->done = !busyAssets;
   if (pack->done) {
