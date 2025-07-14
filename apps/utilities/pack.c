@@ -18,6 +18,7 @@
 #include "core_diag.h"
 #include "core_dynarray.h"
 #include "core_file.h"
+#include "core_path.h"
 #include "core_signal.h"
 #include "data_read.h"
 #include "data_utils.h"
@@ -92,6 +93,7 @@ typedef struct {
 
 ecs_comp_define(PackComp) {
   PackConfig cfg;
+  String     outputPath;
   DynArray   assets; // PackAsset[], sorted on entity.
   u64        frameIdx;
   PackState  state;
@@ -100,6 +102,7 @@ ecs_comp_define(PackComp) {
 static void ecs_destruct_texture_comp(void* data) {
   PackComp* comp = data;
   data_destroy(g_dataReg, g_allocHeap, g_packConfigMeta, mem_var(comp->cfg));
+  string_free(g_allocHeap, comp->outputPath);
   dynarray_destroy(&comp->assets);
 }
 
@@ -220,16 +223,49 @@ static PackGatherResult pack_gather_update(
   return PackGatherResult_Busy;
 }
 
-static void pack_build(PackComp* pack) {
+static String pack_write_path(const PackComp* pack) {
+  return fmt_write_scratch("{}.tmp", fmt_text(pack->outputPath));
+}
+
+static bool pack_build(PackComp* pack) {
+  File*                 file       = null;
+  const FileAccessFlags fileAccess = FileAccess_Read | FileAccess_Write;
+  FileResult            fileRes    = file_create_dir_sync(path_parent(pack->outputPath));
+  if (LIKELY(fileRes == FileResult_Success)) {
+    fileRes = file_create(g_allocHeap, pack_write_path(pack), FileMode_Create, fileAccess, &file);
+  }
+  if (UNLIKELY(fileRes != FileResult_Success)) {
+    goto FileError;
+  }
+
   AssetPacker* packer = asset_packer_create(g_allocHeap, (u32)pack->assets.size);
   dynarray_for_t(&pack->assets, PackAsset, packAsset) {
     diag_assert(!packAsset->loading && !string_is_empty(packAsset->id));
 
     asset_packer_push(packer, packAsset->id);
   }
+  const AssetPackerStats stats = asset_packer_write(packer, file);
+  log_i(
+      "Pack file build",
+      log_param("path", fmt_path(pack->outputPath)),
+      log_param("total-size", fmt_int(stats.totalSize)));
+  asset_packer_destroy(packer);
+
+  file_destroy(file);
+  if (UNLIKELY(fileRes = file_rename(pack_write_path(pack), pack->outputPath))) {
+    file_delete_sync(pack_write_path(pack));
+    goto FileError;
+  }
 
   log_i("Packing finished");
-  asset_packer_destroy(packer);
+  return true;
+
+FileError:
+  log_e(
+      "Failed to create output file",
+      log_param("path", fmt_path(pack->outputPath)),
+      log_param("error", fmt_text(file_result_str(fileRes))));
+  return false;
 }
 
 ecs_system_define(PackUpdateSys) {
@@ -264,8 +300,11 @@ ecs_system_define(PackUpdateSys) {
     ++pack->state;
     break;
   case PackState_Build:
-    pack_build(pack);
-    pack->state = PackState_Finished;
+    if (pack_build(pack)) {
+      pack->state = PackState_Finished;
+    } else {
+      pack->state = PackState_Failed;
+    }
     break;
   case PackState_Interupted:
   case PackState_Failed:
@@ -283,7 +322,7 @@ ecs_module_init(pack_module) {
   ecs_register_system(PackUpdateSys, ecs_view_id(PackGlobalView), ecs_view_id(PackAssetView));
 }
 
-static CliId g_optConfigPath, g_optAssets, g_optHelp;
+static CliId g_optConfigPath, g_optAssetsPath, g_optOutputPath, g_optHelp;
 
 void app_ecs_configure(CliApp* app) {
   cli_app_register_desc(app, string_lit("Volo asset packer"));
@@ -292,14 +331,18 @@ void app_ecs_configure(CliApp* app) {
   cli_register_desc(app, g_optConfigPath, string_lit("Path to a pack config file."));
   cli_register_validator(app, g_optConfigPath, cli_validate_file_regular);
 
-  g_optAssets = cli_register_flag(app, 'a', string_lit("assets"), CliOptionFlags_Value);
-  cli_register_desc(app, g_optAssets, string_lit("Path to asset directory."));
-  cli_register_validator(app, g_optAssets, cli_validate_file_directory);
+  g_optAssetsPath = cli_register_flag(app, 'a', string_lit("assets"), CliOptionFlags_Value);
+  cli_register_desc(app, g_optAssetsPath, string_lit("Path to asset directory."));
+  cli_register_validator(app, g_optAssetsPath, cli_validate_file_directory);
+
+  g_optOutputPath = cli_register_flag(app, 'o', string_lit("output"), CliOptionFlags_Value);
+  cli_register_desc(app, g_optOutputPath, string_lit("Output file path."));
 
   g_optHelp = cli_register_flag(app, 'h', string_lit("help"), CliOptionFlags_None);
   cli_register_desc(app, g_optHelp, string_lit("Display this help page."));
   cli_register_exclusions(app, g_optHelp, g_optConfigPath);
-  cli_register_exclusions(app, g_optHelp, g_optAssets);
+  cli_register_exclusions(app, g_optHelp, g_optOutputPath);
+  cli_register_exclusions(app, g_optHelp, g_optAssetsPath);
 }
 
 bool app_ecs_validate(const CliApp* app, const CliInvocation* invoc) {
@@ -319,9 +362,14 @@ void app_ecs_register(EcsDef* def, MAYBE_UNUSED const CliInvocation* invoc) {
 }
 
 void app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
-  const String assetPath = cli_read_string(invoc, g_optAssets, string_lit("assets"));
+  const String assetPath = cli_read_string(invoc, g_optAssetsPath, string_lit("assets"));
   if (file_stat_path_sync(assetPath).type != FileType_Directory) {
     log_e("Asset directory not found", log_param("path", fmt_path(assetPath)));
+    return;
+  }
+  const String outputPath = cli_read_string(invoc, g_optOutputPath, string_lit("assets.blob"));
+  if (string_is_empty(outputPath)) {
+    log_e("Invalid output path", log_param("path", fmt_path(outputPath)));
     return;
   }
   const String cfgPath = cli_read_string(invoc, g_optConfigPath, string_empty);
@@ -334,8 +382,9 @@ void app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
       world,
       ecs_world_global(world),
       PackComp,
-      .cfg    = cfg,
-      .assets = dynarray_create_t(g_allocHeap, PackAsset, 512));
+      .cfg        = cfg,
+      .outputPath = string_dup(g_allocHeap, path_build_scratch(outputPath)),
+      .assets     = dynarray_create_t(g_allocHeap, PackAsset, 512));
 
   AssetManagerComp* assetMan = asset_manager_create_fs(world, AssetManagerFlags_None, assetPath);
 
