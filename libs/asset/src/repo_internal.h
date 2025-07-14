@@ -10,8 +10,8 @@ typedef struct sAssetRepo   AssetRepo;
 typedef struct sAssetSource AssetSource;
 
 typedef struct {
-  usize       size;
   AssetFormat format;
+  usize       size;
   TimeReal    modTime;
 } AssetInfo;
 
