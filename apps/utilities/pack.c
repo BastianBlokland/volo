@@ -2,6 +2,7 @@
 #include "asset_graphic.h"
 #include "asset_level.h"
 #include "asset_manager.h"
+#include "asset_pack.h"
 #include "asset_prefab.h"
 #include "asset_product.h"
 #include "asset_register.h"
@@ -76,6 +77,7 @@ Ret:
 typedef enum {
   PackState_Gathering,
   PackState_Waiting, // Wait a single frame to flush loads to the cache.
+  PackState_Build,
 
   PackState_Interupted,
   PackState_Failed,
@@ -144,14 +146,14 @@ static void pack_gather_asset(EcsWorld* world, PackComp* comp, const EcsEntityId
 static PackGatherResult pack_gather_update(
     EcsWorld* world, PackComp* pack, AssetManagerComp* assetMan, EcsIterator* assetItr) {
   EcsEntityId refs[512];
-  bool        done  = true;
-  bool        error = false;
+  bool        finished = true;
+  bool        error    = false;
 
   dynarray_for_t(&pack->assets, PackAsset, packAsset) {
     if (!packAsset->loading) {
       continue; // Already processed.
     }
-    done = false;
+    finished = false;
     if (!pack_is_loaded(world, packAsset->entity)) {
       continue; // Asset has not loaded yet; wait.
     }
@@ -200,7 +202,34 @@ static PackGatherResult pack_gather_update(
         log_param("id", fmt_text(packAsset->id)),
         log_param("refs", fmt_int(refCount)));
   }
-  return error ? PackGatherResult_Failed : done ? PackGatherResult_Finished : PackGatherResult_Busy;
+
+  if (error) {
+    log_e(
+        "Packing failed",
+        log_param("assets", fmt_int(pack->assets.size)),
+        log_param("total-frames", fmt_int(pack->frameIdx)));
+    return PackGatherResult_Failed;
+  }
+  if (finished) {
+    log_i(
+        "Gathering finished",
+        log_param("assets", fmt_int(pack->assets.size)),
+        log_param("total-frames", fmt_int(pack->frameIdx)));
+    return PackGatherResult_Finished;
+  }
+  return PackGatherResult_Busy;
+}
+
+static void pack_build(PackComp* pack) {
+  AssetPacker* packer = asset_packer_create(g_allocHeap, (u32)pack->assets.size);
+  dynarray_for_t(&pack->assets, PackAsset, packAsset) {
+    diag_assert(!packAsset->loading && !string_is_empty(packAsset->id));
+
+    asset_packer_push(packer, packAsset->id);
+  }
+
+  log_i("Packing finished");
+  asset_packer_destroy(packer);
 }
 
 ecs_system_define(PackUpdateSys) {
@@ -213,7 +242,9 @@ ecs_system_define(PackUpdateSys) {
   AssetManagerComp* assetMan = ecs_view_write_t(globalItr, AssetManagerComp);
 
   if (signal_is_received(Signal_Terminate) || signal_is_received(Signal_Interrupt)) {
+    log_w("Packing interrupted", log_param("total-frames", fmt_int(pack->frameIdx)));
     pack->state = PackState_Interupted;
+    return;
   }
 
   EcsView*     assetView = ecs_world_view_t(world, PackAssetView);
@@ -225,26 +256,20 @@ ecs_system_define(PackUpdateSys) {
     if (gatherRes == PackGatherResult_Failed) {
       pack->state = PackState_Failed;
     } else if (gatherRes == PackGatherResult_Finished) {
+
       ++pack->state;
     }
   } break;
   case PackState_Waiting:
+    ++pack->state;
+    break;
+  case PackState_Build:
+    pack_build(pack);
     pack->state = PackState_Finished;
     break;
   case PackState_Interupted:
-    log_w("Packing interrupted", log_param("total-frames", fmt_int(pack->frameIdx)));
-    break;
   case PackState_Failed:
-    log_e(
-        "Packing failed",
-        log_param("assets", fmt_int(pack->assets.size)),
-        log_param("total-frames", fmt_int(pack->frameIdx)));
-    break;
   case PackState_Finished:
-    log_i(
-        "Packing finished",
-        log_param("assets", fmt_int(pack->assets.size)),
-        log_param("total-frames", fmt_int(pack->frameIdx)));
     break;
   }
 }
