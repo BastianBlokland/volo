@@ -181,7 +181,11 @@ FileResult file_read_to_end_sync(File* file, DynString* output) {
   return res == FileResult_NoDataAvailable ? FileResult_Success : res;
 }
 
-FileResult file_create_dir_sync(String path) {
+FileResult file_create_dir_sync(const String path) {
+  if (UNLIKELY(string_is_empty(path))) {
+    return FileResult_PathInvalid;
+  }
+
   File*      dirHandle;
   FileResult res;
 
