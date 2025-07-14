@@ -248,7 +248,7 @@ static bool pack_build(PackComp* pack) {
   log_i(
       "Pack file build",
       log_param("path", fmt_path(pack->outputPath)),
-      log_param("total-size", fmt_int(stats.totalSize)));
+      log_param("total-size", fmt_size(stats.totalSize)));
   asset_packer_destroy(packer);
 
   file_destroy(file);
@@ -292,7 +292,6 @@ ecs_system_define(PackUpdateSys) {
     if (gatherRes == PackGatherResult_Failed) {
       pack->state = PackState_Failed;
     } else if (gatherRes == PackGatherResult_Finished) {
-
       ++pack->state;
     }
   } break;
