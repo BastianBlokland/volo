@@ -78,6 +78,9 @@ FileResult file_create(
     const FileMode        mode,
     const FileAccessFlags access,
     File**                file) {
+  if (UNLIKELY(string_is_empty(path))) {
+    return FileResult_PathInvalid;
+  }
   const FileResult res = file_pal_create(alloc, path, mode, access, file);
   if (res == FileResult_Success) {
     thread_atomic_add_i64(&g_fileCount, 1);
