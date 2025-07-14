@@ -185,7 +185,6 @@ FileResult file_create_dir_sync(const String path) {
   if (UNLIKELY(string_is_empty(path))) {
     return FileResult_PathInvalid;
   }
-
   File*      dirHandle;
   FileResult res;
 
@@ -197,9 +196,12 @@ FileResult file_create_dir_sync(const String path) {
   }
 
   // Path does not exist yet; First create the parent.
-  res = file_create_dir_sync(path_parent(path));
-  if (res != FileResult_Success) {
-    return res; // Failed to create parent.
+  const String parent = path_parent(path);
+  if (!string_is_empty(parent)) {
+    res = file_create_dir_sync(parent);
+    if (res != FileResult_Success) {
+      return res; // Failed to create parent.
+    }
   }
 
   // Create the directory itself.
