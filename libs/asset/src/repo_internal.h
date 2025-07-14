@@ -9,7 +9,7 @@
 typedef struct sAssetRepo   AssetRepo;
 typedef struct sAssetSource AssetSource;
 
-typedef struct {
+typedef struct sAssetInfo {
   AssetFormat format;
   usize       size;
   TimeReal    modTime;

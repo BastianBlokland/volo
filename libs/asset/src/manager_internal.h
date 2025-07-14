@@ -13,6 +13,13 @@ void asset_register_dep(EcsWorld*, EcsEntityId asset, EcsEntityId dependency);
 
 /**
  * Synchonously open an asset.
+ * NOTE: Does not register the asset with the manager.
+ */
+bool asset_source_stat(
+    const AssetManagerComp*, const AssetImportEnvComp*, String id, AssetInfo* out);
+
+/**
+ * Synchonously open an asset.
  * NOTE: Does not register the asset with the manager and does not trigger loaders.
  */
 AssetSource* asset_source_open(const AssetManagerComp*, const AssetImportEnvComp*, String id);
