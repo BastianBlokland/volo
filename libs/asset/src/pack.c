@@ -6,7 +6,9 @@ struct sAssetPacker {
   Allocator* alloc;
 };
 
-AssetPacker* asset_packer_create(Allocator* alloc) {
+AssetPacker* asset_packer_create(Allocator* alloc, const u32 assetCapacity) {
+  (void)assetCapacity;
+
   AssetPacker* packer = alloc_alloc_t(alloc, AssetPacker);
 
   *packer = (AssetPacker){
