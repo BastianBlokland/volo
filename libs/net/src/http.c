@@ -473,8 +473,13 @@ NetHttp* net_http_connect_sync(Allocator* alloc, const String host, const NetHtt
 
   const TimeSteady connectStart = time_steady_clock();
 
-  const u16 hostPort = flags & NetHttpFlags_Tls ? 443 : 80;
-  http->socket       = net_socket_connect_any_sync(alloc, hostAddrs, hostAddrCount, hostPort);
+  NetEndpoint hostEndpoints[32];
+  for (u32 i = 0; i != hostAddrCount; ++i) {
+    hostEndpoints[i].addr = hostAddrs[i];
+    hostEndpoints[i].port = flags & NetHttpFlags_Tls ? 443 : 80;
+  }
+
+  http->socket       = net_socket_connect_any_sync(alloc, hostEndpoints, hostAddrCount);
   http->status       = net_socket_status(http->socket);
   http->hostEndpoint = *net_socket_remote(http->socket);
 
