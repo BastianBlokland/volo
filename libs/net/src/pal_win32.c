@@ -162,13 +162,13 @@ u64 net_pal_total_connects(void) { return (u64)thread_atomic_load_i64(&g_netTota
 u64 net_pal_total_bytes_read(void) { return (u64)thread_atomic_load_i64(&g_netTotalBytesRead); }
 u64 net_pal_total_bytes_write(void) { return (u64)thread_atomic_load_i64(&g_netTotalBytesWrite); }
 
-static int net_pal_socket_domain(const NetIpType ipType) {
-  switch (ipType) {
-  case NetIpType_V4:
+static int net_pal_socket_domain(const NetAddrType addrType) {
+  switch (addrType) {
+  case NetAddrType_V4:
     return AF_INET;
-  case NetIpType_V6:
+  case NetAddrType_V6:
     return AF_INET6;
-  case NetIpType_Count:
+  case NetAddrType_Count:
     break;
   }
   diag_crash_msg("Unsupported ip-type");
@@ -270,29 +270,29 @@ NetSocket* net_socket_connect_sync(Allocator* alloc, const NetEndpoint endpoint)
     return s;
   }
 
-  switch (endpoint.ip.type) {
-  case NetIpType_V4: {
+  switch (endpoint.addr.type) {
+  case NetAddrType_V4: {
     struct sockaddr_in sockAddr = {.sin_family = AF_INET};
     mem_write_be_u16(mem_var(sockAddr.sin_port), endpoint.port);
-    mem_cpy(mem_var(sockAddr.sin_addr), mem_var(endpoint.ip.v4.data));
+    mem_cpy(mem_var(sockAddr.sin_addr), mem_var(endpoint.addr.v4.data));
 
     if (g_netWsLib.connect(s->handle, &sockAddr, sizeof(struct sockaddr_in)) == SOCKET_ERROR) {
       s->status = net_pal_socket_error();
     }
     return s;
   }
-  case NetIpType_V6: {
+  case NetAddrType_V6: {
     struct sockaddr_in6 sockAddr = {.sin6_family = AF_INET6};
     mem_write_be_u16(mem_var(sockAddr.sin6_port), endpoint.port);
-    for (u32 i = 0; i != array_elems(endpoint.ip.v6.groups); ++i) {
-      mem_write_be_u16(mem_var(sockAddr.sin6_addr.u.Word[i]), endpoint.ip.v6.groups[i]);
+    for (u32 i = 0; i != array_elems(endpoint.addr.v6.groups); ++i) {
+      mem_write_be_u16(mem_var(sockAddr.sin6_addr.u.Word[i]), endpoint.addr.v6.groups[i]);
     }
     if (g_netWsLib.connect(s->handle, &sockAddr, sizeof(struct sockaddr_in6)) == SOCKET_ERROR) {
       s->status = net_pal_socket_error();
     }
     return s;
   }
-  case NetIpType_Count:
+  case NetAddrType_Count:
     break;
   }
   diag_crash_msg("Unsupported ip-type");
@@ -394,7 +394,7 @@ NetResult net_socket_shutdown(NetSocket* s, const NetDir dir) {
   return NetResult_Success;
 }
 
-NetResult net_ip_interfaces(NetIp out[], u32* count, const NetInterfaceQueryFlags flags) {
+NetResult net_addr_interfaces(NetAddr out[], u32* count, const NetInterfaceQueryFlags flags) {
   if (UNLIKELY(!g_netInitialized)) {
     diag_crash_msg("Network subsystem not initialized");
   }
@@ -434,35 +434,35 @@ NetResult net_ip_interfaces(NetIp out[], u32* count, const NetInterfaceQueryFlag
       case AF_INET: {
         const struct sockaddr_in* addr = (struct sockaddr_in*)uni->Address.lpSockaddr;
 
-        NetIp ip;
-        ip.type = NetIpType_V4;
-        mem_cpy(mem_var(ip.v4.data), mem_var(addr->sin_addr));
+        NetAddr netAddr;
+        netAddr.type = NetAddrType_V4;
+        mem_cpy(mem_var(netAddr.v4.data), mem_var(addr->sin_addr));
 
-        if (!(flags & NetInterfaceQueryFlags_IncludeLinkLocal) && net_is_linklocal(ip)) {
+        if (!(flags & NetInterfaceQueryFlags_IncludeLinkLocal) && net_is_linklocal(netAddr)) {
           continue;
         }
         if (UNLIKELY(*count == countMax)) {
           goto Ret;
         }
-        out[(*count)++] = ip;
+        out[(*count)++] = netAddr;
         continue;
       }
       case AF_INET6: {
         const struct sockaddr_in6* addr = (struct sockaddr_in6*)uni->Address.lpSockaddr;
 
-        NetIp ip;
-        ip.type = NetIpType_V6;
-        for (u32 i = 0; i != array_elems(ip.v6.groups); ++i) {
-          mem_consume_be_u16(mem_var(addr->sin6_addr.u.Word[i]), &ip.v6.groups[i]);
+        NetAddr netAddr;
+        netAddr.type = NetAddrType_V6;
+        for (u32 i = 0; i != array_elems(netAddr.v6.groups); ++i) {
+          mem_consume_be_u16(mem_var(addr->sin6_addr.u.Word[i]), &netAddr.v6.groups[i]);
         }
 
-        if (!(flags & NetInterfaceQueryFlags_IncludeLinkLocal) && net_is_linklocal(ip)) {
+        if (!(flags & NetInterfaceQueryFlags_IncludeLinkLocal) && net_is_linklocal(netAddr)) {
           continue;
         }
         if (UNLIKELY(*count == countMax)) {
           goto Ret;
         }
-        out[(*count)++] = ip;
+        out[(*count)++] = netAddr;
         continue;
       }
       }
@@ -472,7 +472,7 @@ Ret:
   return NetResult_Success;
 }
 
-NetResult net_resolve_sync(const String host, NetIp out[], u32* count) {
+NetResult net_resolve_sync(const String host, NetAddr out[], u32* count) {
   if (UNLIKELY(!g_netInitialized)) {
     diag_crash_msg("Network subsystem not initialized");
   }
@@ -513,9 +513,9 @@ NetResult net_resolve_sync(const String host, NetIp out[], u32* count) {
         goto Ret;
       }
 
-      NetIp* ip = &out[(*count)++];
-      ip->type  = NetIpType_V4;
-      mem_cpy(mem_var(ip->v4.data), mem_var(addr->sin_addr));
+      NetAddr* netAddr = &out[(*count)++];
+      netAddr->type    = NetAddrType_V4;
+      mem_cpy(mem_var(netAddr->v4.data), mem_var(addr->sin_addr));
       continue;
     }
     case AF_INET6: {
@@ -525,10 +525,10 @@ NetResult net_resolve_sync(const String host, NetIp out[], u32* count) {
         goto Ret;
       }
 
-      NetIp* ip = &out[(*count)++];
-      ip->type  = NetIpType_V6;
-      for (u32 i = 0; i != array_elems(ip->v6.groups); ++i) {
-        mem_consume_be_u16(mem_var(addr->sin6_addr.u.Word[i]), &ip->v6.groups[i]);
+      NetAddr* netAddr = &out[(*count)++];
+      netAddr->type    = NetAddrType_V6;
+      for (u32 i = 0; i != array_elems(netAddr->v6.groups); ++i) {
+        mem_consume_be_u16(mem_var(addr->sin6_addr.u.Word[i]), &netAddr->v6.groups[i]);
       }
       continue;
     }

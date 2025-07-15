@@ -449,10 +449,10 @@ NetHttp* net_http_connect_sync(Allocator* alloc, const String host, const NetHtt
 
   const TimeSteady resolveStart = time_steady_clock();
 
-  NetIp hostIps[32];
-  u32   hostIpCount = array_elems(hostIps);
+  NetAddr hostAddrs[32];
+  u32     hostAddrCount = array_elems(hostAddrs);
 
-  http->status = net_resolve_sync(host, hostIps, &hostIpCount);
+  http->status = net_resolve_sync(host, hostAddrs, &hostAddrCount);
   if (http->status != NetResult_Success) {
     const TimeDuration resolveDur = time_steady_duration(resolveStart, time_steady_clock());
     log_w(
@@ -468,13 +468,13 @@ NetHttp* net_http_connect_sync(Allocator* alloc, const String host, const NetHtt
   log_d(
       "Http: Host resolved",
       log_param("host", fmt_text(host)),
-      log_param("ip-count", fmt_int(hostIpCount)),
+      log_param("address-count", fmt_int(hostAddrCount)),
       log_param("duration", fmt_duration(resolveDur)));
 
   const TimeSteady connectStart = time_steady_clock();
 
   const u16 hostPort = flags & NetHttpFlags_Tls ? 443 : 80;
-  http->socket       = net_socket_connect_any_sync(alloc, hostIps, hostIpCount, hostPort);
+  http->socket       = net_socket_connect_any_sync(alloc, hostAddrs, hostAddrCount, hostPort);
   http->status       = net_socket_status(http->socket);
   http->hostEndpoint = *net_socket_remote(http->socket);
 

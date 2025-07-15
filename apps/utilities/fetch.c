@@ -353,9 +353,9 @@ static FetchResult fetch_run_origin(
 
   // Verify there's a network interface available.
   if (requests.size) {
-    NetIp ips[32];
-    u32   ipCount = array_elems(ips);
-    if (net_ip_interfaces(ips, &ipCount, NetInterfaceQueryFlags_None) || !ipCount) {
+    NetAddr addrs[32];
+    u32     addrCount = array_elems(addrs);
+    if (net_addr_interfaces(addrs, &addrCount, NetInterfaceQueryFlags_None) || !addrCount) {
       result = FetchResult_NetworkUnavailable;
     }
   }

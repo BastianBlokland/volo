@@ -12,7 +12,7 @@ typedef struct sNetSocket NetSocket;
  * Should be cleaned up using 'net_socket_destroy()'.
  */
 NetSocket* net_socket_connect_sync(Allocator*, NetEndpoint);
-NetSocket* net_socket_connect_any_sync(Allocator*, const NetIp* ips, u32 ipCount, u16 port);
+NetSocket* net_socket_connect_any_sync(Allocator*, const NetAddr* addrs, u32 addrCount, u16 port);
 
 /**
  * Destroy the given socket.

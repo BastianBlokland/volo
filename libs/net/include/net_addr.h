@@ -2,48 +2,48 @@
 #include "net.h"
 
 typedef enum {
-  NetIpType_V4,
-  NetIpType_V6,
+  NetAddrType_V4,
+  NetAddrType_V6,
 
-  NetIpType_Count,
-} NetIpType;
+  NetAddrType_Count,
+} NetAddrType;
 
 typedef struct {
   u8 data[4];
-} NetIp4;
+} NetAddr4;
 
-ASSERT(sizeof(NetIp4) == 4, "Incorrect Ip-v4 size");
+ASSERT(sizeof(NetAddr4) == 4, "Incorrect Ip-v4 size");
 
 typedef union {
   u16 groups[8];
   u8  data[16];
-} NetIp6;
+} NetAddr6;
 
-ASSERT(sizeof(NetIp6) == 16, "Incorrect Ip-v6 size");
+ASSERT(sizeof(NetAddr6) == 16, "Incorrect Ip-v6 size");
 
-typedef struct sNetIp {
-  NetIpType type;
+typedef struct sNetAddr {
+  NetAddrType type;
   union {
-    NetIp4 v4;
-    NetIp6 v6;
+    NetAddr4 v4;
+    NetAddr6 v6;
   };
-} NetIp;
+} NetAddr;
 
 typedef struct sNetEndpoint {
-  NetIp ip;
-  u16   port;
+  NetAddr addr;
+  u16     port;
 } NetEndpoint;
 
 /**
- * Query the attributes for an ip.
+ * Query the attributes for an address.
  */
-bool net_is_loopback(NetIp);
-bool net_is_linklocal(NetIp);
+bool net_is_loopback(NetAddr);
+bool net_is_linklocal(NetAddr);
 
 /**
  * Return the loopback address.
  */
-NetIp net_ip_loopback(NetIpType);
+NetAddr net_addr_loopback(NetAddrType);
 
 typedef enum {
   NetInterfaceQueryFlags_None             = 0,
@@ -52,21 +52,21 @@ typedef enum {
 
 /**
  * Lookup the current addresses of the active network interfaces (excluding loop-back).
- * NOTE: Provide the max amount of ips to query in 'count'; will be replaced with the result count.
+ * NOTE: Provide the max amount to query in 'count'; will be replaced with the result count.
  */
-NetResult net_ip_interfaces(NetIp out[], u32* count, NetInterfaceQueryFlags);
+NetResult net_addr_interfaces(NetAddr out[], u32* count, NetInterfaceQueryFlags);
 
 /**
  * Synchonously resolve a host-name to addresses.
- * NOTE: Provide the max amount of ips to query in 'count'; will be replaced with the result count.
+ * NOTE: Provide the max amount to query in 'count'; will be replaced with the result count.
  */
-NetResult net_resolve_sync(String host, NetIp out[], u32* count);
+NetResult net_resolve_sync(String host, NetAddr out[], u32* count);
 
 /**
  * Write the textual representation of the given ip.
  */
-void   net_ip_str(const NetIp*, DynString* out);
-String net_ip_str_scratch(const NetIp*);
+void   net_addr_str(const NetAddr*, DynString* out);
+String net_addr_str_scratch(const NetAddr*);
 
 /**
  * Write the textual representation of the given endpoint.
