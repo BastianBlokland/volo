@@ -16,9 +16,9 @@ spec(socket) {
      */
     const String msg = string_lit("Hello World!\n");
 
-    for (NetIpType ipType = 0; ipType != NetIpType_Count; ++ipType) {
-      const NetAddr addr   = {.ip = net_ip_loopback(ipType), .port = 6666};
-      NetSocket*    socket = net_socket_connect_sync(g_allocHeap, addr);
+    for (NetAddrType addrType = 0; addrType != NetAddrType_Count; ++addrType) {
+      const NetEndpoint endpoint = {.addr = net_addr_loopback(addrType), .port = 6666};
+      NetSocket*        socket   = net_socket_connect_sync(g_allocHeap, endpoint);
       check_eq_int(net_socket_status(socket), NetResult_Success);
 
       check_eq_int(net_socket_write_sync(socket, msg), NetResult_Success);
@@ -45,9 +45,9 @@ spec(socket) {
      */
     const String msg = string_lit("Hello World!\n");
 
-    for (NetIpType ipType = 0; ipType != NetIpType_Count; ++ipType) {
-      const NetAddr addr   = {.ip = net_ip_loopback(ipType), .port = 6666};
-      NetSocket*    socket = net_socket_connect_sync(g_allocHeap, addr);
+    for (NetAddrType addrType = 0; addrType != NetAddrType_Count; ++addrType) {
+      const NetEndpoint endpoint = {.addr = net_addr_loopback(addrType), .port = 6666};
+      NetSocket*        socket   = net_socket_connect_sync(g_allocHeap, endpoint);
       check_eq_int(net_socket_status(socket), NetResult_Success);
 
       NetTls* tls = net_tls_create(g_allocHeap, string_empty /* host */, NetTlsFlags_NoVerify);

@@ -65,16 +65,16 @@ static bool httpu_validate_method(const String input) {
 
 static void httpu_log_interfaces(void) {
 #ifndef VOLO_FAST
-  NetIp ips[32];
-  u32   ipCount = array_elems(ips);
-  if (UNLIKELY(net_ip_interfaces(ips, &ipCount, NetInterfaceQueryFlags_None))) {
+  NetAddr addrs[32];
+  u32     addrCount = array_elems(addrs);
+  if (UNLIKELY(net_addr_interfaces(addrs, &addrCount, NetInterfaceQueryFlags_None))) {
     log_e("Failed to query net interfaces");
     return;
   }
 
-  for (u32 i = 0; i != ipCount; ++i) {
-    const String ipScratch = net_ip_str_scratch(&ips[i]);
-    log_d("Net interface detected", log_param("ip", fmt_text(ipScratch)));
+  for (u32 i = 0; i != addrCount; ++i) {
+    const String addrScratch = net_addr_str_scratch(&addrs[i]);
+    log_d("Net interface detected", log_param("address", fmt_text(addrScratch)));
   }
 #endif
 }

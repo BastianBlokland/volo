@@ -28,7 +28,7 @@ typedef struct sNetHttp {
   NetSocket*   socket;
   NetTls*      tls;  // Only valid when using Https.
   String       host; // Hostname of the target server.
-  NetAddr      hostAddr;
+  NetEndpoint  hostEndpoint;
   NetHttpFlags flags;
   NetResult    status;
   DynString    readBuffer;
@@ -449,10 +449,10 @@ NetHttp* net_http_connect_sync(Allocator* alloc, const String host, const NetHtt
 
   const TimeSteady resolveStart = time_steady_clock();
 
-  NetIp hostIps[32];
-  u32   hostIpCount = array_elems(hostIps);
+  NetAddr hostAddrs[32];
+  u32     hostAddrCount = array_elems(hostAddrs);
 
-  http->status = net_resolve_sync(host, hostIps, &hostIpCount);
+  http->status = net_resolve_sync(host, hostAddrs, &hostAddrCount);
   if (http->status != NetResult_Success) {
     const TimeDuration resolveDur = time_steady_duration(resolveStart, time_steady_clock());
     log_w(
@@ -468,15 +468,20 @@ NetHttp* net_http_connect_sync(Allocator* alloc, const String host, const NetHtt
   log_d(
       "Http: Host resolved",
       log_param("host", fmt_text(host)),
-      log_param("ip-count", fmt_int(hostIpCount)),
+      log_param("address-count", fmt_int(hostAddrCount)),
       log_param("duration", fmt_duration(resolveDur)));
 
   const TimeSteady connectStart = time_steady_clock();
 
-  const u16 hostPort = flags & NetHttpFlags_Tls ? 443 : 80;
-  http->socket       = net_socket_connect_any_sync(alloc, hostIps, hostIpCount, hostPort);
+  NetEndpoint hostEndpoints[32];
+  for (u32 i = 0; i != hostAddrCount; ++i) {
+    hostEndpoints[i].addr = hostAddrs[i];
+    hostEndpoints[i].port = flags & NetHttpFlags_Tls ? 443 : 80;
+  }
+
+  http->socket       = net_socket_connect_any_sync(alloc, hostEndpoints, hostAddrCount);
   http->status       = net_socket_status(http->socket);
-  http->hostAddr     = *net_socket_remote(http->socket);
+  http->hostEndpoint = *net_socket_remote(http->socket);
 
   if (http->status != NetResult_Success) {
     const TimeDuration connectDur = time_steady_duration(connectStart, time_steady_clock());
@@ -484,7 +489,7 @@ NetHttp* net_http_connect_sync(Allocator* alloc, const String host, const NetHtt
         "Http: Failed to connect to host",
         log_param("error", fmt_text(net_result_str(http->status))),
         log_param("host", fmt_text(host)),
-        log_param("address", fmt_text(net_addr_str_scratch(&http->hostAddr))),
+        log_param("endpoint", fmt_text(net_endpoint_str_scratch(&http->hostEndpoint))),
         log_param("duration", fmt_duration(connectDur)));
     return http;
   }
@@ -506,7 +511,7 @@ NetHttp* net_http_connect_sync(Allocator* alloc, const String host, const NetHtt
   log_d(
       "Http: Host connected",
       log_param("host", fmt_text(host)),
-      log_param("addr", fmt_text(net_addr_str_scratch(&http->hostAddr))),
+      log_param("endpoint", fmt_text(net_endpoint_str_scratch(&http->hostEndpoint))),
       log_param("duration", fmt_duration(connectDur)));
 
   return http;
@@ -524,9 +529,9 @@ void net_http_destroy(NetHttp* http) {
   alloc_free_t(http->alloc, http);
 }
 
-NetResult      net_http_status(const NetHttp* http) { return http->status; }
-const NetAddr* net_http_remote(const NetHttp* http) { return &http->hostAddr; }
-String         net_http_remote_name(const NetHttp* http) { return http->host; }
+NetResult          net_http_status(const NetHttp* http) { return http->status; }
+const NetEndpoint* net_http_remote(const NetHttp* http) { return &http->hostEndpoint; }
+String             net_http_remote_name(const NetHttp* http) { return http->host; }
 
 NetResult
 net_http_head_sync(NetHttp* http, const String uri, const NetHttpAuth* auth, NetHttpEtag* etag) {
