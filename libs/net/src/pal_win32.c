@@ -260,7 +260,8 @@ NetSocket* net_socket_connect_sync(Allocator* alloc, const NetEndpoint endpoint)
 
   thread_atomic_add_i64(&g_netTotalConnects, 1);
 
-  s->handle = g_netWsLib.socket(net_pal_socket_domain(endpoint.ip.type), SOCK_STREAM, IPPROTO_TCP);
+  const int domain = net_pal_socket_domain(endpoint.addr.type);
+  s->handle        = g_netWsLib.socket(domain, SOCK_STREAM, IPPROTO_TCP);
   if (s->handle == INVALID_SOCKET) {
     s->status = net_pal_socket_error();
     return s;
