@@ -108,22 +108,22 @@ String net_ip_str_scratch(const NetIp* ip) {
   return dynstring_view(&buffer);
 }
 
-void net_addr_str(const NetAddr* addr, DynString* out) {
-  if (addr->ip.type == NetIpType_V6) {
+void net_endpoint_str(const NetEndpoint* endpoint, DynString* out) {
+  if (endpoint->ip.type == NetIpType_V6) {
     dynstring_append_char(out, '[');
   }
-  net_ip_str(&addr->ip, out);
-  if (addr->ip.type == NetIpType_V6) {
+  net_ip_str(&endpoint->ip, out);
+  if (endpoint->ip.type == NetIpType_V6) {
     dynstring_append_char(out, ']');
   }
-  fmt_write(out, ":{}", fmt_int(addr->port));
+  fmt_write(out, ":{}", fmt_int(endpoint->port));
 }
 
-String net_addr_str_scratch(const NetAddr* addr) {
+String net_endpoint_str_scratch(const NetEndpoint* endpoint) {
   Mem       bufferMem = alloc_alloc(g_allocScratch, usize_kibibyte, 1);
   DynString buffer    = dynstring_create_over(bufferMem);
 
-  net_addr_str(addr, &buffer);
+  net_endpoint_str(endpoint, &buffer);
 
   return dynstring_view(&buffer);
 }

@@ -227,11 +227,11 @@ static NetResult net_pal_resolve_error(void) {
 }
 
 typedef struct sNetSocket {
-  Allocator* alloc;
-  NetResult  status;
-  SOCKET     handle;
-  NetAddr    remoteAddr;
-  NetDir     closedMask;
+  Allocator*  alloc;
+  NetResult   status;
+  SOCKET      handle;
+  NetEndpoint remoteEndpoint;
+  NetDir      closedMask;
 } NetSocket;
 
 static bool net_socket_configure(NetSocket* s) {
@@ -246,13 +246,13 @@ static bool net_socket_configure(NetSocket* s) {
   return true;
 }
 
-NetSocket* net_socket_connect_sync(Allocator* alloc, const NetAddr addr) {
+NetSocket* net_socket_connect_sync(Allocator* alloc, const NetEndpoint endpoint) {
   if (UNLIKELY(!g_netInitialized)) {
     diag_crash_msg("Network subsystem not initialized");
   }
   NetSocket* s = alloc_alloc_t(alloc, NetSocket);
 
-  *s = (NetSocket){.alloc = alloc, .handle = INVALID_SOCKET, .remoteAddr = addr};
+  *s = (NetSocket){.alloc = alloc, .handle = INVALID_SOCKET, .remoteEndpoint = endpoint};
   if (UNLIKELY(!g_netWsLib.ready)) {
     s->status = NetResult_SystemFailure;
     return s;
@@ -260,7 +260,7 @@ NetSocket* net_socket_connect_sync(Allocator* alloc, const NetAddr addr) {
 
   thread_atomic_add_i64(&g_netTotalConnects, 1);
 
-  s->handle = g_netWsLib.socket(net_pal_socket_domain(addr.ip.type), SOCK_STREAM, IPPROTO_TCP);
+  s->handle = g_netWsLib.socket(net_pal_socket_domain(endpoint.ip.type), SOCK_STREAM, IPPROTO_TCP);
   if (s->handle == INVALID_SOCKET) {
     s->status = net_pal_socket_error();
     return s;
@@ -270,11 +270,11 @@ NetSocket* net_socket_connect_sync(Allocator* alloc, const NetAddr addr) {
     return s;
   }
 
-  switch (addr.ip.type) {
+  switch (endpoint.ip.type) {
   case NetIpType_V4: {
     struct sockaddr_in sockAddr = {.sin_family = AF_INET};
-    mem_write_be_u16(mem_var(sockAddr.sin_port), addr.port);
-    mem_cpy(mem_var(sockAddr.sin_addr), mem_var(addr.ip.v4.data));
+    mem_write_be_u16(mem_var(sockAddr.sin_port), endpoint.port);
+    mem_cpy(mem_var(sockAddr.sin_addr), mem_var(endpoint.ip.v4.data));
 
     if (g_netWsLib.connect(s->handle, &sockAddr, sizeof(struct sockaddr_in)) == SOCKET_ERROR) {
       s->status = net_pal_socket_error();
@@ -283,9 +283,9 @@ NetSocket* net_socket_connect_sync(Allocator* alloc, const NetAddr addr) {
   }
   case NetIpType_V6: {
     struct sockaddr_in6 sockAddr = {.sin6_family = AF_INET6};
-    mem_write_be_u16(mem_var(sockAddr.sin6_port), addr.port);
-    for (u32 i = 0; i != array_elems(addr.ip.v6.groups); ++i) {
-      mem_write_be_u16(mem_var(sockAddr.sin6_addr.u.Word[i]), addr.ip.v6.groups[i]);
+    mem_write_be_u16(mem_var(sockAddr.sin6_port), endpoint.port);
+    for (u32 i = 0; i != array_elems(endpoint.ip.v6.groups); ++i) {
+      mem_write_be_u16(mem_var(sockAddr.sin6_addr.u.Word[i]), endpoint.ip.v6.groups[i]);
     }
     if (g_netWsLib.connect(s->handle, &sockAddr, sizeof(struct sockaddr_in6)) == SOCKET_ERROR) {
       s->status = net_pal_socket_error();
@@ -317,7 +317,7 @@ NetResult net_socket_status(const NetSocket* s) {
   return s->status;
 }
 
-const NetAddr* net_socket_remote(const NetSocket* s) { return &s->remoteAddr; }
+const NetEndpoint* net_socket_remote(const NetSocket* s) { return &s->remoteEndpoint; }
 
 NetResult net_socket_write_sync(NetSocket* s, const String data) {
   if (s->status != NetResult_Success) {

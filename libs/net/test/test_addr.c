@@ -94,13 +94,13 @@ spec(addr) {
     }
   }
 
-  it("can format addresses") {
+  it("can format endpoints") {
     static const struct {
-      NetAddr addr;
-      String  expected;
+      NetEndpoint endpoint;
+      String      expected;
     } g_testData[] = {
         {
-            .addr =
+            .endpoint =
                 {
                     .ip   = {.type = NetIpType_V4, .v4 = {.data = {0, 0, 0, 1}}},
                     .port = 42,
@@ -108,7 +108,7 @@ spec(addr) {
             .expected = string_static("0.0.0.1:42"),
         },
         {
-            .addr =
+            .endpoint =
                 {
                     .ip   = {.type = NetIpType_V6, .v6 = {.groups = {0, 0, 0, 0, 0, 0, 0, 1}}},
                     .port = 42,
@@ -117,7 +117,7 @@ spec(addr) {
         },
     };
     for (u32 i = 0; i != array_elems(g_testData); ++i) {
-      check_eq_string(net_addr_str_scratch(&g_testData[i].addr), g_testData[i].expected);
+      check_eq_string(net_endpoint_str_scratch(&g_testData[i].endpoint), g_testData[i].expected);
     }
   }
 

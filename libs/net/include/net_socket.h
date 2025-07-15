@@ -8,10 +8,10 @@
 typedef struct sNetSocket NetSocket;
 
 /**
- * Synchonously open a Tcp connection to the given address.
+ * Synchonously open a Tcp connection to the given endpoint.
  * Should be cleaned up using 'net_socket_destroy()'.
  */
-NetSocket* net_socket_connect_sync(Allocator*, NetAddr);
+NetSocket* net_socket_connect_sync(Allocator*, NetEndpoint);
 NetSocket* net_socket_connect_any_sync(Allocator*, const NetIp* ips, u32 ipCount, u16 port);
 
 /**
@@ -25,9 +25,9 @@ void net_socket_destroy(NetSocket*);
 NetResult net_socket_status(const NetSocket*);
 
 /**
- * Retrieve the remote address of the socket.
+ * Retrieve the remote endpoint of the socket.
  */
-const NetAddr* net_socket_remote(const NetSocket*);
+const NetEndpoint* net_socket_remote(const NetSocket*);
 
 /**
  * Synchronously write to the socket.

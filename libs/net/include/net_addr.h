@@ -29,10 +29,10 @@ typedef struct sNetIp {
   };
 } NetIp;
 
-typedef struct sNetAddr {
+typedef struct sNetEndpoint {
   NetIp ip;
   u16   port;
-} NetAddr;
+} NetEndpoint;
 
 /**
  * Query the attributes for an ip.
@@ -51,13 +51,13 @@ typedef enum {
 } NetInterfaceQueryFlags;
 
 /**
- * Lookup the current ip addresses of the active network interfaces (excluding loop-back).
+ * Lookup the current addresses of the active network interfaces (excluding loop-back).
  * NOTE: Provide the max amount of ips to query in 'count'; will be replaced with the result count.
  */
 NetResult net_ip_interfaces(NetIp out[], u32* count, NetInterfaceQueryFlags);
 
 /**
- * Synchonously resolve a host-name to ip-addresses.
+ * Synchonously resolve a host-name to addresses.
  * NOTE: Provide the max amount of ips to query in 'count'; will be replaced with the result count.
  */
 NetResult net_resolve_sync(String host, NetIp out[], u32* count);
@@ -69,7 +69,7 @@ void   net_ip_str(const NetIp*, DynString* out);
 String net_ip_str_scratch(const NetIp*);
 
 /**
- * Write the textual representation of the given address.
+ * Write the textual representation of the given endpoint.
  */
-void   net_addr_str(const NetAddr*, DynString* out);
-String net_addr_str_scratch(const NetAddr*);
+void   net_endpoint_str(const NetEndpoint*, DynString* out);
+String net_endpoint_str_scratch(const NetEndpoint*);

@@ -9,8 +9,8 @@ net_socket_connect_any_sync(Allocator* alloc, const NetIp* ips, const u32 ipCoun
     if (result) {
       net_socket_destroy(result);
     }
-    const NetAddr addr = (NetAddr){.ip = ips[i], .port = port};
-    result             = net_socket_connect_sync(alloc, addr);
+    const NetEndpoint endpoint = (NetEndpoint){.ip = ips[i], .port = port};
+    result                     = net_socket_connect_sync(alloc, endpoint);
     if (net_socket_status(result) == NetResult_Success) {
       break;
     }

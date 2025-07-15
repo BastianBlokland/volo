@@ -52,8 +52,8 @@ NetResult net_http_status(const NetHttp*);
 /**
  * Query information about the remote server.
  */
-const NetAddr* net_http_remote(const NetHttp*);
-String         net_http_remote_name(const NetHttp*);
+const NetEndpoint* net_http_remote(const NetHttp*);
+String             net_http_remote_name(const NetHttp*);
 
 /**
  * Synchonously perform a 'HEAD' request for the given resource.
