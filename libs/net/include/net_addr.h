@@ -54,7 +54,7 @@ typedef enum {
  * Lookup the current addresses of the active network interfaces (excluding loop-back).
  * NOTE: Provide the max amount to query in 'count'; will be replaced with the result count.
  */
-NetResult net_addr_interfaces(NetAddr out[], u32* count, NetInterfaceQueryFlags);
+NetResult net_interfaces(NetAddr out[], u32* count, NetInterfaceQueryFlags);
 
 /**
  * Synchonously resolve a host-name to addresses.

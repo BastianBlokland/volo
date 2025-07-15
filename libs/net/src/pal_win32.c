@@ -395,7 +395,7 @@ NetResult net_socket_shutdown(NetSocket* s, const NetDir dir) {
   return NetResult_Success;
 }
 
-NetResult net_addr_interfaces(NetAddr out[], u32* count, const NetInterfaceQueryFlags flags) {
+NetResult net_interfaces(NetAddr out[], u32* count, const NetInterfaceQueryFlags flags) {
   if (UNLIKELY(!g_netInitialized)) {
     diag_crash_msg("Network subsystem not initialized");
   }

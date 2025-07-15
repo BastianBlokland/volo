@@ -355,7 +355,7 @@ static FetchResult fetch_run_origin(
   if (requests.size) {
     NetAddr addrs[32];
     u32     addrCount = array_elems(addrs);
-    if (net_addr_interfaces(addrs, &addrCount, NetInterfaceQueryFlags_None) || !addrCount) {
+    if (net_interfaces(addrs, &addrCount, NetInterfaceQueryFlags_None) || !addrCount) {
       result = FetchResult_NetworkUnavailable;
     }
   }
