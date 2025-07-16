@@ -4,7 +4,10 @@
 typedef struct sAssetPacker AssetPacker;
 
 typedef struct {
-  usize totalSize;
+  usize size;
+  u32   entries;
+  u32   regions;
+  u32   blocks;
 } AssetPackerStats;
 
 AssetPacker* asset_packer_create(Allocator*, u32 assetCapacity);

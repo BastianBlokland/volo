@@ -255,7 +255,10 @@ static bool pack_build(PackComp* p, AssetManagerComp* assetMan, const AssetImpor
       log_i(
           "Pack file build",
           log_param("path", fmt_path(p->outputPath)),
-          log_param("total-size", fmt_size(stats.totalSize)));
+          log_param("size", fmt_size(stats.size)),
+          log_param("entries", fmt_int(stats.entries)),
+          log_param("regions", fmt_int(stats.regions)),
+          log_param("blocks", fmt_int(stats.blocks)));
     } else {
       log_e("Failed to build pack file");
       success = false;

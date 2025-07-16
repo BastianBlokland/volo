@@ -1,5 +1,6 @@
 #include "asset_pack.h"
 #include "core_alloc.h"
+#include "core_bits.h"
 #include "core_diag.h"
 #include "core_dynarray.h"
 #include "core_file.h"
@@ -22,13 +23,15 @@
  * NOTE: The header always needs to fit into a single block.
  */
 
-#define asset_pack_block_size usize_mebibyte
+#define asset_pack_block_size (usize_mebibyte)
+#define asset_pack_small_entry_threshold (32 * usize_kibibyte)
+#define asset_pack_file_align 16
 
 typedef struct {
   String      assetId;
   StringHash  assetIdHash;
   AssetFormat format;
-  u32         region;
+  u32         region;       // sentinel_u32 if not assigned to a region yet.
   u32         offset, size; // Within the region.
 } AssetPackEntry;
 
@@ -46,6 +49,83 @@ struct sAssetPacker {
 static i8 packer_compare_entry(const void* a, const void* b) {
   return compare_stringhash(
       field_ptr(a, AssetPackEntry, assetIdHash), field_ptr(b, AssetPackEntry, assetIdHash));
+}
+
+static bool packer_write_entry(
+    AssetManagerComp*         manager,
+    const AssetImportEnvComp* importEnv,
+    const AssetPackEntry*     entry,
+    const Mem                 regionMem) {
+  AssetSource* source = asset_source_open(manager, importEnv, entry->assetId);
+  if (UNLIKELY(!source)) {
+    log_e("Asset source deleted while packing", log_param("asset", fmt_text(entry->assetId)));
+    return false;
+  }
+  if (UNLIKELY(source->format != entry->format || source->data.size != entry->size)) {
+    log_e("Asset source invalidated while packing", log_param("asset", fmt_text(entry->assetId)));
+    asset_repo_close(source);
+    return false;
+  }
+  mem_cpy(mem_slice(regionMem, entry->offset, entry->size), source->data);
+  asset_repo_close(source);
+  return true;
+}
+
+/**
+ * Write a region containing all small entries.
+ * Combining these in a single region means this region will likely always change during patching
+ * but because the entries are so small this region is unlikely to ever be bigger then a few blocks.
+ */
+static bool packer_push_small_entries(
+    AssetPacker*              packer,
+    AssetManagerComp*         manager,
+    const AssetImportEnvComp* importEnv,
+    File*                     file,
+    usize*                    fileOffset) {
+  usize regionSize = 0;
+  dynarray_for_t(&packer->entries, AssetPackEntry, entry) {
+    if (sentinel_check(entry->region) && entry->size <= asset_pack_small_entry_threshold) {
+      regionSize += entry->size;
+    }
+  }
+  if (!regionSize) {
+    return true; // No small entries.
+  }
+  regionSize = bits_align(regionSize, asset_pack_block_size);
+
+  FileResult fileRes;
+  if (UNLIKELY(fileRes = file_resize_sync(file, *fileOffset + regionSize))) {
+    log_e("Failed to resize pack file", log_param("error", fmt_text(file_result_str(fileRes))));
+    return false;
+  }
+  String regionMapping;
+  if (UNLIKELY(fileRes = file_map(file, *fileOffset, regionSize, 0, &regionMapping))) {
+    log_e("Failed to map pack file", log_param("error", fmt_text(file_result_str(fileRes))));
+    return false;
+  }
+
+  const u32 regionIdx                                 = (u32)packer->regions.size;
+  *dynarray_push_t(&packer->regions, AssetPackRegion) = (AssetPackRegion){
+      .offset = *fileOffset,
+      .size   = regionSize,
+  };
+
+  bool success      = true;
+  u32  regionOffset = 0;
+  dynarray_for_t(&packer->entries, AssetPackEntry, entry) {
+    if (sentinel_check(entry->region) && entry->size <= asset_pack_small_entry_threshold) {
+      entry->region = regionIdx;
+      entry->offset = regionOffset;
+      success &= packer_write_entry(manager, importEnv, entry, regionMapping);
+      regionOffset += bits_align(entry->size, asset_pack_file_align);
+    }
+  }
+
+  if (UNLIKELY(fileRes = file_unmap(file, regionMapping))) {
+    log_e("Failed to unmap pack file", log_param("error", fmt_text(file_result_str(fileRes))));
+  }
+  *fileOffset += regionSize;
+  return success;
 }
 
 AssetPacker* asset_packer_create(Allocator* alloc, const u32 assetCapacity) {
@@ -82,6 +162,10 @@ bool asset_packer_push(
     log_e("Failed to pack missing asset", log_param("asset", fmt_text(assetId)));
     return false;
   }
+  if (UNLIKELY(!info.size)) {
+    log_e("Failed to pack zero-sized asset", log_param("asset", fmt_text(assetId)));
+    return false;
+  }
   if (UNLIKELY(!(info.flags & AssetInfoFlags_Cached) && info.format != AssetFormat_Raw)) {
     /**
      * Packing a non-cached asset is supported but means the source asset will be packed and will
@@ -94,7 +178,8 @@ bool asset_packer_push(
       .assetId     = string_dup(packer->transientAlloc, assetId),
       .assetIdHash = string_hash(assetId),
       .format      = info.format,
-      .size        = info.size,
+      .size        = (u32)info.size,
+      .region      = sentinel_u32,
   };
   *dynarray_insert_sorted_t(&packer->entries, AssetPackEntry, packer_compare_entry, &entry) = entry;
   return true;
@@ -106,15 +191,19 @@ bool asset_packer_write(
     const AssetImportEnvComp* importEnv,
     File*                     outFile,
     AssetPackerStats*         outStats) {
-  (void)packer;
-  (void)manager;
-  (void)importEnv;
 
-  file_write_sync(outFile, string_lit("Hello World!"));
+  usize fileOffset = asset_pack_block_size; // Reserve a single block for the header.
+  if (!packer_push_small_entries(packer, manager, importEnv, outFile, &fileOffset)) {
+    return false;
+  }
+  diag_assert(bits_aligned(fileOffset, asset_pack_block_size));
 
   if (outStats) {
     *outStats = (AssetPackerStats){
-        .totalSize = 0,
+        .size    = fileOffset,
+        .entries = (u32)packer->entries.size,
+        .regions = (u32)packer->regions.size,
+        .blocks  = (u32)(fileOffset / asset_pack_block_size),
     };
   }
   return true;
