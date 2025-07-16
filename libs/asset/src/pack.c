@@ -1,6 +1,10 @@
 #include "asset_pack.h"
 #include "core_alloc.h"
 #include "core_file.h"
+#include "log_logger.h"
+
+#include "manager_internal.h"
+#include "repo_internal.h"
 
 struct sAssetPacker {
   Allocator* alloc;
@@ -25,10 +29,21 @@ bool asset_packer_push(
     AssetManagerComp*         manager,
     const AssetImportEnvComp* importEnv,
     const String              assetId) {
+
+  AssetInfo info;
+  if (UNLIKELY(!asset_source_stat(manager, importEnv, assetId, &info))) {
+    log_e("Failed to pack missing asset", log_param("asset", fmt_text(assetId)));
+    return false;
+  }
+  if (UNLIKELY(!(info.flags & AssetInfoFlags_Cached) && info.format != AssetFormat_Raw)) {
+    /**
+     * Packing a non-cached asset is supported but means the source asset will be packed and will
+     * potentially need importing at runtime.
+     */
+    log_w("Packing non-cached asset", log_param("asset", fmt_text(assetId)));
+  }
+
   (void)packer;
-  (void)manager;
-  (void)importEnv;
-  (void)assetId;
   return true;
 }
 
