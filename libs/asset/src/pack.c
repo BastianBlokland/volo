@@ -75,7 +75,7 @@ static bool packer_write_entry(
   return true;
 }
 
-static u32 packer_push_region(AssetPacker* packer, const usize offset, const usize size) {
+static u32 packer_add_region(AssetPacker* packer, const usize offset, const usize size) {
   diag_assert(bits_aligned(offset, asset_pack_block_size));
   diag_assert(bits_aligned(size, asset_pack_block_size));
 
@@ -91,7 +91,7 @@ static u32 packer_push_region(AssetPacker* packer, const usize offset, const usi
  * Combining these in a single region means this region will likely always change during patching
  * but because the entries are so small this region is unlikely to ever be bigger then a few blocks.
  */
-static bool packer_push_small_entries(
+static bool packer_add_small_entries(
     AssetPacker*              packer,
     AssetManagerComp*         manager,
     const AssetImportEnvComp* importEnv,
@@ -119,7 +119,7 @@ static bool packer_push_small_entries(
     return false;
   }
 
-  const u32 region       = packer_push_region(packer, *fileOffset, regionSize);
+  const u32 region       = packer_add_region(packer, *fileOffset, regionSize);
   bool      success      = true;
   u32       regionOffset = 0;
   dynarray_for_t(&packer->entries, AssetPackEntry, entry) {
@@ -143,7 +143,7 @@ static bool packer_push_small_entries(
  * Placing big files on individual regions (each starting at a block boundary) means delta patching
  * can re-use those blocks if the files didn't change.
  */
-static bool packer_push_big_entries(
+static bool packer_add_big_entries(
     AssetPacker*              packer,
     AssetManagerComp*         manager,
     const AssetImportEnvComp* importEnv,
@@ -165,7 +165,7 @@ static bool packer_push_big_entries(
       log_e("Failed to map pack file", log_param("error", fmt_text(file_result_str(fileRes))));
       return false;
     }
-    entry->region = packer_push_region(packer, *fileOffset, regionSize);
+    entry->region = packer_add_region(packer, *fileOffset, regionSize);
 
     const bool success = packer_write_entry(manager, importEnv, entry, regionMapping);
     if (UNLIKELY(fileRes = file_unmap(file, regionMapping))) {
@@ -189,7 +189,7 @@ static bool packer_push_big_entries(
  * NOTE: In the future we can consider a smarter algorithm for dividing the entries into buckets
  * that takes the entry size into account to better load-balance the buckets.
  */
-static bool packer_push_other_entries(
+static bool packer_add_other_entries(
     AssetPacker*              packer,
     AssetManagerComp*         manager,
     const AssetImportEnvComp* importEnv,
@@ -217,7 +217,7 @@ static bool packer_push_other_entries(
       continue; // Empty bucket.
     }
     buckets[i].size   = bits_align(buckets[i].size, asset_pack_block_size);
-    buckets[i].region = packer_push_region(packer, *fileOffset, buckets[i].size);
+    buckets[i].region = packer_add_region(packer, *fileOffset, buckets[i].size);
     if (UNLIKELY(fileRes = file_resize_sync(file, *fileOffset + buckets[i].size))) {
       log_e("Failed to resize pack file", log_param("error", fmt_text(file_result_str(fileRes))));
       success = false;
@@ -322,13 +322,13 @@ bool asset_packer_write(
     AssetPackerStats*         outStats) {
 
   usize fileOffset = asset_pack_block_size; // Reserve a single block for the header.
-  if (!packer_push_small_entries(packer, manager, importEnv, outFile, &fileOffset)) {
+  if (!packer_add_small_entries(packer, manager, importEnv, outFile, &fileOffset)) {
     return false;
   }
-  if (!packer_push_big_entries(packer, manager, importEnv, outFile, &fileOffset)) {
+  if (!packer_add_big_entries(packer, manager, importEnv, outFile, &fileOffset)) {
     return false;
   }
-  if (!packer_push_other_entries(packer, manager, importEnv, outFile, &fileOffset)) {
+  if (!packer_add_other_entries(packer, manager, importEnv, outFile, &fileOffset)) {
     return false;
   }
   diag_assert(bits_aligned(fileOffset, asset_pack_block_size));
