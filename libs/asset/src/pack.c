@@ -25,6 +25,7 @@
 
 #define asset_pack_block_size (usize_mebibyte)
 #define asset_pack_small_entry_threshold (32 * usize_kibibyte)
+#define asset_pack_big_entry_threshold (768 * usize_kibibyte)
 #define asset_pack_file_align 16
 
 typedef struct {
@@ -71,6 +72,15 @@ static bool packer_write_entry(
   return true;
 }
 
+static u32 packer_push_region(AssetPacker* packer, const usize offset, const usize size) {
+  const u32 regionIdx                                 = (u32)packer->regions.size;
+  *dynarray_push_t(&packer->regions, AssetPackRegion) = (AssetPackRegion){
+      .offset = offset,
+      .size   = size,
+  };
+  return regionIdx;
+}
+
 /**
  * Write a region containing all small entries.
  * Combining these in a single region means this region will likely always change during patching
@@ -104,14 +114,9 @@ static bool packer_push_small_entries(
     return false;
   }
 
-  const u32 regionIdx                                 = (u32)packer->regions.size;
-  *dynarray_push_t(&packer->regions, AssetPackRegion) = (AssetPackRegion){
-      .offset = *fileOffset,
-      .size   = regionSize,
-  };
-
-  bool success      = true;
-  u32  regionOffset = 0;
+  const u32 regionIdx    = packer_push_region(packer, *fileOffset, regionSize);
+  bool      success      = true;
+  u32       regionOffset = 0;
   dynarray_for_t(&packer->entries, AssetPackEntry, entry) {
     if (sentinel_check(entry->region) && entry->size <= asset_pack_small_entry_threshold) {
       entry->region = regionIdx;
@@ -126,6 +131,47 @@ static bool packer_push_small_entries(
   }
   *fileOffset += regionSize;
   return success;
+}
+
+/**
+ * Push a new region for every big file.
+ * Placing big files on individual regions (each starting at a block boundary) means delta patching
+ * can re-use those blocks if the files didn't change.
+ */
+static bool packer_push_big_entries(
+    AssetPacker*              packer,
+    AssetManagerComp*         manager,
+    const AssetImportEnvComp* importEnv,
+    File*                     file,
+    usize*                    fileOffset) {
+  dynarray_for_t(&packer->entries, AssetPackEntry, entry) {
+    if (!sentinel_check(entry->region) || entry->size < asset_pack_big_entry_threshold) {
+      continue;
+    }
+    const usize regionSize = bits_align(entry->size, asset_pack_block_size);
+
+    FileResult fileRes;
+    if (UNLIKELY(fileRes = file_resize_sync(file, *fileOffset + regionSize))) {
+      log_e("Failed to resize pack file", log_param("error", fmt_text(file_result_str(fileRes))));
+      return false;
+    }
+    String regionMapping;
+    if (UNLIKELY(fileRes = file_map(file, *fileOffset, regionSize, 0, &regionMapping))) {
+      log_e("Failed to map pack file", log_param("error", fmt_text(file_result_str(fileRes))));
+      return false;
+    }
+    entry->region = packer_push_region(packer, *fileOffset, regionSize);
+
+    const bool success = packer_write_entry(manager, importEnv, entry, regionMapping);
+    if (UNLIKELY(fileRes = file_unmap(file, regionMapping))) {
+      log_e("Failed to unmap pack file", log_param("error", fmt_text(file_result_str(fileRes))));
+    }
+    if (!success) {
+      return false;
+    }
+    *fileOffset += regionSize;
+  }
+  return true;
 }
 
 AssetPacker* asset_packer_create(Allocator* alloc, const u32 assetCapacity) {
@@ -194,6 +240,9 @@ bool asset_packer_write(
 
   usize fileOffset = asset_pack_block_size; // Reserve a single block for the header.
   if (!packer_push_small_entries(packer, manager, importEnv, outFile, &fileOffset)) {
+    return false;
+  }
+  if (!packer_push_big_entries(packer, manager, importEnv, outFile, &fileOffset)) {
     return false;
   }
   diag_assert(bits_aligned(fileOffset, asset_pack_block_size));
