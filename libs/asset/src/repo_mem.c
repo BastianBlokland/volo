@@ -38,6 +38,7 @@ static bool asset_source_mem_stat(
 
   *out = (AssetInfo){
       .format  = fmt,
+      .flags   = AssetInfoFlags_None,
       .size    = entry->data.size,
       .modTime = repoMem->createTime,
   };
@@ -64,7 +65,7 @@ asset_source_mem_open(AssetRepo* repo, const String id, const AssetRepoLoaderHas
   *src = (AssetSource){
       .data    = entry->data,
       .format  = fmt,
-      .flags   = AssetSourceFlags_None,
+      .flags   = AssetInfoFlags_None,
       .modTime = repoMem->createTime,
   };
 

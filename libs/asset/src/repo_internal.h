@@ -9,10 +9,16 @@
 typedef struct sAssetRepo   AssetRepo;
 typedef struct sAssetSource AssetSource;
 
+typedef enum {
+  AssetInfoFlags_None   = 0,
+  AssetInfoFlags_Cached = 1 << 0,
+} AssetInfoFlags;
+
 typedef struct sAssetInfo {
-  AssetFormat format;
-  usize       size;
-  TimeReal    modTime;
+  AssetFormat    format;
+  AssetInfoFlags flags;
+  usize          size;
+  TimeReal       modTime;
 } AssetInfo;
 
 typedef struct {
@@ -67,16 +73,11 @@ struct sAssetRepo {
       AssetRepo*, String id, AssetRepoDep out[PARAM_ARRAY_SIZE(asset_repo_cache_deps_max)]);
 };
 
-typedef enum {
-  AssetSourceFlags_None   = 0,
-  AssetSourceFlags_Cached = 1 << 0,
-} AssetSourceFlags;
-
 struct sAssetSource {
-  String           data;
-  AssetFormat      format;
-  AssetSourceFlags flags;
-  TimeReal         modTime;
+  String         data;
+  AssetFormat    format;
+  AssetInfoFlags flags;
+  TimeReal       modTime;
 
   void (*close)(AssetSource*);
 };

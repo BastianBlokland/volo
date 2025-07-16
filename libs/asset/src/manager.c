@@ -282,7 +282,7 @@ static AssetLoadResult asset_manager_load(
   if (manager->flags & AssetManagerFlags_TrackChanges) {
     asset_repo_changes_watch(manager->repo, asset->id, (u64)assetEntity);
   }
-  if (source->flags & AssetSourceFlags_Cached) {
+  if (source->flags & AssetInfoFlags_Cached) {
     ecs_world_add_empty_t(world, assetEntity, AssetCacheInitComp);
   }
 
