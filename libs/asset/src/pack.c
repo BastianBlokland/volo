@@ -1,5 +1,6 @@
 #include "asset_pack.h"
 #include "core_alloc.h"
+#include "core_array.h"
 #include "core_bits.h"
 #include "core_diag.h"
 #include "core_dynarray.h"
@@ -26,6 +27,7 @@
 #define asset_pack_block_size (usize_mebibyte)
 #define asset_pack_small_entry_threshold (32 * usize_kibibyte)
 #define asset_pack_big_entry_threshold (768 * usize_kibibyte)
+#define asset_pack_other_buckets 64
 #define asset_pack_file_align 16
 
 typedef struct {
@@ -45,6 +47,7 @@ struct sAssetPacker {
   Allocator* transientAlloc; // Used for temporary allocations.
   DynArray   entries;        // AssetPackEntry[].
   DynArray   regions;        // AssetPackRegion[].
+  usize      sourceSize;
 };
 
 static i8 packer_compare_entry(const void* a, const void* b) {
@@ -73,12 +76,14 @@ static bool packer_write_entry(
 }
 
 static u32 packer_push_region(AssetPacker* packer, const usize offset, const usize size) {
-  const u32 regionIdx                                 = (u32)packer->regions.size;
+  diag_assert(bits_aligned(offset, asset_pack_block_size));
+  diag_assert(bits_aligned(size, asset_pack_block_size));
+
   *dynarray_push_t(&packer->regions, AssetPackRegion) = (AssetPackRegion){
       .offset = offset,
       .size   = size,
   };
-  return regionIdx;
+  return (u32)(packer->regions.size - 1);
 }
 
 /**
@@ -114,12 +119,12 @@ static bool packer_push_small_entries(
     return false;
   }
 
-  const u32 regionIdx    = packer_push_region(packer, *fileOffset, regionSize);
+  const u32 region       = packer_push_region(packer, *fileOffset, regionSize);
   bool      success      = true;
   u32       regionOffset = 0;
   dynarray_for_t(&packer->entries, AssetPackEntry, entry) {
     if (sentinel_check(entry->region) && entry->size <= asset_pack_small_entry_threshold) {
-      entry->region = regionIdx;
+      entry->region = region;
       entry->offset = regionOffset;
       success &= packer_write_entry(manager, importEnv, entry, regionMapping);
       regionOffset += bits_align(entry->size, asset_pack_file_align);
@@ -174,9 +179,85 @@ static bool packer_push_big_entries(
   return true;
 }
 
-AssetPacker* asset_packer_create(Allocator* alloc, const u32 assetCapacity) {
-  (void)assetCapacity;
+/**
+ * For other files (non-small and non-big) we divide them into buckets based on their assetId hash.
+ * This means if none of the files in the bucket change then the resulting region will not change.
+ *
+ * There's a tradeoff in the bucket count: higher means more wasted space but less unecessary region
+ * changes.
+ *
+ * NOTE: In the future we can consider a smarter algorithm for dividing the entries into buckets
+ * that takes the entry size into account to better load-balance the buckets.
+ */
+static bool packer_push_other_entries(
+    AssetPacker*              packer,
+    AssetManagerComp*         manager,
+    const AssetImportEnvComp* importEnv,
+    File*                     file,
+    usize*                    fileOffset) {
+  struct {
+    u32 size, offset;
+    u32 region;
+    Mem mapping;
+  } buckets[asset_pack_other_buckets];
+  mem_set(array_mem(buckets), 0);
 
+  // Compute the size for each bucket.
+  dynarray_for_t(&packer->entries, AssetPackEntry, entry) {
+    if (sentinel_check(entry->region)) {
+      buckets[entry->assetIdHash % asset_pack_other_buckets].size += entry->size;
+    }
+  }
+
+  // For each filled bucket allocate a region and map it.
+  FileResult fileRes;
+  bool       success = true;
+  for (u32 i = 0; i != asset_pack_other_buckets; ++i) {
+    if (!buckets[i].size) {
+      continue; // Empty bucket.
+    }
+    buckets[i].size   = bits_align(buckets[i].size, asset_pack_block_size);
+    buckets[i].region = packer_push_region(packer, *fileOffset, buckets[i].size);
+    if (UNLIKELY(fileRes = file_resize_sync(file, *fileOffset + buckets[i].size))) {
+      log_e("Failed to resize pack file", log_param("error", fmt_text(file_result_str(fileRes))));
+      success = false;
+      continue;
+    }
+    if (UNLIKELY(fileRes = file_map(file, *fileOffset, buckets[i].size, 0, &buckets[i].mapping))) {
+      log_e("Failed to map pack file", log_param("error", fmt_text(file_result_str(fileRes))));
+      success = false;
+      continue;
+    }
+    *fileOffset += buckets[i].size;
+  }
+
+  // Write entries to the buckets.
+  if (success) {
+    dynarray_for_t(&packer->entries, AssetPackEntry, entry) {
+      if (sentinel_check(entry->region)) {
+        const u32 bucket = entry->assetIdHash % asset_pack_other_buckets;
+        diag_assert(!string_is_empty(buckets[bucket].mapping));
+        entry->region = buckets[bucket].region;
+        entry->offset = buckets[bucket].offset;
+        success &= packer_write_entry(manager, importEnv, entry, buckets[bucket].mapping);
+        buckets[bucket].offset += bits_align(entry->size, asset_pack_file_align);
+      }
+    }
+  }
+
+  // Unmap all regions.
+  for (u32 i = 0; i != asset_pack_other_buckets; ++i) {
+    if (!string_is_empty(buckets[i])) {
+      if (UNLIKELY(fileRes = file_unmap(file, buckets[i].mapping))) {
+        log_e("Failed to unmap pack file", log_param("error", fmt_text(file_result_str(fileRes))));
+      }
+    }
+  }
+
+  return success;
+}
+
+AssetPacker* asset_packer_create(Allocator* alloc, const u32 assetCapacity) {
   AssetPacker* packer = alloc_alloc_t(alloc, AssetPacker);
 
   *packer = (AssetPacker){
@@ -220,6 +301,8 @@ bool asset_packer_push(
     log_w("Packing non-cached asset", log_param("asset", fmt_text(assetId)));
   }
 
+  packer->sourceSize += info.size;
+
   const AssetPackEntry entry = {
       .assetId     = string_dup(packer->transientAlloc, assetId),
       .assetIdHash = string_hash(assetId),
@@ -245,11 +328,16 @@ bool asset_packer_write(
   if (!packer_push_big_entries(packer, manager, importEnv, outFile, &fileOffset)) {
     return false;
   }
+  if (!packer_push_other_entries(packer, manager, importEnv, outFile, &fileOffset)) {
+    return false;
+  }
   diag_assert(bits_aligned(fileOffset, asset_pack_block_size));
 
+  const usize headerSize = asset_pack_block_size; // TODO: Compute header size.
   if (outStats) {
     *outStats = (AssetPackerStats){
         .size    = fileOffset,
+        .padding = fileOffset - packer->sourceSize - headerSize,
         .entries = (u32)packer->entries.size,
         .regions = (u32)packer->regions.size,
         .blocks  = (u32)(fileOffset / asset_pack_block_size),

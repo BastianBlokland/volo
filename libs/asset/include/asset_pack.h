@@ -4,7 +4,7 @@
 typedef struct sAssetPacker AssetPacker;
 
 typedef struct {
-  usize size;
+  usize size, padding;
   u32   entries;
   u32   regions;
   u32   blocks;
