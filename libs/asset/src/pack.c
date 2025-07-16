@@ -20,15 +20,20 @@ AssetPacker* asset_packer_create(Allocator* alloc, const u32 assetCapacity) {
 
 void asset_packer_destroy(AssetPacker* packer) { alloc_free_t(packer->alloc, packer); }
 
-void asset_packer_push(AssetPacker* packer, const String assetId) {
+bool asset_packer_push(AssetPacker* packer, const String assetId) {
   (void)packer;
   (void)assetId;
+  return true;
 }
 
-AssetPackerStats asset_packer_write(AssetPacker* packer, File* file) {
+bool asset_packer_write(AssetPacker* packer, File* outFile, AssetPackerStats* outStats) {
   (void)packer;
-  file_write_sync(file, string_lit("Hello World!"));
-  return (AssetPackerStats){
-      .totalSize = 0,
-  };
+  file_write_sync(outFile, string_lit("Hello World!"));
+
+  if (outStats) {
+    *outStats = (AssetPackerStats){
+        .totalSize = 0,
+    };
+  }
+  return true;
 }

@@ -237,18 +237,29 @@ static bool pack_build(PackComp* pack) {
   if (UNLIKELY(fileRes != FileResult_Success)) {
     goto FileError;
   }
-
   AssetPacker* packer = asset_packer_create(g_allocHeap, (u32)pack->assets.size);
+
+  bool success = true;
   dynarray_for_t(&pack->assets, PackAsset, packAsset) {
     diag_assert(!packAsset->loading && !string_is_empty(packAsset->id));
 
-    asset_packer_push(packer, packAsset->id);
+    if (!asset_packer_push(packer, packAsset->id)) {
+      log_e("Failed to push file", log_param("path", fmt_text(packAsset->id)));
+      success = false;
+    }
   }
-  const AssetPackerStats stats = asset_packer_write(packer, file);
-  log_i(
-      "Pack file build",
-      log_param("path", fmt_path(pack->outputPath)),
-      log_param("total-size", fmt_size(stats.totalSize)));
+  if (success) {
+    AssetPackerStats stats;
+    if (asset_packer_write(packer, file, &stats)) {
+      log_i(
+          "Pack file build",
+          log_param("path", fmt_path(pack->outputPath)),
+          log_param("total-size", fmt_size(stats.totalSize)));
+    } else {
+      log_e("Failed to build pack file");
+      success = false;
+    }
+  }
   asset_packer_destroy(packer);
 
   file_destroy(file);
@@ -257,8 +268,8 @@ static bool pack_build(PackComp* pack) {
     goto FileError;
   }
 
-  log_i("Packing finished");
-  return true;
+  log_i("Packing finished", log_param("success", fmt_bool(success)));
+  return success;
 
 FileError:
   log_e(
