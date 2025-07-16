@@ -27,7 +27,7 @@
 #define asset_pack_block_size (usize_mebibyte)
 #define asset_pack_small_entry_threshold (32 * usize_kibibyte)
 #define asset_pack_big_entry_threshold (768 * usize_kibibyte)
-#define asset_pack_other_buckets 64
+#define asset_pack_other_buckets 32
 #define asset_pack_file_align 16
 
 typedef struct {
