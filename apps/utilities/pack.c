@@ -111,8 +111,9 @@ static i8 pack_compare_asset(const void* a, const void* b) {
 }
 
 ecs_view_define(PackGlobalView) {
-  ecs_access_write(PackComp);
+  ecs_access_read(AssetImportEnvComp);
   ecs_access_write(AssetManagerComp);
+  ecs_access_write(PackComp);
 }
 
 ecs_view_define(PackAssetView) {
@@ -227,33 +228,33 @@ static String pack_write_path(const PackComp* pack) {
   return fmt_write_scratch("{}.tmp", fmt_text(pack->outputPath));
 }
 
-static bool pack_build(PackComp* pack) {
+static bool pack_build(PackComp* p, AssetManagerComp* assetMan, const AssetImportEnvComp* impEnv) {
   File*                 file       = null;
   const FileAccessFlags fileAccess = FileAccess_Read | FileAccess_Write;
-  FileResult            fileRes    = file_create_dir_sync(path_parent(pack->outputPath));
+  FileResult            fileRes    = file_create_dir_sync(path_parent(p->outputPath));
   if (LIKELY(fileRes == FileResult_Success)) {
-    fileRes = file_create(g_allocHeap, pack_write_path(pack), FileMode_Create, fileAccess, &file);
+    fileRes = file_create(g_allocHeap, pack_write_path(p), FileMode_Create, fileAccess, &file);
   }
   if (UNLIKELY(fileRes != FileResult_Success)) {
     goto FileError;
   }
-  AssetPacker* packer = asset_packer_create(g_allocHeap, (u32)pack->assets.size);
+  AssetPacker* packer = asset_packer_create(g_allocHeap, (u32)p->assets.size);
 
   bool success = true;
-  dynarray_for_t(&pack->assets, PackAsset, packAsset) {
+  dynarray_for_t(&p->assets, PackAsset, packAsset) {
     diag_assert(!packAsset->loading && !string_is_empty(packAsset->id));
 
-    if (!asset_packer_push(packer, packAsset->id)) {
+    if (!asset_packer_push(packer, assetMan, impEnv, packAsset->id)) {
       log_e("Failed to push file", log_param("path", fmt_text(packAsset->id)));
       success = false;
     }
   }
   if (success) {
     AssetPackerStats stats;
-    if (asset_packer_write(packer, file, &stats)) {
+    if (asset_packer_write(packer, assetMan, impEnv, file, &stats)) {
       log_i(
           "Pack file build",
-          log_param("path", fmt_path(pack->outputPath)),
+          log_param("path", fmt_path(p->outputPath)),
           log_param("total-size", fmt_size(stats.totalSize)));
     } else {
       log_e("Failed to build pack file");
@@ -263,8 +264,8 @@ static bool pack_build(PackComp* pack) {
   asset_packer_destroy(packer);
 
   file_destroy(file);
-  if (UNLIKELY(fileRes = file_rename(pack_write_path(pack), pack->outputPath))) {
-    file_delete_sync(pack_write_path(pack));
+  if (UNLIKELY(fileRes = file_rename(pack_write_path(p), p->outputPath))) {
+    file_delete_sync(pack_write_path(p));
     goto FileError;
   }
 
@@ -274,7 +275,7 @@ static bool pack_build(PackComp* pack) {
 FileError:
   log_e(
       "Failed to create output file",
-      log_param("path", fmt_path(pack->outputPath)),
+      log_param("path", fmt_path(p->outputPath)),
       log_param("error", fmt_text(file_result_str(fileRes))));
   return false;
 }
@@ -285,8 +286,9 @@ ecs_system_define(PackUpdateSys) {
   if (UNLIKELY(!globalItr)) {
     return; // Initialization failed; application will be terminated.
   }
-  PackComp*         pack     = ecs_view_write_t(globalItr, PackComp);
-  AssetManagerComp* assetMan = ecs_view_write_t(globalItr, AssetManagerComp);
+  PackComp*                 pack      = ecs_view_write_t(globalItr, PackComp);
+  AssetManagerComp*         assetMan  = ecs_view_write_t(globalItr, AssetManagerComp);
+  const AssetImportEnvComp* importEnv = ecs_view_read_t(globalItr, AssetImportEnvComp);
 
   if (signal_is_received(Signal_Terminate) || signal_is_received(Signal_Interrupt)) {
     log_w("Packing interrupted", log_param("total-frames", fmt_int(pack->frameIdx)));
@@ -310,7 +312,7 @@ ecs_system_define(PackUpdateSys) {
     ++pack->state;
     break;
   case PackState_Build:
-    if (pack_build(pack)) {
+    if (pack_build(pack, assetMan, importEnv)) {
       pack->state = PackState_Finished;
     } else {
       pack->state = PackState_Failed;

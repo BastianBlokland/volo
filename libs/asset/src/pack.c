@@ -20,14 +20,28 @@ AssetPacker* asset_packer_create(Allocator* alloc, const u32 assetCapacity) {
 
 void asset_packer_destroy(AssetPacker* packer) { alloc_free_t(packer->alloc, packer); }
 
-bool asset_packer_push(AssetPacker* packer, const String assetId) {
+bool asset_packer_push(
+    AssetPacker*              packer,
+    AssetManagerComp*         manager,
+    const AssetImportEnvComp* importEnv,
+    const String              assetId) {
   (void)packer;
+  (void)manager;
+  (void)importEnv;
   (void)assetId;
   return true;
 }
 
-bool asset_packer_write(AssetPacker* packer, File* outFile, AssetPackerStats* outStats) {
+bool asset_packer_write(
+    AssetPacker*              packer,
+    AssetManagerComp*         manager,
+    const AssetImportEnvComp* importEnv,
+    File*                     outFile,
+    AssetPackerStats*         outStats) {
   (void)packer;
+  (void)manager;
+  (void)importEnv;
+
   file_write_sync(outFile, string_lit("Hello World!"));
 
   if (outStats) {
