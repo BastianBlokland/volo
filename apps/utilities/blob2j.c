@@ -17,7 +17,11 @@
  * Blob2J - Utility to convert Volo binary blobs to json.
  */
 
-static i32 blob2j_run(File* inputFile, File* outputFile) {
+typedef struct {
+  bool noTrail; // Disallow trailing data.
+} Blob2jConfig;
+
+static i32 blob2j_run(const Blob2jConfig* config, File* inputFile, File* outputFile) {
   DynString buffer   = dynstring_create(g_allocHeap, usize_kibibyte);
   Mem       data     = mem_empty;
   i32       exitCode = 0;
@@ -63,7 +67,7 @@ static i32 blob2j_run(File* inputFile, File* outputFile) {
     exitCode = 1;
     goto Ret;
   }
-  if (!string_is_empty(inputRem)) {
+  if (config->noTrail && !string_is_empty(inputRem)) {
     file_write_sync(g_fileStdErr, fmt_write_scratch("ERROR: Unexpected input data after blob.\n"));
     data_destroy(g_dataReg, g_allocHeap, dataMeta, data);
     exitCode = 1;
@@ -88,7 +92,7 @@ Ret:
   return exitCode;
 }
 
-static CliId g_optPath, g_optHelp;
+static CliId g_optPath, g_optNoTrail, g_optHelp;
 
 void app_cli_configure(CliApp* app) {
   cli_app_register_desc(app, string_lit("Utility to convert Volo binary blobs to json."));
@@ -97,9 +101,13 @@ void app_cli_configure(CliApp* app) {
   cli_register_desc(app, g_optPath, string_lit("Path to the binary blob."));
   cli_register_validator(app, g_optPath, cli_validate_file_regular);
 
+  g_optNoTrail = cli_register_flag(app, '\0', string_lit("notrail"), CliOptionFlags_None);
+  cli_register_desc(app, g_optNoTrail, string_lit("Disallow trailing data."));
+
   g_optHelp = cli_register_flag(app, 'h', string_lit("help"), CliOptionFlags_None);
   cli_register_desc(app, g_optHelp, string_lit("Display this help page."));
   cli_register_exclusions(app, g_optHelp, g_optPath);
+  cli_register_exclusions(app, g_optHelp, g_optNoTrail);
 }
 
 i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
@@ -109,6 +117,10 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
     cli_help_write_file(app, g_fileStdOut);
     return 0;
   }
+
+  const Blob2jConfig cfg = {
+      .noTrail = cli_parse_provided(invoc, g_optNoTrail),
+  };
 
   File* inputFile      = null;
   bool  inputFileOwned = false;
@@ -128,7 +140,7 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
     inputFileOwned = true;
   }
 
-  const i32 ret = blob2j_run(inputFile, g_fileStdOut);
+  const i32 ret = blob2j_run(&cfg, inputFile, g_fileStdOut);
   if (inputFileOwned) {
     file_destroy(inputFile);
   }
