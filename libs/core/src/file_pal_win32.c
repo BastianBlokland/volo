@@ -250,7 +250,7 @@ FileResult file_skip_sync(File* file, usize bytes) {
     DWORD       bytesRead;
     const bool  success = ReadFile(file->handle, readBuffer.ptr, bytesToRead, &bytesRead, null);
     if (success && bytesRead) {
-      bytes -= res;
+      bytes -= bytesRead;
       continue;
     }
     if (success || GetLastError() == ERROR_BROKEN_PIPE) {
