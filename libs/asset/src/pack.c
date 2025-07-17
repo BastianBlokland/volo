@@ -8,6 +8,7 @@
 #include "core_types.h"
 #include "log_logger.h"
 
+#include "data_internal.h"
 #include "manager_internal.h"
 #include "pack_internal.h"
 #include "repo_internal.h"
@@ -31,12 +32,14 @@
 #define asset_pack_other_buckets 32
 #define asset_pack_file_align 16
 
+DataMeta g_assetPackMeta;
+
 struct sAssetPacker {
   Allocator* alloc;
   Allocator* transientAlloc; // Used for temporary allocations.
   DynArray   entries;        // AssetPackEntry[].
   DynArray   regions;        // AssetPackRegion[].
-  usize      sourceSize;
+  u64        sourceSize;
 };
 
 static bool packer_write_entry(
@@ -44,13 +47,13 @@ static bool packer_write_entry(
     const AssetImportEnvComp* importEnv,
     const AssetPackEntry*     entry,
     const Mem                 regionMem) {
-  AssetSource* source = asset_source_open(manager, importEnv, entry->assetId);
+  AssetSource* source = asset_source_open(manager, importEnv, entry->id);
   if (UNLIKELY(!source)) {
-    log_e("Asset source deleted while packing", log_param("asset", fmt_text(entry->assetId)));
+    log_e("Asset source deleted while packing", log_param("asset", fmt_text(entry->id)));
     return false;
   }
   if (UNLIKELY(source->format != entry->format || source->data.size != entry->size)) {
-    log_e("Asset source invalidated while packing", log_param("asset", fmt_text(entry->assetId)));
+    log_e("Asset source invalidated while packing", log_param("asset", fmt_text(entry->id)));
     asset_repo_close(source);
     return false;
   }
@@ -59,7 +62,7 @@ static bool packer_write_entry(
   return true;
 }
 
-static u32 packer_add_region(AssetPacker* packer, const usize offset, const usize size) {
+static u32 packer_add_region(AssetPacker* packer, const u64 offset, const u64 size) {
   diag_assert(bits_aligned(offset, asset_pack_block_size));
   diag_assert(bits_aligned(size, asset_pack_block_size));
 
@@ -80,8 +83,8 @@ static bool packer_add_small_entries(
     AssetManagerComp*         manager,
     const AssetImportEnvComp* importEnv,
     File*                     file,
-    usize*                    fileOffset) {
-  usize regionSize = 0;
+    u64*                      fileOffset) {
+  u64 regionSize = 0;
   dynarray_for_t(&packer->entries, AssetPackEntry, entry) {
     if (sentinel_check(entry->region) && entry->size <= asset_pack_small_entry_threshold) {
       regionSize += entry->size;
@@ -132,12 +135,12 @@ static bool packer_add_big_entries(
     AssetManagerComp*         manager,
     const AssetImportEnvComp* importEnv,
     File*                     file,
-    usize*                    fileOffset) {
+    u64*                      fileOffset) {
   dynarray_for_t(&packer->entries, AssetPackEntry, entry) {
     if (!sentinel_check(entry->region) || entry->size < asset_pack_big_entry_threshold) {
       continue;
     }
-    const usize regionSize = bits_align(entry->size, asset_pack_block_size);
+    const u64 regionSize = bits_align(entry->size, asset_pack_block_size);
 
     FileResult fileRes;
     if (UNLIKELY(fileRes = file_resize_sync(file, *fileOffset + regionSize))) {
@@ -178,7 +181,7 @@ static bool packer_add_other_entries(
     AssetManagerComp*         manager,
     const AssetImportEnvComp* importEnv,
     File*                     file,
-    usize*                    fileOffset) {
+    u64*                      fileOffset) {
   struct {
     u32 size, offset;
     u32 region;
@@ -189,7 +192,7 @@ static bool packer_add_other_entries(
   // Compute the size for each bucket.
   dynarray_for_t(&packer->entries, AssetPackEntry, entry) {
     if (sentinel_check(entry->region)) {
-      buckets[entry->assetIdHash % asset_pack_other_buckets].size += entry->size;
+      buckets[entry->idHash % asset_pack_other_buckets].size += entry->size;
     }
   }
 
@@ -219,7 +222,7 @@ static bool packer_add_other_entries(
   if (success) {
     dynarray_for_t(&packer->entries, AssetPackEntry, entry) {
       if (sentinel_check(entry->region)) {
-        const u32 bucket = entry->assetIdHash % asset_pack_other_buckets;
+        const u32 bucket = entry->idHash % asset_pack_other_buckets;
         diag_assert(!string_is_empty(buckets[bucket].mapping));
         entry->region = buckets[bucket].region;
         entry->offset = buckets[bucket].offset;
@@ -288,11 +291,11 @@ bool asset_packer_push(
   packer->sourceSize += info.size;
 
   const AssetPackEntry e = {
-      .assetId     = string_dup(packer->transientAlloc, assetId),
-      .assetIdHash = string_hash(assetId),
-      .format      = info.format,
-      .size        = (u32)info.size,
-      .region      = sentinel_u32,
+      .id     = string_dup(packer->transientAlloc, assetId),
+      .idHash = string_hash(assetId),
+      .format = info.format,
+      .size   = (u32)info.size,
+      .region = sentinel_u32,
   };
   *dynarray_insert_sorted_t(&packer->entries, AssetPackEntry, asset_pack_compare_entry, &e) = e;
   return true;
@@ -305,7 +308,7 @@ bool asset_packer_write(
     File*                     outFile,
     AssetPackerStats*         outStats) {
 
-  usize fileOffset = asset_pack_block_size; // Reserve a single block for the header.
+  u64 fileOffset = asset_pack_block_size; // Reserve a single block for the header.
   if (!packer_add_small_entries(packer, manager, importEnv, outFile, &fileOffset)) {
     return false;
   }
@@ -317,7 +320,7 @@ bool asset_packer_write(
   }
   diag_assert(bits_aligned(fileOffset, asset_pack_block_size));
 
-  const usize headerSize = asset_pack_block_size; // TODO: Compute header size.
+  const u64 headerSize = asset_pack_block_size; // TODO: Compute header size.
   if (outStats) {
     *outStats = (AssetPackerStats){
         .size    = fileOffset,
@@ -330,7 +333,29 @@ bool asset_packer_write(
   return true;
 }
 
+void asset_data_init_pack(void) {
+  // clang-format off
+  data_reg_struct_t(g_dataReg, AssetPackEntry);
+  data_reg_field_t(g_dataReg, AssetPackEntry, id, data_prim_t(String));
+  data_reg_field_t(g_dataReg, AssetPackEntry, idHash, data_prim_t(u32));
+  data_reg_field_t(g_dataReg, AssetPackEntry, format, g_assetFormatType);
+  data_reg_field_t(g_dataReg, AssetPackEntry, region, data_prim_t(u64));
+  data_reg_field_t(g_dataReg, AssetPackEntry, offset, data_prim_t(u64));
+  data_reg_field_t(g_dataReg, AssetPackEntry, size, data_prim_t(u64));
+
+  data_reg_struct_t(g_dataReg, AssetPackRegion);
+  data_reg_field_t(g_dataReg, AssetPackRegion, offset, data_prim_t(u64));
+  data_reg_field_t(g_dataReg, AssetPackRegion, size, data_prim_t(u64));
+
+  data_reg_struct_t(g_dataReg, AssetPackHeader);
+  data_reg_field_t(g_dataReg, AssetPackHeader, entries, t_AssetPackEntry, .container = DataContainer_HeapArray);
+  data_reg_field_t(g_dataReg, AssetPackHeader, regions, t_AssetPackRegion, .container = DataContainer_HeapArray);
+  // clang-format on
+
+  g_assetPackMeta = data_meta_t(t_AssetPackHeader);
+}
+
 i8 asset_pack_compare_entry(const void* a, const void* b) {
   return compare_stringhash(
-      field_ptr(a, AssetPackEntry, assetIdHash), field_ptr(b, AssetPackEntry, assetIdHash));
+      field_ptr(a, AssetPackEntry, idHash), field_ptr(b, AssetPackEntry, idHash));
 }
