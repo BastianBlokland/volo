@@ -11,7 +11,8 @@ typedef struct {
 } AssetPackEntry;
 
 typedef struct {
-  u64 offset, size; // Bytes into the file.
+  u64 offset; // Bytes into the file.
+  u32 size;
 } AssetPackRegion;
 
 typedef struct {

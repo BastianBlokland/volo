@@ -118,7 +118,7 @@ static bool packer_add_small_entries(
     const AssetImportEnvComp* importEnv,
     File*                     file,
     u64*                      fileOffset) {
-  u64 regionSize = 0;
+  u32 regionSize = 0;
   dynarray_for_t(&packer->entries, AssetPackEntry, entry) {
     if (sentinel_check(entry->region) && entry->size <= asset_pack_small_entry_threshold) {
       regionSize += entry->size;
@@ -174,7 +174,7 @@ static bool packer_add_big_entries(
     if (!sentinel_check(entry->region) || entry->size < asset_pack_big_entry_threshold) {
       continue;
     }
-    const u64 regionSize = bits_align(entry->size, asset_pack_block_size);
+    const u32 regionSize = bits_align(entry->size, asset_pack_block_size);
 
     FileResult fileRes;
     if (UNLIKELY(fileRes = file_resize_sync(file, *fileOffset + regionSize))) {
@@ -386,7 +386,7 @@ void asset_data_init_pack(void) {
 
   data_reg_struct_t(g_dataReg, AssetPackRegion);
   data_reg_field_t(g_dataReg, AssetPackRegion, offset, data_prim_t(u64));
-  data_reg_field_t(g_dataReg, AssetPackRegion, size, data_prim_t(u64));
+  data_reg_field_t(g_dataReg, AssetPackRegion, size, data_prim_t(u32));
 
   data_reg_struct_t(g_dataReg, AssetPackHeader);
   data_reg_field_t(g_dataReg, AssetPackHeader, entries, t_AssetPackEntry, .container = DataContainer_DynArray);
