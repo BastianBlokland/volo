@@ -16,6 +16,7 @@
 #include "geo_vector.h"
 
 #include "data_internal.h"
+#include "format_internal.h"
 
 typedef GeoColor GeoColor3;
 typedef GeoColor GeoColor4;
@@ -27,6 +28,7 @@ typedef GeoVector GeoVector2;
 typedef GeoVector GeoVector3;
 typedef GeoVector GeoVector4;
 
+DataType g_assetFormatType;
 DataType g_assetRefType, g_assetLevelRefType;
 DataType g_assetGeoColor3Type, g_assetGeoColor4Type;
 DataType g_assetGeoColor3NormType, g_assetGeoColor4NormType;
@@ -123,6 +125,11 @@ static bool asset_data_normalizer_plane(const Mem data) {
 
 static void asset_data_init_types(void) {
   // clang-format off
+  data_reg_enum_t(g_dataReg, AssetFormat);
+  for (AssetFormat format = 0; format != AssetFormat_Count; ++format) {
+    data_reg_const(g_dataReg, t_AssetFormat, asset_format_str(format), format);
+  }
+
   data_reg_struct_t(g_dataReg, AssetRef);
   data_reg_field_t(g_dataReg, AssetRef, id, data_prim_t(StringHash), .flags = DataFlags_NotEmpty | DataFlags_InlineField);
   data_reg_comment_t(g_dataReg, AssetRef, "Asset reference");
@@ -232,6 +239,7 @@ static void asset_data_init_types(void) {
 
   // clang-format on
 
+  g_assetFormatType        = t_AssetFormat;
   g_assetRefType           = t_AssetRef;
   g_assetLevelRefType      = t_AssetLevelRef;
   g_assetGeoColor3Type     = t_GeoColor3;
