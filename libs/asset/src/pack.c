@@ -9,6 +9,7 @@
 #include "log_logger.h"
 
 #include "manager_internal.h"
+#include "pack_internal.h"
 #include "repo_internal.h"
 
 /**
@@ -30,18 +31,6 @@
 #define asset_pack_other_buckets 32
 #define asset_pack_file_align 16
 
-typedef struct {
-  String      assetId;
-  StringHash  assetIdHash;
-  AssetFormat format;
-  u32         region;       // sentinel_u32 if not assigned to a region yet.
-  u32         offset, size; // Within the region.
-} AssetPackEntry;
-
-typedef struct {
-  usize offset, size; // Byte into the file.
-} AssetPackRegion;
-
 struct sAssetPacker {
   Allocator* alloc;
   Allocator* transientAlloc; // Used for temporary allocations.
@@ -49,11 +38,6 @@ struct sAssetPacker {
   DynArray   regions;        // AssetPackRegion[].
   usize      sourceSize;
 };
-
-static i8 packer_compare_entry(const void* a, const void* b) {
-  return compare_stringhash(
-      field_ptr(a, AssetPackEntry, assetIdHash), field_ptr(b, AssetPackEntry, assetIdHash));
-}
 
 static bool packer_write_entry(
     AssetManagerComp*         manager,
@@ -303,14 +287,14 @@ bool asset_packer_push(
 
   packer->sourceSize += info.size;
 
-  const AssetPackEntry entry = {
+  const AssetPackEntry e = {
       .assetId     = string_dup(packer->transientAlloc, assetId),
       .assetIdHash = string_hash(assetId),
       .format      = info.format,
       .size        = (u32)info.size,
       .region      = sentinel_u32,
   };
-  *dynarray_insert_sorted_t(&packer->entries, AssetPackEntry, packer_compare_entry, &entry) = entry;
+  *dynarray_insert_sorted_t(&packer->entries, AssetPackEntry, asset_pack_compare_entry, &e) = e;
   return true;
 }
 
@@ -344,4 +328,9 @@ bool asset_packer_write(
     };
   }
   return true;
+}
+
+i8 asset_pack_compare_entry(const void* a, const void* b) {
+  return compare_stringhash(
+      field_ptr(a, AssetPackEntry, assetIdHash), field_ptr(b, AssetPackEntry, assetIdHash));
 }
