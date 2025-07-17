@@ -6,7 +6,7 @@ typedef struct {
   String      id;
   StringHash  idHash;
   AssetFormat format;
-  u32         region;
+  u16         region;
   u32         offset, size; // Within the region.
 } AssetPackEntry;
 
