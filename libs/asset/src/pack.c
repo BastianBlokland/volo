@@ -6,6 +6,7 @@
 #include "core_dynarray.h"
 #include "core_dynstring.h"
 #include "core_file.h"
+#include "core_stringtable.h"
 #include "core_types.h"
 #include "data_write.h"
 #include "log_logger.h"
@@ -38,9 +39,8 @@ DataMeta g_assetPackMeta;
 
 struct sAssetPacker {
   Allocator* alloc;
-  Allocator* transientAlloc; // Used for temporary allocations.
-  DynArray   entries;        // AssetPackEntry[].
-  DynArray   regions;        // AssetPackRegion[].
+  DynArray   entries; // AssetPackEntry[].
+  DynArray   regions; // AssetPackRegion[].
   u64        sourceSize;
 };
 
@@ -282,17 +282,15 @@ AssetPacker* asset_packer_create(Allocator* alloc, const u32 assetCapacity) {
   AssetPacker* packer = alloc_alloc_t(alloc, AssetPacker);
 
   *packer = (AssetPacker){
-      .alloc          = alloc,
-      .transientAlloc = alloc_chunked_create(alloc, alloc_bump_create, 128 * usize_kibibyte),
-      .entries        = dynarray_create_t(alloc, AssetPackEntry, assetCapacity),
-      .regions        = dynarray_create_t(alloc, AssetPackRegion, 128),
+      .alloc   = alloc,
+      .entries = dynarray_create_t(alloc, AssetPackEntry, assetCapacity),
+      .regions = dynarray_create_t(alloc, AssetPackRegion, 128),
   };
 
   return packer;
 }
 
 void asset_packer_destroy(AssetPacker* packer) {
-  alloc_chunked_destroy(packer->transientAlloc);
   dynarray_destroy(&packer->entries);
   dynarray_destroy(&packer->regions);
   alloc_free_t(packer->alloc, packer);
@@ -325,7 +323,7 @@ bool asset_packer_push(
   packer->sourceSize += info.size;
 
   const AssetPackEntry e = {
-      .id     = string_dup(packer->transientAlloc, assetId),
+      .id     = stringtable_intern(g_stringtable, assetId),
       .idHash = string_hash(assetId),
       .format = info.format,
       .size   = (u32)info.size,
