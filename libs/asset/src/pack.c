@@ -4,8 +4,10 @@
 #include "core_bits.h"
 #include "core_diag.h"
 #include "core_dynarray.h"
+#include "core_dynstring.h"
 #include "core_file.h"
 #include "core_types.h"
+#include "data_write.h"
 #include "log_logger.h"
 
 #include "data_internal.h"
@@ -59,6 +61,38 @@ static bool packer_write_entry(
   }
   mem_cpy(mem_slice(regionMem, entry->offset, entry->size), source->data);
   asset_repo_close(source);
+  return true;
+}
+
+/**
+ * Write the pack header to the first block of the file.
+ * NOTE: The header needs to fit in a single block, otherwise this function will crash.
+ */
+static bool packer_write_header(AssetPacker* packer, File* file, u64* headerSize) {
+  const AssetPackHeader header = {
+      .entries = packer->entries,
+      .regions = packer->regions,
+  };
+  FileResult fileRes;
+  String     blockMapping;
+  if (UNLIKELY(fileRes = file_map(file, 0, asset_pack_block_size, 0, &blockMapping))) {
+    log_e("Failed to map pack file", log_param("error", fmt_text(file_result_str(fileRes))));
+    return false;
+  }
+  DynString blockBuffer = dynstring_create_over(blockMapping);
+  data_write_bin(g_dataReg, &blockBuffer, g_assetPackMeta, mem_var(header));
+
+  if (UNLIKELY(blockBuffer.size > (u64)((f64)asset_pack_block_size * 0.75))) {
+    log_w(
+        "Pack header size is approaching the limit",
+        log_param("size", fmt_size(blockBuffer.size)),
+        log_param("limit", fmt_size(asset_pack_block_size)));
+  }
+  *headerSize = (u64)blockBuffer.size;
+
+  if (UNLIKELY(fileRes = file_unmap(file, blockMapping))) {
+    log_e("Failed to unmap pack file", log_param("error", fmt_text(file_result_str(fileRes))));
+  }
   return true;
 }
 
@@ -307,7 +341,10 @@ bool asset_packer_write(
     const AssetImportEnvComp* importEnv,
     File*                     outFile,
     AssetPackerStats*         outStats) {
-
+  if (UNLIKELY(!dynarray_size(&packer->entries))) {
+    log_e("Empty pack file is not supported");
+    return false;
+  }
   u64 fileOffset = asset_pack_block_size; // Reserve a single block for the header.
   if (!packer_add_small_entries(packer, manager, importEnv, outFile, &fileOffset)) {
     return false;
@@ -320,14 +357,18 @@ bool asset_packer_write(
   }
   diag_assert(bits_aligned(fileOffset, asset_pack_block_size));
 
-  const u64 headerSize = asset_pack_block_size; // TODO: Compute header size.
+  u64 headerSize;
+  if (!packer_write_header(packer, outFile, &headerSize)) {
+    return false;
+  }
   if (outStats) {
     *outStats = (AssetPackerStats){
-        .size    = fileOffset,
-        .padding = fileOffset - packer->sourceSize - headerSize,
-        .entries = (u32)packer->entries.size,
-        .regions = (u32)packer->regions.size,
-        .blocks  = (u32)(fileOffset / asset_pack_block_size),
+        .size       = fileOffset,
+        .padding    = fileOffset - packer->sourceSize - headerSize,
+        .headerSize = headerSize,
+        .entries    = (u32)packer->entries.size,
+        .regions    = (u32)packer->regions.size,
+        .blocks     = (u32)(fileOffset / asset_pack_block_size),
     };
   }
   return true;
@@ -339,17 +380,17 @@ void asset_data_init_pack(void) {
   data_reg_field_t(g_dataReg, AssetPackEntry, id, data_prim_t(String));
   data_reg_field_t(g_dataReg, AssetPackEntry, idHash, data_prim_t(u32));
   data_reg_field_t(g_dataReg, AssetPackEntry, format, g_assetFormatType);
-  data_reg_field_t(g_dataReg, AssetPackEntry, region, data_prim_t(u64));
-  data_reg_field_t(g_dataReg, AssetPackEntry, offset, data_prim_t(u64));
-  data_reg_field_t(g_dataReg, AssetPackEntry, size, data_prim_t(u64));
+  data_reg_field_t(g_dataReg, AssetPackEntry, region, data_prim_t(u32));
+  data_reg_field_t(g_dataReg, AssetPackEntry, offset, data_prim_t(u32));
+  data_reg_field_t(g_dataReg, AssetPackEntry, size, data_prim_t(u32));
 
   data_reg_struct_t(g_dataReg, AssetPackRegion);
   data_reg_field_t(g_dataReg, AssetPackRegion, offset, data_prim_t(u64));
   data_reg_field_t(g_dataReg, AssetPackRegion, size, data_prim_t(u64));
 
   data_reg_struct_t(g_dataReg, AssetPackHeader);
-  data_reg_field_t(g_dataReg, AssetPackHeader, entries, t_AssetPackEntry, .container = DataContainer_HeapArray);
-  data_reg_field_t(g_dataReg, AssetPackHeader, regions, t_AssetPackRegion, .container = DataContainer_HeapArray);
+  data_reg_field_t(g_dataReg, AssetPackHeader, entries, t_AssetPackEntry, .container = DataContainer_DynArray);
+  data_reg_field_t(g_dataReg, AssetPackHeader, regions, t_AssetPackRegion, .container = DataContainer_DynArray);
   // clang-format on
 
   g_assetPackMeta = data_meta_t(t_AssetPackHeader);

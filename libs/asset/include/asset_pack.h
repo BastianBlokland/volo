@@ -4,10 +4,11 @@
 typedef struct sAssetPacker AssetPacker;
 
 typedef struct {
-  usize size, padding;
-  u32   entries;
-  u32   regions;
-  u32   blocks;
+  u64 size, padding;
+  u64 headerSize;
+  u32 entries;
+  u32 regions;
+  u32 blocks;
 } AssetPackerStats;
 
 AssetPacker* asset_packer_create(Allocator*, u32 assetCapacity);

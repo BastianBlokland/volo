@@ -1,4 +1,4 @@
-#include "core_array.h"
+#include "core_dynarray.h"
 
 #include "format_internal.h"
 
@@ -15,8 +15,8 @@ typedef struct {
 } AssetPackRegion;
 
 typedef struct {
-  HeapArray_t(AssetPackEntry) entries;
-  HeapArray_t(AssetPackRegion) regions;
+  DynArray entries; // AssetPackEntry[]
+  DynArray regions; // AssetPackRegion[]
 } AssetPackHeader;
 
 extern DataMeta g_assetPackMeta;

@@ -257,6 +257,7 @@ static bool pack_build(PackComp* p, AssetManagerComp* assetMan, const AssetImpor
           log_param("path", fmt_path(p->outputPath)),
           log_param("size", fmt_size(stats.size)),
           log_param("padding", fmt_size(stats.padding)),
+          log_param("header-size", fmt_size(stats.headerSize)),
           log_param("entries", fmt_int(stats.entries)),
           log_param("regions", fmt_int(stats.regions)),
           log_param("blocks", fmt_int(stats.blocks)));
