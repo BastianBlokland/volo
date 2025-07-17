@@ -23,16 +23,21 @@ typedef struct {
 } Blob2jConfig;
 
 static i32 blob2j_run(const Blob2jConfig* cfg, File* inputFile, File* outputFile) {
-  DynString buff     = dynstring_create(g_allocHeap, usize_kibibyte);
+  DynString buffer   = dynstring_create(g_allocHeap, usize_kibibyte);
   Mem       data     = mem_empty;
   i32       exitCode = 0;
 
-  if (file_read_to_end_sync(inputFile, &buff)) {
+  if (cfg->offset && file_skip_sync(inputFile, cfg->offset)) {
+    file_write_sync(g_fileStdErr, string_lit("ERROR: Failed to skip input.\n"));
+    exitCode = 1;
+    goto Ret;
+  }
+  if (file_read_to_end_sync(inputFile, &buffer)) {
     file_write_sync(g_fileStdErr, string_lit("ERROR: Failed to read input.\n"));
     exitCode = 1;
     goto Ret;
   }
-  const String input = string_slice(dynstring_view(&buff), cfg->offset, buff.size - cfg->offset);
+  const String input = dynstring_view(&buffer);
 
   DataBinHeader  dataHeader;
   DataReadResult readRes;
@@ -75,13 +80,13 @@ static i32 blob2j_run(const Blob2jConfig* cfg, File* inputFile, File* outputFile
     goto Ret;
   }
 
-  dynstring_clear(&buff);
-  data_write_json(g_dataReg, &buff, dataMeta, data, &data_write_json_opts(.compact = true));
-  dynstring_append_char(&buff, '\n');
+  dynstring_clear(&buffer);
+  data_write_json(g_dataReg, &buffer, dataMeta, data, &data_write_json_opts(.compact = true));
+  dynstring_append_char(&buffer, '\n');
 
   data_destroy(g_dataReg, g_allocHeap, dataMeta, data);
 
-  if (file_write_sync(outputFile, dynstring_view(&buff))) {
+  if (file_write_sync(outputFile, dynstring_view(&buffer))) {
     file_write_sync(g_fileStdErr, string_lit("ERROR: Failed to write output.\n"));
     exitCode = 1;
     goto Ret;
@@ -89,7 +94,7 @@ static i32 blob2j_run(const Blob2jConfig* cfg, File* inputFile, File* outputFile
 
 Ret:
   alloc_maybe_free(g_allocHeap, data);
-  dynstring_destroy(&buff);
+  dynstring_destroy(&buffer);
   return exitCode;
 }
 
