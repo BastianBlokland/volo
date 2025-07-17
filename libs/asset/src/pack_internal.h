@@ -15,7 +15,7 @@ typedef struct {
 } AssetPackRegion;
 
 typedef struct {
-  DynArray entries; // AssetPackEntry[]
+  DynArray entries; // AssetPackEntry[], sorted on idHash.
   DynArray regions; // AssetPackRegion[]
 } AssetPackHeader;
 
