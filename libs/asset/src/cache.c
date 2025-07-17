@@ -285,12 +285,12 @@ void asset_data_init_cache(void) {
   data_reg_field_t(g_dataReg, AssetCacheMeta, fixedCount, data_prim_t(u16));
 
   data_reg_struct_t(g_dataReg, AssetCacheDependency);
-  data_reg_field_t(g_dataReg, AssetCacheDependency, id, data_prim_t(String));
+  data_reg_field_t(g_dataReg, AssetCacheDependency, id, data_prim_t(String), .flags = DataFlags_Intern);
   data_reg_field_t(g_dataReg, AssetCacheDependency, modTime, data_prim_t(i64));
   data_reg_field_t(g_dataReg, AssetCacheDependency, loaderHash, data_prim_t(u32));
 
   data_reg_struct_t(g_dataReg, AssetCacheEntry);
-  data_reg_field_t(g_dataReg, AssetCacheEntry, id, data_prim_t(String));
+  data_reg_field_t(g_dataReg, AssetCacheEntry, id, data_prim_t(String), .flags = DataFlags_Intern);
   data_reg_field_t(g_dataReg, AssetCacheEntry, idHash, data_prim_t(u32));
   data_reg_field_t(g_dataReg, AssetCacheEntry, meta, t_AssetCacheMeta);
   data_reg_field_t(g_dataReg, AssetCacheEntry, modTime, data_prim_t(i64));

@@ -377,7 +377,7 @@ bool asset_packer_write(
 void asset_data_init_pack(void) {
   // clang-format off
   data_reg_struct_t(g_dataReg, AssetPackEntry);
-  data_reg_field_t(g_dataReg, AssetPackEntry, id, data_prim_t(String));
+  data_reg_field_t(g_dataReg, AssetPackEntry, id, data_prim_t(String), .flags = DataFlags_Intern);
   data_reg_field_t(g_dataReg, AssetPackEntry, idHash, data_prim_t(u32));
   data_reg_field_t(g_dataReg, AssetPackEntry, format, g_assetFormatType);
   data_reg_field_t(g_dataReg, AssetPackEntry, region, data_prim_t(u16));
