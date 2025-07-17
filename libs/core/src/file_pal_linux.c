@@ -3,6 +3,7 @@
 #include "core_diag.h"
 #include "core_dynstring.h"
 #include "core_file.h"
+#include "core_math.h"
 
 #include "file_internal.h"
 #include "time_internal.h"
@@ -204,6 +205,30 @@ FileResult file_read_sync(File* file, DynString* dynstr) {
     }
     return fileresult_from_errno();
   }
+}
+
+FileResult file_skip_sync(File* file, usize bytes) {
+  diag_assert(file);
+  diag_assert_msg(file->access & FileAccess_Read, "File handle does not have read access");
+
+  Mem readBuffer = mem_stack(usize_kibibyte * 16);
+  while (bytes) {
+    const ssize_t res = read(file->handle, readBuffer.ptr, math_min(readBuffer.size, bytes));
+    if (res > 0) {
+      bytes -= res;
+      continue;
+    }
+    if (res == 0) {
+      return FileResult_NoDataAvailable;
+    }
+    switch (errno) {
+    case EINTR:
+      continue; // Retry on interrupt.
+    }
+    return fileresult_from_errno();
+  }
+
+  return FileResult_Success;
 }
 
 FileResult file_position_sync(File* file, usize* outPosition) {
