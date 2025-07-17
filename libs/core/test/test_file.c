@@ -53,6 +53,16 @@ spec(file) {
     test_file_verify_data(_testCtx, dynstring_view(&buffer));
   }
 
+  it("can skip bytes") {
+    check_eq_int(file_write_sync(tmpFile, string_lit("Hello World!")), FileResult_Success);
+    check_eq_int(file_seek_sync(tmpFile, 0), FileResult_Success);
+
+    check_eq_int(file_skip_sync(tmpFile, 6), FileResult_Success);
+
+    check_eq_int(file_read_sync(tmpFile, &buffer), FileResult_Success);
+    check_eq_string(dynstring_view(&buffer), string_lit("World!"));
+  }
+
   it("can retrieve the file size") {
     check_eq_int(file_stat_sync(tmpFile).size, 0);
 
