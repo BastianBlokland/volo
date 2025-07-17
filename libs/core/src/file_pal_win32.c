@@ -239,6 +239,28 @@ FileResult file_read_sync(File* file, DynString* dynstr) {
   return fileresult_from_lasterror();
 }
 
+FileResult file_skip_sync(File* file, usize bytes) {
+  diag_assert(file);
+  diag_assert_msg(file->access & FileAccess_Read, "File handle does not have read access");
+
+  Mem readBuffer = mem_stack(usize_kibibyte * 16);
+  while (bytes) {
+    const DWORD bytesToRead = (DWORD)math_min(readBuffer.size, bytes);
+    DWORD       bytesRead;
+    const bool  success = ReadFile(file->handle, readBuffer.ptr, bytesToRead, &bytesRead, null);
+    if (success && bytesRead) {
+      bytes -= res;
+      continue;
+    }
+    if (success || GetLastError() == ERROR_BROKEN_PIPE) {
+      return FileResult_NoDataAvailable;
+    }
+    return fileresult_from_lasterror();
+  }
+
+  return FileResult_Success;
+}
+
 FileResult file_position_sync(File* file, usize* outPosition) {
   diag_assert(file);
 
