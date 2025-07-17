@@ -96,7 +96,7 @@ static bool packer_write_header(AssetPacker* packer, File* file, u64* headerSize
   return true;
 }
 
-static u16 packer_add_region(AssetPacker* packer, const u64 offset, const u64 size) {
+static u16 packer_add_region(AssetPacker* packer, const u64 offset, const u32 size) {
   diag_assert(bits_aligned(offset, asset_pack_block_size));
   diag_assert(bits_aligned(size, asset_pack_block_size));
 
