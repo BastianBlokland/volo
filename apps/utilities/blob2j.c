@@ -19,19 +19,20 @@
 
 typedef struct {
   bool noTrail; // Disallow trailing data.
+  u64  offset;
 } Blob2jConfig;
 
-static i32 blob2j_run(const Blob2jConfig* config, File* inputFile, File* outputFile) {
-  DynString buffer   = dynstring_create(g_allocHeap, usize_kibibyte);
+static i32 blob2j_run(const Blob2jConfig* cfg, File* inputFile, File* outputFile) {
+  DynString buff     = dynstring_create(g_allocHeap, usize_kibibyte);
   Mem       data     = mem_empty;
   i32       exitCode = 0;
 
-  if (file_read_to_end_sync(inputFile, &buffer)) {
+  if (file_read_to_end_sync(inputFile, &buff)) {
     file_write_sync(g_fileStdErr, string_lit("ERROR: Failed to read input.\n"));
     exitCode = 1;
     goto Ret;
   }
-  const String input = dynstring_view(&buffer);
+  const String input = string_slice(dynstring_view(&buff), cfg->offset, buff.size - cfg->offset);
 
   DataBinHeader  dataHeader;
   DataReadResult readRes;
@@ -67,20 +68,20 @@ static i32 blob2j_run(const Blob2jConfig* config, File* inputFile, File* outputF
     exitCode = 1;
     goto Ret;
   }
-  if (config->noTrail && !string_is_empty(inputRem)) {
+  if (cfg->noTrail && !string_is_empty(inputRem)) {
     file_write_sync(g_fileStdErr, fmt_write_scratch("ERROR: Unexpected input data after blob.\n"));
     data_destroy(g_dataReg, g_allocHeap, dataMeta, data);
     exitCode = 1;
     goto Ret;
   }
 
-  dynstring_clear(&buffer);
-  data_write_json(g_dataReg, &buffer, dataMeta, data, &data_write_json_opts(.compact = true));
-  dynstring_append_char(&buffer, '\n');
+  dynstring_clear(&buff);
+  data_write_json(g_dataReg, &buff, dataMeta, data, &data_write_json_opts(.compact = true));
+  dynstring_append_char(&buff, '\n');
 
   data_destroy(g_dataReg, g_allocHeap, dataMeta, data);
 
-  if (file_write_sync(outputFile, dynstring_view(&buffer))) {
+  if (file_write_sync(outputFile, dynstring_view(&buff))) {
     file_write_sync(g_fileStdErr, string_lit("ERROR: Failed to write output.\n"));
     exitCode = 1;
     goto Ret;
@@ -88,11 +89,11 @@ static i32 blob2j_run(const Blob2jConfig* config, File* inputFile, File* outputF
 
 Ret:
   alloc_maybe_free(g_allocHeap, data);
-  dynstring_destroy(&buffer);
+  dynstring_destroy(&buff);
   return exitCode;
 }
 
-static CliId g_optPath, g_optNoTrail, g_optHelp;
+static CliId g_optPath, g_optOffset, g_optNoTrail, g_optHelp;
 
 void app_cli_configure(CliApp* app) {
   cli_app_register_desc(app, string_lit("Utility to convert Volo binary blobs to json."));
@@ -101,12 +102,16 @@ void app_cli_configure(CliApp* app) {
   cli_register_desc(app, g_optPath, string_lit("Path to the binary blob."));
   cli_register_validator(app, g_optPath, cli_validate_file_regular);
 
+  g_optOffset = cli_register_flag(app, 'o', string_lit("offset"), CliOptionFlags_Value);
+  cli_register_desc(app, g_optOffset, string_lit("Offset to read at."));
+
   g_optNoTrail = cli_register_flag(app, '\0', string_lit("notrail"), CliOptionFlags_None);
   cli_register_desc(app, g_optNoTrail, string_lit("Disallow trailing data."));
 
   g_optHelp = cli_register_flag(app, 'h', string_lit("help"), CliOptionFlags_None);
   cli_register_desc(app, g_optHelp, string_lit("Display this help page."));
   cli_register_exclusions(app, g_optHelp, g_optPath);
+  cli_register_exclusions(app, g_optHelp, g_optOffset);
   cli_register_exclusions(app, g_optHelp, g_optNoTrail);
 }
 
@@ -120,6 +125,7 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
 
   const Blob2jConfig cfg = {
       .noTrail = cli_parse_provided(invoc, g_optNoTrail),
+      .offset  = cli_read_u64(invoc, g_optOffset, 0),
   };
 
   File* inputFile      = null;
