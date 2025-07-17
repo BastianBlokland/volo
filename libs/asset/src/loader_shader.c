@@ -25,7 +25,7 @@ static void ecs_destruct_shader_comp(void* data) {
 
 static void ecs_destruct_shader_source_comp(void* data) {
   AssetShaderSourceComp* comp = data;
-  asset_repo_source_close(comp->src);
+  asset_repo_close(comp->src);
 }
 
 ecs_view_define(UnloadView) {
@@ -110,7 +110,7 @@ void asset_load_shader_bin(
 
   if (UNLIKELY(result.error)) {
     asset_mark_load_failure(world, entity, id, result.errorMsg, (i32)result.error);
-    asset_repo_source_close(src);
+    asset_repo_close(src);
     return;
   }
 

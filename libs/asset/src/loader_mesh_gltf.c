@@ -178,7 +178,7 @@ static void ecs_destruct_gltf_load_comp(void* data) {
   AssetGltfLoadComp* comp = data;
   json_destroy(comp->jDoc);
   if (comp->glbDataSource) {
-    asset_repo_source_close(comp->glbDataSource);
+    asset_repo_close(comp->glbDataSource);
   }
   alloc_chunked_destroy(comp->transientAlloc);
   dynarray_destroy(&comp->animData);
@@ -1854,7 +1854,7 @@ void asset_load_mesh_gltf(
     AssetSource*              src) {
 
   gltf_load(world, importEnv, id, entity, src->data);
-  asset_repo_source_close(src);
+  asset_repo_close(src);
 }
 
 static Mem glb_read_header(Mem data, GlbHeader* out, GltfError* err) {
@@ -1950,10 +1950,10 @@ void asset_load_mesh_glb(
     ld->glbBinChunk   = chunks[1];
     ld->glbDataSource = src;
   } else {
-    asset_repo_source_close(src);
+    asset_repo_close(src);
   }
   return; // Success;
 
 Failed:
-  asset_repo_source_close(src);
+  asset_repo_close(src);
 }

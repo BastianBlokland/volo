@@ -157,7 +157,7 @@ static void ecs_destruct_glsl_env_comp(void* data) {
 
 static void ecs_destruct_glsl_load_comp(void* data) {
   AssetGlslLoadComp* comp = data;
-  asset_repo_source_close(comp->src);
+  asset_repo_close(comp->src);
 }
 
 static const char* to_null_term_scratch(const String str) {
@@ -242,7 +242,7 @@ static ShadercIncludeResult* SYS_DECL glsl_include_resolve(
     return res;
   }
   if (UNLIKELY(src->format != AssetFormat_ShaderGlsl)) {
-    asset_repo_source_close(src);
+    asset_repo_close(src);
     glsl_include_error(res, string_lit("File has an invalid format"));
     return res;
   }
@@ -267,7 +267,7 @@ static ShadercIncludeResult* SYS_DECL glsl_include_resolve(
 static void SYS_DECL glsl_include_release(void* userContext, ShadercIncludeResult* result) {
   GlslIncludeCtx* ctx = userContext;
   if (result->userData) {
-    asset_repo_source_close(result->userData);
+    asset_repo_close(result->userData);
   }
   alloc_free_t(ctx->resultAlloc, result);
 }

@@ -139,7 +139,7 @@ void asset_load_tex_height16(
     AssetSource*              src) {
 
   htex_load(world, importEnv, entity, id, src->data, HtexType_U16);
-  asset_repo_source_close(src);
+  asset_repo_close(src);
 }
 
 void asset_load_tex_height32(
@@ -150,5 +150,5 @@ void asset_load_tex_height32(
     AssetSource*              src) {
 
   htex_load(world, importEnv, entity, id, src->data, HtexType_F32);
-  asset_repo_source_close(src);
+  asset_repo_close(src);
 }

@@ -159,7 +159,7 @@ void asset_load_terrain(
   ecs_world_add_empty_t(world, entity, AssetTerrainInitComp);
 
 Ret:
-  asset_repo_source_close(src);
+  asset_repo_close(src);
 }
 
 u32 asset_terrain_refs(const AssetTerrainComp* terrain, EcsEntityId out[], const u32 outMax) {

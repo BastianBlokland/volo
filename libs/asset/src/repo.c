@@ -29,21 +29,28 @@ bool asset_repo_path(AssetRepo* repo, const String id, DynString* out) {
   return false;
 }
 
-AssetSource*
-asset_repo_source_open(AssetRepo* repo, const String id, const AssetRepoLoaderHasher loaderHasher) {
-  return repo->open(repo, id, loaderHasher);
+bool asset_repo_stat(
+    AssetRepo* repo, const String id, const AssetRepoLoaderHasher hasher, AssetInfo* out) {
+  if (repo->stat) {
+    return repo->stat(repo, id, hasher, out);
+  }
+  return false;
 }
 
-bool asset_repo_save(AssetRepo* repo, const String id, const String data) {
-  return repo->save && repo->save(repo, id, data);
+AssetSource* asset_repo_open(AssetRepo* repo, const String id, const AssetRepoLoaderHasher hasher) {
+  return repo->open(repo, id, hasher);
 }
 
-void asset_repo_source_close(AssetSource* src) {
+void asset_repo_close(AssetSource* src) {
   if (src->close) {
     src->close(src);
   } else {
     alloc_free_t(g_allocHeap, src);
   }
+}
+
+bool asset_repo_save(AssetRepo* repo, const String id, const String data) {
+  return repo->save && repo->save(repo, id, data);
 }
 
 void asset_repo_changes_watch(AssetRepo* repo, const String id, const u64 userData) {

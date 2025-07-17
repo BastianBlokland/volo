@@ -113,7 +113,7 @@ static void ecs_destruct_script_comp(void* data) {
 
 static void ecs_destruct_script_source_comp(void* data) {
   AssetScriptSourceComp* comp = data;
-  asset_repo_source_close(comp->src);
+  asset_repo_close(comp->src);
 }
 
 ecs_view_define(ScriptUnloadView) {
@@ -275,7 +275,7 @@ Cleanup:
   stringtable_destroy(stringtable);
   script_sym_bag_destroy(syms);
   script_lookup_destroy(lookup);
-  asset_repo_source_close(src);
+  asset_repo_close(src);
 }
 
 void asset_load_script_bin(
@@ -292,7 +292,7 @@ void asset_load_script_bin(
 
   if (UNLIKELY(result.error)) {
     asset_mark_load_failure(world, entity, id, result.errorMsg, (i32)result.error);
-    asset_repo_source_close(src);
+    asset_repo_close(src);
     return;
   }
 
@@ -300,7 +300,7 @@ void asset_load_script_bin(
   if (UNLIKELY(!script_prog_validate(&script.prog, binder))) {
     data_destroy(g_dataReg, g_allocHeap, g_assetScriptMeta, mem_var(script));
     asset_mark_load_failure(world, entity, id, string_lit("Malformed script"), -1 /* errorCode */);
-    asset_repo_source_close(src);
+    asset_repo_close(src);
     return;
   }
 

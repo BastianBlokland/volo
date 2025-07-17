@@ -22,6 +22,29 @@ static i8 asset_compare_entry(const void* a, const void* b) {
   return compare_stringhash(field_ptr(a, RepoEntry, idHash), field_ptr(b, RepoEntry, idHash));
 }
 
+static bool asset_source_mem_stat(
+    AssetRepo* repo, const String id, const AssetRepoLoaderHasher loaderHasher, AssetInfo* out) {
+  (void)loaderHasher;
+  AssetRepoMem* repoMem = (AssetRepoMem*)repo;
+
+  const AssetFormat fmt    = asset_format_from_ext(path_extension(id));
+  const StringHash  idHash = string_hash(id);
+  const RepoEntry*  entry  = dynarray_search_binary(
+      &repoMem->entries, asset_compare_entry, mem_struct(RepoEntry, .idHash = idHash).ptr);
+
+  if (!entry) {
+    return false;
+  }
+
+  *out = (AssetInfo){
+      .format  = fmt,
+      .flags   = AssetInfoFlags_None,
+      .size    = entry->data.size,
+      .modTime = repoMem->createTime,
+  };
+  return true;
+}
+
 static AssetSource*
 asset_source_mem_open(AssetRepo* repo, const String id, const AssetRepoLoaderHasher loaderHasher) {
   (void)loaderHasher;
@@ -42,7 +65,7 @@ asset_source_mem_open(AssetRepo* repo, const String id, const AssetRepoLoaderHas
   *src = (AssetSource){
       .data    = entry->data,
       .format  = fmt,
-      .flags   = AssetSourceFlags_None,
+      .flags   = AssetInfoFlags_None,
       .modTime = repoMem->createTime,
   };
 
@@ -80,6 +103,7 @@ AssetRepo* asset_repo_create_mem(const AssetMemRecord* records, const usize reco
   *repo = (AssetRepoMem){
       .api =
           {
+              .stat         = asset_source_mem_stat,
               .open         = asset_source_mem_open,
               .destroy      = asset_repo_mem_destroy,
               .changesWatch = null,

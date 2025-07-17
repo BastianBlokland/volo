@@ -591,5 +591,5 @@ Done:
     asset_mesh_builder_destroy(builder);
   }
   data_destroy(g_dataReg, g_allocHeap, g_assetProcMeshDefMeta, mem_var(def));
-  asset_repo_source_close(src);
+  asset_repo_close(src);
 }

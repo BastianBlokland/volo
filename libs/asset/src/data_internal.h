@@ -14,6 +14,7 @@ void asset_data_init_import_texture(void);
 void asset_data_init_inputmap(void);
 void asset_data_init_level(void);
 void asset_data_init_mesh(void);
+void asset_data_init_pack(void);
 void asset_data_init_prefab(void);
 void asset_data_init_procmesh(void);
 void asset_data_init_proctex(void);
@@ -28,6 +29,7 @@ void asset_data_init_tex(void);
 void asset_data_init_vfx(void);
 void asset_data_init_weapon(void);
 
+extern DataType g_assetFormatType;
 extern DataType g_assetRefType, g_assetLevelRefType;
 extern DataType g_assetGeoColor3Type, g_assetGeoColor4Type;
 extern DataType g_assetGeoColor3NormType, g_assetGeoColor4NormType;

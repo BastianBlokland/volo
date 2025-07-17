@@ -31,6 +31,35 @@ static bool asset_source_fs_path(AssetRepo* repo, const String id, DynString* ou
   return true;
 }
 
+static bool asset_source_fs_stat(
+    AssetRepo* repo, const String id, const AssetRepoLoaderHasher loaderHasher, AssetInfo* out) {
+  AssetRepoFs* repoFs = (AssetRepoFs*)repo;
+
+  AssetCacheRecord cacheRecord;
+  if (asset_cache_get(repoFs->cache, id, loaderHasher, &cacheRecord)) {
+    *out = (AssetInfo){
+        .format  = asset_format_from_bin_meta(cacheRecord.meta),
+        .flags   = AssetInfoFlags_Cached,
+        .size    = file_stat_sync(cacheRecord.blobFile).size,
+        .modTime = cacheRecord.modTime,
+    };
+    file_destroy(cacheRecord.blobFile);
+    return true;
+  }
+
+  const FileInfo fileInfo = file_stat_path_sync(path_build_scratch(repoFs->rootPath, id));
+  if (fileInfo.type != FileType_Regular) {
+    return false;
+  }
+  *out = (AssetInfo){
+      .format  = asset_format_from_ext(path_extension(id)),
+      .flags   = AssetInfoFlags_None,
+      .size    = fileInfo.size,
+      .modTime = fileInfo.modTime,
+  };
+  return true;
+}
+
 static void asset_source_fs_close(AssetSource* src) {
   AssetSourceFs* srcFs = (AssetSourceFs*)src;
   file_destroy(srcFs->file);
@@ -59,7 +88,7 @@ static AssetSource* asset_source_fs_open_cached(AssetRepoFs* repoFs, const Asset
           {
               .data    = data,
               .format  = format,
-              .flags   = AssetSourceFlags_Cached,
+              .flags   = AssetInfoFlags_Cached,
               .modTime = rec->modTime,
               .close   = asset_source_fs_close,
           },
@@ -104,7 +133,7 @@ static AssetSource* asset_source_fs_open_normal(AssetRepoFs* repoFs, const Strin
           {
               .data    = data,
               .format  = asset_format_from_ext(path_extension(id)),
-              .flags   = AssetSourceFlags_None,
+              .flags   = AssetInfoFlags_None,
               .modTime = fileInfo.modTime,
               .close   = asset_source_fs_close,
           },
@@ -313,6 +342,7 @@ AssetRepo* asset_repo_create_fs(const String rootPath) {
       .api =
           {
               .path         = asset_source_fs_path,
+              .stat         = asset_source_fs_stat,
               .open         = asset_source_fs_open,
               .save         = asset_repo_fs_save,
               .destroy      = asset_repo_fs_destroy,

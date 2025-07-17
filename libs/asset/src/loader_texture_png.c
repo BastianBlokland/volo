@@ -694,5 +694,5 @@ void asset_load_tex_png(
 
 Ret:
   dynarray_destroy(&buffer);
-  asset_repo_source_close(src);
+  asset_repo_close(src);
 }

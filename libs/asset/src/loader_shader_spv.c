@@ -963,7 +963,7 @@ void asset_load_shader_spv(
 
   const SpvError err = spv_init(world, entity, data_mem_create_ext(src->data));
   if (err) {
-    asset_repo_source_close(src);
+    asset_repo_close(src);
     asset_mark_load_failure(world, entity, id, spv_err_str(err), (i32)err);
   } else {
     ecs_world_add_t(world, entity, AssetShaderSourceComp, .src = src);

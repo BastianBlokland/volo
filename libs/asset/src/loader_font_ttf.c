@@ -1208,5 +1208,5 @@ End:
   if (glyphs) {
     alloc_free_array_t(g_allocHeap, glyphs, maxpTable.numGlyphs);
   }
-  asset_repo_source_close(src);
+  asset_repo_close(src);
 }

@@ -234,7 +234,7 @@ void asset_load_graphic(
   ecs_world_add_empty_t(world, entity, AssetGraphicInitComp);
 
 Ret:
-  asset_repo_source_close(src);
+  asset_repo_close(src);
 }
 
 u32 asset_graphic_refs(const AssetGraphicComp* map, EcsEntityId out[], const u32 outMax) {

@@ -134,7 +134,7 @@ Error:
   asset_mark_load_failure(world, entity, id, errMsg, -1 /* errorCode */);
 
 Cleanup:
-  asset_repo_source_close(src);
+  asset_repo_close(src);
 }
 
 u32 asset_level_refs(

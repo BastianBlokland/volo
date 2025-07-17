@@ -358,5 +358,5 @@ Error:
 
 Cleanup:
   data_destroy(g_dataReg, g_allocHeap, g_assetVfxDefMeta, mem_var(def));
-  asset_repo_source_close(src);
+  asset_repo_close(src);
 }

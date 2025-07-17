@@ -235,7 +235,7 @@ void asset_load_tex_ppm(
     goto Error;
   }
 
-  asset_repo_source_close(src);
+  asset_repo_close(src);
 
   *ecs_world_add_t(world, entity, AssetTextureComp) = tex;
 
@@ -246,5 +246,5 @@ void asset_load_tex_ppm(
   return;
 
 Error:
-  asset_repo_source_close(src);
+  asset_repo_close(src);
 }

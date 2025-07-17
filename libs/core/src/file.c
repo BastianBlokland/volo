@@ -78,6 +78,9 @@ FileResult file_create(
     const FileMode        mode,
     const FileAccessFlags access,
     File**                file) {
+  if (UNLIKELY(string_is_empty(path))) {
+    return FileResult_PathInvalid;
+  }
   const FileResult res = file_pal_create(alloc, path, mode, access, file);
   if (res == FileResult_Success) {
     thread_atomic_add_i64(&g_fileCount, 1);
@@ -178,7 +181,10 @@ FileResult file_read_to_end_sync(File* file, DynString* output) {
   return res == FileResult_NoDataAvailable ? FileResult_Success : res;
 }
 
-FileResult file_create_dir_sync(String path) {
+FileResult file_create_dir_sync(const String path) {
+  if (UNLIKELY(string_is_empty(path))) {
+    return FileResult_PathInvalid;
+  }
   File*      dirHandle;
   FileResult res;
 
@@ -190,9 +196,12 @@ FileResult file_create_dir_sync(String path) {
   }
 
   // Path does not exist yet; First create the parent.
-  res = file_create_dir_sync(path_parent(path));
-  if (res != FileResult_Success) {
-    return res; // Failed to create parent.
+  const String parent = path_parent(path);
+  if (!string_is_empty(parent)) {
+    res = file_create_dir_sync(parent);
+    if (res != FileResult_Success) {
+      return res; // Failed to create parent.
+    }
   }
 
   // Create the directory itself.

@@ -24,7 +24,7 @@ static void ecs_destruct_sound_comp(void* data) {
 
 static void ecs_destruct_sound_source_comp(void* data) {
   AssetSoundSourceComp* comp = data;
-  asset_repo_source_close(comp->src);
+  asset_repo_close(comp->src);
 }
 
 ecs_view_define(UnloadView) {
@@ -78,7 +78,7 @@ void asset_load_sound_bin(
   data_read_bin(g_dataReg, src->data, g_allocHeap, g_assetSoundMeta, mem_var(sound), &result);
 
   if (UNLIKELY(result.error)) {
-    asset_repo_source_close(src);
+    asset_repo_close(src);
     asset_mark_load_failure(world, entity, id, result.errorMsg, (i32)result.error);
     return;
   }

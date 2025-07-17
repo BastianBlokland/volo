@@ -9,6 +9,18 @@
 typedef struct sAssetRepo   AssetRepo;
 typedef struct sAssetSource AssetSource;
 
+typedef enum {
+  AssetInfoFlags_None   = 0,
+  AssetInfoFlags_Cached = 1 << 0,
+} AssetInfoFlags;
+
+typedef struct sAssetInfo {
+  AssetFormat    format;
+  AssetInfoFlags flags;
+  usize          size;
+  TimeReal       modTime;
+} AssetInfo;
+
 typedef struct {
   String   id;
   TimeReal modTime;
@@ -41,6 +53,7 @@ typedef enum {
  */
 struct sAssetRepo {
   bool (*path)(AssetRepo*, String id, DynString* out);
+  bool (*stat)(AssetRepo*, String id, AssetRepoLoaderHasher, AssetInfo* out);
   AssetSource* (*open)(AssetRepo*, String id, AssetRepoLoaderHasher);
   bool (*save)(AssetRepo*, String id, String data);
   void (*destroy)(AssetRepo*);
@@ -60,16 +73,11 @@ struct sAssetRepo {
       AssetRepo*, String id, AssetRepoDep out[PARAM_ARRAY_SIZE(asset_repo_cache_deps_max)]);
 };
 
-typedef enum {
-  AssetSourceFlags_None   = 0,
-  AssetSourceFlags_Cached = 1 << 0,
-} AssetSourceFlags;
-
 struct sAssetSource {
-  String           data;
-  AssetFormat      format;
-  AssetSourceFlags flags;
-  TimeReal         modTime;
+  String         data;
+  AssetFormat    format;
+  AssetInfoFlags flags;
+  TimeReal       modTime;
 
   void (*close)(AssetSource*);
 };
@@ -81,9 +89,10 @@ AssetRepo* asset_repo_create_mem(const AssetMemRecord* records, usize recordCoun
 void       asset_repo_destroy(AssetRepo*);
 
 bool         asset_repo_path(AssetRepo* repo, String id, DynString* out);
-AssetSource* asset_repo_source_open(AssetRepo*, String id, AssetRepoLoaderHasher);
+bool         asset_repo_stat(AssetRepo*, String id, AssetRepoLoaderHasher, AssetInfo* out);
+AssetSource* asset_repo_open(AssetRepo*, String id, AssetRepoLoaderHasher);
+void         asset_repo_close(AssetSource*);
 bool         asset_repo_save(AssetRepo*, String id, String data);
-void         asset_repo_source_close(AssetSource*);
 
 void                 asset_repo_changes_watch(AssetRepo*, String id, u64 userData);
 bool                 asset_repo_changes_poll(AssetRepo*, u64* outUserData);

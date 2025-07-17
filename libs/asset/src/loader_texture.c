@@ -77,7 +77,7 @@ static void ecs_destruct_texture_comp(void* data) {
 
 static void ecs_destruct_texture_source_comp(void* data) {
   AssetTextureSourceComp* comp = data;
-  asset_repo_source_close(comp->src);
+  asset_repo_close(comp->src);
 }
 
 static u32 tex_type_size(const AssetTextureType type) {
@@ -719,7 +719,7 @@ void asset_load_tex_bin(
   data_read_bin(g_dataReg, src->data, g_allocHeap, g_assetTexMeta, mem_var(tex), &result);
 
   if (UNLIKELY(result.error)) {
-    asset_repo_source_close(src);
+    asset_repo_close(src);
     asset_mark_load_failure(world, entity, id, result.errorMsg, (i32)result.error);
     return;
   }

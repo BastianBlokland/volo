@@ -368,7 +368,7 @@ void asset_load_products(
   ecs_world_add_t(world, entity, AssetProductLoadComp, .def = def);
 
 Ret:
-  asset_repo_source_close(src);
+  asset_repo_close(src);
 }
 
 u32 asset_product_refs(const AssetProductMapComp* map, EcsEntityId out[], const u32 outMax) {

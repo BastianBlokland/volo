@@ -6,4 +6,5 @@
  */
 
 typedef struct sAssetImportEnvComp AssetImportEnvComp;
+typedef struct sAssetInfo          AssetInfo;
 typedef struct sAssetSource        AssetSource;

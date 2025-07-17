@@ -318,7 +318,7 @@ NO_INLINE_HINT static void data_read_bin_mem(ReadCtx* ctx, DataReadResult* res) 
 
   const usize reqAlign = data_read_bin_mem_align(val.size);
   /**
-   * NOTE: Even though we've padded the data it not be aligned if the data start was not
+   * NOTE: Even though we've padded the data it will not be aligned if the data start was not
    * sufficiently aligned.
    */
   const bool valIsAligned = bits_aligned_ptr(val.ptr, reqAlign);

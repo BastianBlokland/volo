@@ -661,11 +661,11 @@ void asset_load_tex_array(
       AssetArrayLoadComp,
       .def      = def,
       .textures = dynarray_create_t(g_allocHeap, EcsEntityId, def.textures.count));
-  asset_repo_source_close(src);
+  asset_repo_close(src);
   return;
 
 Error:
   data_destroy(g_dataReg, g_allocHeap, g_assetTexArrayDefMeta, mem_var(def));
-  asset_repo_source_close(src);
+  asset_repo_close(src);
   asset_mark_load_failure(world, entity, id, errMsg, -1 /* errorCode */);
 }

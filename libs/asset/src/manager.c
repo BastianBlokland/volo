@@ -267,13 +267,14 @@ static AssetLoadResult asset_manager_load(
     const AssetImportEnvComp* importEnv,
     AssetComp*                asset,
     const EcsEntityId         assetEntity) {
+  diag_assert(asset_import_ready(importEnv, asset->id));
 
   const AssetRepoLoaderHasher loaderHasher = {
       .ctx         = importEnv,
       .computeHash = asset_manager_loader_hash,
   };
 
-  AssetSource* source = asset_repo_source_open(manager->repo, asset->id, loaderHasher);
+  AssetSource* source = asset_repo_open(manager->repo, asset->id, loaderHasher);
   if (!source) {
     return AssetLoadResult_Missing;
   }
@@ -281,7 +282,7 @@ static AssetLoadResult asset_manager_load(
   if (manager->flags & AssetManagerFlags_TrackChanges) {
     asset_repo_changes_watch(manager->repo, asset->id, (u64)assetEntity);
   }
-  if (source->flags & AssetSourceFlags_Cached) {
+  if (source->flags & AssetInfoFlags_Cached) {
     ecs_world_add_empty_t(world, assetEntity, AssetCacheInitComp);
   }
 
@@ -311,7 +312,7 @@ static AssetLoadResult asset_manager_load(
   }
 
   if (UNLIKELY(result != AssetLoadResult_Started)) {
-    asset_repo_source_close(source);
+    asset_repo_close(source);
   }
   return result;
 }
@@ -798,14 +799,29 @@ void asset_register_dep(EcsWorld* world, EcsEntityId asset, const EcsEntityId de
   ecs_world_add_t(world, asset, AssetDependencyComp, .dependencies = asset_dep_create(dependency));
 }
 
-AssetSource* asset_source_open(
-    const AssetManagerComp* manager, const AssetImportEnvComp* importEnv, const String id) {
+bool asset_source_stat(
+    const AssetManagerComp*   manager,
+    const AssetImportEnvComp* importEnv,
+    const String              id,
+    AssetInfo*                out) {
+  diag_assert(asset_import_ready(importEnv, id));
 
   const AssetRepoLoaderHasher loaderHasher = {
       .ctx         = importEnv,
       .computeHash = asset_manager_loader_hash,
   };
-  return asset_repo_source_open(manager->repo, id, loaderHasher);
+  return asset_repo_stat(manager->repo, id, loaderHasher, out);
+}
+
+AssetSource* asset_source_open(
+    const AssetManagerComp* manager, const AssetImportEnvComp* importEnv, const String id) {
+  diag_assert(asset_import_ready(importEnv, id));
+
+  const AssetRepoLoaderHasher loaderHasher = {
+      .ctx         = importEnv,
+      .computeHash = asset_manager_loader_hash,
+  };
+  return asset_repo_open(manager->repo, id, loaderHasher);
 }
 
 EcsEntityId asset_watch(EcsWorld* world, AssetManagerComp* manager, const String id) {

@@ -431,12 +431,12 @@ void asset_load_tex_atlas(
       .def        = def,
       .maxEntries = maxEntries,
       .textures   = dynarray_create_t(g_allocHeap, EcsEntityId, def.entries.count));
-  asset_repo_source_close(src);
+  asset_repo_close(src);
   return;
 
 Error:
   data_destroy(g_dataReg, g_allocHeap, g_assetAtlasDefMeta, mem_var(def));
-  asset_repo_source_close(src);
+  asset_repo_close(src);
   asset_mark_load_failure(world, entity, id, errMsg, -1 /* errorCode */);
 }
 
@@ -454,7 +454,7 @@ void asset_load_tex_atlas_bin(
       g_dataReg, src->data, g_allocHeap, g_assetAtlasBundleMeta, mem_var(bundle), &result);
 
   if (UNLIKELY(result.error)) {
-    asset_repo_source_close(src);
+    asset_repo_close(src);
     asset_mark_load_failure(world, entity, id, result.errorMsg, (i32)result.error);
     return;
   }
