@@ -96,15 +96,26 @@ static bool packer_write_header(AssetPacker* packer, File* file, u64* headerSize
   return true;
 }
 
-static u16 packer_add_region(AssetPacker* packer, const u64 offset, const u32 size) {
+static u16 packer_region_add(AssetPacker* packer, const u64 offset, const u32 size) {
   diag_assert(bits_aligned(offset, asset_pack_block_size));
   diag_assert(bits_aligned(size, asset_pack_block_size));
+
+  if (UNLIKELY(packer->regions.size == u16_max)) {
+    diag_crash_msg("Pack region count exceeds limit: {}", fmt_int(u16_max));
+  }
 
   *dynarray_push_t(&packer->regions, AssetPackRegion) = (AssetPackRegion){
       .offset = offset,
       .size   = size,
   };
   return (u16)(packer->regions.size - 1);
+}
+
+static void packer_region_compute_checksum(AssetPacker* packer, const u16 region, const Mem mem) {
+  diag_assert(region < packer->regions.size);
+
+  AssetPackRegion* data = dynarray_at_t(&packer->regions, region, AssetPackRegion);
+  data->checksum        = bits_crc_32(0, mem);
 }
 
 /**
@@ -140,7 +151,7 @@ static bool packer_add_small_entries(
     return false;
   }
 
-  const u16 region       = packer_add_region(packer, *fileOffset, regionSize);
+  const u16 region       = packer_region_add(packer, *fileOffset, regionSize);
   bool      success      = true;
   u32       regionOffset = 0;
   dynarray_for_t(&packer->entries, AssetPackEntry, entry) {
@@ -152,6 +163,7 @@ static bool packer_add_small_entries(
     }
   }
 
+  packer_region_compute_checksum(packer, region, regionMapping);
   if (UNLIKELY(fileRes = file_unmap(file, regionMapping))) {
     log_e("Failed to unmap pack file", log_param("error", fmt_text(file_result_str(fileRes))));
   }
@@ -186,9 +198,10 @@ static bool packer_add_big_entries(
       log_e("Failed to map pack file", log_param("error", fmt_text(file_result_str(fileRes))));
       return false;
     }
-    entry->region = packer_add_region(packer, *fileOffset, regionSize);
-
+    entry->region      = packer_region_add(packer, *fileOffset, regionSize);
     const bool success = packer_write_entry(manager, importEnv, entry, regionMapping);
+
+    packer_region_compute_checksum(packer, entry->region, regionMapping);
     if (UNLIKELY(fileRes = file_unmap(file, regionMapping))) {
       log_e("Failed to unmap pack file", log_param("error", fmt_text(file_result_str(fileRes))));
     }
@@ -238,7 +251,7 @@ static bool packer_add_other_entries(
       continue; // Empty bucket.
     }
     buckets[i].size   = bits_align(buckets[i].size, asset_pack_block_size);
-    buckets[i].region = packer_add_region(packer, *fileOffset, buckets[i].size);
+    buckets[i].region = packer_region_add(packer, *fileOffset, buckets[i].size);
     if (UNLIKELY(fileRes = file_resize_sync(file, *fileOffset + buckets[i].size))) {
       log_e("Failed to resize pack file", log_param("error", fmt_text(file_result_str(fileRes))));
       success = false;
@@ -269,6 +282,7 @@ static bool packer_add_other_entries(
   // Unmap all regions.
   for (u32 i = 0; i != asset_pack_other_buckets; ++i) {
     if (!string_is_empty(buckets[i])) {
+      packer_region_compute_checksum(packer, buckets[i].region, buckets[i].mapping);
       if (UNLIKELY(fileRes = file_unmap(file, buckets[i].mapping))) {
         log_e("Failed to unmap pack file", log_param("error", fmt_text(file_result_str(fileRes))));
       }
@@ -310,6 +324,10 @@ bool asset_packer_push(
   }
   if (UNLIKELY(!info.size)) {
     log_e("Failed to pack zero-sized asset", log_param("asset", fmt_text(assetId)));
+    return false;
+  }
+  if (UNLIKELY(info.size > (u32_max - asset_pack_block_size))) {
+    log_e("Asset too big to pack", log_param("asset", fmt_text(assetId)));
     return false;
   }
   if (UNLIKELY(!(info.flags & AssetInfoFlags_Cached) && info.format != AssetFormat_Raw)) {
@@ -385,6 +403,7 @@ void asset_data_init_pack(void) {
   data_reg_struct_t(g_dataReg, AssetPackRegion);
   data_reg_field_t(g_dataReg, AssetPackRegion, offset, data_prim_t(u64));
   data_reg_field_t(g_dataReg, AssetPackRegion, size, data_prim_t(u32));
+  data_reg_field_t(g_dataReg, AssetPackRegion, checksum, data_prim_t(u32));
 
   data_reg_struct_t(g_dataReg, AssetPackHeader);
   data_reg_field_t(g_dataReg, AssetPackHeader, entries, t_AssetPackEntry, .container = DataContainer_DynArray);
