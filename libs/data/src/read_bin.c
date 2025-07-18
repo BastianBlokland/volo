@@ -164,7 +164,7 @@ static void data_read_bin_header_internal(ReadCtx* ctx, DataBinHeader* out, Data
   if (!bin_pop_u32(ctx, &out->protocolVersion)) {
     goto Truncated;
   }
-  if (!out->protocolVersion || out->protocolVersion > 3) {
+  if (!out->protocolVersion || out->protocolVersion > 4) {
     *res = result_fail(
         DataReadError_Incompatible,
         "Input protocol version {} is unsupported",
@@ -175,6 +175,12 @@ static void data_read_bin_header_internal(ReadCtx* ctx, DataBinHeader* out, Data
   if (out->protocolVersion == 1) {
     out->checksum = 0; // Version 1 had no checksum.
   } else if (!bin_pop_u32(ctx, &out->checksum)) {
+    goto Truncated;
+  }
+
+  if (out->protocolVersion < 4) {
+    out->size = 0; // Version 1-3 had no size.
+  } else if (!bin_pop_u32(ctx, &out->size)) {
     goto Truncated;
   }
 

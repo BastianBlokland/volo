@@ -73,6 +73,7 @@ String data_read_bin(const DataReg*, String, Allocator*, DataMeta, Mem data, Dat
 typedef struct {
   u32           protocolVersion;
   u32           checksum;         // crc32 (ISO 3309).
+  u32           size;             // Total size of the data (including the header).
   u32           metaTypeNameHash; // Hash of the type's name.
   u32           metaFormatHash;   // Deep hash of the type's format ('data_hash()').
   DataContainer metaContainer : 8;
