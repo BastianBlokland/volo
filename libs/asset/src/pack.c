@@ -100,6 +100,10 @@ static u16 packer_region_add(AssetPacker* packer, const u64 offset, const u32 si
   diag_assert(bits_aligned(offset, asset_pack_block_size));
   diag_assert(bits_aligned(size, asset_pack_block_size));
 
+  if (UNLIKELY(packer->regions.size == u16_max)) {
+    diag_crash_msg("Pack region count exceeds limit: {}", fmt_int(u16_max));
+  }
+
   *dynarray_push_t(&packer->regions, AssetPackRegion) = (AssetPackRegion){
       .offset = offset,
       .size   = size,
