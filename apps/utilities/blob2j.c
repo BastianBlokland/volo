@@ -18,8 +18,7 @@
  */
 
 typedef struct {
-  bool noTrail; // Disallow trailing data.
-  u64  offset;
+  u64 offset;
 } Blob2jConfig;
 
 static i32 blob2j_run(const Blob2jConfig* cfg, File* inputFile, File* outputFile) {
@@ -65,17 +64,11 @@ static i32 blob2j_run(const Blob2jConfig* cfg, File* inputFile, File* outputFile
   const usize dataAlign = data_meta_align(g_dataReg, dataMeta);
   data                  = alloc_alloc(g_allocHeap, dataSize, dataAlign);
 
-  const String inputRem = data_read_bin(g_dataReg, input, g_allocHeap, dataMeta, data, &readRes);
+  data_read_bin(g_dataReg, input, g_allocHeap, dataMeta, data, &readRes);
   if (readRes.error) {
     file_write_sync(
         g_fileStdErr,
         fmt_write_scratch("ERROR: Failed to read input: {}.\n", fmt_text(readRes.errorMsg)));
-    exitCode = 1;
-    goto Ret;
-  }
-  if (cfg->noTrail && !string_is_empty(inputRem)) {
-    file_write_sync(g_fileStdErr, fmt_write_scratch("ERROR: Unexpected input data after blob.\n"));
-    data_destroy(g_dataReg, g_allocHeap, dataMeta, data);
     exitCode = 1;
     goto Ret;
   }
@@ -98,7 +91,7 @@ Ret:
   return exitCode;
 }
 
-static CliId g_optPath, g_optOffset, g_optNoTrail, g_optHelp;
+static CliId g_optPath, g_optOffset, g_optHelp;
 
 void app_cli_configure(CliApp* app) {
   cli_app_register_desc(app, string_lit("Utility to convert Volo binary blobs to json."));
@@ -110,14 +103,10 @@ void app_cli_configure(CliApp* app) {
   g_optOffset = cli_register_flag(app, 'o', string_lit("offset"), CliOptionFlags_Value);
   cli_register_desc(app, g_optOffset, string_lit("Offset to read at."));
 
-  g_optNoTrail = cli_register_flag(app, '\0', string_lit("notrail"), CliOptionFlags_None);
-  cli_register_desc(app, g_optNoTrail, string_lit("Disallow trailing data."));
-
   g_optHelp = cli_register_flag(app, 'h', string_lit("help"), CliOptionFlags_None);
   cli_register_desc(app, g_optHelp, string_lit("Display this help page."));
   cli_register_exclusions(app, g_optHelp, g_optPath);
   cli_register_exclusions(app, g_optHelp, g_optOffset);
-  cli_register_exclusions(app, g_optHelp, g_optNoTrail);
 }
 
 i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
@@ -129,8 +118,7 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   }
 
   const Blob2jConfig cfg = {
-      .noTrail = cli_parse_provided(invoc, g_optNoTrail),
-      .offset  = cli_read_u64(invoc, g_optOffset, 0),
+      .offset = cli_read_u64(invoc, g_optOffset, 0),
   };
 
   File* inputFile      = null;
