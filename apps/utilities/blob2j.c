@@ -22,7 +22,7 @@ typedef struct {
 } Blob2jConfig;
 
 static i32 blob2j_run(const Blob2jConfig* cfg, File* inputFile, File* outputFile) {
-  DynString buffer   = dynstring_create(g_allocHeap, usize_kibibyte);
+  DynString buffer   = dynstring_create(g_allocHeap, 16 * usize_kibibyte);
   Mem       data     = mem_empty;
   i32       exitCode = 0;
 
@@ -31,20 +31,34 @@ static i32 blob2j_run(const Blob2jConfig* cfg, File* inputFile, File* outputFile
     exitCode = 1;
     goto Ret;
   }
-  if (file_read_to_end_sync(inputFile, &buffer)) {
+
+  if (file_read_sync(inputFile, &buffer)) {
     file_write_sync(g_fileStdErr, string_lit("ERROR: Failed to read input.\n"));
     exitCode = 1;
     goto Ret;
   }
-  const String input = dynstring_view(&buffer);
 
   DataBinHeader  dataHeader;
   DataReadResult readRes;
-  data_read_bin_header(input, &dataHeader, &readRes);
+  data_read_bin_header(dynstring_view(&buffer), &dataHeader, &readRes);
   if (readRes.error) {
     file_write_sync(
         g_fileStdErr,
         fmt_write_scratch("ERROR: Failed to read input: {}.\n", fmt_text(readRes.errorMsg)));
+    exitCode = 1;
+    goto Ret;
+  }
+
+  if (dataHeader.size) {
+    while (buffer.size < dataHeader.size) {
+      if (file_read_sync(inputFile, &buffer)) {
+        file_write_sync(g_fileStdErr, string_lit("ERROR: Failed to read input.\n"));
+        exitCode = 1;
+        goto Ret;
+      }
+    }
+  } else if (file_read_to_end_sync(inputFile, &buffer)) {
+    file_write_sync(g_fileStdErr, string_lit("ERROR: Failed to read input.\n"));
     exitCode = 1;
     goto Ret;
   }
@@ -55,7 +69,7 @@ static i32 blob2j_run(const Blob2jConfig* cfg, File* inputFile, File* outputFile
       .flags     = dataHeader.metaFlags,
   };
   if (!dataMeta.type) {
-    file_write_sync(g_fileStdErr, string_lit("ERROR: Unknown input type.\n"));
+    file_write_sync(g_fileStdErr, string_lit("ERROR: Unsupported input type.\n"));
     exitCode = 1;
     goto Ret;
   }
@@ -64,7 +78,7 @@ static i32 blob2j_run(const Blob2jConfig* cfg, File* inputFile, File* outputFile
   const usize dataAlign = data_meta_align(g_dataReg, dataMeta);
   data                  = alloc_alloc(g_allocHeap, dataSize, dataAlign);
 
-  data_read_bin(g_dataReg, input, g_allocHeap, dataMeta, data, &readRes);
+  data_read_bin(g_dataReg, dynstring_view(&buffer), g_allocHeap, dataMeta, data, &readRes);
   if (readRes.error) {
     file_write_sync(
         g_fileStdErr,
