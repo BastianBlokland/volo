@@ -13,6 +13,7 @@ typedef struct {
 typedef struct {
   u64 offset; // Bytes into the file.
   u32 size;
+  u32 checksum; // crc32 (ISO 3309).
 } AssetPackRegion;
 
 typedef struct {
