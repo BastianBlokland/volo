@@ -22,6 +22,7 @@ static void test_bin_roundtrip(
   if (readRes.error != DataReadError_None) {
     check_error("Roundtrip read header failed: {}", fmt_text(readRes.errorMsg));
   }
+  check_eq_int(dataHeader.size, writeStr.size);
   check_eq_int(dataHeader.checksum, data_read_bin_checksum(writeResult));
 
   Mem          readData = mem_stack(data.size);
