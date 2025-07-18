@@ -5,6 +5,7 @@
 #include "core_file.h"
 #include "core_math.h"
 #include "core_path.h"
+#include "core_stringtable.h"
 #include "core_thread.h"
 #include "data_read.h"
 #include "data_utils.h"
@@ -199,7 +200,7 @@ static AssetCacheEntry* cache_reg_add(AssetCache* c, const String id, const Stri
   } else {
     // New entry.
     *res = (AssetCacheEntry){
-        .id     = string_dup(c->alloc, id),
+        .id     = stringtable_intern(g_stringtable, id),
         .idHash = idHash,
     };
   }
@@ -388,7 +389,7 @@ void asset_cache_set(
     for (usize i = 0; i != depCount; ++i) {
       diag_assert(!string_is_empty(deps[i].id));
       cacheDependencies[i] = (AssetCacheDependency){
-          .id         = string_dup(c->alloc, deps[i].id),
+          .id         = stringtable_intern(g_stringtable, deps[i].id),
           .modTime    = deps[i].modTime,
           .loaderHash = deps[i].loaderHash,
       };
@@ -480,7 +481,7 @@ usize asset_cache_deps(
       result = math_min(entry->dependencies.count, asset_repo_cache_deps_max);
       for (usize i = 0; i != result; ++i) {
         out[i] = (AssetRepoDep){
-            .id         = string_dup(g_allocScratch, entry->dependencies.values[i].id),
+            .id         = entry->dependencies.values[i].id,
             .modTime    = entry->dependencies.values[i].modTime,
             .loaderHash = entry->dependencies.values[i].loaderHash,
         };

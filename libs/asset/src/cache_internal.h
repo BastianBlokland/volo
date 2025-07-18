@@ -43,7 +43,6 @@ bool asset_cache_get(AssetCache*, String id, AssetRepoLoaderHasher, AssetCacheRe
 /**
  * Lookup cache dependencies for the given id.
  * Returns the amount of dependencies written to the out pointer.
- * NOTE: Dependency ids are allocated in scratch memory; should not be stored.
  */
 usize asset_cache_deps(
     AssetCache*, String id, AssetRepoDep out[PARAM_ARRAY_SIZE(asset_repo_cache_deps_max)]);
