@@ -10,19 +10,20 @@
 #include "registry_internal.h"
 
 static const String g_dataBinMagic           = string_static("VOLO");
-static const u32    g_dataBinProtocolVersion = 3;
+static const u32    g_dataBinProtocolVersion = 4;
 
 /**
  * Protocol version history:
  * 1: Initial version.
  * 2: Added crc32 checksum.
  * 3: Support string-hash values.
+ * 4: Add total size to header.
  */
 
 typedef struct {
   const DataReg* reg;
   DynString*     out;
-  usize          checksumOffset;
+  usize          checksumOffset, sizeOffset;
   DataMeta       meta;
   Mem            data;
   DynArray*      stringHashes; // StringHash[]
@@ -88,11 +89,16 @@ static void data_write_bin_header(WriteCtx* ctx) {
   bin_push_u32(ctx, g_dataBinProtocolVersion);
 
   /**
-   * Write a placeholder for the checksum field. The actual checksum will only be filled in after
-   * all the data has been written.
+   * Write a placeholder for the size and checksum fields. The actual data will only be filled after
+   * all the other data has been written
    * NOTE: The magic and the version (and the checksum itself) are not part of the checksum.
+   * NOTE: Size indicates the full size (including the header).
    */
+
   ctx->checksumOffset = (usize)ctx->out->size;
+  dynstring_push(ctx->out, sizeof(u32));
+
+  ctx->sizeOffset = (usize)ctx->out->size;
   dynstring_push(ctx->out, sizeof(u32));
 
   bin_push_u32(ctx, data_name_hash(ctx->reg, ctx->meta.type));
@@ -112,6 +118,11 @@ static void data_write_bin_stringhash_values(const WriteCtx* ctx) {
     bin_push_u8(ctx, length);
     mem_cpy(dynstring_push(ctx->out, length), mem_slice(str, 0, length));
   }
+}
+
+static void data_write_bin_size(const WriteCtx* ctx, const u32 sizeTotal) {
+  const Mem data = dynstring_view(ctx->out);
+  mem_write_le_u32(mem_slice(data, ctx->sizeOffset, sizeof(u32)), sizeTotal);
 }
 
 static void data_write_bin_checksum(const WriteCtx* ctx) {
@@ -353,6 +364,8 @@ static void data_write_bin_val(const WriteCtx* ctx) {
 void data_write_bin(const DataReg* reg, DynString* str, const DataMeta meta, const Mem data) {
   diag_assert(data.size == data_meta_size(reg, meta));
 
+  const usize strSizeInitial = str->size;
+
   DynArray stringHashes = dynarray_create_t(g_allocScratch, StringHash, 1024);
 
   WriteCtx ctx = {
@@ -365,5 +378,12 @@ void data_write_bin(const DataReg* reg, DynString* str, const DataMeta meta, con
   data_write_bin_header(&ctx);
   data_write_bin_val(&ctx);
   data_write_bin_stringhash_values(&ctx);
+
+  const usize sizeTotal = str->size - strSizeInitial;
+  if (UNLIKELY(sizeTotal > u32_max)) {
+    diag_crash_msg("Binary data blob size exceeds limit: {}", fmt_size(u32_max));
+  }
+
+  data_write_bin_size(&ctx, (u32)sizeTotal);
   data_write_bin_checksum(&ctx);
 }
