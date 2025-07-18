@@ -57,10 +57,16 @@ static i32 blob2j_run(const Blob2jConfig* cfg, File* inputFile, File* outputFile
         goto Ret;
       }
     }
-  } else if (file_read_to_end_sync(inputFile, &buffer)) {
-    file_write_sync(g_fileStdErr, string_lit("ERROR: Failed to read input.\n"));
-    exitCode = 1;
-    goto Ret;
+  } else {
+    /**
+     * NOTE: Old versions of the blob format did not store the size, to support them we read the
+     * whole file.
+     */
+    if (file_read_to_end_sync(inputFile, &buffer)) {
+      file_write_sync(g_fileStdErr, string_lit("ERROR: Failed to read input.\n"));
+      exitCode = 1;
+      goto Ret;
+    }
   }
 
   const DataMeta dataMeta = {
