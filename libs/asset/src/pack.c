@@ -326,6 +326,10 @@ bool asset_packer_push(
     log_e("Failed to pack zero-sized asset", log_param("asset", fmt_text(assetId)));
     return false;
   }
+  if (UNLIKELY(info.size > (u32_max - asset_pack_block_size))) {
+    log_e("Asset too big to pack", log_param("asset", fmt_text(assetId)));
+    return false;
+  }
   if (UNLIKELY(!(info.flags & AssetInfoFlags_Cached) && info.format != AssetFormat_Raw)) {
     /**
      * Packing a non-cached asset is supported but means the source asset will be packed and will
