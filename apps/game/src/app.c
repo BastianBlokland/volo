@@ -637,7 +637,7 @@ void app_ecs_register(EcsDef* def, MAYBE_UNUSED const CliInvocation* invoc) {
 }
 
 static AssetManagerComp* app_init_assets(EcsWorld* world, const CliInvocation* invoc) {
-  const AssetManagerFlags flags = AssetManagerFlags_TrackChanges | AssetManagerFlags_DelayUnload;
+  const AssetManagerFlags flags        = AssetManagerFlags_DelayUnload;
   const String            overridePath = cli_read_string(invoc, g_optAssets, string_empty);
   if (!string_is_empty(overridePath)) {
     const FileInfo overrideInfo = file_stat_path_sync(overridePath);
@@ -645,7 +645,7 @@ static AssetManagerComp* app_init_assets(EcsWorld* world, const CliInvocation* i
     case FileType_Regular:
       return asset_manager_create_pack(world, flags, overridePath);
     case FileType_Directory:
-      return asset_manager_create_fs(world, flags, overridePath);
+      return asset_manager_create_fs(world, flags | AssetManagerFlags_TrackChanges, overridePath);
     default:
       log_e("Asset directory / pack file not found", log_param("path", fmt_path(overridePath)));
       return null;
@@ -656,8 +656,8 @@ static AssetManagerComp* app_init_assets(EcsWorld* world, const CliInvocation* i
     return asset_manager_create_pack(world, flags, pathPackDefault);
   }
   const String pathFsDefault = string_lit("assets");
-  if (file_stat_path_sync(pathFsDefault).type == FileType_Regular) {
-    return asset_manager_create_fs(world, flags, pathFsDefault);
+  if (file_stat_path_sync(pathFsDefault).type == FileType_Directory) {
+    return asset_manager_create_fs(world, flags | AssetManagerFlags_TrackChanges, pathFsDefault);
   }
   log_e("No assets source found");
   return null;
