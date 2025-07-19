@@ -707,12 +707,20 @@ bool asset_path_by_id(const AssetManagerComp* manager, const String id, DynStrin
 
 AssetManagerComp*
 asset_manager_create_fs(EcsWorld* world, const AssetManagerFlags flags, const String rootPath) {
-  return asset_manager_create_internal(world, asset_repo_create_fs(rootPath), flags);
+  AssetRepo* repo = asset_repo_create_fs(rootPath);
+  if (UNLIKELY(!repo)) {
+    return null;
+  }
+  return asset_manager_create_internal(world, repo, flags);
 }
 
 AssetManagerComp*
 asset_manager_create_pack(EcsWorld* world, const AssetManagerFlags flags, const String filePath) {
-  return asset_manager_create_internal(world, asset_repo_create_pack(filePath), flags);
+  AssetRepo* repo = asset_repo_create_pack(filePath);
+  if (UNLIKELY(!repo)) {
+    return null;
+  }
+  return asset_manager_create_internal(world, repo, flags);
 }
 
 AssetManagerComp* asset_manager_create_mem(
@@ -720,7 +728,11 @@ AssetManagerComp* asset_manager_create_mem(
     const AssetManagerFlags flags,
     const AssetMemRecord*   records,
     const usize             recordCount) {
-  return asset_manager_create_internal(world, asset_repo_create_mem(records, recordCount), flags);
+  AssetRepo* repo = asset_repo_create_mem(records, recordCount);
+  if (UNLIKELY(!repo)) {
+    return null;
+  }
+  return asset_manager_create_internal(world, repo, flags);
 }
 
 EcsEntityId asset_lookup(EcsWorld* world, AssetManagerComp* manager, const String id) {
