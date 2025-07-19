@@ -1,13 +1,19 @@
 #include "core_alloc.h"
 #include "core_file.h"
+#include "data_read.h"
+#include "data_utils.h"
 #include "log_logger.h"
 
+#include "pack_internal.h"
 #include "repo_internal.h"
 
+#define asset_pack_header_size (usize_mebibyte)
+
 typedef struct {
-  AssetRepo  api;
-  File*      file;
-  Allocator* sourceAlloc; // Allocator for AssetSourcePack objects.
+  AssetRepo       api;
+  File*           file;
+  AssetPackHeader header;
+  Allocator*      sourceAlloc; // Allocator for AssetSourcePack objects.
 } AssetRepoPack;
 
 typedef struct {
@@ -60,9 +66,30 @@ static void asset_repo_pack_destroy(AssetRepo* repo) {
   AssetRepoPack* repoPack = (AssetRepoPack*)repo;
 
   file_destroy(repoPack->file);
+  data_destroy(g_dataReg, g_allocHeap, g_assetPackMeta, mem_var(repoPack->header));
+
   alloc_block_destroy(repoPack->sourceAlloc);
 
   alloc_free_t(g_allocHeap, repoPack);
+}
+
+static bool asset_repo_pack_read_header(File* file, AssetPackHeader* out) {
+  FileResult fileRes;
+  String     mapping;
+  if ((fileRes = file_map(file, 0, asset_pack_header_size, FileHints_None, &mapping))) {
+    log_e("Failed to read pack header", log_param("error", fmt_text(file_result_str(fileRes))));
+    return false;
+  }
+  DataReadResult readRes;
+  data_read_bin(g_dataReg, mapping, g_allocHeap, g_assetPackMeta, mem_var(*out), &readRes);
+  if (UNLIKELY(readRes.error)) {
+    log_e("Failed to read pack header", log_param("error", fmt_text(readRes.errorMsg)));
+    return false;
+  }
+  if ((fileRes = file_unmap(file, mapping))) {
+    log_e("Failed to unmap header mapping", log_param("error", fmt_text(file_result_str(fileRes))));
+  }
+  return true;
 }
 
 AssetRepo* asset_repo_create_pack(const String filePath) {
@@ -72,7 +99,10 @@ AssetRepo* asset_repo_create_pack(const String filePath) {
     log_e("Failed to open pack file", log_param("error", fmt_text(file_result_str(fileRes))));
     return null;
   }
-
+  AssetPackHeader header;
+  if (!asset_repo_pack_read_header(file, &header)) {
+    return null;
+  }
   AssetRepoPack* repo = alloc_alloc_t(g_allocHeap, AssetRepoPack);
 
   *repo = (AssetRepoPack){
@@ -83,7 +113,8 @@ AssetRepo* asset_repo_create_pack(const String filePath) {
               .destroy = asset_repo_pack_destroy,
               .query   = asset_repo_pack_query,
           },
-      .file = file,
+      .file   = file,
+      .header = header,
       .sourceAlloc =
           alloc_block_create(g_allocHeap, sizeof(AssetSourcePack), alignof(AssetSourcePack)),
   };
@@ -91,7 +122,9 @@ AssetRepo* asset_repo_create_pack(const String filePath) {
   log_i(
       "Asset repository created",
       log_param("type", fmt_text_lit("pack")),
-      log_param("path", fmt_path(filePath)));
+      log_param("path", fmt_path(filePath)),
+      log_param("entries", fmt_int(header.entries.size)),
+      log_param("regions", fmt_int(header.regions.size)));
 
   return (AssetRepo*)repo;
 }
