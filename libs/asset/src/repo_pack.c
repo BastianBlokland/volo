@@ -11,10 +11,15 @@
 #define asset_pack_header_size (usize_mebibyte)
 
 typedef struct {
-  AssetRepo       api;
-  File*           file;
-  AssetPackHeader header;
-  Allocator*      sourceAlloc; // Allocator for AssetSourcePack objects.
+  u32 dummy;
+} AssetRegionState;
+
+typedef struct {
+  AssetRepo         api;
+  File*             file;
+  AssetRegionState* regions;
+  AssetPackHeader   header;
+  Allocator*        sourceAlloc; // Allocator for AssetSourcePack objects.
 } AssetRepoPack;
 
 typedef struct {
@@ -100,6 +105,7 @@ static void asset_repo_pack_destroy(AssetRepo* repo) {
   AssetRepoPack* repoPack = (AssetRepoPack*)repo;
 
   file_destroy(repoPack->file);
+  alloc_free_array_t(g_allocHeap, repoPack->regions, repoPack->header.regions.size);
   data_destroy(g_dataReg, g_allocHeap, g_assetPackMeta, mem_var(repoPack->header));
 
   alloc_block_destroy(repoPack->sourceAlloc);
@@ -144,6 +150,10 @@ AssetRepo* asset_repo_create_pack(const String filePath) {
   }
   AssetRepoPack* repo = alloc_alloc_t(g_allocHeap, AssetRepoPack);
 
+  const u32         regionCount = (u32)header.regions.size;
+  AssetRegionState* regions     = alloc_array_t(g_allocHeap, AssetRegionState, regionCount);
+  mem_set(mem_create(regions, sizeof(AssetRegionState) * regionCount), 0);
+
   *repo = (AssetRepoPack){
       .api =
           {
@@ -152,8 +162,9 @@ AssetRepo* asset_repo_create_pack(const String filePath) {
               .destroy = asset_repo_pack_destroy,
               .query   = asset_repo_pack_query,
           },
-      .file   = file,
-      .header = header,
+      .file    = file,
+      .regions = regions,
+      .header  = header,
       .sourceAlloc =
           alloc_block_create(g_allocHeap, sizeof(AssetSourcePack), alignof(AssetSourcePack)),
   };
