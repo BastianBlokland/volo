@@ -23,6 +23,16 @@ typedef struct {
   u16            region;
 } AssetSourcePack;
 
+static bool asset_repo_pack_validate(const AssetPackHeader* header) {
+  if (!header->entries.size) {
+    return false;
+  }
+  if (!header->regions.size) {
+    return false;
+  }
+  return true;
+}
+
 static const AssetPackEntry* asset_repo_pack_find(AssetRepoPack* pack, const String id) {
   const AssetPackEntry* entry = dynarray_search_binary(
       &pack->header.entries,
@@ -125,6 +135,11 @@ AssetRepo* asset_repo_create_pack(const String filePath) {
   }
   AssetPackHeader header;
   if (!asset_repo_pack_read_header(file, &header)) {
+    return null;
+  }
+  if (!asset_repo_pack_validate(&header)) {
+    log_e("Malformed pack file");
+    data_destroy(g_dataReg, g_allocHeap, g_assetPackMeta, mem_var(header));
     return null;
   }
   AssetRepoPack* repo = alloc_alloc_t(g_allocHeap, AssetRepoPack);
