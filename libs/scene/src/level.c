@@ -648,9 +648,11 @@ ecs_system_define(SceneLevelSaveSys) {
   for (EcsIterator* itr = ecs_view_itr(requestView); ecs_view_walk(itr);) {
     const SceneLevelRequestSaveComp* req = ecs_view_read_t(itr, SceneLevelRequestSaveComp);
     if (manager->isLoading) {
-      log_e("Level save failed; load in progress");
+      log_e("Level save failed", log_param("reason", fmt_text_lit("Load in progress")));
     } else if (manager->levelMode != SceneLevelMode_Edit) {
-      log_e("Level save failed; level not loaded for edit");
+      log_e("Level save failed", log_param("reason", fmt_text_lit("Level not loaded for edit")));
+    } else if (!asset_save_supported(assets)) {
+      log_e("Level save failed", log_param("reason", fmt_text_lit("Unsupported by asset-manager")));
     } else {
       ecs_view_jump(assetItr, req->levelAsset);
       const String assetId = asset_id(ecs_view_read_t(assetItr, AssetComp));
