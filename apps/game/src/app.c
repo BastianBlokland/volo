@@ -588,8 +588,8 @@ void app_ecs_configure(CliApp* app) {
   cli_app_register_desc(app, string_lit("Volo RTS Demo"));
 
   g_optAssets = cli_register_flag(app, 'a', string_lit("assets"), CliOptionFlags_Value);
-  cli_register_desc(app, g_optAssets, string_lit("Path to asset directory."));
-  cli_register_validator(app, g_optAssets, cli_validate_file_directory);
+  cli_register_desc(app, g_optAssets, string_lit("Path to asset directory / pack file."));
+  cli_register_validator(app, g_optAssets, cli_validate_file);
 
   g_optWindow = cli_register_flag(app, 'w', string_lit("window"), CliOptionFlags_None);
   cli_register_desc(app, g_optWindow, string_lit("Start the game in windowed mode."));
@@ -636,18 +636,40 @@ void app_ecs_register(EcsDef* def, MAYBE_UNUSED const CliInvocation* invoc) {
   ecs_register_module(def, game_prefs_module);
 }
 
+static AssetManagerComp* app_init_assets(EcsWorld* world, const CliInvocation* invoc) {
+  const AssetManagerFlags flags = AssetManagerFlags_TrackChanges | AssetManagerFlags_DelayUnload;
+  const String            overridePath = cli_read_string(invoc, g_optAssets, string_empty);
+  if (!string_is_empty(overridePath)) {
+    const FileInfo overrideInfo = file_stat_path_sync(overridePath);
+    switch (overrideInfo.type) {
+    case FileType_Regular:
+      return asset_manager_create_pack(world, flags, overridePath);
+    case FileType_Directory:
+      return asset_manager_create_fs(world, flags, overridePath);
+    default:
+      log_e("Asset directory / pack file not found", log_param("path", fmt_path(overridePath)));
+      return null;
+    }
+  }
+  const String pathPackDefault = string_lit("assets.blob");
+  if (file_stat_path_sync(pathPackDefault).type == FileType_Regular) {
+    return asset_manager_create_pack(world, flags, pathPackDefault);
+  }
+  const String pathFsDefault = string_lit("assets");
+  if (file_stat_path_sync(pathFsDefault).type == FileType_Regular) {
+    return asset_manager_create_fs(world, flags, pathFsDefault);
+  }
+  log_e("No assets source found");
+  return null;
+}
+
 void app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
   dev_log_tracker_init(world, g_logger);
 
-  const String assetPath = cli_read_string(invoc, g_optAssets, string_lit("assets"));
-  if (file_stat_path_sync(assetPath).type != FileType_Directory) {
-    log_e("Asset directory not found", log_param("path", fmt_path(assetPath)));
+  AssetManagerComp* assets = app_init_assets(world, invoc);
+  if (UNLIKELY(!assets)) {
     return;
   }
-
-  const AssetManagerFlags assetFlg = AssetManagerFlags_TrackChanges | AssetManagerFlags_DelayUnload;
-  AssetManagerComp*       assets   = asset_manager_create_fs(world, assetFlg, assetPath);
-
   GamePrefsComp* prefs      = prefs_init(world);
   const bool     fullscreen = prefs->fullscreen && !cli_parse_provided(invoc, g_optWindow);
   const u16      width      = (u16)cli_read_u64(invoc, g_optWidth, prefs->windowWidth);

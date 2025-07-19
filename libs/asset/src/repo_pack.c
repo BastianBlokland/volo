@@ -1,4 +1,5 @@
 #include "core_alloc.h"
+#include "log_logger.h"
 
 #include "repo_internal.h"
 
@@ -78,6 +79,11 @@ AssetRepo* asset_repo_create_pack(const String filePath) {
       .sourceAlloc =
           alloc_block_create(g_allocHeap, sizeof(AssetSourcePack), alignof(AssetSourcePack)),
   };
+
+  log_i(
+      "Asset repository created",
+      log_param("type", fmt_text_lit("pack")),
+      log_param("path", fmt_path(filePath)));
 
   return (AssetRepo*)repo;
 }

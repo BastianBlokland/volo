@@ -120,5 +120,11 @@ AssetRepo* asset_repo_create_mem(const AssetMemRecord* records, const usize reco
     };
     *dynarray_insert_sorted_t(&repo->entries, RepoEntry, asset_compare_entry, &entry) = entry;
   }
+
+  log_i(
+      "Asset repository created",
+      log_param("type", fmt_text_lit("memory")),
+      log_param("records", fmt_int(recordCount)));
+
   return (AssetRepo*)repo;
 }
