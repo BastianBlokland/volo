@@ -610,9 +610,12 @@ static void level_process_save(
       .objects.values = dynarray_begin_t(&objects, AssetLevelObject),
       .objects.count  = objects.size,
   };
-  asset_level_save(assets, id, &level);
-
-  log_i("Level saved", log_param("id", fmt_text(id)), log_param("objects", fmt_int(objects.size)));
+  if (asset_level_save(assets, id, &level)) {
+    const u32 objCount = (u32)objects.size;
+    log_i("Level saved", log_param("id", fmt_text(id)), log_param("objects", fmt_int(objCount)));
+  } else {
+    log_w("Failed to save level", log_param("id", fmt_text(id)));
+  }
 
   dynarray_destroy(&objects);
   level_id_map_destroy(&idMap);
