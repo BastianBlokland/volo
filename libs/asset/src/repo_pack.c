@@ -172,15 +172,16 @@ asset_source_pack_open(AssetRepo* repo, const String id, const AssetRepoLoaderHa
 }
 
 static AssetRepoQueryResult asset_repo_pack_query(
-    AssetRepo* repo, const String pattern, void* context, const AssetRepoQueryHandler handler) {
+    AssetRepo* repo, const String pattern, void* ctx, const AssetRepoQueryHandler handler) {
   AssetRepoPack* repoPack = (AssetRepoPack*)repo;
-  (void)repoPack;
-  (void)pattern;
-  (void)context;
-  (void)handler;
 
-  // TODO: Implement.
-  return AssetRepoQueryResult_ErrorPatternNotSupported;
+  dynarray_for_t(&repoPack->header.entries, AssetPackEntry, entry) {
+    if (string_match_glob(entry->id, pattern, StringMatchFlags_None)) {
+      handler(ctx, entry->id);
+    }
+  }
+
+  return AssetRepoQueryResult_Success;
 }
 
 static void asset_repo_pack_destroy(AssetRepo* repo) {
