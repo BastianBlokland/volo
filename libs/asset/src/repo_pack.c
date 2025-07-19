@@ -1,10 +1,12 @@
 #include "core_alloc.h"
+#include "core_file.h"
 #include "log_logger.h"
 
 #include "repo_internal.h"
 
 typedef struct {
   AssetRepo  api;
+  File*      file;
   Allocator* sourceAlloc; // Allocator for AssetSourcePack objects.
 } AssetRepoPack;
 
@@ -57,16 +59,21 @@ static AssetRepoQueryResult asset_repo_pack_query(
 static void asset_repo_pack_destroy(AssetRepo* repo) {
   AssetRepoPack* repoPack = (AssetRepoPack*)repo;
 
+  file_destroy(repoPack->file);
   alloc_block_destroy(repoPack->sourceAlloc);
 
   alloc_free_t(g_allocHeap, repoPack);
 }
 
 AssetRepo* asset_repo_create_pack(const String filePath) {
-  AssetRepoPack* repo = alloc_alloc_t(g_allocHeap, AssetRepoPack);
+  File*      file;
+  FileResult fileRes;
+  if ((fileRes = file_create(g_allocHeap, filePath, FileMode_Open, FileAccess_Read, &file))) {
+    log_e("Failed to open pack file", log_param("error", fmt_text(file_result_str(fileRes))));
+    return null;
+  }
 
-  // TODO: Load packfile blob.
-  (void)filePath;
+  AssetRepoPack* repo = alloc_alloc_t(g_allocHeap, AssetRepoPack);
 
   *repo = (AssetRepoPack){
       .api =
@@ -76,6 +83,7 @@ AssetRepo* asset_repo_create_pack(const String filePath) {
               .destroy = asset_repo_pack_destroy,
               .query   = asset_repo_pack_query,
           },
+      .file = file,
       .sourceAlloc =
           alloc_block_create(g_allocHeap, sizeof(AssetSourcePack), alignof(AssetSourcePack)),
   };
