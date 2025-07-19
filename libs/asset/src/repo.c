@@ -53,6 +53,8 @@ bool asset_repo_save(AssetRepo* repo, const String id, const String data) {
   return repo->save && repo->save(repo, id, data);
 }
 
+bool asset_repo_save_supported(const AssetRepo* repo) { return repo->save != null; }
+
 void asset_repo_changes_watch(AssetRepo* repo, const String id, const u64 userData) {
   if (repo->changesWatch) {
     repo->changesWatch(repo, id, userData);

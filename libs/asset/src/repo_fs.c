@@ -358,5 +358,10 @@ AssetRepo* asset_repo_create_fs(const String rootPath) {
       .cache       = asset_cache_create(g_allocHeap, rootPath),
   };
 
+  log_i(
+      "Asset repository created",
+      log_param("type", fmt_text_lit("file-system")),
+      log_param("root", fmt_path(rootPath)));
+
   return (AssetRepo*)repo;
 }

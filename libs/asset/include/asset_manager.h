@@ -55,6 +55,11 @@ bool asset_path_by_id(const AssetManagerComp*, String id, DynString* out);
 AssetManagerComp* asset_manager_create_fs(EcsWorld*, AssetManagerFlags, String rootPath);
 
 /**
+ * Create a asset-manager (on the global entity) that loads assets from a pack file.
+ */
+AssetManagerComp* asset_manager_create_pack(EcsWorld*, AssetManagerFlags, String filePath);
+
+/**
  * Create a asset-manager (on the global entity) that loads assets from a set of pre-loaded
  * in-memory sources.
  * For example useful for unit-testing.
@@ -96,6 +101,7 @@ void asset_reload_request(EcsWorld*, EcsEntityId assetEntity);
  * Pre-condition: path_extension(id).size != 0.
  */
 bool asset_save(AssetManagerComp*, String id, String data);
+bool asset_save_supported(const AssetManagerComp*);
 
 /**
  * Query for assets that match the given id pattern.

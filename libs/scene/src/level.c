@@ -610,9 +610,12 @@ static void level_process_save(
       .objects.values = dynarray_begin_t(&objects, AssetLevelObject),
       .objects.count  = objects.size,
   };
-  asset_level_save(assets, id, &level);
-
-  log_i("Level saved", log_param("id", fmt_text(id)), log_param("objects", fmt_int(objects.size)));
+  if (asset_level_save(assets, id, &level)) {
+    const u32 objCount = (u32)objects.size;
+    log_i("Level saved", log_param("id", fmt_text(id)), log_param("objects", fmt_int(objCount)));
+  } else {
+    log_w("Failed to save level", log_param("id", fmt_text(id)));
+  }
 
   dynarray_destroy(&objects);
   level_id_map_destroy(&idMap);
@@ -645,9 +648,11 @@ ecs_system_define(SceneLevelSaveSys) {
   for (EcsIterator* itr = ecs_view_itr(requestView); ecs_view_walk(itr);) {
     const SceneLevelRequestSaveComp* req = ecs_view_read_t(itr, SceneLevelRequestSaveComp);
     if (manager->isLoading) {
-      log_e("Level save failed; load in progress");
+      log_e("Level save failed", log_param("reason", fmt_text_lit("Load in progress")));
     } else if (manager->levelMode != SceneLevelMode_Edit) {
-      log_e("Level save failed; level not loaded for edit");
+      log_e("Level save failed", log_param("reason", fmt_text_lit("Level not loaded for edit")));
+    } else if (!asset_save_supported(assets)) {
+      log_e("Level save failed", log_param("reason", fmt_text_lit("Unsupported by asset-manager")));
     } else {
       ecs_view_jump(assetItr, req->levelAsset);
       const String assetId = asset_id(ecs_view_read_t(assetItr, AssetComp));

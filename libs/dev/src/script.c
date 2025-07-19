@@ -918,6 +918,8 @@ static void dev_editor_update(DevScriptPanelComp* panelComp, const AssetManagerC
       };
       Process* p = process_create(g_allocHeap, editorFile, editorArgs, array_elems(editorArgs), 0);
       panelComp->editorLaunch = p;
+    } else {
+      log_w("Editor launch unsupported");
     }
     dynstring_destroy(&pathStr);
     *req = (DevEditorRequest){0};
