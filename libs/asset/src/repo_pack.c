@@ -11,8 +11,8 @@
 #include "pack_internal.h"
 #include "repo_internal.h"
 
-#define VOLO_ASSET_PACK_LOGGING 1
-#define VOLO_ASSET_PACK_VALIDATE 1
+#define VOLO_ASSET_PACK_LOGGING 0
+#define VOLO_ASSET_PACK_VALIDATE 0
 #define VOLO_ASSET_PACK_PREMAP_SMALL_REGION 1
 
 #define asset_pack_header_size (usize_mebibyte)
