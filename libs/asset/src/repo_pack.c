@@ -13,6 +13,7 @@
 
 #define VOLO_ASSET_PACK_LOGGING 1
 #define VOLO_ASSET_PACK_VALIDATE 1
+#define VOLO_ASSET_PACK_PREMAP_SMALL_REGION 1
 
 #define asset_pack_header_size (usize_mebibyte)
 
@@ -265,6 +266,10 @@ AssetRepo* asset_repo_create_pack(const String filePath) {
       log_param("path", fmt_path(filePath)),
       log_param("entries", fmt_int(header.entries.size)),
       log_param("regions", fmt_int(header.regions.size)));
+
+#if VOLO_ASSET_PACK_PREMAP_SMALL_REGION
+  asset_repo_pack_acquire(repo, 0 /* small assets region */);
+#endif
 
   return (AssetRepo*)repo;
 }
