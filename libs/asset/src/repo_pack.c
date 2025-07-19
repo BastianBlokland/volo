@@ -1,4 +1,5 @@
 #include "core_alloc.h"
+#include "core_diag.h"
 #include "core_file.h"
 #include "data_read.h"
 #include "data_utils.h"
@@ -22,15 +23,38 @@ typedef struct {
   u16            region;
 } AssetSourcePack;
 
+static const AssetPackEntry* asset_repo_pack_find(AssetRepoPack* pack, const String id) {
+  const AssetPackEntry* entry = dynarray_search_binary(
+      &pack->header.entries,
+      asset_pack_compare_entry,
+      &(AssetPackEntry){.idHash = string_hash(id)});
+  if (!entry) {
+    return null;
+  }
+  diag_assert_msg(
+      string_eq(entry->id, id),
+      "Hash collision detected: {} <-> {}",
+      fmt_text(id),
+      fmt_text(entry->id));
+  return entry;
+}
+
 static bool asset_source_pack_stat(
     AssetRepo* repo, const String id, const AssetRepoLoaderHasher loaderHasher, AssetInfo* out) {
-  AssetRepoPack* repoPack = (AssetRepoPack*)repo;
-  (void)repoPack;
-  (void)id;
   (void)loaderHasher;
-  (void)out;
-  // TODO: Implement.
-  return false;
+
+  AssetRepoPack*        repoPack = (AssetRepoPack*)repo;
+  const AssetPackEntry* entry    = asset_repo_pack_find(repoPack, id);
+  if (!entry) {
+    return false;
+  }
+  *out = (AssetInfo){
+      .format  = entry->format,
+      .flags   = AssetInfoFlags_None,
+      .size    = entry->size,
+      .modTime = 0, // Mod-time not tracked in pack files.
+  };
+  return true;
 }
 
 static void asset_source_pack_close(AssetSource* src) {
