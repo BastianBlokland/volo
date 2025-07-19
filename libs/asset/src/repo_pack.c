@@ -86,6 +86,7 @@ static String asset_repo_pack_acquire(AssetRepoPack* repo, const u16 region) {
       log_d(
           "Asset pack region mapped",
           log_param("region", fmt_int(region)),
+          log_param("size", fmt_size(state->mapping.size)),
           log_param("counter", fmt_int(state->mapCounter)));
 #endif
 #if VOLO_ASSET_PACK_VALIDATE
