@@ -101,6 +101,7 @@ void asset_reload_request(EcsWorld*, EcsEntityId assetEntity);
  * Pre-condition: path_extension(id).size != 0.
  */
 bool asset_save(AssetManagerComp*, String id, String data);
+bool asset_save_supported(const AssetManagerComp*);
 
 /**
  * Query for assets that match the given id pattern.

@@ -781,6 +781,10 @@ bool asset_save(AssetManagerComp* manager, const String id, const String data) {
   return asset_repo_save(manager->repo, id, data);
 }
 
+bool asset_save_supported(const AssetManagerComp* manager) {
+  return asset_repo_save_supported(manager->repo);
+}
+
 typedef struct {
   EcsWorld*         world;
   AssetManagerComp* manager;

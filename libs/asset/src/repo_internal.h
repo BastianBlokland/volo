@@ -94,6 +94,7 @@ bool         asset_repo_stat(AssetRepo*, String id, AssetRepoLoaderHasher, Asset
 AssetSource* asset_repo_open(AssetRepo*, String id, AssetRepoLoaderHasher);
 void         asset_repo_close(AssetSource*);
 bool         asset_repo_save(AssetRepo*, String id, String data);
+bool         asset_repo_save_supported(const AssetRepo*);
 
 void                 asset_repo_changes_watch(AssetRepo*, String id, u64 userData);
 bool                 asset_repo_changes_poll(AssetRepo*, u64* outUserData);
