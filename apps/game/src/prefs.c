@@ -12,6 +12,8 @@
 
 #include "prefs_internal.h"
 
+static const usize g_prefsMaxSize = 32 * usize_kibibyte;
+
 const String g_gameQualityLabels[] = {
     string_static("VeryLow"),
     string_static("Low"),
@@ -64,7 +66,7 @@ static void prefs_to_default(GamePrefsComp* prefs) {
 }
 
 static void prefs_save(const GamePrefsComp* prefs) {
-  DynString dataBuffer = dynstring_create(g_allocScratch, alloc_max_size(g_allocScratch));
+  DynString dataBuffer = dynstring_create(g_allocScratch, g_prefsMaxSize);
 
   // Serialize the preferences to json.
   const DataWriteJsonOpts writeOpts = data_write_json_opts();
@@ -106,10 +108,11 @@ GamePrefsComp* prefs_init(EcsWorld* world) {
   GamePrefsComp* prefs = ecs_world_add_t(world, ecs_world_global(world), GamePrefsComp);
 
   // Open the file handle.
-  const String filePath = prefs_path_scratch();
-  File*        file     = null;
-  FileResult   fileRes;
-  if ((fileRes = file_create(g_allocScratch, filePath, FileMode_Open, FileAccess_Read, &file))) {
+  const FileMode        fileMode   = FileMode_Open;
+  const FileAccessFlags fileAccess = FileAccess_Read;
+  File*                 file       = null;
+  FileResult            fileRes;
+  if ((fileRes = file_create(g_allocHeap, prefs_path_scratch(), fileMode, fileAccess, &file))) {
     if (fileRes != FileResult_NotFound) {
       log_e("Failed to read preference file", log_param("err", fmt_text(file_result_str(fileRes))));
     }
@@ -122,7 +125,7 @@ GamePrefsComp* prefs_init(EcsWorld* world) {
     log_e("Failed to map preference file", log_param("err", fmt_text(file_result_str(fileRes))));
     goto RetDefault;
   }
-  if (UNLIKELY(fileData.size > alloc_max_size(g_allocScratch))) {
+  if (UNLIKELY(fileData.size > g_prefsMaxSize)) {
     log_e("Preference file size exceeds maximum");
     goto RetDefault;
   }
@@ -138,7 +141,7 @@ GamePrefsComp* prefs_init(EcsWorld* world) {
 
   log_i(
       "Preference file loaded",
-      log_param("path", fmt_path(filePath)),
+      log_param("path", fmt_text(prefs_path_scratch())),
       log_param("size", fmt_size(fileData.size)));
   goto Ret;
 
