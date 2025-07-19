@@ -1,6 +1,9 @@
 #include "core_alloc.h"
+#include "core_bits.h"
 #include "core_diag.h"
+#include "core_dynarray.h"
 #include "core_file.h"
+#include "core_thread.h"
 #include "data_read.h"
 #include "data_utils.h"
 #include "log_logger.h"
@@ -8,15 +11,20 @@
 #include "pack_internal.h"
 #include "repo_internal.h"
 
+#define VOLO_ASSET_PACK_LOGGING 1
+#define VOLO_ASSET_PACK_VALIDATE 1
+
 #define asset_pack_header_size (usize_mebibyte)
 
 typedef struct {
-  u32 dummy;
+  String mapping;
+  i32    refCount;
 } AssetRegionState;
 
 typedef struct {
   AssetRepo         api;
   File*             file;
+  ThreadMutex       fileMutex;
   AssetRegionState* regions;
   AssetPackHeader   header;
   Allocator*        sourceAlloc; // Allocator for AssetSourcePack objects.
@@ -54,6 +62,58 @@ static const AssetPackEntry* asset_repo_pack_find(AssetRepoPack* pack, const Str
   return entry;
 }
 
+static String asset_repo_pack_acquire(AssetRepoPack* repo, const u16 region) {
+  if (UNLIKELY(region >= repo->header.regions.size)) {
+    diag_crash_msg("Corrupt pack file");
+  }
+  AssetRegionState* state = repo->regions + region;
+  thread_atomic_add_i32(&state->refCount, 1);
+
+  if (string_is_empty(state->mapping)) {
+    thread_mutex_lock(repo->fileMutex);
+    if (string_is_empty(state->mapping)) {
+      const AssetPackRegion* info = dynarray_at_t(&repo->header.regions, region, AssetPackRegion);
+      if (!info->size) {
+        diag_crash_msg("Corrupt pack file");
+      }
+      if (file_map(repo->file, info->offset, info->size, FileHints_Prefetch, &state->mapping)) {
+        diag_crash_msg("Failed to map pack region");
+      }
+#if VOLO_ASSET_PACK_LOGGING
+      log_d("Asset pack region mapped", log_param("region", fmt_int(region)));
+#endif
+#if VOLO_ASSET_PACK_VALIDATE
+      if (UNLIKELY(bits_crc_32(0, state->mapping) != info->checksum)) {
+        diag_crash_msg("Pack region checksum failed");
+      }
+#endif
+    }
+    thread_mutex_unlock(repo->fileMutex);
+  }
+  return state->mapping;
+}
+
+static void asset_repo_pack_release(AssetRepoPack* repo, const u16 region) {
+  AssetRegionState* state        = repo->regions + region;
+  const i32         prevRefCount = thread_atomic_sub_i32(&state->refCount, 1);
+  diag_assert_msg(prevRefCount, "Pack region double release");
+
+  if (prevRefCount == 1) {
+    thread_mutex_lock(repo->fileMutex);
+    if (!state->refCount && !string_is_empty(state->mapping)) {
+      if (file_unmap(repo->file, state->mapping)) {
+        diag_crash_msg("Failed to unmap pack region");
+      }
+      state->mapping = string_empty;
+
+#if VOLO_ASSET_PACK_LOGGING
+      log_d("Asset pack region unmapped", log_param("region", fmt_int(region)));
+#endif
+    }
+    thread_mutex_unlock(repo->fileMutex);
+  }
+}
+
 static bool asset_source_pack_stat(
     AssetRepo* repo, const String id, const AssetRepoLoaderHasher loaderHasher, AssetInfo* out) {
   (void)loaderHasher;
@@ -74,19 +134,41 @@ static bool asset_source_pack_stat(
 
 static void asset_source_pack_close(AssetSource* src) {
   AssetSourcePack* srcPack = (AssetSourcePack*)src;
-  // TODO: Implement.
+  asset_repo_pack_release(srcPack->repo, srcPack->region);
   alloc_free_t(srcPack->repo->sourceAlloc, srcPack);
 }
 
 static AssetSource*
 asset_source_pack_open(AssetRepo* repo, const String id, const AssetRepoLoaderHasher loaderHasher) {
-  AssetRepoPack* repoPack = (AssetRepoPack*)repo;
-  (void)repoPack;
-  (void)id;
   (void)loaderHasher;
-  (void)asset_source_pack_close;
-  // TODO: Implement.
-  return null;
+
+  AssetRepoPack*        repoPack = (AssetRepoPack*)repo;
+  const AssetPackEntry* entry    = asset_repo_pack_find(repoPack, id);
+  if (UNLIKELY(!entry)) {
+    log_w("File missing from pack file", log_param("id", fmt_text(id)));
+    return null;
+  }
+  const String regionMem = asset_repo_pack_acquire(repoPack, entry->region);
+  if (UNLIKELY((entry->offset + entry->size) > regionMem.size)) {
+    diag_crash_msg("Corrupt pack file");
+  }
+
+  AssetSourcePack* src = alloc_alloc_t(repoPack->sourceAlloc, AssetSourcePack);
+
+  *src = (AssetSourcePack){
+      .api =
+          {
+              .data    = mem_slice(regionMem, entry->offset, entry->size),
+              .format  = entry->format,
+              .flags   = AssetInfoFlags_None,
+              .modTime = 0, // Mod-time not tracked in pack files.
+              .close   = asset_source_pack_close,
+          },
+      .repo   = repoPack,
+      .region = entry->region,
+  };
+
+  return (AssetSource*)src;
 }
 
 static AssetRepoQueryResult asset_repo_pack_query(
@@ -105,6 +187,7 @@ static void asset_repo_pack_destroy(AssetRepo* repo) {
   AssetRepoPack* repoPack = (AssetRepoPack*)repo;
 
   file_destroy(repoPack->file);
+  thread_mutex_destroy(repoPack->fileMutex);
   alloc_free_array_t(g_allocHeap, repoPack->regions, repoPack->header.regions.size);
   data_destroy(g_dataReg, g_allocHeap, g_assetPackMeta, mem_var(repoPack->header));
 
@@ -162,9 +245,10 @@ AssetRepo* asset_repo_create_pack(const String filePath) {
               .destroy = asset_repo_pack_destroy,
               .query   = asset_repo_pack_query,
           },
-      .file    = file,
-      .regions = regions,
-      .header  = header,
+      .file      = file,
+      .fileMutex = thread_mutex_create(g_allocHeap),
+      .regions   = regions,
+      .header    = header,
       .sourceAlloc =
           alloc_block_create(g_allocHeap, sizeof(AssetSourcePack), alignof(AssetSourcePack)),
   };
