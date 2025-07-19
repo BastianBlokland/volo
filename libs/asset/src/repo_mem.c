@@ -103,12 +103,10 @@ AssetRepo* asset_repo_create_mem(const AssetMemRecord* records, const usize reco
   *repo = (AssetRepoMem){
       .api =
           {
-              .stat         = asset_source_mem_stat,
-              .open         = asset_source_mem_open,
-              .destroy      = asset_repo_mem_destroy,
-              .changesWatch = null,
-              .changesPoll  = null,
-              .query        = asset_repo_mem_query,
+              .stat    = asset_source_mem_stat,
+              .open    = asset_source_mem_open,
+              .destroy = asset_repo_mem_destroy,
+              .query   = asset_repo_mem_query,
           },
       .createTime = time_real_clock(),
       .entries    = dynarray_create_t(g_allocHeap, RepoEntry, recordCount),

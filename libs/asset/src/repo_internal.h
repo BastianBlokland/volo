@@ -85,6 +85,7 @@ struct sAssetSource {
 String asset_repo_query_result_str(AssetRepoQueryResult);
 
 AssetRepo* asset_repo_create_fs(String rootPath);
+AssetRepo* asset_repo_create_pack(String filePath);
 AssetRepo* asset_repo_create_mem(const AssetMemRecord* records, usize recordCount);
 void       asset_repo_destroy(AssetRepo*);
 

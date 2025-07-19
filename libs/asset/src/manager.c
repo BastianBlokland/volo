@@ -710,6 +710,11 @@ asset_manager_create_fs(EcsWorld* world, const AssetManagerFlags flags, const St
   return asset_manager_create_internal(world, asset_repo_create_fs(rootPath), flags);
 }
 
+AssetManagerComp*
+asset_manager_create_pack(EcsWorld* world, const AssetManagerFlags flags, const String filePath) {
+  return asset_manager_create_internal(world, asset_repo_create_pack(filePath), flags);
+}
+
 AssetManagerComp* asset_manager_create_mem(
     EcsWorld*               world,
     const AssetManagerFlags flags,

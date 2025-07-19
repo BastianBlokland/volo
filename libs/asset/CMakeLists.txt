@@ -53,6 +53,7 @@ add_library(lib_asset STATIC
   src/register.c
   src/repo_fs.c
   src/repo_mem.c
+  src/repo_pack.c
   src/repo.c
   )
 target_include_directories(lib_asset PUBLIC include)
