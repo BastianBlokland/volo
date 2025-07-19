@@ -68,10 +68,10 @@ static String asset_repo_pack_acquire(AssetRepoPack* repo, const u16 region) {
   if (UNLIKELY(region >= repo->header.regions.size)) {
     diag_crash_msg("Corrupt pack file");
   }
-  AssetRegionState* state = repo->regions + region;
-  thread_atomic_add_i32(&state->refCount, 1);
+  AssetRegionState* state        = repo->regions + region;
+  const i32         prevRefCount = thread_atomic_add_i32(&state->refCount, 1);
 
-  if (string_is_empty(state->mapping)) {
+  if (!prevRefCount || string_is_empty(state->mapping)) {
     thread_mutex_lock(repo->fileMutex);
     if (string_is_empty(state->mapping)) {
       const AssetPackRegion* info = dynarray_at_t(&repo->header.regions, region, AssetPackRegion);
@@ -107,12 +107,12 @@ static void asset_repo_pack_release(AssetRepoPack* repo, const u16 region) {
 
   if (prevRefCount == 1) {
     thread_mutex_lock(repo->fileMutex);
-    if (!state->refCount && !string_is_empty(state->mapping)) {
-      if (file_unmap(repo->file, state->mapping)) {
+    if (!thread_atomic_load_i32(&state->refCount) && !string_is_empty(state->mapping)) {
+      const String toUnmap = state->mapping;
+      state->mapping       = string_empty;
+      if (file_unmap(repo->file, toUnmap)) {
         diag_crash_msg("Failed to unmap pack region");
       }
-      state->mapping = string_empty;
-
 #if VOLO_ASSET_PACK_LOGGING
       log_d("Asset pack region unmapped", log_param("region", fmt_int(region)));
 #endif
