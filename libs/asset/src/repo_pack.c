@@ -19,6 +19,7 @@
 typedef struct {
   String mapping;
   i32    refCount;
+  u32    mapCounter;
 } AssetRegionState;
 
 typedef struct {
@@ -79,8 +80,12 @@ static String asset_repo_pack_acquire(AssetRepoPack* repo, const u16 region) {
       if (file_map(repo->file, info->offset, info->size, FileHints_Prefetch, &state->mapping)) {
         diag_crash_msg("Failed to map pack region");
       }
+      ++state->mapCounter;
 #if VOLO_ASSET_PACK_LOGGING
-      log_d("Asset pack region mapped", log_param("region", fmt_int(region)));
+      log_d(
+          "Asset pack region mapped",
+          log_param("region", fmt_int(region)),
+          log_param("counter", fmt_int(state->mapCounter)));
 #endif
 #if VOLO_ASSET_PACK_VALIDATE
       if (UNLIKELY(bits_crc_32(0, state->mapping) != info->checksum)) {
