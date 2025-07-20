@@ -212,14 +212,14 @@ static PackGatherResult pack_gather_update(
     log_e(
         "Packing failed",
         log_param("assets", fmt_int(pack->assets.size)),
-        log_param("total-frames", fmt_int(pack->frameIdx)));
+        log_param("frames", fmt_int(pack->frameIdx)));
     return PackGatherResult_Failed;
   }
   if (finished) {
     log_i(
         "Gathering finished",
         log_param("assets", fmt_int(pack->assets.size)),
-        log_param("total-frames", fmt_int(pack->frameIdx)));
+        log_param("frames", fmt_int(pack->frameIdx)));
     return PackGatherResult_Finished;
   }
   return PackGatherResult_Busy;
@@ -301,7 +301,7 @@ ecs_system_define(PackUpdateSys) {
   const AssetImportEnvComp* importEnv = ecs_view_read_t(globalItr, AssetImportEnvComp);
 
   if (signal_is_received(Signal_Terminate) || signal_is_received(Signal_Interrupt)) {
-    log_w("Packing interrupted", log_param("total-frames", fmt_int(pack->frameIdx)));
+    log_w("Packing interrupted", log_param("frames", fmt_int(pack->frameIdx)));
     pack->state = PackState_Interupted;
     return;
   }
