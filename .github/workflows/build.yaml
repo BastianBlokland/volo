@@ -45,17 +45,20 @@ jobs:
 
     - name: prepare-linux
       if: matrix.config.os == 'linux'
+      shell: bash
       run: |
         echo "Installing libshaderc"; sudo apt install libshaderc-dev
 
     - name: build-unix
       if: matrix.config.toolchain == 'unix'
+      shell: bash
       run: |
         cmake -B build $CMAKE_OPTS &&
         make -s -C build app_game run.fetch run.pack
 
     - name: build-msvc
       if: matrix.config.toolchain == 'msvc'
+      shell: pwsh
       run: |
         ./ci/env-win32.ps1                                                &&
         cmake -B build -G 'NMake Makefiles' $($env:CMAKE_OPTS -split ' ') &&
