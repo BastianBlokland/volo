@@ -121,7 +121,7 @@ jobs:
       if: matrix.config.toolchain == 'unix'
       run: |
         cmake -B build $CMAKE_OPTS  &&
-        make -C build -k all test
+        make -sk -C build all test
 
     - name: test-msvc
       if: matrix.config.toolchain == 'msvc'
@@ -135,7 +135,7 @@ jobs:
       if: matrix.config.toolchain == 'mingw'
       run: |
         cmake -B build -G 'MinGW Makefiles' $($env:CMAKE_OPTS -split ' ') &&
-        mingw32-make -C build -k all test
+        mingw32-make -sk -C build all test
 
     - name: archive
       uses: actions/upload-artifact@v4
