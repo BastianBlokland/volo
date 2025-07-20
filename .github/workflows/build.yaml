@@ -20,7 +20,7 @@ jobs:
             image: ubuntu-24.04,
             os: linux,
             toolchain: unix,
-            cc: clang-13,
+            cc: clang-18,
           }
         - {
             name: windows,
