@@ -46,7 +46,7 @@ jobs:
     - name: prepare-linux
       if: matrix.config.os == 'linux'
       run: |
-        echo "Installing libshaderc"; apt install libshaderc-dev
+        echo "Installing libshaderc"; sudo apt install libshaderc-dev
 
     - name: build-unix
       if: matrix.config.toolchain == 'unix'
