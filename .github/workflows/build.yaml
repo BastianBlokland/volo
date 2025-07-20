@@ -49,6 +49,14 @@ jobs:
       run: |
         echo "Installing libshaderc"; sudo apt install libshaderc-dev
 
+    - name: prepare-windows
+      if: matrix.config.os == 'windows'
+      shell: pwsh
+      run: |
+        echo "Installing libshaderc"
+        Invoke-WebRequest -Uri "https://bastian.tech/redist/win32-x64-2019/shaderc_shared.dll" `
+                          -OutFile "$env:SystemRoot\SysWoW64\shaderc_shared.dll"
+
     - name: build-unix
       if: matrix.config.toolchain == 'unix'
       shell: bash
