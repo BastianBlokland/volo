@@ -53,9 +53,12 @@ jobs:
       if: matrix.config.os == 'windows'
       shell: pwsh
       run: |
+        New-Item -Path "$env:GITHUB_WORKSPACE" -Name "deps" -ItemType "Directory"
+        echo "$env:GITHUB_WORKSPACE\deps\" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
         echo "Installing libshaderc"
-        Invoke-WebRequest -Uri "https://bastian.tech/redist/win32-x64-2019/shaderc_shared.dll" `
-                          -OutFile "$env:SystemRoot\SysWoW64\shaderc_shared.dll"
+        $shadercUri = "https://bastian.tech/redist/win32-x64-2019/shaderc_shared.dll"
+        Invoke-WebRequest -Uri "$shadercUri" -OutFile "$env:GITHUB_WORKSPACE\deps\shaderc_shared.dll"
 
     - name: build-unix
       if: matrix.config.toolchain == 'unix'
