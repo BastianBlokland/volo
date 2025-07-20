@@ -192,6 +192,7 @@ static u32 glsl_shaderc_lib_names(String outPaths[PARAM_ARRAY_SIZE(glsl_shaderc_
 
   u32 count = 0;
 #ifdef VOLO_WIN32
+  outPaths[count++] = string_lit("shaderc.dll");
   outPaths[count++] = string_lit("shaderc_shared.dll");
   if (!string_is_empty(vulkanSdkPath)) {
     outPaths[count++] = path_build_scratch(vulkanSdkPath, string_lit("Bin/shaderc_shared.dll"));
