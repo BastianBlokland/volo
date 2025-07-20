@@ -55,7 +55,8 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   log_i(
       "Application startup",
       log_param("pid", fmt_int(g_threadPid)),
-      log_param("executable", fmt_path(g_pathExecutable)));
+      log_param("executable", fmt_path(g_pathExecutable)),
+      log_param("working-dir", fmt_path(g_pathWorkingDir)));
 
 #ifdef VOLO_TRACE
   if (!cli_parse_provided(invoc, g_optTraceNoStore)) {
