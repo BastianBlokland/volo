@@ -47,7 +47,7 @@ jobs:
       if: matrix.config.toolchain == 'unix'
       run: |
         cmake -B build $CMAKE_OPTS &&
-        make -C build app_game run.fetch run.pack
+        make -s -C build app_game run.fetch run.pack
 
     - name: build-msvc
       if: matrix.config.toolchain == 'msvc'
