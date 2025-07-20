@@ -197,6 +197,7 @@ static u32 glsl_shaderc_lib_names(String outPaths[PARAM_ARRAY_SIZE(glsl_shaderc_
     outPaths[count++] = path_build_scratch(vulkanSdkPath, string_lit("Bin/shaderc_shared.dll"));
   }
 #elif VOLO_LINUX
+  outPaths[count++] = string_lit("libshaderc.so.1");
   outPaths[count++] = string_lit("libshaderc_shared.so.1");
   if (!string_is_empty(vulkanSdkPath)) {
     outPaths[count++] = path_build_scratch(vulkanSdkPath, string_lit("lib/libshaderc_shared.so.1"));
