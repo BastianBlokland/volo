@@ -95,6 +95,7 @@ ecs_comp_define(PackComp) {
   PackConfig cfg;
   String     outputPath;
   DynArray   assets; // PackAsset[], sorted on entity.
+  TimeSteady timeStart;
   u64        frameIdx;
   PackState  state;
 };
@@ -274,7 +275,11 @@ static bool pack_build(PackComp* p, AssetManagerComp* assetMan, const AssetImpor
     goto FileError;
   }
 
-  log_i("Packing finished", log_param("success", fmt_bool(success)));
+  const TimeDuration duration = time_steady_duration(p->timeStart, time_steady_clock());
+  log_i(
+      "Packing finished",
+      log_param("success", fmt_bool(success)),
+      log_param("duration", fmt_duration(duration)));
   return success;
 
 FileError:
@@ -401,7 +406,8 @@ void app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
       PackComp,
       .cfg        = cfg,
       .outputPath = string_dup(g_allocHeap, path_build_scratch(outputPath)),
-      .assets     = dynarray_create_t(g_allocHeap, PackAsset, 512));
+      .assets     = dynarray_create_t(g_allocHeap, PackAsset, 512),
+      .timeStart  = time_steady_clock());
 
   AssetManagerComp* assetMan = asset_manager_create_fs(world, AssetManagerFlags_None, assetPath);
 
