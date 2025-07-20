@@ -1,0 +1,56 @@
+name: build
+
+on:
+  push:
+    branches: [ master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: ${{matrix.config.name}}
+    runs-on: ${{matrix.config.image}}
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+        - {
+            name: linux,
+            image: ubuntu-22.04,
+            os: linux,
+            toolchain: unix,
+            cc: clang-13,
+          }
+        - {
+            name: windows,
+            image: windows-2022,
+            os: windows,
+            toolchain: msvc,
+            cc: clang,
+          }
+    env:
+      CC: ${{matrix.config.cc}}
+      CMAKE_OPTS: >-
+        -DFAST=On
+        -DSIMD=On
+        -DLTO=On
+        -DTRACE=Off
+        -DSANITIZE=Off
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: build-unix
+      if: matrix.config.toolchain == 'unix'
+      run: |
+        cmake -B build $CMAKE_OPTS &&
+        make -C build app_game run.fetch run.pack
+
+    - name: build-msvc
+      if: matrix.config.toolchain == 'msvc'
+      run: |
+        ./ci/env-win32.ps1                                                &&
+        cmake -B build -G 'NMake Makefiles' $($env:CMAKE_OPTS -split ' ') &&
+        cd build                                                          &&
+        nmake /C app_game run.fetch run.pack
