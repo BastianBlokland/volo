@@ -71,6 +71,7 @@ jobs:
       if: matrix.config.toolchain == 'msvc'
       shell: pwsh
       run: |
+        echo $env:PATH
         ./ci/env-win32.ps1                                                &&
         cmake -B build -G 'NMake Makefiles' $($env:CMAKE_OPTS -split ' ') &&
         cd build                                                          &&
