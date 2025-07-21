@@ -127,7 +127,8 @@ DynLibResult dynlib_pal_load(Allocator* alloc, const String name, DynLib** out) 
   thread_mutex_lock(g_dynlibLoadMutex);
   {
     dynlib_info_update(g_dynlibRootModule); // Attribute any externally loaded modules to the root.
-    handle = LoadLibraryEx(pathBufferMem.ptr, null, LOAD_LIBRARY_SEARCH_DEFAULT_DIRS);
+    const DWORD flags = LOAD_WITH_ALTERED_SEARCH_PATH;
+    handle            = LoadLibraryEx(pathBufferMem.ptr, null, flags);
     if (handle) {
       dynlib_info_update(handle); // Attribute any newly loaded modules to the new handle.
     }
