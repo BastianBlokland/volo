@@ -54,7 +54,7 @@ jobs:
       shell: pwsh
       run: |
         New-Item -Path "$env:GITHUB_WORKSPACE" -Name "deps" -ItemType "Directory"
-        echo "$env:GITHUB_WORKSPACE\deps\" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+        Add-Content -Path "$env:GITHUB_PATH" -Value "$env:GITHUB_WORKSPACE\deps\"
 
         echo "Installing libshaderc"
         $shadercUri = "https://bastian.tech/redist/win32-x64-2019/shaderc_shared.dll"
@@ -71,7 +71,6 @@ jobs:
       if: matrix.config.toolchain == 'msvc'
       shell: pwsh
       run: |
-        echo $env:PATH
         ./ci/env-win32.ps1                                                &&
         cmake -B build -G 'NMake Makefiles' $($env:CMAKE_OPTS -split ' ') &&
         cd build                                                          &&
