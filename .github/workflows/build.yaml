@@ -43,6 +43,16 @@ jobs:
       with:
         fetch-depth: 0
 
+    - name: cache-assets
+      uses: actions/cache@v4
+      with:
+        key: assets-${{ github.sha }}
+        restore-keys: assets-
+        enableCrossOsArchive: true
+        path: |
+          assets/.cache
+          assets/external
+
     - name: prepare-linux
       if: matrix.config.os == 'linux'
       shell: bash
