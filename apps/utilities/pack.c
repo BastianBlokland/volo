@@ -97,6 +97,7 @@ ecs_comp_define(PackComp) {
   DynArray   assets; // PackAsset[], sorted on entity.
   TimeSteady timeStart;
   u64        frameIdx;
+  u32        uncachedCount;
   PackState  state;
 };
 
@@ -163,8 +164,14 @@ static PackGatherResult pack_gather_update(
       continue; // Asset has not loaded yet; wait.
     }
     ecs_view_jump(assetItr, packAsset->entity);
+    const AssetComp* assetComp = ecs_view_read_t(assetItr, AssetComp);
+    const bool       isCached  = asset_is_cached(assetComp);
+
     packAsset->loading = false;
-    packAsset->id      = asset_id(ecs_view_read_t(assetItr, AssetComp));
+    packAsset->id      = asset_id(assetComp);
+    if (!isCached) {
+      ++pack->uncachedCount;
+    }
 
     asset_release(world, packAsset->entity); // Unload the asset.
 
@@ -205,7 +212,8 @@ static PackGatherResult pack_gather_update(
     log_i(
         "Gathered asset",
         log_param("id", fmt_text(packAsset->id)),
-        log_param("refs", fmt_int(refCount)));
+        log_param("refs", fmt_int(refCount)),
+        log_param("cached", fmt_bool(isCached)));
   }
 
   if (error) {
@@ -219,6 +227,7 @@ static PackGatherResult pack_gather_update(
     log_i(
         "Gathering finished",
         log_param("assets", fmt_int(pack->assets.size)),
+        log_param("assets-uncached", fmt_int(pack->uncachedCount)),
         log_param("frames", fmt_int(pack->frameIdx)));
     return PackGatherResult_Finished;
   }
