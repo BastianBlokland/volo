@@ -41,6 +41,7 @@ jobs:
         -DSANITIZE=Off
       SHADERC: ${{matrix.config.shaderc}}
       SHADERC_URL: https://bastian.tech/redist/${{matrix.config.os}}-x64/${{matrix.config.shaderc}}
+      LD_LIBRARY_PATH: ${{github.workspace}}/deps
     steps:
     - name: checkout
       uses: actions/checkout@v4
