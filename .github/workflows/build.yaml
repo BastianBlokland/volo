@@ -21,6 +21,7 @@ jobs:
             os: linux,
             toolchain: unix,
             cc: clang-18,
+            shaderc: linux-x64/libshaderc_shared.so.1
           }
         - {
             name: windows,
@@ -28,6 +29,7 @@ jobs:
             os: windows,
             toolchain: msvc,
             cc: clang,
+            shaderc: win32-x64-2019/shaderc_shared.dll
           }
     env:
       CC: ${{matrix.config.cc}}
@@ -49,23 +51,15 @@ jobs:
         key: deps-${{matrix.config.image}}-001
         path: deps
 
-    - name: deps-fetch-windows
+    - name: deps-fetch
       if: ${{steps.deps-cache.outputs.cache-hit != 'true'}}
-      shell: pwsh
+      shell: bash
       run: |
-        New-Item -Path "$env:GITHUB_WORKSPACE" -Name "deps" -ItemType "Directory"
-        Invoke-WebRequest -Uri "https://bastian.tech/redist/win32-x64-2019/shaderc_shared.dll" `
-                          -OutFile "deps\shaderc_shared.dll"
+        wget -P "$GITHUB_WORKSPACE/deps" "https://bastian.tech/redist/${{matrix.config.shaderc}}"
 
     - name: deps-prepare
       shell: bash
       run: echo "$GITHUB_WORKSPACE/deps" >> "$GITHUB_PATH"
-
-    - name: prepare-linux
-      if: matrix.config.os == 'linux'
-      shell: bash
-      run: |
-        echo "Installing libshaderc"; sudo apt install libshaderc-dev
 
     - name: assets-cache
       uses: actions/cache@v4
