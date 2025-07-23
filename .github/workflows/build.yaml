@@ -21,7 +21,7 @@ jobs:
             os: linux,
             toolchain: unix,
             cc: clang-18,
-            shaderc: linux-x64/libshaderc_shared.so.1
+            shaderc: libshaderc_shared.so.1
           }
         - {
             name: windows,
@@ -29,7 +29,7 @@ jobs:
             os: windows,
             toolchain: msvc,
             cc: clang,
-            shaderc: win32-x64-2019/shaderc_shared.dll
+            shaderc: shaderc_shared.dll
           }
     env:
       CC: ${{matrix.config.cc}}
@@ -39,6 +39,8 @@ jobs:
         -DLTO=On
         -DTRACE=Off
         -DSANITIZE=Off
+      SHADERC: ${{matrix.config.shaderc}}
+      SHADERC_URL: https://bastian.tech/redist/${{matrix.config.os}}-x64/${{matrix.config.shaderc}}
     steps:
     - name: checkout
       uses: actions/checkout@v4
@@ -55,7 +57,8 @@ jobs:
       if: ${{steps.deps-cache.outputs.cache-hit != 'true'}}
       shell: bash
       run: |
-        wget -P "$GITHUB_WORKSPACE/deps" "https://bastian.tech/redist/${{matrix.config.shaderc}}"
+        mkdir "$GITHUB_WORKSPACE/deps"
+        curl -o "$GITHUB_WORKSPACE/deps/$SHADERC" $SHADERC_URL
 
     - name: deps-prepare
       shell: bash
