@@ -49,6 +49,7 @@ jobs:
         fetch-depth: 0
 
     - name: deps-cache
+      id: deps-cache
       uses: actions/cache@v4
       with:
         key: deps-${{matrix.config.image}}-001
@@ -66,6 +67,7 @@ jobs:
       run: echo "$GITHUB_WORKSPACE/deps" >> "$GITHUB_PATH"
 
     - name: assets-cache
+      id: assets-cache
       uses: actions/cache@v4
       with:
         key: assets-${{github.sha}}
