@@ -43,15 +43,23 @@ jobs:
       with:
         fetch-depth: 0
 
-    - name: cache-assets
+    - name: deps-cache
       uses: actions/cache@v4
       with:
-        key: assets-${{ github.sha }}
-        restore-keys: assets-
-        enableCrossOsArchive: true
-        path: |
-          assets/.cache
-          assets/external
+        key: deps-${{matrix.config.image}}-001
+        path: deps
+
+    - name: deps-fetch-windows
+      if: ${{steps.deps-cache.outputs.cache-hit != 'true'}}
+      shell: pwsh
+      run: |
+        New-Item -Path "$env:GITHUB_WORKSPACE" -Name "deps" -ItemType "Directory"
+        Invoke-WebRequest -Uri "https://bastian.tech/redist/win32-x64-2019/shaderc_shared.dll" `
+                          -OutFile "deps\shaderc_shared.dll"
+
+    - name: deps-prepare
+      shell: bash
+      run: echo "$GITHUB_WORKSPACE/deps" >> "$GITHUB_PATH"
 
     - name: prepare-linux
       if: matrix.config.os == 'linux'
@@ -59,16 +67,15 @@ jobs:
       run: |
         echo "Installing libshaderc"; sudo apt install libshaderc-dev
 
-    - name: prepare-windows
-      if: matrix.config.os == 'windows'
-      shell: pwsh
-      run: |
-        New-Item -Path "$env:GITHUB_WORKSPACE" -Name "deps" -ItemType "Directory"
-        Add-Content -Path "$env:GITHUB_PATH" -Value "$env:GITHUB_WORKSPACE\deps\"
-
-        echo "Installing libshaderc"
-        $shadercUri = "https://bastian.tech/redist/win32-x64-2019/shaderc_shared.dll"
-        Invoke-WebRequest -Uri "$shadercUri" -OutFile "$env:GITHUB_WORKSPACE\deps\shaderc_shared.dll"
+    - name: assets-cache
+      uses: actions/cache@v4
+      with:
+        key: assets-${{github.sha}}
+        restore-keys: assets-
+        enableCrossOsArchive: true
+        path: |
+          assets/.cache
+          assets/external
 
     - name: build-unix
       if: matrix.config.toolchain == 'unix'
