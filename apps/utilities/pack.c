@@ -95,7 +95,9 @@ ecs_comp_define(PackComp) {
   PackConfig cfg;
   String     outputPath;
   DynArray   assets; // PackAsset[], sorted on entity.
+  TimeSteady timeStart;
   u64        frameIdx;
+  u32        uncachedCount;
   PackState  state;
 };
 
@@ -162,8 +164,14 @@ static PackGatherResult pack_gather_update(
       continue; // Asset has not loaded yet; wait.
     }
     ecs_view_jump(assetItr, packAsset->entity);
+    const AssetComp* assetComp = ecs_view_read_t(assetItr, AssetComp);
+    const bool       isCached  = asset_is_cached(assetComp);
+
     packAsset->loading = false;
-    packAsset->id      = asset_id(ecs_view_read_t(assetItr, AssetComp));
+    packAsset->id      = asset_id(assetComp);
+    if (!isCached) {
+      ++pack->uncachedCount;
+    }
 
     asset_release(world, packAsset->entity); // Unload the asset.
 
@@ -204,21 +212,23 @@ static PackGatherResult pack_gather_update(
     log_i(
         "Gathered asset",
         log_param("id", fmt_text(packAsset->id)),
-        log_param("refs", fmt_int(refCount)));
+        log_param("refs", fmt_int(refCount)),
+        log_param("cached", fmt_bool(isCached)));
   }
 
   if (error) {
     log_e(
         "Packing failed",
         log_param("assets", fmt_int(pack->assets.size)),
-        log_param("total-frames", fmt_int(pack->frameIdx)));
+        log_param("frames", fmt_int(pack->frameIdx)));
     return PackGatherResult_Failed;
   }
   if (finished) {
     log_i(
         "Gathering finished",
         log_param("assets", fmt_int(pack->assets.size)),
-        log_param("total-frames", fmt_int(pack->frameIdx)));
+        log_param("assets-uncached", fmt_int(pack->uncachedCount)),
+        log_param("frames", fmt_int(pack->frameIdx)));
     return PackGatherResult_Finished;
   }
   return PackGatherResult_Busy;
@@ -274,7 +284,11 @@ static bool pack_build(PackComp* p, AssetManagerComp* assetMan, const AssetImpor
     goto FileError;
   }
 
-  log_i("Packing finished", log_param("success", fmt_bool(success)));
+  const TimeDuration duration = time_steady_duration(p->timeStart, time_steady_clock());
+  log_i(
+      "Packing finished",
+      log_param("success", fmt_bool(success)),
+      log_param("duration", fmt_duration(duration)));
   return success;
 
 FileError:
@@ -296,7 +310,7 @@ ecs_system_define(PackUpdateSys) {
   const AssetImportEnvComp* importEnv = ecs_view_read_t(globalItr, AssetImportEnvComp);
 
   if (signal_is_received(Signal_Terminate) || signal_is_received(Signal_Interrupt)) {
-    log_w("Packing interrupted", log_param("total-frames", fmt_int(pack->frameIdx)));
+    log_w("Packing interrupted", log_param("frames", fmt_int(pack->frameIdx)));
     pack->state = PackState_Interupted;
     return;
   }
@@ -401,7 +415,8 @@ void app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
       PackComp,
       .cfg        = cfg,
       .outputPath = string_dup(g_allocHeap, path_build_scratch(outputPath)),
-      .assets     = dynarray_create_t(g_allocHeap, PackAsset, 512));
+      .assets     = dynarray_create_t(g_allocHeap, PackAsset, 512),
+      .timeStart  = time_steady_clock());
 
   AssetManagerComp* assetMan = asset_manager_create_fs(world, AssetManagerFlags_None, assetPath);
 

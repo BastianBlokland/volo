@@ -44,6 +44,7 @@ typedef enum {
   AssetFlags_Loaded         = 1 << 1,
   AssetFlags_Failed         = 1 << 2,
   AssetFlags_Cleanup        = 1 << 3,
+  AssetFlags_Cached         = 1 << 4,
   AssetFlags_LoadedOrFailed = AssetFlags_Loaded | AssetFlags_Failed,
   AssetFlags_Active         = AssetFlags_Loading | AssetFlags_Loaded | AssetFlags_Failed,
 } AssetFlags;
@@ -283,6 +284,7 @@ static AssetLoadResult asset_manager_load(
     asset_repo_changes_watch(manager->repo, asset->id, (u64)assetEntity);
   }
   if (source->flags & AssetInfoFlags_Cached) {
+    asset->flags |= AssetFlags_Cached;
     ecs_world_add_empty_t(world, assetEntity, AssetCacheInitComp);
   }
 
@@ -441,7 +443,7 @@ ecs_system_define(AssetUpdateDirtySys) {
        * Asset was failed and should now be unloaded.
        */
       ecs_world_remove_t(world, entity, AssetFailedComp);
-      assetComp->flags &= ~AssetFlags_Failed;
+      assetComp->flags &= ~(AssetFlags_Failed | AssetFlags_Cached);
       goto AssetUpdateDone;
     }
     if (unload && assetComp->flags & AssetFlags_Loaded) {
@@ -455,7 +457,7 @@ ecs_system_define(AssetUpdateDirtySys) {
           log_param("entity", ecs_entity_fmt(entity)));
 #endif
       ecs_world_remove_t(world, entity, AssetLoadedComp);
-      assetComp->flags &= ~AssetFlags_Loaded;
+      assetComp->flags &= ~(AssetFlags_Loaded | AssetFlags_Cached);
       assetComp->flags |= AssetFlags_Cleanup; // Mark this asset as cleaning up (will take a frame).
       goto AssetUpdateDone;
     }
@@ -766,11 +768,10 @@ void asset_reload_request(EcsWorld* world, const EcsEntityId assetEntity) {
   ecs_utils_maybe_add_t(world, assetEntity, AssetReloadRequestComp);
 }
 
-u32 asset_ref_count(const AssetComp* asset) { return asset->refCount; }
-
-u32 asset_load_count(const AssetComp* asset) { return asset->loadCount; }
-
+u32  asset_ref_count(const AssetComp* asset) { return asset->refCount; }
+u32  asset_load_count(const AssetComp* asset) { return asset->loadCount; }
 bool asset_is_loading(const AssetComp* asset) { return (asset->flags & AssetFlags_Loading) != 0; }
+bool asset_is_cached(const AssetComp* asset) { return (asset->flags & AssetFlags_Cached) != 0; }
 
 u32 asset_ticks_until_unload(const AssetComp* asset) {
   return asset_max_unload_delay - asset->unloadTicks;

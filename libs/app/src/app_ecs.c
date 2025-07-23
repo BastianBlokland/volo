@@ -4,6 +4,7 @@
 #include "cli_parse.h"
 #include "cli_read.h"
 #include "core_alloc.h"
+#include "core_path.h"
 #include "core_signal.h"
 #include "core_thread.h"
 #include "ecs_runner.h"
@@ -51,7 +52,11 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   log_add_sink(g_logger, log_sink_pretty_default(g_allocHeap, LogMask_All));
   log_add_sink(g_logger, log_sink_json_default(g_allocHeap, LogMask_All));
 
-  log_i("Application startup", log_param("pid", fmt_int(g_threadPid)));
+  log_i(
+      "Application startup",
+      log_param("pid", fmt_int(g_threadPid)),
+      log_param("executable", fmt_path(g_pathExecutable)),
+      log_param("working-dir", fmt_path(g_pathWorkingDir)));
 
 #ifdef VOLO_TRACE
   if (!cli_parse_provided(invoc, g_optTraceNoStore)) {
