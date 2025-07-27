@@ -213,7 +213,9 @@ void sort_quicksort(u8* begin, u8* end, const u16 stride, CompareFunc compare) {
 #ifdef VOLO_SORT_VERIFY
   for (u8* itr = begin + stride; itr < end; itr += stride) {
     u8* prev = itr - stride;
-    diag_assert(compare(prev, itr) <= 0);
+    if (UNLIKELY(compare(prev, itr) > 0)) {
+      diag_crash_msg("Collection unsorted");
+    }
   }
 #endif
 }
