@@ -5,6 +5,7 @@
 #include "core_dynarray.h"
 #include "core_search.h"
 #include "core_sort.h"
+#include "core_stringtable.h"
 #include "data_read.h"
 #include "data_registry.h"
 #include "data_utils.h"
