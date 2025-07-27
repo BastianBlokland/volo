@@ -81,8 +81,9 @@ jobs:
       if: matrix.config.toolchain == 'unix'
       shell: bash
       run: |
-        cmake -B build $CMAKE_OPTS &&
-        make -s -C build app_game run.fetch run.pack
+        cmake -B build $CMAKE_OPTS         &&
+        make -s -C build app_game run.pack &&
+        make -s -C build install
 
     - name: build-msvc
       if: matrix.config.toolchain == 'msvc'
@@ -91,4 +92,15 @@ jobs:
         ./ci/env-win32.ps1                                                &&
         cmake -B build -G 'NMake Makefiles' $($env:CMAKE_OPTS -split ' ') &&
         cd build                                                          &&
-        nmake /C app_game run.fetch run.pack
+        nmake /C app_game run.pack                                        &&
+        nmake /C install
+
+    - name: package
+      uses: actions/upload-artifact@v4
+      with:
+        name: package-${{matrix.config.name}}-x64
+        path: |
+          package/
+          build/**/logs/*.eventtrace
+          build/**/logs/*.log
+

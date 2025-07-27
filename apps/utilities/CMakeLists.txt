@@ -29,10 +29,13 @@ add_executable(app_pack pack.c)
 target_link_libraries(app_pack PRIVATE lib_app_ecs lib_log lib_asset)
 configure_debuggable(app_pack)
 
-add_custom_target(run.pack COMMAND app_pack
-  "--assets" "${CMAKE_SOURCE_DIR}/assets"
-  "--output" "${CMAKE_BINARY_DIR}/assets.blob"
-  "${CMAKE_SOURCE_DIR}/assets/pack.json" VERBATIM USES_TERMINAL)
+add_custom_target(run.pack
+  COMMAND app_fetch "${CMAKE_SOURCE_DIR}/assets/fetch.json" VERBATIM USES_TERMINAL
+  COMMAND app_pack
+    "--assets" "${CMAKE_SOURCE_DIR}/assets"
+    "--output" "${CMAKE_BINARY_DIR}/assets.blob"
+    "${CMAKE_SOURCE_DIR}/assets/pack.json"
+    VERBATIM USES_TERMINAL)
 
 install(FILES "${CMAKE_BINARY_DIR}/assets.blob" DESTINATION "${CMAKE_SOURCE_DIR}/package")
 
