@@ -105,27 +105,27 @@ spec(sort) {
     }
   }
 
-  it("can sort a u32 sequence") {
-    u32 values[] = {
-        2350874171,
+  it("can sort a u64 sequence") {
+    u64 values[] = {
+        23501874171,
         70415573,
         4185669713,
-        3826781168,
+        38267811768,
         2898969639,
-        731620860,
+        731656420860,
         2107635254,
-        2655303522,
+        265475303522,
         1723144516,
-        3725228669,
+        372522534458669,
         1466951496,
         4232344100,
-        2019244783,
+        20192654544783,
         3936706222,
     };
-    sort_quicksort_t(values, values + array_elems(values), u32, compare_u32);
+    sort_quicksort_t(values, values + array_elems(values), u64, compare_u64);
 
-    for (u32* itr = values + 1; itr != (values + array_elems(values)); ++itr) {
-      u32* prev = itr - 1;
+    for (u64* itr = values + 1; itr != (values + array_elems(values)); ++itr) {
+      u64* prev = itr - 1;
       check(*itr > *prev);
     }
   }
