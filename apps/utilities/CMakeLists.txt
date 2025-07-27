@@ -34,6 +34,8 @@ add_custom_target(run.pack COMMAND app_pack
   "--output" "${CMAKE_BINARY_DIR}/assets.blob"
   "${CMAKE_SOURCE_DIR}/assets/pack.json" VERBATIM USES_TERMINAL)
 
+install(FILES "${CMAKE_BINARY_DIR}/assets.blob" DESTINATION "${CMAKE_SOURCE_DIR}/package")
+
 message(STATUS "> application: dbgsetup")
 
 add_executable(app_dbgsetup dbgsetup.c)
