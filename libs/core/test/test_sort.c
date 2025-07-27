@@ -20,7 +20,7 @@ spec(sort) {
     usize size;
     i32   values[MaxElemCount];
     i32   expected[MaxElemCount];
-  } const i32Data[] = {
+  } i32Data[] = {
       {1, {1}, {1}},
       {2, {2, 1}, {1, 2}},
       {5, {1, 2, 3, 4, 5}, {1, 2, 3, 4, 5}},
@@ -35,7 +35,6 @@ spec(sort) {
   };
 
   it("can sort i32 integers") {
-
     for (usize i = 0; i != array_elems(i32Data); ++i) {
       sort_quicksort_t(i32Data[i].values, i32Data[i].values + i32Data[i].size, i32, compare_i32);
 
@@ -49,7 +48,7 @@ spec(sort) {
     usize  size;
     String values[MaxElemCount];
     String expected[MaxElemCount];
-  } const stringData[] = {
+  } stringData[] = {
       {5,
        {string_lit("B"), string_lit("E"), string_lit("A"), string_lit("C"), string_lit("D")},
        {string_lit("A"), string_lit("B"), string_lit("C"), string_lit("D"), string_lit("E")}},
@@ -103,6 +102,31 @@ spec(sort) {
       for (u32 j = 0; j != i32Data[i].size; ++j) {
         check_eq_int(i32Data[i].values[j], i32Data[i].expected[j]);
       }
+    }
+  }
+
+  it("can sort a u32 sequence") {
+    u32 values[] = {
+        2350874171,
+        70415573,
+        4185669713,
+        3826781168,
+        2898969639,
+        731620860,
+        2107635254,
+        2655303522,
+        1723144516,
+        3725228669,
+        1466951496,
+        4232344100,
+        2019244783,
+        3936706222,
+    };
+    sort_quicksort_t(values, values + array_elems(values), u32, compare_u32);
+
+    for (u32* itr = values + 1; itr != (values + array_elems(values)); ++itr) {
+      u32* prev = itr - 1;
+      check(*itr > *prev);
     }
   }
 }
