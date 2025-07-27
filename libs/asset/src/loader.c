@@ -39,7 +39,7 @@
   _X_(AssetFormat_Terrain,          terrain,            1  )                                       \
   _X_(AssetFormat_TerrainBin,       terrain,            1  )                                       \
   _X_(AssetFormat_TexArray,         tex_array,          2  )                                       \
-  _X_(AssetFormat_TexAtlas,         tex_atlas,          1  )                                       \
+  _X_(AssetFormat_TexAtlas,         tex_atlas,          2  )                                       \
   _X_(AssetFormat_TexAtlasBin,      tex_atlas_bin,      2  )                                       \
   _X_(AssetFormat_TexBin,           tex_bin,            4  )                                       \
   _X_(AssetFormat_TexFont,          tex_font,           1  )                                       \
