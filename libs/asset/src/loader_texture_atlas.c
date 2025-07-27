@@ -192,7 +192,7 @@ static void atlas_generate(
   for (u32 i = 0; i != def->entries.count; ++i) {
     atlas_generate_entry(def, textures[i], i, pixels);
     entries[i] = (AssetAtlasEntry){
-        .name       = string_hash(def->entries.values[i].name),
+        .name       = stringtable_add(g_stringtable, def->entries.values[i].name),
         .atlasIndex = i,
     };
   }
