@@ -2,6 +2,7 @@
 #include "asset_manager.h"
 #include "core_array.h"
 #include "core_diag.h"
+#include "core_stringtable.h"
 #include "ecs_view.h"
 #include "ecs_world.h"
 #include "log_logger.h"
@@ -108,4 +109,12 @@ VfxAtlasDrawData vfx_atlas_draw_data(const AssetAtlasComp* atlas) {
       .atlasEntrySizeMinusPadding = atlasEntrySizeMinusPadding,
       .atlasEntryPadding          = atlas->entryPadding,
   };
+}
+
+FormatArg vfx_atlas_entry_fmt(const StringHash nameHash) {
+  const String name = stringtable_lookup(g_stringtable, nameHash);
+  if (!string_is_empty(name)) {
+    return fmt_text(name);
+  }
+  return fmt_int(nameHash);
 }
