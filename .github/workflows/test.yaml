@@ -16,7 +16,7 @@ jobs:
       matrix:
         config:
         - {
-            name: linux-gcc,
+            name: linux-gcc-x64,
             image: ubuntu-22.04,
             os: linux,
             toolchain: unix,
@@ -27,7 +27,7 @@ jobs:
             lto: Off,
           }
         - {
-            name: linux-gcc-no-simd,
+            name: linux-gcc-no-simd-x64,
             image: ubuntu-22.04,
             os: linux,
             toolchain: unix,
@@ -38,7 +38,7 @@ jobs:
             lto: Off,
           }
         - {
-            name: linux-clang,
+            name: linux-clang-x64,
             image: ubuntu-22.04,
             os: linux,
             toolchain: unix,
@@ -49,7 +49,7 @@ jobs:
             lto: Off,
           }
         - {
-            name: windows-msvc,
+            name: windows-msvc-x64,
             image: windows-2022,
             os: windows,
             toolchain: msvc,
@@ -60,7 +60,7 @@ jobs:
             lto: Off,
           }
         - {
-            name: windows-clang,
+            name: windows-clang-x64,
             image: windows-2022,
             os: windows,
             toolchain: msvc,
@@ -71,7 +71,7 @@ jobs:
             lto: Off,
           }
         - {
-            name: windows-mingw,
+            name: windows-mingw-x64,
             image: windows-2022,
             os: windows,
             toolchain: mingw,
@@ -82,7 +82,7 @@ jobs:
             lto: Off,
           }
         - {
-            name: linux-clang-release,
+            name: linux-clang-release-x64,
             image: ubuntu-22.04,
             os: linux,
             toolchain: unix,
@@ -93,7 +93,7 @@ jobs:
             lto: On,
           }
         - {
-            name: windows-msvc-release,
+            name: windows-msvc-release-x64,
             image: windows-2022,
             os: windows,
             toolchain: msvc,
@@ -144,7 +144,7 @@ jobs:
       uses: actions/upload-artifact@v4
       if: success() || failure()
       with:
-        name: archive-${{matrix.config.name}}-x64
+        name: archive-${{matrix.config.name}}
         path: |
           build/**/logs/*.crash
           build/**/logs/*.eventtrace
@@ -155,7 +155,7 @@ jobs:
       uses: dorny/test-reporter@v1
       if: success() || failure()
       with:
-        name: test-results-${{matrix.config.name}}-x64
+        name: test-results-${{matrix.config.name}}
         fail-on-error: false
         path: build/**/logs/*.mocha
         reporter: mocha-json
