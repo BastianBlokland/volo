@@ -190,7 +190,7 @@ static void atlas_generate(
 
   // Render entries into the pixels.
   u8* pixels = pixelMem.ptr;
-  for (u32 i = 0; i != def->entries.count; ++i) {
+  for (u32 i = 0; i != entryCount; ++i) {
     atlas_generate_entry(def, textures[i], i, pixels);
     entries[i] = (AssetAtlasEntry){
         .name       = stringtable_add(g_stringtable, def->entries.values[i].name),
