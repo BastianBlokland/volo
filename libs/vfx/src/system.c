@@ -300,8 +300,8 @@ static void vfx_system_spawn(
   if (spriteAtlasEntryName) {
     const AssetAtlasEntry* atlasEntry = asset_atlas_lookup(atlas, spriteAtlasEntryName);
     if (UNLIKELY(!atlasEntry)) {
-      log_e(
-          "Vfx sprite atlas entry missing", log_param("entry-hash", fmt_int(spriteAtlasEntryName)));
+      const FormatArg nameArg = vfx_atlas_entry_fmt(spriteAtlasEntryName);
+      log_e("Vfx sprite atlas entry missing", log_param("name", nameArg));
       return;
     }
     const usize atlasEntryCount = atlas->entries.count;
