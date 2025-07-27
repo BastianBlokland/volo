@@ -29,12 +29,13 @@ INLINE_HINT static void sort_swap_u8(u8* restrict a, u8* restrict b, u16 bytes) 
 }
 
 INLINE_HINT static void sort_swap_u64(u8* restrict a, u8* restrict b, u16 bytes) {
-  u64* a64 = (u64*)a;
-  u64* b64 = (u64*)b;
   do {
-    const u64 tmp = *a64;
-    *a64++        = *b64;
-    *b64++        = tmp;
+    const u64 tmp     = *(u64* restrict)a;
+    *(u64* restrict)a = *(u64* restrict)b;
+    *(u64* restrict)b = tmp;
+
+    a += sizeof(u64);
+    b += sizeof(u64);
   } while (bytes -= sizeof(u64));
 }
 
