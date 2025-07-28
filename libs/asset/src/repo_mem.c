@@ -1,4 +1,5 @@
 #include "core_alloc.h"
+#include "core_bits.h"
 #include "core_dynarray.h"
 #include "core_path.h"
 #include "core_time.h"
@@ -7,6 +8,7 @@
 #include "repo_internal.h"
 
 typedef struct {
+  u32        checksum; // crc32 (ISO 3309).
   StringHash idHash;
   String     id;
   String     data;
@@ -114,9 +116,10 @@ AssetRepo* asset_repo_create_mem(const AssetMemRecord* records, const usize reco
 
   for (usize i = 0; i != recordCount; ++i) {
     RepoEntry entry = {
-        .idHash = string_hash(records[i].id),
-        .id     = string_dup(g_allocHeap, records[i].id),
-        .data   = string_maybe_dup(g_allocHeap, records[i].data),
+        .checksum = bits_crc_32(0, records[i].data),
+        .idHash   = string_hash(records[i].id),
+        .id       = string_dup(g_allocHeap, records[i].id),
+        .data     = string_maybe_dup(g_allocHeap, records[i].data),
     };
     *dynarray_insert_sorted_t(&repo->entries, RepoEntry, asset_compare_entry, &entry) = entry;
   }
