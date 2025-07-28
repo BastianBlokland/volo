@@ -137,6 +137,23 @@ GeoVector geo_vector_norm(const GeoVector v) {
 #endif
 }
 
+GeoVector geo_vector_norm_exact(const GeoVector v) {
+#ifdef VOLO_SIMD
+  const SimdVec vec = simd_vec_load(v.comps);
+  const SimdVec mag = simd_vec_sqrt(simd_vec_dot4(vec, vec));
+
+  diag_assert(simd_vec_x(mag) != 0);
+
+  GeoVector res;
+  simd_vec_store(simd_vec_div(vec, mag), res.comps);
+  return res;
+#else
+  const f32 mag = geo_vector_mag(v);
+  diag_assert(mag != 0);
+  return geo_vector_div(v, mag);
+#endif
+}
+
 GeoVector geo_vector_norm_or(const GeoVector v, const GeoVector fallback) {
   const f32 mag = geo_vector_mag(v);
   return mag > f32_epsilon ? geo_vector_div(v, mag) : fallback;

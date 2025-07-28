@@ -26,3 +26,5 @@ typedef struct {
 ASSERT(sizeof(VfxAtlasDrawData) == 16, "Size needs to match the size defined in glsl");
 
 VfxAtlasDrawData vfx_atlas_draw_data(const AssetAtlasComp*);
+
+FormatArg vfx_atlas_entry_fmt(StringHash nameHash);

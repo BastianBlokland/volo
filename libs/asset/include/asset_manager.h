@@ -125,4 +125,5 @@ u32 asset_query(
 u32  asset_ref_count(const AssetComp*);
 u32  asset_load_count(const AssetComp*);
 bool asset_is_loading(const AssetComp*);
+bool asset_is_cached(const AssetComp*);
 u32  asset_ticks_until_unload(const AssetComp*);

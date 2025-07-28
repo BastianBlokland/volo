@@ -327,7 +327,7 @@ static void procmesh_generate_cone(ProcMeshGenerator* gen) {
     const GeoVector rightTex = {(i + 1.0f) * invNumSegs, 0};
 
     const GeoVector topTex = {(leftTex.x + rightTex.x) * 0.5f, 1};
-    const GeoVector topNrm = geo_vector_norm(
+    const GeoVector topNrm = geo_vector_norm_exact(
         geo_vector((leftPos.x + rightPos.x) * 0.5f, (leftPos.y + rightPos.y) * 0.5f));
 
     // Add side triangle.

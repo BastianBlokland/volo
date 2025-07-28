@@ -5,6 +5,7 @@
 #include "core_dynarray.h"
 #include "core_search.h"
 #include "core_sort.h"
+#include "core_stringtable.h"
 #include "data_read.h"
 #include "data_registry.h"
 #include "data_utils.h"
@@ -189,10 +190,10 @@ static void atlas_generate(
 
   // Render entries into the pixels.
   u8* pixels = pixelMem.ptr;
-  for (u32 i = 0; i != def->entries.count; ++i) {
+  for (u32 i = 0; i != entryCount; ++i) {
     atlas_generate_entry(def, textures[i], i, pixels);
     entries[i] = (AssetAtlasEntry){
-        .name       = string_hash(def->entries.values[i].name),
+        .name       = stringtable_add(g_stringtable, def->entries.values[i].name),
         .atlasIndex = i,
     };
   }

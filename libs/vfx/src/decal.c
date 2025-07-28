@@ -330,7 +330,8 @@ ecs_system_define(VfxDecalInitSys) {
     {
       const AssetAtlasEntry* entry = asset_atlas_lookup(atlasColor, asset->atlasColorEntry);
       if (UNLIKELY(!entry || entry->atlasIndex > u8_max)) {
-        log_e("Vfx decal color-atlas entry invalid");
+        const FormatArg nameArg = vfx_atlas_entry_fmt(asset->atlasColorEntry);
+        log_e("Vfx decal color-atlas entry invalid", log_param("name", nameArg));
         continue;
       }
       atlasColorIdx = (u8)entry->atlasIndex;
@@ -338,7 +339,8 @@ ecs_system_define(VfxDecalInitSys) {
     if (asset->atlasNormalEntry) {
       const AssetAtlasEntry* entry = asset_atlas_lookup(atlasNormal, asset->atlasNormalEntry);
       if (UNLIKELY(!entry || entry->atlasIndex > u8_max)) {
-        log_e("Vfx decal normal-atlas entry invalid");
+        const FormatArg nameArg = vfx_atlas_entry_fmt(asset->atlasNormalEntry);
+        log_e("Vfx decal normal-atlas entry invalid", log_param("name", nameArg));
         continue;
       }
       atlasNormalIdx = (u8)entry->atlasIndex;
@@ -346,7 +348,8 @@ ecs_system_define(VfxDecalInitSys) {
     if (asset->atlasEmissiveEntry) {
       const AssetAtlasEntry* entry = asset_atlas_lookup(atlasEmissive, asset->atlasEmissiveEntry);
       if (UNLIKELY(!entry || entry->atlasIndex > u8_max)) {
-        log_e("Vfx decal emissive-atlas entry invalid");
+        const FormatArg nameArg = vfx_atlas_entry_fmt(asset->atlasEmissiveEntry);
+        log_e("Vfx decal emissive-atlas entry invalid", log_param("name", nameArg));
         continue;
       }
       atlasEmissiveIdx = (u8)entry->atlasIndex;

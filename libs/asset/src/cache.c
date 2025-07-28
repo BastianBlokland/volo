@@ -405,9 +405,6 @@ void asset_cache_set(
     entry->loaderHash      = blobLoaderHash;
     if (entry->dependencies.count) {
       // Cleanup the old dependencies.
-      heap_array_for_t(entry->dependencies, AssetCacheDependency, dep) {
-        string_free(c->alloc, dep->id);
-      }
       alloc_free_array_t(c->alloc, entry->dependencies.values, entry->dependencies.count);
     }
     entry->dependencies.values = cacheDependencies;

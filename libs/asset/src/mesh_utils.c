@@ -221,7 +221,7 @@ GeoVector asset_mesh_tri_norm(const GeoVector a, const GeoVector b, const GeoVec
   if (UNLIKELY(geo_vector_mag_sqr(surface) <= f32_epsilon)) {
     return geo_forward; // Triangle with zero area has technically no normal.
   }
-  return geo_vector_norm(surface);
+  return geo_vector_norm_exact(surface);
 }
 
 void asset_mesh_compute_flat_normals(AssetMeshBuilder* builder) {
@@ -340,7 +340,7 @@ void asset_mesh_compute_tangents(AssetMeshBuilder* builder) {
       continue;
     }
 
-    GeoVector orthoTan = geo_vector_norm(orthoTanRaw);
+    GeoVector orthoTan = geo_vector_norm_exact(orthoTanRaw);
 
     // Calculate the 'handedness', aka if the bi-tangent needs to be flipped.
     orthoTan.w = (geo_vector_dot(geo_vector_cross3(n, t), b) < 0) ? 1.f : -1.f;

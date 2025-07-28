@@ -19,10 +19,10 @@
   _X_(AssetFormat_Level,            level,              3  )                                       \
   _X_(AssetFormat_LevelBin,         level,              3  )                                       \
   _X_(AssetFormat_MeshBin,          mesh_bin,           2  )                                       \
-  _X_(AssetFormat_MeshGlb,          mesh_glb,           23 )                                       \
-  _X_(AssetFormat_MeshGltf,         mesh_gltf,          23 )                                       \
-  _X_(AssetFormat_MeshObj,          mesh_obj,           6  )                                       \
-  _X_(AssetFormat_MeshProc,         mesh_proc,          1  )                                       \
+  _X_(AssetFormat_MeshGlb,          mesh_glb,           24 )                                       \
+  _X_(AssetFormat_MeshGltf,         mesh_gltf,          24 )                                       \
+  _X_(AssetFormat_MeshObj,          mesh_obj,           7  )                                       \
+  _X_(AssetFormat_MeshProc,         mesh_proc,          2  )                                       \
   _X_(AssetFormat_Prefabs,          prefabs,            3  )                                       \
   _X_(AssetFormat_PrefabsBin,       prefabs,            2  )                                       \
   _X_(AssetFormat_Products,         products,           1  )                                       \
@@ -39,7 +39,7 @@
   _X_(AssetFormat_Terrain,          terrain,            1  )                                       \
   _X_(AssetFormat_TerrainBin,       terrain,            1  )                                       \
   _X_(AssetFormat_TexArray,         tex_array,          2  )                                       \
-  _X_(AssetFormat_TexAtlas,         tex_atlas,          1  )                                       \
+  _X_(AssetFormat_TexAtlas,         tex_atlas,          2  )                                       \
   _X_(AssetFormat_TexAtlasBin,      tex_atlas_bin,      2  )                                       \
   _X_(AssetFormat_TexBin,           tex_bin,            4  )                                       \
   _X_(AssetFormat_TexFont,          tex_font,           1  )                                       \
