@@ -196,6 +196,10 @@ macro(set_msvc_compile_options)
   add_compile_options(/W4 /WX /wd4127 /wd5105 /wd4200 /wd4244 /wd4201 /wd4210 /wd4701 /wd4706
                       /wd4324 /wd4100 /wd4703 /wd4152 /wd5286 /wd5287)
 
+  # Ignore unused local variable warning,
+  # Current MSVC version (19.29.30037) reports false positives on compiler generated vars ($SXX).
+  add_compile_options(/wd4189)
+
   # Enabling the conformant c-preprocessor. More info:
   # https://devblogs.microsoft.com/cppblog/announcing-full-support-for-a-c-c-conformant-preprocessor-in-msvc/
   add_compile_options(/Zc:preprocessor)
