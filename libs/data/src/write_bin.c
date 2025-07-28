@@ -190,6 +190,9 @@ static void data_write_bin_enum(const WriteCtx* ctx) {
 }
 
 static usize data_write_bin_mem_align(const usize size) {
+  if (!size) {
+    return 1;
+  }
   const usize biggestPow2 = u64_lit(1) << bits_ctz(size);
   return math_min(biggestPow2, data_type_mem_align_max);
 }
