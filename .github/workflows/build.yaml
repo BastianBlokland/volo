@@ -9,7 +9,7 @@ on:
 
 jobs:
   test:
-    name: ${{matrix.config.name}}
+    name: test-${{matrix.config.name}}
     runs-on: ${{matrix.config.image}}
     strategy:
       fail-fast: false
@@ -161,7 +161,7 @@ jobs:
         reporter: mocha-json
 
   package:
-    name: ${{matrix.config.name}}
+    name: package-${{matrix.config.name}}
     runs-on: ${{matrix.config.image}}
     strategy:
       fail-fast: false
@@ -247,10 +247,10 @@ jobs:
         nmake /C app_game run.pack                                        &&
         nmake /C install
 
-    - name: package
+    - name: archive
       uses: actions/upload-artifact@v4
       with:
-        name: package-${{matrix.config.name}}
+        name: archive-${{matrix.config.name}}
         path: |
           package/
           build/**/logs/*.eventtrace
