@@ -195,7 +195,7 @@ static String obj_read_normal(String input, ObjData* data, ObjError* err) {
   if (UNLIKELY(geo_vector_mag_sqr(normal) <= f32_epsilon)) {
     normal = geo_forward; // Handle obj files that define 'vn 0 0 0'.
   }
-  *dynarray_push_t(&data->normals, GeoVector) = geo_vector_norm(normal);
+  *dynarray_push_t(&data->normals, GeoVector) = geo_vector_norm_exact(normal);
 
   *err = ObjError_None;
   return format_read_line(input, null);
