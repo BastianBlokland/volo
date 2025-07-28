@@ -20,6 +20,22 @@ typedef enum {
 #endif
 } SortSwapType;
 
+MAYBE_UNUSED INLINE_HINT static usize sort_swap_align(const SortSwapType type) {
+  switch (type) {
+  case SortSwapType_u8:
+    return 1;
+  case SortSwapType_u64:
+    return 8;
+#ifdef VOLO_SIMD
+  case SortSwapType_u128:
+    return 16;
+  case SortSwapType_u256:
+    return 32;
+#endif
+  }
+  UNREACHABLE
+}
+
 INLINE_HINT static void sort_swap_u8(u8* restrict a, u8* restrict b, u16 bytes) {
   do {
     const u8 tmp = *a;
@@ -197,6 +213,8 @@ void sort_quicksort(u8* begin, u8* end, const u16 stride, CompareFunc compare) {
   stack[stackSize++] = (QuickSortSection){.begin = begin, .end = end};
 
   const SortSwapType swapType = sort_swap_type(begin, stride);
+  diag_assert(bits_aligned_ptr(end, sort_swap_align(swapType)));
+
   while (stackSize) {
     const QuickSortSection section = stack[--stackSize];
 
