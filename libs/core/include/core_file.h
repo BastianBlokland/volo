@@ -136,7 +136,7 @@ FileResult file_read_sync(File*, DynString*);
 FileResult file_read_to_end_sync(File*, DynString*);
 
 /**
- * Skip (read but discard) x amount ot bytes from the file.
+ * Skip (read but discard) x amount of bytes from the file.
  * NOTE: Usefull for files that do not support seeking (for example pipes).
  */
 FileResult file_skip_sync(File*, usize bytes);
