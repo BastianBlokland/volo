@@ -94,16 +94,11 @@ macro(set_gcc_compile_options)
   add_compile_options(-U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=0)
 
   # Optimization settings.
-  add_compile_options(-O3) # Optimization level 3.
-  if(NOT ${VOLO_PLATFORM} STREQUAL "win32")
-    add_compile_options(-march=native) # Optimize for the native cpu architecture (non portable).
-  endif()
+  add_compile_options(-O2) # Optimization level 2.
+  # add_compile_options(-march=native) # Optimize for the native cpu architecture (non portable).
   add_compile_options(-fno-strict-aliasing) # Allow aliasing types; use 'restrict' when needed.
   add_compile_options(-fno-stack-protector)
-  add_compile_options(-funroll-loops) # Enable loop unrolling.
-  add_compile_options(-fno-math-errno) # Disable errno setting behaviour for math functions.
-  # add_compile_options(-ffast-math) # Enable (potentially lossy) floating point optimizations.
-  # add_compile_options(-fno-finite-math-only) # Enable NaN support with fast-math.
+  add_compile_options(-fno-math-errno) # Disable errno setting behavior for math functions.
   add_compile_options(-mf16c) # Enable output of f16c (f32 <-> f16 conversions)
   # add_compile_options(-mfma) # Enable output of 'fused multiply-add' instructions.
 
@@ -120,7 +115,7 @@ macro(set_gcc_compile_options)
   if(${LTO})
     message(STATUS "Enabling link-time-optimization")
     add_compile_options(-flto -fno-fat-lto-objects)
-    add_link_options(-flto -fwhole-program -O3 -mf16c)
+    add_link_options(-flto -fwhole-program -O2 -mf16c)
   endif()
 
 endmacro(set_gcc_compile_options)
@@ -139,14 +134,11 @@ macro(set_clang_compile_options)
                       -Wno-enum-enum-conversion)
 
   # Optimization settings.
-  add_compile_options(-O3) # Optimization level 3.
-  add_compile_options(-march=native) # Optimize for the native cpu architecture (non portable).
+  add_compile_options(-O2) # Optimization level 2.
+  # add_compile_options(-march=native) # Optimize for the native cpu architecture (non portable).
   add_compile_options(-fno-strict-aliasing) # Allow aliasing types; use 'restrict' when needed.
   add_compile_options(-fno-stack-protector)
-  add_compile_options(-funroll-loops) # Enable loop unrolling.
-  add_compile_options(-fno-math-errno) # Disable errno setting behaviour for math functions.
-  # add_compile_options(-ffast-math) # Enable (potentially lossy) floating point optimizations.
-  # add_compile_options(-fno-finite-math-only) # Enable NaN support with fast-math.
+  add_compile_options(-fno-math-errno) # Disable errno setting behavior for math functions.
   add_compile_options(-mf16c) # Enable output of f16c (f32 <-> f16 conversions)
   # add_compile_options(-mfma) # Enable output of 'fused multiply-add' instructions.
 
@@ -183,7 +175,7 @@ macro(set_clang_compile_options)
   if(${LTO})
     message(STATUS "Enabling link-time-optimization")
     add_compile_options(-flto=full)
-    add_link_options(-fuse-ld=lld -flto=full -O3 -mf16c)
+    add_link_options(-fuse-ld=lld -flto=full -O2 -mf16c)
   endif()
 
 endmacro(set_clang_compile_options)
@@ -204,11 +196,6 @@ macro(set_msvc_compile_options)
   add_compile_options(/W4 /WX /wd4127 /wd5105 /wd4200 /wd4244 /wd4201 /wd4210 /wd4701 /wd4706
                       /wd4324 /wd4100 /wd4703 /wd4152 /wd5286 /wd5287)
 
-  # Ignore unused local variable warning,
-  # Current MSVC version (19.29.30037) reports allot of false positives on compiler generated
-  # temporaries ($SXX variables).
-  add_compile_options(/wd4189)
-
   # Enabling the conformant c-preprocessor. More info:
   # https://devblogs.microsoft.com/cppblog/announcing-full-support-for-a-c-c-conformant-preprocessor-in-msvc/
   add_compile_options(/Zc:preprocessor)
@@ -221,7 +208,6 @@ macro(set_msvc_compile_options)
   add_compile_options(/O2) # Optimization level 2.
   add_compile_options(/Oi) # Enable intrinsic functions.
   add_compile_options(/Gv) # Use the 'vectorcall' calling convention.
-  # add_compile_options(/fp:fast)  # Enable (potentially lossy) floating point optimizations.
   add_compile_options(/GS-) # Disable 'Buffer Security Check'.
 
   if(NOT ${SIMD})
@@ -230,7 +216,7 @@ macro(set_msvc_compile_options)
   endif()
 
   # Debug options.
-  add_compile_options(/Zi) # Debug symbols in seperate pdb files.
+  add_compile_options(/Zi) # Debug symbols in separate pdb files.
 
   # Statically link the runtime library.
   set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded")
