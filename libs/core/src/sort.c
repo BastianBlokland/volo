@@ -7,7 +7,7 @@
 #include "core_simd.h"
 #endif
 
-#define VOLO_SORT_VERIFY
+// #define VOLO_SORT_VERIFY
 
 #define sort_quicksort_elems_min 10
 
