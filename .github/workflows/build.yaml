@@ -144,7 +144,7 @@ jobs:
       uses: actions/upload-artifact@v4
       if: success() || failure()
       with:
-        name: archive-${{matrix.config.name}}
+        name: archive-test-${{matrix.config.name}}
         path: |
           build/**/logs/*.crash
           build/**/logs/*.eventtrace
@@ -250,7 +250,7 @@ jobs:
     - name: archive
       uses: actions/upload-artifact@v4
       with:
-        name: archive-${{matrix.config.name}}
+        name: archive-package-${{matrix.config.name}}
         path: |
           package/
           build/**/logs/*.eventtrace
