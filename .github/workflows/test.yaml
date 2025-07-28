@@ -17,10 +17,10 @@ jobs:
         config:
         - {
             name: linux-gcc-x64,
-            image: ubuntu-22.04,
+            image: ubuntu-24.04,
             os: linux,
             toolchain: unix,
-            cc: gcc-9,
+            cc: gcc-14,
             fast: Off,
             simd: On,
             trace: On,
@@ -28,10 +28,10 @@ jobs:
           }
         - {
             name: linux-gcc-no-simd-x64,
-            image: ubuntu-22.04,
+            image: ubuntu-24.04,
             os: linux,
             toolchain: unix,
-            cc: gcc-9,
+            cc: gcc-14,
             fast: Off,
             simd: Off,
             trace: On,
@@ -39,10 +39,10 @@ jobs:
           }
         - {
             name: linux-clang-x64,
-            image: ubuntu-22.04,
+            image: ubuntu-24.04,
             os: linux,
             toolchain: unix,
-            cc: clang-13,
+            cc: clang-18,
             fast: Off,
             simd: On,
             trace: On,
@@ -50,7 +50,7 @@ jobs:
           }
         - {
             name: windows-msvc-x64,
-            image: windows-2022,
+            image: windows-2025,
             os: windows,
             toolchain: msvc,
             cc: cl,
@@ -61,7 +61,7 @@ jobs:
           }
         - {
             name: windows-clang-x64,
-            image: windows-2022,
+            image: windows-2025,
             os: windows,
             toolchain: msvc,
             cc: clang,
@@ -72,7 +72,7 @@ jobs:
           }
         - {
             name: windows-mingw-x64,
-            image: windows-2022,
+            image: windows-2025,
             os: windows,
             toolchain: mingw,
             cc: gcc,
@@ -83,10 +83,10 @@ jobs:
           }
         - {
             name: linux-clang-release-x64,
-            image: ubuntu-22.04,
+            image: ubuntu-24.04,
             os: linux,
             toolchain: unix,
-            cc: clang-13,
+            cc: clang-18,
             fast: On,
             simd: On,
             trace: Off,
@@ -94,7 +94,7 @@ jobs:
           }
         - {
             name: windows-msvc-release-x64,
-            image: windows-2022,
+            image: windows-2025,
             os: windows,
             toolchain: msvc,
             cc: cl,
