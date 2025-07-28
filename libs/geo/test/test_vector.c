@@ -103,8 +103,13 @@ spec(vector) {
   it("returns a unit-vector when normalizing") {
     check_eq_vector(geo_vector_norm(geo_up), geo_up);
     check_eq_vector(geo_vector_norm(geo_vector(.y = 42)), geo_up);
-    check_eq_float(
-        geo_vector_mag(geo_vector_norm(geo_vector(.x = .1337f, .y = 42, .w = -42))), 1, 1e-6f);
+    check_eq_float(geo_vector_mag(geo_vector_norm(geo_vector(.1337f, 42, -42))), 1, 1e-6f);
+  }
+
+  it("returns an exact unit-vector when normalizing") {
+    check_eq_vector(geo_vector_norm_exact(geo_up), geo_up);
+    check_eq_vector(geo_vector_norm_exact(geo_vector(.y = 42)), geo_up);
+    check_eq_float(geo_vector_mag(geo_vector_norm_exact(geo_vector(.1337f, 42, -42))), 1, 1e-6f);
   }
 
   it("supports normalizing with a fallback for 0") {

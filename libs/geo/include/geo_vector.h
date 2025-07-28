@@ -77,6 +77,7 @@ f32 geo_vector_mag(GeoVector);
  * Pre-condition: geo_vector_mag(v) != 0
  */
 GeoVector geo_vector_norm(GeoVector);
+GeoVector geo_vector_norm_exact(GeoVector);
 GeoVector geo_vector_norm_or(GeoVector, GeoVector fallback);
 
 /**
