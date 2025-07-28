@@ -8,7 +8,159 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  test:
+    name: ${{matrix.config.name}}
+    runs-on: ${{matrix.config.image}}
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+        - {
+            name: linux-gcc-x64,
+            image: ubuntu-24.04,
+            os: linux,
+            toolchain: unix,
+            cc: gcc-14,
+            fast: Off,
+            simd: On,
+            trace: On,
+            lto: Off,
+          }
+        - {
+            name: linux-gcc-no-simd-x64,
+            image: ubuntu-24.04,
+            os: linux,
+            toolchain: unix,
+            cc: gcc-14,
+            fast: Off,
+            simd: Off,
+            trace: On,
+            lto: Off,
+          }
+        - {
+            name: linux-clang-x64,
+            image: ubuntu-24.04,
+            os: linux,
+            toolchain: unix,
+            cc: clang-18,
+            fast: Off,
+            simd: On,
+            trace: On,
+            lto: Off,
+          }
+        - {
+            name: windows-msvc-x64,
+            image: windows-2025,
+            os: windows,
+            toolchain: msvc,
+            cc: cl,
+            fast: Off,
+            simd: On,
+            trace: On,
+            lto: Off,
+          }
+        - {
+            name: windows-clang-x64,
+            image: windows-2025,
+            os: windows,
+            toolchain: msvc,
+            cc: clang,
+            fast: Off,
+            simd: On,
+            trace: On,
+            lto: Off,
+          }
+        - {
+            name: windows-mingw-x64,
+            image: windows-2025,
+            os: windows,
+            toolchain: mingw,
+            cc: gcc,
+            fast: Off,
+            simd: On,
+            trace: On,
+            lto: Off,
+          }
+        - {
+            name: linux-clang-release-x64,
+            image: ubuntu-24.04,
+            os: linux,
+            toolchain: unix,
+            cc: clang-18,
+            fast: On,
+            simd: On,
+            trace: Off,
+            lto: On,
+          }
+        - {
+            name: windows-msvc-release-x64,
+            image: windows-2025,
+            os: windows,
+            toolchain: msvc,
+            cc: cl,
+            fast: On,
+            simd: On,
+            trace: Off,
+            lto: On,
+          }
+    env:
+      CC: ${{matrix.config.cc}}
+      CMAKE_OPTS: >-
+        -DFAST=${{matrix.config.fast}}
+        -DSIMD=${{matrix.config.simd}}
+        -DLTO=${{matrix.config.lto}}
+        -DTRACE=${{matrix.config.trace}}
+        -DSANITIZE=On
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: test-unix
+      if: matrix.config.toolchain == 'unix'
+      shell: bash
+      run: |
+        cmake -B build $CMAKE_OPTS  &&
+        make -sk -C build all test
+
+    - name: test-msvc
+      if: matrix.config.toolchain == 'msvc'
+      shell: pwsh
+      run: |
+        ./ci/env-win32.ps1                                                &&
+        cmake -B build -G 'NMake Makefiles' $($env:CMAKE_OPTS -split ' ') &&
+        cd build                                                          &&
+        nmake /C /K all test
+
+    - name: test-mingw
+      if: matrix.config.toolchain == 'mingw'
+      shell: pwsh
+      run: |
+        cmake -B build -G 'MinGW Makefiles' $($env:CMAKE_OPTS -split ' ') &&
+        mingw32-make -sk -C build all test
+
+    - name: archive
+      uses: actions/upload-artifact@v4
+      if: success() || failure()
+      with:
+        name: archive-${{matrix.config.name}}
+        path: |
+          build/**/logs/*.crash
+          build/**/logs/*.eventtrace
+          build/**/logs/*.log
+          build/**/logs/*.mocha
+
+    - name: report
+      uses: dorny/test-reporter@v1
+      if: success() || failure()
+      with:
+        name: test-results-${{matrix.config.name}}
+        fail-on-error: false
+        path: build/**/logs/*.mocha
+        reporter: mocha-json
+
+  package:
     name: ${{matrix.config.name}}
     runs-on: ${{matrix.config.image}}
     strategy:
