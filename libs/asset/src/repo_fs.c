@@ -1,4 +1,5 @@
 #include "core_alloc.h"
+#include "core_bits.h"
 #include "core_dynstring.h"
 #include "core_file.h"
 #include "core_file_iterator.h"
@@ -86,11 +87,12 @@ static AssetSource* asset_source_fs_open_cached(AssetRepoFs* repoFs, const Asset
   *src = (AssetSourceFs){
       .api =
           {
-              .data    = data,
-              .format  = format,
-              .flags   = AssetInfoFlags_Cached,
-              .modTime = rec->modTime,
-              .close   = asset_source_fs_close,
+              .data     = data,
+              .format   = format,
+              .flags    = AssetInfoFlags_Cached,
+              .checksum = 42, // TODO: Track checksum in cache.
+              .modTime  = rec->modTime,
+              .close    = asset_source_fs_close,
           },
       .repo = repoFs,
       .file = rec->blobFile,
@@ -131,11 +133,12 @@ static AssetSource* asset_source_fs_open_normal(AssetRepoFs* repoFs, const Strin
   *src = (AssetSourceFs){
       .api =
           {
-              .data    = data,
-              .format  = asset_format_from_ext(path_extension(id)),
-              .flags   = AssetInfoFlags_None,
-              .modTime = fileInfo.modTime,
-              .close   = asset_source_fs_close,
+              .data     = data,
+              .format   = asset_format_from_ext(path_extension(id)),
+              .flags    = AssetInfoFlags_None,
+              .checksum = bits_crc_32(0, data),
+              .modTime  = fileInfo.modTime,
+              .close    = asset_source_fs_close,
           },
       .repo = repoFs,
       .file = file,

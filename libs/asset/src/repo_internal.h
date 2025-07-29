@@ -75,8 +75,9 @@ struct sAssetRepo {
 
 struct sAssetSource {
   String         data;
-  AssetFormat    format;
-  AssetInfoFlags flags;
+  AssetFormat    format : 16;
+  AssetInfoFlags flags : 16;
+  u32            checksum; // crc32 (ISO 3309). NOTE: Original checksum in case of cached entry.
   TimeReal       modTime;
 
   void (*close)(AssetSource*);

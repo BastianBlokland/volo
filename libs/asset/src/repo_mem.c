@@ -65,10 +65,11 @@ asset_source_mem_open(AssetRepo* repo, const String id, const AssetRepoLoaderHas
   AssetSource* src = alloc_alloc_t(g_allocHeap, AssetSource);
 
   *src = (AssetSource){
-      .data    = entry->data,
-      .format  = fmt,
-      .flags   = AssetInfoFlags_None,
-      .modTime = repoMem->createTime,
+      .data     = entry->data,
+      .format   = fmt,
+      .flags    = AssetInfoFlags_None,
+      .checksum = entry->checksum,
+      .modTime  = repoMem->createTime,
   };
 
   return src;
