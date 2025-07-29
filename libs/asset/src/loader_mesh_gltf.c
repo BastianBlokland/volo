@@ -349,7 +349,7 @@ static bool gltf_json_field_quat(GltfLoad* ld, const JsonVal v, const String nam
     success &= gltf_json_elem_f32(ld, jField, i, &out->comps[i]);
   }
   if (success) {
-    *out = geo_quat_norm_or_ident(*out);
+    *out = geo_quat_norm_or_ident_exact(*out);
   }
   return success;
 }
@@ -1401,7 +1401,7 @@ static void gltf_process_anim_channel_rot(GltfLoad* ld, const AssetMeshAnimChann
    */
 
   for (u32 i = 0; i != ch->frameCount; ++i) {
-    rotPoses[i] = geo_quat_norm_or_ident(rotPoses[i]);
+    rotPoses[i] = geo_quat_norm_or_ident_exact(rotPoses[i]);
     if (i && geo_quat_dot(rotPoses[i], rotPoses[i - 1]) < 0) {
       // Compensate for quaternion double-cover (two quaternions representing the same rotation).
       rotPoses[i] = geo_quat_flip(rotPoses[i]);

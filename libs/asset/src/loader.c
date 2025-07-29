@@ -9,7 +9,7 @@
 #define ASSET_FOREACH_LOADER(_X_)                                                                  \
   _X_(AssetFormat_Decal,            decal,              1  )                                       \
   _X_(AssetFormat_DecalBin,         decal,              1  )                                       \
-  _X_(AssetFormat_FontTtf,          font_ttf,           1  )                                       \
+  _X_(AssetFormat_FontTtf,          font_ttf,           3  )                                       \
   _X_(AssetFormat_Graphic,          graphic,            1  )                                       \
   _X_(AssetFormat_GraphicBin,       graphic,            1  )                                       \
   _X_(AssetFormat_Icon,             icon,               1  )                                       \
@@ -19,8 +19,8 @@
   _X_(AssetFormat_Level,            level,              3  )                                       \
   _X_(AssetFormat_LevelBin,         level,              3  )                                       \
   _X_(AssetFormat_MeshBin,          mesh_bin,           2  )                                       \
-  _X_(AssetFormat_MeshGlb,          mesh_glb,           24 )                                       \
-  _X_(AssetFormat_MeshGltf,         mesh_gltf,          24 )                                       \
+  _X_(AssetFormat_MeshGlb,          mesh_glb,           25 )                                       \
+  _X_(AssetFormat_MeshGltf,         mesh_gltf,          25 )                                       \
   _X_(AssetFormat_MeshObj,          mesh_obj,           7  )                                       \
   _X_(AssetFormat_MeshProc,         mesh_proc,          2  )                                       \
   _X_(AssetFormat_Prefabs,          prefabs,            3  )                                       \
