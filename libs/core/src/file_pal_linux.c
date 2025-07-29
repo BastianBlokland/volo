@@ -207,6 +207,30 @@ FileResult file_read_sync(File* file, DynString* dynstr) {
   }
 }
 
+FileResult file_crc_32_sync(File* file, u32* outCrc32) {
+  diag_assert(file);
+  diag_assert_msg(file->access & FileAccess_Read, "File handle does not have read access");
+
+  *outCrc32 = 0;
+
+  Mem readBuffer = mem_stack(usize_kibibyte * 16);
+  for (;;) {
+    const ssize_t res = read(file->handle, readBuffer.ptr, readBuffer.size);
+    if (res > 0) {
+      *outCrc32 = bits_crc_32(*outCrc32, mem_slice(readBuffer, 0, (usize)res));
+      continue;
+    }
+    if (res == 0) {
+      return FileResult_Success;
+    }
+    switch (errno) {
+    case EINTR:
+      continue; // Retry on interrupt.
+    }
+    return fileresult_from_errno();
+  }
+}
+
 FileResult file_skip_sync(File* file, usize bytes) {
   diag_assert(file);
   diag_assert_msg(file->access & FileAccess_Read, "File handle does not have read access");

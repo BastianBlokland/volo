@@ -24,6 +24,7 @@ typedef struct sAssetInfo {
 typedef struct {
   String   id;
   TimeReal modTime;
+  u32      checksum; // crc32 (ISO 3309). NOTE: Original checksum in case of cached entry.
   u32      loaderHash;
 } AssetRepoDep;
 
@@ -62,11 +63,9 @@ struct sAssetRepo {
   AssetRepoQueryResult (*query)(AssetRepo*, String pattern, void* ctx, AssetRepoQueryHandler);
   void (*cache)(
       AssetRepo*,
-      String              id,
-      DataMeta            blobMeta,
-      TimeReal            blobModTime,
-      u32                 blobLoaderHash,
       Mem                 blob,
+      DataMeta            blobMeta,
+      const AssetRepoDep* source,
       const AssetRepoDep* deps,
       usize               depCount);
   usize (*cacheDeps)(
@@ -75,8 +74,9 @@ struct sAssetRepo {
 
 struct sAssetSource {
   String         data;
-  AssetFormat    format;
-  AssetInfoFlags flags;
+  AssetFormat    format : 16;
+  AssetInfoFlags flags : 16;
+  u32            checksum; // crc32 (ISO 3309). NOTE: Original checksum in case of cached entry.
   TimeReal       modTime;
 
   void (*close)(AssetSource*);
@@ -84,7 +84,7 @@ struct sAssetSource {
 
 String asset_repo_query_result_str(AssetRepoQueryResult);
 
-AssetRepo* asset_repo_create_fs(String rootPath);
+AssetRepo* asset_repo_create_fs(String rootPath, bool portableCache);
 AssetRepo* asset_repo_create_pack(String filePath);
 AssetRepo* asset_repo_create_mem(const AssetMemRecord* records, usize recordCount);
 void       asset_repo_destroy(AssetRepo*);
@@ -102,11 +102,9 @@ AssetRepoQueryResult asset_repo_query(AssetRepo*, String pattern, void* ctx, Ass
 
 void asset_repo_cache(
     AssetRepo*,
-    String              id,
-    DataMeta            blobMeta,
-    TimeReal            blobModTime,
-    u32                 blobLoaderHash,
     Mem                 blob,
+    DataMeta            blobMeta,
+    const AssetRepoDep* source,
     const AssetRepoDep* deps,
     usize               depCount);
 

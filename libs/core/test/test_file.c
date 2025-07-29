@@ -1,5 +1,6 @@
 #include "check_spec.h"
 #include "core_alloc.h"
+#include "core_bits.h"
 #include "core_dynstring.h"
 #include "core_file.h"
 #include "core_path.h"
@@ -338,6 +339,21 @@ spec(file) {
     String mapping;
     check_eq_int(file_map(tmpFile, 0, 0, FileHints_None, &mapping), FileResult_Success);
     check_eq_string(mapping, string_lit("\0\0\0\0Hello World!"));
+  }
+
+  it("can compute the checksum of a file") {
+    const String content = string_lit("Hello World!");
+
+    check_eq_int(file_write_sync(tmpFile, content), FileResult_Success);
+    check_eq_int(file_seek_sync(tmpFile, 0), FileResult_Success);
+
+    u32 crc;
+    check_eq_int(file_crc_32_sync(tmpFile, &crc), FileResult_Success);
+    check_eq_int(crc, bits_crc_32(0, content));
+
+    String mapping;
+    check_eq_int(file_map(tmpFile, 0, 0, FileHints_None, &mapping), FileResult_Success);
+    check_eq_int(crc, bits_crc_32(0, mapping));
   }
 
   teardown() {

@@ -81,15 +81,13 @@ AssetRepoQueryResult asset_repo_query(
 
 void asset_repo_cache(
     AssetRepo*          repo,
-    const String        id,
-    const DataMeta      blobMeta,
-    const TimeReal      blobModTime,
-    const u32           blobLoaderHash,
     const Mem           blob,
+    const DataMeta      blobMeta,
+    const AssetRepoDep* source,
     const AssetRepoDep* deps,
     const usize         depCount) {
   if (repo->cache) {
-    repo->cache(repo, id, blobMeta, blobModTime, blobLoaderHash, blob, deps, depCount);
+    repo->cache(repo, blob, blobMeta, source, deps, depCount);
   }
 }
 

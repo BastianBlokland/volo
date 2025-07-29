@@ -165,11 +165,12 @@ asset_source_pack_open(AssetRepo* repo, const String id, const AssetRepoLoaderHa
   *src = (AssetSourcePack){
       .api =
           {
-              .data    = mem_slice(regionMem, entry->offset, entry->size),
-              .format  = entry->format,
-              .flags   = AssetInfoFlags_None,
-              .modTime = 0, // Mod-time not tracked in pack files.
-              .close   = asset_source_pack_close,
+              .data     = mem_slice(regionMem, entry->offset, entry->size),
+              .format   = entry->format,
+              .flags    = AssetInfoFlags_None,
+              .checksum = entry->checksum,
+              .modTime  = 0, // Mod-time not tracked in pack files.
+              .close    = asset_source_pack_close,
           },
       .repo   = repoPack,
       .region = entry->region,

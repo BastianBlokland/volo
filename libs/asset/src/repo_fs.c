@@ -1,4 +1,5 @@
 #include "core_alloc.h"
+#include "core_bits.h"
 #include "core_dynstring.h"
 #include "core_file.h"
 #include "core_file_iterator.h"
@@ -41,7 +42,7 @@ static bool asset_source_fs_stat(
         .format  = asset_format_from_bin_meta(cacheRecord.meta),
         .flags   = AssetInfoFlags_Cached,
         .size    = file_stat_sync(cacheRecord.blobFile).size,
-        .modTime = cacheRecord.modTime,
+        .modTime = cacheRecord.sourceModTime,
     };
     file_destroy(cacheRecord.blobFile);
     return true;
@@ -86,11 +87,12 @@ static AssetSource* asset_source_fs_open_cached(AssetRepoFs* repoFs, const Asset
   *src = (AssetSourceFs){
       .api =
           {
-              .data    = data,
-              .format  = format,
-              .flags   = AssetInfoFlags_Cached,
-              .modTime = rec->modTime,
-              .close   = asset_source_fs_close,
+              .data     = data,
+              .format   = format,
+              .flags    = AssetInfoFlags_Cached,
+              .checksum = rec->sourceChecksum,
+              .modTime  = rec->sourceModTime,
+              .close    = asset_source_fs_close,
           },
       .repo = repoFs,
       .file = rec->blobFile,
@@ -131,11 +133,12 @@ static AssetSource* asset_source_fs_open_normal(AssetRepoFs* repoFs, const Strin
   *src = (AssetSourceFs){
       .api =
           {
-              .data    = data,
-              .format  = asset_format_from_ext(path_extension(id)),
-              .flags   = AssetInfoFlags_None,
-              .modTime = fileInfo.modTime,
-              .close   = asset_source_fs_close,
+              .data     = data,
+              .format   = asset_format_from_ext(path_extension(id)),
+              .flags    = AssetInfoFlags_None,
+              .checksum = bits_crc_32(0, data),
+              .modTime  = fileInfo.modTime,
+              .close    = asset_source_fs_close,
           },
       .repo = repoFs,
       .file = file,
@@ -302,16 +305,14 @@ static AssetRepoQueryResult asset_repo_fs_query(
 
 static void asset_repo_fs_cache(
     AssetRepo*          repo,
-    const String        id,
-    const DataMeta      blobMeta,
-    const TimeReal      blobModTime,
-    const u32           blobLoaderHash,
     const Mem           blob,
+    const DataMeta      blobMeta,
+    const AssetRepoDep* source,
     const AssetRepoDep* deps,
     const usize         depCount) {
   AssetRepoFs* repoFs = (AssetRepoFs*)repo;
 
-  asset_cache_set(repoFs->cache, id, blobMeta, blobModTime, blobLoaderHash, blob, deps, depCount);
+  asset_cache_set(repoFs->cache, blob, blobMeta, source, deps, depCount);
   asset_cache_flush(repoFs->cache); // NOTE: We could batch flushes to be more efficient.
 }
 
@@ -335,8 +336,13 @@ static void asset_repo_fs_destroy(AssetRepo* repo) {
   alloc_free_t(g_allocHeap, repoFs);
 }
 
-AssetRepo* asset_repo_create_fs(const String rootPath) {
+AssetRepo* asset_repo_create_fs(const String rootPath, const bool portableCache) {
   AssetRepoFs* repo = alloc_alloc_t(g_allocHeap, AssetRepoFs);
+
+  AssetCacheFlags cacheFlags = AssetCacheFlags_None;
+  if (portableCache) {
+    cacheFlags |= AssetCacheFlags_Portable;
+  }
 
   *repo = (AssetRepoFs){
       .api =
@@ -355,13 +361,14 @@ AssetRepo* asset_repo_create_fs(const String rootPath) {
       .sourceAlloc = alloc_block_create(g_allocHeap, sizeof(AssetSourceFs), alignof(AssetSourceFs)),
       .rootPath    = string_dup(g_allocHeap, rootPath),
       .monitor     = file_monitor_create(g_allocHeap, rootPath, FileMonitorFlags_None),
-      .cache       = asset_cache_create(g_allocHeap, rootPath),
+      .cache       = asset_cache_create(g_allocHeap, rootPath, cacheFlags),
   };
 
   log_i(
       "Asset repository created",
       log_param("type", fmt_text_lit("file-system")),
-      log_param("root", fmt_path(rootPath)));
+      log_param("root", fmt_path(rootPath)),
+      log_param("portable-cache", fmt_bool(portableCache)));
 
   return (AssetRepo*)repo;
 }

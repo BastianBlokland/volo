@@ -240,6 +240,28 @@ FileResult file_read_sync(File* file, DynString* dynstr) {
   return fileresult_from_lasterror();
 }
 
+FileResult file_crc_32_sync(File* file, u32* outCrc32) {
+  diag_assert(file);
+  diag_assert_msg(file->access & FileAccess_Read, "File handle does not have read access");
+
+  *outCrc32 = 0;
+
+  Mem readBuffer = mem_stack(usize_kibibyte * 16);
+  for (;;) {
+    const DWORD bytesToRead = (DWORD)readBuffer.size;
+    DWORD       bytesRead;
+    const bool  success = ReadFile(file->handle, readBuffer.ptr, bytesToRead, &bytesRead, null);
+    if (success && bytesRead) {
+      *outCrc32 = bits_crc_32(*outCrc32, mem_slice(readBuffer, 0, (usize)bytesRead));
+      continue;
+    }
+    if (success) {
+      return FileResult_Success;
+    }
+    return fileresult_from_lasterror();
+  }
+}
+
 FileResult file_skip_sync(File* file, usize bytes) {
   diag_assert(file);
   diag_assert_msg(file->access & FileAccess_Read, "File handle does not have read access");
