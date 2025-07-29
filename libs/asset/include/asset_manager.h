@@ -9,9 +9,10 @@ typedef struct {
 } AssetMemRecord;
 
 typedef enum {
-  AssetManagerFlags_None         = 0,
-  AssetManagerFlags_TrackChanges = 1 << 0,
-  AssetManagerFlags_DelayUnload  = 1 << 1,
+  AssetManagerFlags_None          = 0,
+  AssetManagerFlags_TrackChanges  = 1 << 0,
+  AssetManagerFlags_DelayUnload   = 1 << 1,
+  AssetManagerFlags_PortableCache = 1 << 2, // Supports a cache from a different asset directory.
 } AssetManagerFlags;
 
 /**

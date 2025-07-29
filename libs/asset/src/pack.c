@@ -47,7 +47,7 @@ struct sAssetPacker {
 static bool packer_write_entry(
     AssetManagerComp*         manager,
     const AssetImportEnvComp* importEnv,
-    const AssetPackEntry*     entry,
+    AssetPackEntry*           entry,
     const Mem                 regionMem) {
   AssetSource* source = asset_source_open(manager, importEnv, entry->id);
   if (UNLIKELY(!source)) {
@@ -59,6 +59,7 @@ static bool packer_write_entry(
     asset_repo_close(source);
     return false;
   }
+  entry->checksum = bits_crc_32(0, source->data);
   mem_cpy(mem_slice(regionMem, entry->offset, entry->size), source->data);
   asset_repo_close(source);
   return true;
@@ -341,11 +342,12 @@ bool asset_packer_push(
   packer->sourceSize += info.size;
 
   const AssetPackEntry e = {
-      .id     = stringtable_intern(g_stringtable, assetId),
-      .idHash = string_hash(assetId),
-      .format = info.format,
-      .size   = (u32)info.size,
-      .region = sentinel_u16,
+      .id       = stringtable_intern(g_stringtable, assetId),
+      .idHash   = string_hash(assetId),
+      .format   = info.format,
+      .checksum = sentinel_u32, // Filled in when writing.
+      .size     = (u32)info.size,
+      .region   = sentinel_u16, // Assigned when writing.
   };
   *dynarray_insert_sorted_t(&packer->entries, AssetPackEntry, asset_pack_compare_entry, &e) = e;
   return true;
@@ -396,6 +398,7 @@ void asset_data_init_pack(void) {
   data_reg_field_t(g_dataReg, AssetPackEntry, id, data_prim_t(String), .flags = DataFlags_Intern);
   data_reg_field_t(g_dataReg, AssetPackEntry, idHash, data_prim_t(u32));
   data_reg_field_t(g_dataReg, AssetPackEntry, format, g_assetFormatType);
+  data_reg_field_t(g_dataReg, AssetPackEntry, checksum, data_prim_t(u32));
   data_reg_field_t(g_dataReg, AssetPackEntry, region, data_prim_t(u16));
   data_reg_field_t(g_dataReg, AssetPackEntry, offset, data_prim_t(u32));
   data_reg_field_t(g_dataReg, AssetPackEntry, size, data_prim_t(u32));

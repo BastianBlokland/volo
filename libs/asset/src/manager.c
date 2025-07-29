@@ -4,7 +4,6 @@
 #include "core_diag.h"
 #include "core_dynarray.h"
 #include "core_dynstring.h"
-#include "core_math.h"
 #include "core_path.h"
 #include "core_stringtable.h"
 #include "core_time.h"
@@ -63,6 +62,7 @@ ecs_comp_define(AssetComp) {
   AssetFlags  flags : 8;
   AssetFormat loadFormat : 8; // Source format of the last load (valid if loadCount > 0).
   TimeReal    loadModTime;    // Source modification of the last load (valid if loadCount > 0).
+  u32         loadChecksum;   // Source checksum of the last load (valid if loadCount > 0).
   u32         loaderHash;     // Hash of the loader at the time of the last load.
 };
 
@@ -106,6 +106,7 @@ ecs_comp_define(AssetReloadRequestComp);
 ecs_comp_define(AssetExtLoadComp) {
   u32         count;
   AssetFormat format;
+  u32         checksum;
   TimeReal    modTime;
 };
 
@@ -202,8 +203,11 @@ static void ecs_combine_asset_ext_load(void* dataA, void* dataB) {
   AssetExtLoadComp* compA = dataA;
   AssetExtLoadComp* compB = dataB;
   compA->count += compB->count;
-  compA->modTime = math_max(compA->modTime, compB->modTime);
-  diag_assert(compA->format == compB->format);
+  if (compB->modTime > compA->modTime) {
+    compA->modTime  = compB->modTime;
+    compA->checksum = compB->checksum;
+    compA->format   = compB->format;
+  }
 }
 
 static void ecs_destruct_cache_request_comp(void* data) {
@@ -289,9 +293,10 @@ static AssetLoadResult asset_manager_load(
   }
 
   ++asset->loadCount;
-  asset->loadFormat  = source->format;
-  asset->loadModTime = source->modTime;
-  asset->loaderHash  = asset_loader_hash(importEnv, asset->id);
+  asset->loadFormat   = source->format;
+  asset->loadModTime  = source->modTime;
+  asset->loadChecksum = source->checksum;
+  asset->loaderHash   = asset_loader_hash(importEnv, asset->id);
 
 #if VOLO_ASSET_LOGGING
   log_d(
@@ -539,8 +544,9 @@ ecs_system_define(AssetLoadExtSys) {
     const AssetExtLoadComp* extLoadComp = ecs_view_read_t(itr, AssetExtLoadComp);
 
     assetComp->loadCount += extLoadComp->count;
-    assetComp->loadFormat  = extLoadComp->format;
-    assetComp->loadModTime = extLoadComp->modTime;
+    assetComp->loadFormat   = extLoadComp->format;
+    assetComp->loadChecksum = extLoadComp->checksum;
+    assetComp->loadModTime  = extLoadComp->modTime;
 
     ecs_utils_maybe_remove_t(world, assetEntity, AssetChangedComp);
     ecs_utils_maybe_remove_t(world, assetEntity, AssetInstantUnloadComp);
@@ -587,11 +593,14 @@ ecs_system_define(AssetCacheSys) {
     diag_assert(assetComp->loadCount); // Caching an asset without loading it makes no sense.
 
     // Collect asset data.
-    const String   id         = assetComp->id;
-    const DataMeta dataMeta   = requestComp->blobMeta;
-    const Mem      blob       = mem_slice(requestComp->blobMem, 0, requestComp->blobSize);
-    const TimeReal modTime    = assetComp->loadModTime;
-    const u32      loaderHash = assetComp->loaderHash;
+    const AssetRepoDep sourceInfo = {
+        .id         = assetComp->id,
+        .modTime    = assetComp->loadModTime,
+        .checksum   = assetComp->loadChecksum,
+        .loaderHash = assetComp->loaderHash,
+    };
+    const DataMeta blobMeta = requestComp->blobMeta;
+    const Mem      blob     = mem_slice(requestComp->blobMem, 0, requestComp->blobSize);
 
     // Collect asset dependencies.
     depCount = 0;
@@ -606,6 +615,7 @@ ecs_system_define(AssetCacheSys) {
         deps[depCount++] = (AssetRepoDep){
             .id         = depAssetComp->id,
             .modTime    = depAssetComp->loadModTime,
+            .checksum   = depAssetComp->loadChecksum,
             .loaderHash = depAssetComp->loaderHash,
         };
       } break;
@@ -620,6 +630,7 @@ ecs_system_define(AssetCacheSys) {
           deps[depCount++] = (AssetRepoDep){
               .id         = depAssetComp->id,
               .modTime    = depAssetComp->loadModTime,
+              .checksum   = depAssetComp->loadChecksum,
               .loaderHash = depAssetComp->loaderHash,
           };
         }
@@ -628,7 +639,7 @@ ecs_system_define(AssetCacheSys) {
     }
 
     // Save the asset in the repo cache.
-    asset_repo_cache(manager->repo, id, dataMeta, modTime, loaderHash, blob, deps, depCount);
+    asset_repo_cache(manager->repo, blob, blobMeta, &sourceInfo, deps, depCount);
 
     ecs_world_remove_t(world, assetEntity, AssetCacheRequestComp);
   }
@@ -709,7 +720,8 @@ bool asset_path_by_id(const AssetManagerComp* manager, const String id, DynStrin
 
 AssetManagerComp*
 asset_manager_create_fs(EcsWorld* world, const AssetManagerFlags flags, const String rootPath) {
-  AssetRepo* repo = asset_repo_create_fs(rootPath);
+  const bool portableCache = (flags & AssetManagerFlags_PortableCache) != 0;
+  AssetRepo* repo          = asset_repo_create_fs(rootPath, portableCache);
   if (UNLIKELY(!repo)) {
     return null;
   }
@@ -884,9 +896,20 @@ void asset_mark_load_success(EcsWorld* world, const EcsEntityId asset) {
 }
 
 void asset_mark_external_load(
-    EcsWorld* world, const EcsEntityId asset, const AssetFormat format, const TimeReal modTime) {
+    EcsWorld*         world,
+    const EcsEntityId asset,
+    const AssetFormat format,
+    const u32         checksum,
+    const TimeReal    modTime) {
 
-  ecs_world_add_t(world, asset, AssetExtLoadComp, .count = 1, .format = format, .modTime = modTime);
+  ecs_world_add_t(
+      world,
+      asset,
+      AssetExtLoadComp,
+      .count    = 1,
+      .format   = format,
+      .checksum = checksum,
+      .modTime  = modTime);
 }
 
 void asset_cache(

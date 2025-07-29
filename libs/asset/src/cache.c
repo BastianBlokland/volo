@@ -29,6 +29,7 @@ typedef struct {
 typedef struct {
   String   id;
   TimeReal modTime;
+  u32      checksum; // crc32 (ISO 3309). NOTE: Source checksum NOT checksum of cached blob.
   u32      loaderHash;
 } AssetCacheDependency;
 
@@ -36,8 +37,9 @@ typedef struct {
   String         id;
   StringHash     idHash;
   AssetCacheMeta meta;
-  TimeReal       modTime;
-  u32            loaderHash;
+  TimeReal       sourceModTime;
+  u32            sourceChecksum;
+  u32            sourceLoaderHash;
   HeapArray_t(AssetCacheDependency) dependencies;
 } AssetCacheEntry;
 
@@ -48,6 +50,7 @@ typedef struct {
 struct sAssetCache {
   Allocator*         alloc;
   bool               error;
+  AssetCacheFlags    flags;
   String             rootPath;
   AssetCacheRegistry reg;
   ThreadMutex        regMutex;
@@ -215,8 +218,26 @@ static const AssetCacheEntry* cache_reg_get(AssetCache* c, const StringHash idHa
   return dynarray_search_binary(&c->reg.entries, cache_compare_entry, &key);
 }
 
-static bool cache_reg_validate_file(const AssetCache* c, const String id, const TimeReal modTime) {
-  const String   sourcePath = path_build_scratch(c->rootPath, id);
+static bool cache_reg_validate_file(
+    const AssetCache* c, const String id, const TimeReal modTime, const u32 checksum) {
+
+  const String sourcePath = path_build_scratch(c->rootPath, id);
+  if (c->flags & AssetCacheFlags_Portable) {
+    /**
+     * For portable caches we cannot rely on the modification timestamp as it could be produced on a
+     * different directory (potentially on a different machine), instead we compute a checksum.
+     */
+    u32 sourceChecksum = 0;
+    if (file_crc_32_path_sync(sourcePath, &sourceChecksum) || sourceChecksum != checksum) {
+      return false; // Source file cannot be read or has been modified.
+    }
+    return true;
+  }
+
+  /**
+   * For non-portable caches we use the modification timestamp to detect changes (which is allot
+   * faster as it doesn't require loading the whole file).
+   */
   const FileInfo sourceInfo = file_stat_path_sync(sourcePath);
   if (sourceInfo.type != FileType_Regular) {
     return false; // Source file has been deleted.
@@ -232,14 +253,14 @@ static bool cache_reg_validate_file(const AssetCache* c, const String id, const 
  */
 static bool cache_reg_validate(
     const AssetCache* c, const AssetCacheEntry* entry, const AssetRepoLoaderHasher loaderHasher) {
-  if (!cache_reg_validate_file(c, entry->id, entry->modTime)) {
+  if (!cache_reg_validate_file(c, entry->id, entry->sourceModTime, entry->sourceChecksum)) {
     return false; // File has changed.
   }
-  if (entry->loaderHash != loaderHasher.computeHash(loaderHasher.ctx, entry->id)) {
+  if (entry->sourceLoaderHash != loaderHasher.computeHash(loaderHasher.ctx, entry->id)) {
     return false; // Loader has changed.
   }
   heap_array_for_t(entry->dependencies, AssetCacheDependency, dep) {
-    if (!cache_reg_validate_file(c, dep->id, dep->modTime)) {
+    if (!cache_reg_validate_file(c, dep->id, dep->modTime, dep->checksum)) {
       return false; // Dependency file has changed.
     }
     if (dep->loaderHash != loaderHasher.computeHash(loaderHasher.ctx, dep->id)) {
@@ -288,14 +309,16 @@ void asset_data_init_cache(void) {
   data_reg_struct_t(g_dataReg, AssetCacheDependency);
   data_reg_field_t(g_dataReg, AssetCacheDependency, id, data_prim_t(String), .flags = DataFlags_Intern);
   data_reg_field_t(g_dataReg, AssetCacheDependency, modTime, data_prim_t(i64));
+  data_reg_field_t(g_dataReg, AssetCacheDependency, checksum, data_prim_t(u32));
   data_reg_field_t(g_dataReg, AssetCacheDependency, loaderHash, data_prim_t(u32));
 
   data_reg_struct_t(g_dataReg, AssetCacheEntry);
   data_reg_field_t(g_dataReg, AssetCacheEntry, id, data_prim_t(String), .flags = DataFlags_Intern);
   data_reg_field_t(g_dataReg, AssetCacheEntry, idHash, data_prim_t(u32));
   data_reg_field_t(g_dataReg, AssetCacheEntry, meta, t_AssetCacheMeta);
-  data_reg_field_t(g_dataReg, AssetCacheEntry, modTime, data_prim_t(i64));
-  data_reg_field_t(g_dataReg, AssetCacheEntry, loaderHash, data_prim_t(u32));
+  data_reg_field_t(g_dataReg, AssetCacheEntry, sourceModTime, data_prim_t(i64));
+  data_reg_field_t(g_dataReg, AssetCacheEntry, sourceChecksum, data_prim_t(u32));
+  data_reg_field_t(g_dataReg, AssetCacheEntry, sourceLoaderHash, data_prim_t(u32));
   data_reg_field_t(g_dataReg, AssetCacheEntry, dependencies, t_AssetCacheDependency, .container = DataContainer_HeapArray);
 
   data_reg_struct_t(g_dataReg, AssetCacheRegistry);
@@ -305,13 +328,15 @@ void asset_data_init_cache(void) {
   g_assetCacheMeta = data_meta_t(t_AssetCacheRegistry);
 }
 
-AssetCache* asset_cache_create(Allocator* alloc, const String rootPath) {
+AssetCache*
+asset_cache_create(Allocator* alloc, const String rootPath, const AssetCacheFlags flags) {
   diag_assert(!string_is_empty(rootPath));
 
   AssetCache* c = alloc_alloc_t(alloc, AssetCache);
 
   *c = (AssetCache){
       .alloc    = alloc,
+      .flags    = flags,
       .rootPath = string_dup(alloc, rootPath),
       .regMutex = thread_mutex_create(alloc),
   };
@@ -358,17 +383,15 @@ void asset_cache_flush(AssetCache* c) {
 
 void asset_cache_set(
     AssetCache*         c,
-    const String        id,
-    const DataMeta      blobMeta,
-    const TimeReal      blobModTime,
-    const u32           blobLoaderHash,
     const Mem           blob,
+    const DataMeta      blobMeta,
+    const AssetRepoDep* source,
     const AssetRepoDep* deps,
     const usize         depCount) {
   if (UNLIKELY(c->error)) {
     return;
   }
-  const StringHash     idHash    = string_hash(id);
+  const StringHash     idHash    = string_hash(source->id);
   const AssetCacheMeta cacheMeta = cache_meta_create(g_dataReg, blobMeta);
 
   // Save the blob to disk.
@@ -391,6 +414,7 @@ void asset_cache_set(
       cacheDependencies[i] = (AssetCacheDependency){
           .id         = stringtable_intern(g_stringtable, deps[i].id),
           .modTime    = deps[i].modTime,
+          .checksum   = deps[i].checksum,
           .loaderHash = deps[i].loaderHash,
       };
     }
@@ -399,10 +423,11 @@ void asset_cache_set(
   // Add an entry to the registry.
   thread_mutex_lock(c->regMutex);
   {
-    AssetCacheEntry* entry = cache_reg_add(c, id, idHash);
-    entry->meta            = cacheMeta;
-    entry->modTime         = blobModTime;
-    entry->loaderHash      = blobLoaderHash;
+    AssetCacheEntry* entry  = cache_reg_add(c, source->id, idHash);
+    entry->meta             = cacheMeta;
+    entry->sourceModTime    = source->modTime;
+    entry->sourceChecksum   = source->checksum;
+    entry->sourceLoaderHash = source->loaderHash;
     if (entry->dependencies.count) {
       // Cleanup the old dependencies.
       alloc_free_array_t(c->alloc, entry->dependencies.values, entry->dependencies.count);
@@ -441,9 +466,10 @@ bool asset_cache_get(
       if (!cache_reg_validate(c, entry, loaderHasher)) {
         goto Incompatible;
       }
-      out->modTime    = entry->modTime;
-      out->loaderHash = entry->loaderHash;
-      success         = true;
+      out->sourceModTime    = entry->sourceModTime;
+      out->sourceChecksum   = entry->sourceChecksum;
+      out->sourceLoaderHash = entry->sourceLoaderHash;
+      success               = true;
     }
   Incompatible:;
   }
@@ -480,6 +506,7 @@ usize asset_cache_deps(
         out[i] = (AssetRepoDep){
             .id         = entry->dependencies.values[i].id,
             .modTime    = entry->dependencies.values[i].modTime,
+            .checksum   = entry->dependencies.values[i].checksum,
             .loaderHash = entry->dependencies.values[i].loaderHash,
         };
       }

@@ -258,7 +258,8 @@ static ShadercIncludeResult* SYS_DECL glsl_include_resolve(
 #if glsl_track_dependencies
   {
     const EcsEntityId depEntity = asset_watch(ctx->invoc->world, ctx->invoc->assetManager, id);
-    asset_mark_external_load(ctx->invoc->world, depEntity, AssetFormat_ShaderGlsl, src->modTime);
+    const AssetFormat fmt       = AssetFormat_ShaderGlsl;
+    asset_mark_external_load(ctx->invoc->world, depEntity, fmt, src->checksum, src->modTime);
     asset_register_dep(ctx->invoc->world, ctx->invoc->assetEntity, depEntity);
   }
 #endif
