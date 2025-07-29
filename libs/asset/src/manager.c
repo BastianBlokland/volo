@@ -204,8 +204,11 @@ static void ecs_combine_asset_ext_load(void* dataA, void* dataB) {
   AssetExtLoadComp* compA = dataA;
   AssetExtLoadComp* compB = dataB;
   compA->count += compB->count;
-  compA->modTime = math_max(compA->modTime, compB->modTime);
-  diag_assert(compA->format == compB->format);
+  if (compB->modTime > compA->modTime) {
+    compA->modTime  = compB->modTime;
+    compA->checksum = compB->checksum;
+    compA->format   = compB->format;
+  }
 }
 
 static void ecs_destruct_cache_request_comp(void* data) {
@@ -610,6 +613,7 @@ ecs_system_define(AssetCacheSys) {
         deps[depCount++] = (AssetRepoDep){
             .id         = depAssetComp->id,
             .modTime    = depAssetComp->loadModTime,
+            .checksum   = depAssetComp->loadChecksum,
             .loaderHash = depAssetComp->loaderHash,
         };
       } break;
@@ -624,6 +628,7 @@ ecs_system_define(AssetCacheSys) {
           deps[depCount++] = (AssetRepoDep){
               .id         = depAssetComp->id,
               .modTime    = depAssetComp->loadModTime,
+              .checksum   = depAssetComp->loadChecksum,
               .loaderHash = depAssetComp->loaderHash,
           };
         }

@@ -24,6 +24,7 @@ typedef struct sAssetInfo {
 typedef struct {
   String   id;
   TimeReal modTime;
+  u32      checksum; // crc32 (ISO 3309). NOTE: Original checksum in case of cached entry.
   u32      loaderHash;
 } AssetRepoDep;
 

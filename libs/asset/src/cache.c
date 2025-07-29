@@ -29,6 +29,7 @@ typedef struct {
 typedef struct {
   String   id;
   TimeReal modTime;
+  u32      checksum; // crc32 (ISO 3309). NOTE: Source checksum NOT checksum of cached blob.
   u32      loaderHash;
 } AssetCacheDependency;
 
@@ -288,6 +289,7 @@ void asset_data_init_cache(void) {
   data_reg_struct_t(g_dataReg, AssetCacheDependency);
   data_reg_field_t(g_dataReg, AssetCacheDependency, id, data_prim_t(String), .flags = DataFlags_Intern);
   data_reg_field_t(g_dataReg, AssetCacheDependency, modTime, data_prim_t(i64));
+  data_reg_field_t(g_dataReg, AssetCacheDependency, checksum, data_prim_t(u32));
   data_reg_field_t(g_dataReg, AssetCacheDependency, loaderHash, data_prim_t(u32));
 
   data_reg_struct_t(g_dataReg, AssetCacheEntry);
@@ -391,6 +393,7 @@ void asset_cache_set(
       cacheDependencies[i] = (AssetCacheDependency){
           .id         = stringtable_intern(g_stringtable, deps[i].id),
           .modTime    = deps[i].modTime,
+          .checksum   = deps[i].checksum,
           .loaderHash = deps[i].loaderHash,
       };
     }
@@ -480,6 +483,7 @@ usize asset_cache_deps(
         out[i] = (AssetRepoDep){
             .id         = entry->dependencies.values[i].id,
             .modTime    = entry->dependencies.values[i].modTime,
+            .checksum   = entry->dependencies.values[i].checksum,
             .loaderHash = entry->dependencies.values[i].loaderHash,
         };
       }
