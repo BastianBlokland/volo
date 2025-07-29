@@ -336,8 +336,13 @@ static void asset_repo_fs_destroy(AssetRepo* repo) {
   alloc_free_t(g_allocHeap, repoFs);
 }
 
-AssetRepo* asset_repo_create_fs(const String rootPath) {
+AssetRepo* asset_repo_create_fs(const String rootPath, const bool portableCache) {
   AssetRepoFs* repo = alloc_alloc_t(g_allocHeap, AssetRepoFs);
+
+  AssetCacheFlags cacheFlags = AssetCacheFlags_None;
+  if (portableCache) {
+    cacheFlags |= AssetCacheFlags_Portable;
+  }
 
   *repo = (AssetRepoFs){
       .api =
@@ -356,13 +361,14 @@ AssetRepo* asset_repo_create_fs(const String rootPath) {
       .sourceAlloc = alloc_block_create(g_allocHeap, sizeof(AssetSourceFs), alignof(AssetSourceFs)),
       .rootPath    = string_dup(g_allocHeap, rootPath),
       .monitor     = file_monitor_create(g_allocHeap, rootPath, FileMonitorFlags_None),
-      .cache       = asset_cache_create(g_allocHeap, rootPath),
+      .cache       = asset_cache_create(g_allocHeap, rootPath, cacheFlags),
   };
 
   log_i(
       "Asset repository created",
       log_param("type", fmt_text_lit("file-system")),
-      log_param("root", fmt_path(rootPath)));
+      log_param("root", fmt_path(rootPath)),
+      log_param("portable-cache", fmt_bool(portableCache)));
 
   return (AssetRepo*)repo;
 }

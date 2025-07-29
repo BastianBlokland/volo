@@ -4,7 +4,6 @@
 #include "core_diag.h"
 #include "core_dynarray.h"
 #include "core_dynstring.h"
-#include "core_math.h"
 #include "core_path.h"
 #include "core_stringtable.h"
 #include "core_time.h"
@@ -721,7 +720,8 @@ bool asset_path_by_id(const AssetManagerComp* manager, const String id, DynStrin
 
 AssetManagerComp*
 asset_manager_create_fs(EcsWorld* world, const AssetManagerFlags flags, const String rootPath) {
-  AssetRepo* repo = asset_repo_create_fs(rootPath);
+  const bool portableCache = (flags & AssetManagerFlags_PortableCache) != 0;
+  AssetRepo* repo          = asset_repo_create_fs(rootPath, portableCache);
   if (UNLIKELY(!repo)) {
     return null;
   }

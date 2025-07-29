@@ -50,6 +50,7 @@ typedef struct {
 struct sAssetCache {
   Allocator*         alloc;
   bool               error;
+  AssetCacheFlags    flags;
   String             rootPath;
   AssetCacheRegistry reg;
   ThreadMutex        regMutex;
@@ -309,13 +310,15 @@ void asset_data_init_cache(void) {
   g_assetCacheMeta = data_meta_t(t_AssetCacheRegistry);
 }
 
-AssetCache* asset_cache_create(Allocator* alloc, const String rootPath) {
+AssetCache*
+asset_cache_create(Allocator* alloc, const String rootPath, const AssetCacheFlags flags) {
   diag_assert(!string_is_empty(rootPath));
 
   AssetCache* c = alloc_alloc_t(alloc, AssetCache);
 
   *c = (AssetCache){
       .alloc    = alloc,
+      .flags    = flags,
       .rootPath = string_dup(alloc, rootPath),
       .regMutex = thread_mutex_create(alloc),
   };
