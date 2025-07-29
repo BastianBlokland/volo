@@ -701,7 +701,9 @@ void app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
 bool app_ecs_query_quit(EcsWorld* world) { return !ecs_utils_any(world, MainWindowView); }
 
 i32 app_ecs_exit_code(EcsWorld* world) {
-  (void)world;
+  if (!ecs_world_has_t(world, ecs_world_global(world), AppComp)) {
+    return 1; // Initialization failed.
+  }
   return 0;
 }
 
