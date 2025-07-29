@@ -37,8 +37,9 @@ typedef struct {
   String         id;
   StringHash     idHash;
   AssetCacheMeta meta;
-  TimeReal       modTime;
-  u32            loaderHash;
+  TimeReal       sourceModTime;
+  u32            sourceChecksum;
+  u32            sourceLoaderHash;
   HeapArray_t(AssetCacheDependency) dependencies;
 } AssetCacheEntry;
 
@@ -233,10 +234,10 @@ static bool cache_reg_validate_file(const AssetCache* c, const String id, const 
  */
 static bool cache_reg_validate(
     const AssetCache* c, const AssetCacheEntry* entry, const AssetRepoLoaderHasher loaderHasher) {
-  if (!cache_reg_validate_file(c, entry->id, entry->modTime)) {
+  if (!cache_reg_validate_file(c, entry->id, entry->sourceModTime)) {
     return false; // File has changed.
   }
-  if (entry->loaderHash != loaderHasher.computeHash(loaderHasher.ctx, entry->id)) {
+  if (entry->sourceLoaderHash != loaderHasher.computeHash(loaderHasher.ctx, entry->id)) {
     return false; // Loader has changed.
   }
   heap_array_for_t(entry->dependencies, AssetCacheDependency, dep) {
@@ -296,8 +297,9 @@ void asset_data_init_cache(void) {
   data_reg_field_t(g_dataReg, AssetCacheEntry, id, data_prim_t(String), .flags = DataFlags_Intern);
   data_reg_field_t(g_dataReg, AssetCacheEntry, idHash, data_prim_t(u32));
   data_reg_field_t(g_dataReg, AssetCacheEntry, meta, t_AssetCacheMeta);
-  data_reg_field_t(g_dataReg, AssetCacheEntry, modTime, data_prim_t(i64));
-  data_reg_field_t(g_dataReg, AssetCacheEntry, loaderHash, data_prim_t(u32));
+  data_reg_field_t(g_dataReg, AssetCacheEntry, sourceModTime, data_prim_t(i64));
+  data_reg_field_t(g_dataReg, AssetCacheEntry, sourceChecksum, data_prim_t(u32));
+  data_reg_field_t(g_dataReg, AssetCacheEntry, sourceLoaderHash, data_prim_t(u32));
   data_reg_field_t(g_dataReg, AssetCacheEntry, dependencies, t_AssetCacheDependency, .container = DataContainer_HeapArray);
 
   data_reg_struct_t(g_dataReg, AssetCacheRegistry);
@@ -360,17 +362,15 @@ void asset_cache_flush(AssetCache* c) {
 
 void asset_cache_set(
     AssetCache*         c,
-    const String        id,
-    const DataMeta      blobMeta,
-    const TimeReal      blobModTime,
-    const u32           blobLoaderHash,
     const Mem           blob,
+    const DataMeta      blobMeta,
+    const AssetRepoDep* source,
     const AssetRepoDep* deps,
     const usize         depCount) {
   if (UNLIKELY(c->error)) {
     return;
   }
-  const StringHash     idHash    = string_hash(id);
+  const StringHash     idHash    = string_hash(source->id);
   const AssetCacheMeta cacheMeta = cache_meta_create(g_dataReg, blobMeta);
 
   // Save the blob to disk.
@@ -402,10 +402,11 @@ void asset_cache_set(
   // Add an entry to the registry.
   thread_mutex_lock(c->regMutex);
   {
-    AssetCacheEntry* entry = cache_reg_add(c, id, idHash);
-    entry->meta            = cacheMeta;
-    entry->modTime         = blobModTime;
-    entry->loaderHash      = blobLoaderHash;
+    AssetCacheEntry* entry  = cache_reg_add(c, source->id, idHash);
+    entry->meta             = cacheMeta;
+    entry->sourceModTime    = source->modTime;
+    entry->sourceChecksum   = source->checksum;
+    entry->sourceLoaderHash = source->loaderHash;
     if (entry->dependencies.count) {
       // Cleanup the old dependencies.
       alloc_free_array_t(c->alloc, entry->dependencies.values, entry->dependencies.count);
@@ -444,9 +445,10 @@ bool asset_cache_get(
       if (!cache_reg_validate(c, entry, loaderHasher)) {
         goto Incompatible;
       }
-      out->modTime    = entry->modTime;
-      out->loaderHash = entry->loaderHash;
-      success         = true;
+      out->sourceModTime    = entry->sourceModTime;
+      out->sourceChecksum   = entry->sourceChecksum;
+      out->sourceLoaderHash = entry->sourceLoaderHash;
+      success               = true;
     }
   Incompatible:;
   }

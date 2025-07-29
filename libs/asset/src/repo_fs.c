@@ -42,7 +42,7 @@ static bool asset_source_fs_stat(
         .format  = asset_format_from_bin_meta(cacheRecord.meta),
         .flags   = AssetInfoFlags_Cached,
         .size    = file_stat_sync(cacheRecord.blobFile).size,
-        .modTime = cacheRecord.modTime,
+        .modTime = cacheRecord.sourceModTime,
     };
     file_destroy(cacheRecord.blobFile);
     return true;
@@ -90,8 +90,8 @@ static AssetSource* asset_source_fs_open_cached(AssetRepoFs* repoFs, const Asset
               .data     = data,
               .format   = format,
               .flags    = AssetInfoFlags_Cached,
-              .checksum = 42, // TODO: Track checksum in cache.
-              .modTime  = rec->modTime,
+              .checksum = rec->sourceChecksum,
+              .modTime  = rec->sourceModTime,
               .close    = asset_source_fs_close,
           },
       .repo = repoFs,
@@ -314,7 +314,14 @@ static void asset_repo_fs_cache(
     const usize         depCount) {
   AssetRepoFs* repoFs = (AssetRepoFs*)repo;
 
-  asset_cache_set(repoFs->cache, id, blobMeta, blobModTime, blobLoaderHash, blob, deps, depCount);
+  const AssetRepoDep sourceDep = {
+      .id         = id,
+      .checksum   = 42, // TODO: Track cache checksum.
+      .loaderHash = blobLoaderHash,
+      .modTime    = blobModTime,
+  };
+
+  asset_cache_set(repoFs->cache, blob, blobMeta, &sourceDep, deps, depCount);
   asset_cache_flush(repoFs->cache); // NOTE: We could batch flushes to be more efficient.
 }
 

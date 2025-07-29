@@ -18,19 +18,18 @@ void        asset_cache_flush(AssetCache*);
  */
 void asset_cache_set(
     AssetCache*,
-    String              id,
-    DataMeta            blobMeta,
-    TimeReal            blobModTime,
-    u32                 blobLoaderHash,
     Mem                 blob,
+    DataMeta            blobMeta,
+    const AssetRepoDep* source,
     const AssetRepoDep* deps,
     usize               depCount);
 
 typedef struct {
   File*    blobFile; // NOTE: Caller is responsible for destroying the handle.
   DataMeta meta;
-  TimeReal modTime;
-  u32      loaderHash;
+  TimeReal sourceModTime;
+  u32      sourceLoaderHash;
+  u32      sourceChecksum;
 } AssetCacheRecord;
 
 /**
