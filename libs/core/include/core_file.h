@@ -136,6 +136,11 @@ FileResult file_read_sync(File*, DynString*);
 FileResult file_read_to_end_sync(File*, DynString*);
 
 /**
+ * Compute the ISO 3309 CRC32 (Cyclic Redundancy Check) of current file position until the end.
+ */
+FileResult file_crc_32_sync(File*, u32* outCrc32);
+
+/**
  * Skip (read but discard) x amount of bytes from the file.
  * NOTE: Usefull for files that do not support seeking (for example pipes).
  */
