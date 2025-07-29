@@ -218,8 +218,26 @@ static const AssetCacheEntry* cache_reg_get(AssetCache* c, const StringHash idHa
   return dynarray_search_binary(&c->reg.entries, cache_compare_entry, &key);
 }
 
-static bool cache_reg_validate_file(const AssetCache* c, const String id, const TimeReal modTime) {
-  const String   sourcePath = path_build_scratch(c->rootPath, id);
+static bool cache_reg_validate_file(
+    const AssetCache* c, const String id, const TimeReal modTime, const u32 checksum) {
+
+  const String sourcePath = path_build_scratch(c->rootPath, id);
+  if (c->flags & AssetCacheFlags_Portable) {
+    /**
+     * For portable caches we cannot rely on the modification timestamp as it could be produced on a
+     * different directory (potentially on a different machine), instead we compute a checksum.
+     */
+    u32 sourceChecksum = 0;
+    if (file_crc_32_path_sync(sourcePath, &sourceChecksum) || sourceChecksum != checksum) {
+      return false; // Source file cannot be read or has been modified.
+    }
+    return true;
+  }
+
+  /**
+   * For non-portable caches we use the modification timestamp to detect changes (which is allot
+   * faster as it doesn't require loading the whole file).
+   */
   const FileInfo sourceInfo = file_stat_path_sync(sourcePath);
   if (sourceInfo.type != FileType_Regular) {
     return false; // Source file has been deleted.
@@ -235,14 +253,14 @@ static bool cache_reg_validate_file(const AssetCache* c, const String id, const 
  */
 static bool cache_reg_validate(
     const AssetCache* c, const AssetCacheEntry* entry, const AssetRepoLoaderHasher loaderHasher) {
-  if (!cache_reg_validate_file(c, entry->id, entry->sourceModTime)) {
+  if (!cache_reg_validate_file(c, entry->id, entry->sourceModTime, entry->sourceChecksum)) {
     return false; // File has changed.
   }
   if (entry->sourceLoaderHash != loaderHasher.computeHash(loaderHasher.ctx, entry->id)) {
     return false; // Loader has changed.
   }
   heap_array_for_t(entry->dependencies, AssetCacheDependency, dep) {
-    if (!cache_reg_validate_file(c, dep->id, dep->modTime)) {
+    if (!cache_reg_validate_file(c, dep->id, dep->modTime, dep->checksum)) {
       return false; // Dependency file has changed.
     }
     if (dep->loaderHash != loaderHasher.computeHash(loaderHasher.ctx, dep->id)) {
