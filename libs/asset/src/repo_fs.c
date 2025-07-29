@@ -305,23 +305,14 @@ static AssetRepoQueryResult asset_repo_fs_query(
 
 static void asset_repo_fs_cache(
     AssetRepo*          repo,
-    const String        id,
-    const DataMeta      blobMeta,
-    const TimeReal      blobModTime,
-    const u32           blobLoaderHash,
     const Mem           blob,
+    const DataMeta      blobMeta,
+    const AssetRepoDep* source,
     const AssetRepoDep* deps,
     const usize         depCount) {
   AssetRepoFs* repoFs = (AssetRepoFs*)repo;
 
-  const AssetRepoDep sourceDep = {
-      .id         = id,
-      .checksum   = 42, // TODO: Track cache checksum.
-      .loaderHash = blobLoaderHash,
-      .modTime    = blobModTime,
-  };
-
-  asset_cache_set(repoFs->cache, blob, blobMeta, &sourceDep, deps, depCount);
+  asset_cache_set(repoFs->cache, blob, blobMeta, source, deps, depCount);
   asset_cache_flush(repoFs->cache); // NOTE: We could batch flushes to be more efficient.
 }
 

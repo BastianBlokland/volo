@@ -63,11 +63,9 @@ struct sAssetRepo {
   AssetRepoQueryResult (*query)(AssetRepo*, String pattern, void* ctx, AssetRepoQueryHandler);
   void (*cache)(
       AssetRepo*,
-      String              id,
-      DataMeta            blobMeta,
-      TimeReal            blobModTime,
-      u32                 blobLoaderHash,
       Mem                 blob,
+      DataMeta            blobMeta,
+      const AssetRepoDep* source,
       const AssetRepoDep* deps,
       usize               depCount);
   usize (*cacheDeps)(
@@ -104,11 +102,9 @@ AssetRepoQueryResult asset_repo_query(AssetRepo*, String pattern, void* ctx, Ass
 
 void asset_repo_cache(
     AssetRepo*,
-    String              id,
-    DataMeta            blobMeta,
-    TimeReal            blobModTime,
-    u32                 blobLoaderHash,
     Mem                 blob,
+    DataMeta            blobMeta,
+    const AssetRepoDep* source,
     const AssetRepoDep* deps,
     usize               depCount);
 
