@@ -63,6 +63,7 @@ ecs_comp_define(AssetComp) {
   AssetFlags  flags : 8;
   AssetFormat loadFormat : 8; // Source format of the last load (valid if loadCount > 0).
   TimeReal    loadModTime;    // Source modification of the last load (valid if loadCount > 0).
+  u32         loadChecksum;   // Source checksum of the last load (valid if loadCount > 0).
   u32         loaderHash;     // Hash of the loader at the time of the last load.
 };
 
@@ -106,6 +107,7 @@ ecs_comp_define(AssetReloadRequestComp);
 ecs_comp_define(AssetExtLoadComp) {
   u32         count;
   AssetFormat format;
+  u32         checksum;
   TimeReal    modTime;
 };
 
@@ -289,9 +291,10 @@ static AssetLoadResult asset_manager_load(
   }
 
   ++asset->loadCount;
-  asset->loadFormat  = source->format;
-  asset->loadModTime = source->modTime;
-  asset->loaderHash  = asset_loader_hash(importEnv, asset->id);
+  asset->loadFormat   = source->format;
+  asset->loadModTime  = source->modTime;
+  asset->loadChecksum = source->checksum;
+  asset->loaderHash   = asset_loader_hash(importEnv, asset->id);
 
 #if VOLO_ASSET_LOGGING
   log_d(
@@ -539,8 +542,9 @@ ecs_system_define(AssetLoadExtSys) {
     const AssetExtLoadComp* extLoadComp = ecs_view_read_t(itr, AssetExtLoadComp);
 
     assetComp->loadCount += extLoadComp->count;
-    assetComp->loadFormat  = extLoadComp->format;
-    assetComp->loadModTime = extLoadComp->modTime;
+    assetComp->loadFormat   = extLoadComp->format;
+    assetComp->loadChecksum = extLoadComp->checksum;
+    assetComp->loadModTime  = extLoadComp->modTime;
 
     ecs_utils_maybe_remove_t(world, assetEntity, AssetChangedComp);
     ecs_utils_maybe_remove_t(world, assetEntity, AssetInstantUnloadComp);
@@ -884,9 +888,20 @@ void asset_mark_load_success(EcsWorld* world, const EcsEntityId asset) {
 }
 
 void asset_mark_external_load(
-    EcsWorld* world, const EcsEntityId asset, const AssetFormat format, const TimeReal modTime) {
+    EcsWorld*         world,
+    const EcsEntityId asset,
+    const AssetFormat format,
+    const u32         checksum,
+    const TimeReal    modTime) {
 
-  ecs_world_add_t(world, asset, AssetExtLoadComp, .count = 1, .format = format, .modTime = modTime);
+  ecs_world_add_t(
+      world,
+      asset,
+      AssetExtLoadComp,
+      .count    = 1,
+      .format   = format,
+      .checksum = checksum,
+      .modTime  = modTime);
 }
 
 void asset_cache(

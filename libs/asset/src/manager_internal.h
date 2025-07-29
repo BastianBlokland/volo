@@ -41,7 +41,8 @@ void asset_mark_load_success(EcsWorld*, EcsEntityId asset);
  * Register an external load for the given asset.
  * Useful when loading files outside of the normal loaders.
  */
-void asset_mark_external_load(EcsWorld*, EcsEntityId asset, AssetFormat format, TimeReal modTime);
+void asset_mark_external_load(
+    EcsWorld*, EcsEntityId asset, AssetFormat, u32 checksum /* crc32 */, TimeReal modTime);
 
 /**
  * Queue data to be cached for the given asset.
