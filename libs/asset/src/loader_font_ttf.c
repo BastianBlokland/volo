@@ -670,10 +670,14 @@ static void ttf_read_glyph_hor_metrics(
     *err = TtfError_HmtxTableMalformed;
     return;
   }
-  const u16 lastLongIndex = hheaTable->numOfLongHorMetrics ? hheaTable->numOfLongHorMetrics - 1 : 0;
   for (usize i = 0; i != remainingEntries; ++i) {
-    data = mem_consume_be_u16(data, (u16*)&out[lastLongIndex + i].leftSideBearing);
-    out[lastLongIndex + i].advanceWidth = out[lastLongIndex].advanceWidth;
+    const usize idx = hheaTable->numOfLongHorMetrics + i;
+    data            = mem_consume_be_u16(data, (u16*)&out[idx].leftSideBearing);
+    if (hheaTable->numOfLongHorMetrics) {
+      out[idx].advanceWidth = out[hheaTable->numOfLongHorMetrics - 1].advanceWidth;
+    } else {
+      out[idx].advanceWidth = 0;
+    }
   }
 }
 
