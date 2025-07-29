@@ -181,6 +181,22 @@ FileResult file_read_to_end_sync(File* file, DynString* output) {
   return res == FileResult_NoDataAvailable ? FileResult_Success : res;
 }
 
+FileResult file_crc_32_path_sync(const String path, u32* outCrc32) {
+  File*      file = null;
+  FileResult res;
+  if ((res = file_create(g_allocScratch, path, FileMode_Open, FileAccess_Read, &file))) {
+    goto ret;
+  }
+  if ((res = file_crc_32_sync(file, outCrc32))) {
+    goto ret;
+  }
+ret:
+  if (file) {
+    file_destroy(file);
+  }
+  return res;
+}
+
 FileResult file_create_dir_sync(const String path) {
   if (UNLIKELY(string_is_empty(path))) {
     return FileResult_PathInvalid;
