@@ -205,21 +205,30 @@ static void asset_repo_pack_destroy(AssetRepo* repo) {
   alloc_free_t(g_allocHeap, repoPack);
 }
 
-static bool asset_repo_pack_read_header(File* file, AssetPackHeader* out) {
+static bool asset_repo_pack_read_header(File* file, const String filePath, AssetPackHeader* out) {
   FileResult fileRes;
   String     mapping;
   if ((fileRes = file_map(file, 0, asset_pack_header_size, FileHints_None, &mapping))) {
-    log_e("Failed to read pack header", log_param("error", fmt_text(file_result_str(fileRes))));
+    log_e(
+        "Failed to read pack header",
+        log_param("path", fmt_path(filePath)),
+        log_param("error", fmt_text(file_result_str(fileRes))));
     return false;
   }
   DataReadResult readRes;
   data_read_bin(g_dataReg, mapping, g_allocHeap, g_assetPackMeta, mem_var(*out), &readRes);
   if (UNLIKELY(readRes.error)) {
-    log_e("Failed to read pack header", log_param("error", fmt_text(readRes.errorMsg)));
+    log_e(
+        "Failed to read pack header",
+        log_param("path", fmt_path(filePath)),
+        log_param("error", fmt_text(readRes.errorMsg)));
     return false;
   }
   if ((fileRes = file_unmap(file, mapping))) {
-    log_e("Failed to unmap header mapping", log_param("error", fmt_text(file_result_str(fileRes))));
+    log_e(
+        "Failed to unmap header mapping",
+        log_param("path", fmt_path(filePath)),
+        log_param("error", fmt_text(file_result_str(fileRes))));
   }
   return true;
 }
@@ -228,16 +237,21 @@ AssetRepo* asset_repo_create_pack(const String filePath) {
   File*      file;
   FileResult fileRes;
   if ((fileRes = file_create(g_allocHeap, filePath, FileMode_Open, FileAccess_Read, &file))) {
-    log_e("Failed to open pack file", log_param("error", fmt_text(file_result_str(fileRes))));
+    log_e(
+        "Failed to open pack file",
+        log_param("path", fmt_path(filePath)),
+        log_param("error", fmt_text(file_result_str(fileRes))));
     return null;
   }
   AssetPackHeader header;
-  if (!asset_repo_pack_read_header(file, &header)) {
+  if (!asset_repo_pack_read_header(file, filePath, &header)) {
+    file_destroy(file);
     return null;
   }
   if (!asset_repo_pack_validate(&header)) {
-    log_e("Malformed pack file");
+    log_e("Malformed pack file", log_param("path", fmt_path(filePath)));
     data_destroy(g_dataReg, g_allocHeap, g_assetPackMeta, mem_var(header));
+    file_destroy(file);
     return null;
   }
   AssetRepoPack* repo = alloc_alloc_t(g_allocHeap, AssetRepoPack);
