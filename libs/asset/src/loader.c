@@ -48,7 +48,7 @@
   _X_(AssetFormat_TexHeight32,      tex_height32,       2  )                                       \
   _X_(AssetFormat_TexPng,           tex_png,            2  )                                       \
   _X_(AssetFormat_TexPpm,           tex_ppm,            2  )                                       \
-  _X_(AssetFormat_TexProc,          tex_proc,           1  )                                       \
+  _X_(AssetFormat_TexProc,          tex_proc,           2  )                                       \
   _X_(AssetFormat_TexTga,           tex_tga,            2  )                                       \
   _X_(AssetFormat_Vfx,              vfx,                1  )                                       \
   _X_(AssetFormat_VfxBin,           vfx,                1  )                                       \

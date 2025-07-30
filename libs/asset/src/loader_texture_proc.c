@@ -192,7 +192,7 @@ static GeoColor proctex_sample_brdf_integration(const f32 roughness, const f32 n
     if (nDotL > 0) {
       const f32 geoFrac     = geometry_smith(nDotV, nDotL, roughness);
       const f32 geoVisFrac  = (geoFrac * vDotH) / (nDotH * nDotV);
-      const f32 fresnelFrac = math_pow_f32(1.0f - vDotH, 5.0f);
+      const f32 fresnelFrac = math_pow_whole_f32(1.0f - vDotH, 5);
 
       outScale += (1.0f - fresnelFrac) * geoVisFrac;
       outBias += fresnelFrac * geoVisFrac;
