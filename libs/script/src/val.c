@@ -180,7 +180,7 @@ u32 script_hash(const ScriptVal value) {
   UNREACHABLE
 }
 
-ScriptVal val_zero_pad(const ScriptVal v) {
+ScriptVal script_zero_pad(const ScriptVal v) {
   ScriptVal result                  = {0};
   result.bytes[val_type_byte_index] = val_type(v);
   switch (result.bytes[val_type_byte_index]) {
