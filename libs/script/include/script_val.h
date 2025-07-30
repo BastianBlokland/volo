@@ -90,6 +90,7 @@ bool      script_non_null(ScriptVal);
 ScriptVal script_non_null_as_val(ScriptVal);
 ScriptVal script_val_or(ScriptVal value, ScriptVal fallback);
 u32       script_hash(ScriptVal);
+ScriptVal script_zero_pad(ScriptVal); // Fill padding with zeroes; usefull for serialization.
 
 /**
  * Create a textual representation of a value.

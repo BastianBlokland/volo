@@ -180,6 +180,40 @@ u32 script_hash(const ScriptVal value) {
   UNREACHABLE
 }
 
+ScriptVal val_zero_pad(const ScriptVal v) {
+  ScriptVal result                  = {0};
+  result.bytes[val_type_byte_index] = val_type(v);
+  switch (result.bytes[val_type_byte_index]) {
+  case ScriptType_Null:
+    break; // Nothing to do; null is all zeroes.
+  case ScriptType_Num:
+    mem_cpy(array_mem(result.bytes), mem_create(v.bytes, sizeof(f64)));
+    break;
+  case ScriptType_Bool:
+    result.bytes[0] = v.bytes[0];
+    break;
+  case ScriptType_Vec3:
+    mem_cpy(array_mem(result.bytes), mem_create(v.bytes, sizeof(f32) * 3));
+    break;
+  case ScriptType_Quat:
+    mem_cpy(array_mem(result.bytes), mem_create(v.bytes, sizeof(f32) * 3));
+    break;
+  case ScriptType_Color:
+    mem_cpy(array_mem(result.bytes), mem_create(v.bytes, sizeof(f16) * 4));
+    break;
+  case ScriptType_Entity:
+    mem_cpy(array_mem(result.bytes), mem_create(v.bytes, sizeof(EcsEntityId)));
+    break;
+  case ScriptType_Str:
+    mem_cpy(array_mem(result.bytes), mem_create(v.bytes, sizeof(StringHash)));
+    break;
+  case ScriptType_Count:
+    diag_assert_fail("Invalid script value");
+    UNREACHABLE
+  }
+  return result;
+}
+
 String script_val_type_str(const ScriptType type) {
   diag_assert_msg(type < ScriptType_Count, "Invalid script value type: {}", fmt_int(type));
   static const String g_names[] = {
