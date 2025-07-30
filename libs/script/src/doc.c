@@ -31,7 +31,7 @@ static ScriptValId doc_val_add(ScriptDoc* doc, const ScriptVal val) {
     }
   }
   // If not: Register a new value
-  *dynarray_push_t(&doc->values, ScriptVal) = val;
+  *dynarray_push_t(&doc->values, ScriptVal) = script_zero_pad(val);
   return id;
 }
 
