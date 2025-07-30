@@ -425,7 +425,10 @@ static f32 gltf_access_max_f32(GltfLoad* ld, const u32 acc) {
 
 static AssetMeshDataPtr gltf_data_begin(GltfLoad* ld, const u32 align) {
   // Insert padding to reach the requested alignment.
-  mem_set(dynarray_push(&ld->animData, bits_padding_32((u32)ld->animData.size, align)), 0);
+  const Mem mem = dynarray_push(&ld->animData, bits_padding_32((u32)ld->animData.size, align));
+  if (mem.size) {
+    mem_set(mem, 0);
+  }
   return (u32)ld->animData.size;
 }
 
