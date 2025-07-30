@@ -346,7 +346,7 @@ static ScriptCompileError compile_value(Context* ctx, const Target tgt, const Sc
       return ScriptCompileError_TooManyValues;
     }
     const u8 literalId                             = (u8)ctx->outLiterals.size;
-    *dynarray_push_t(&ctx->outLiterals, ScriptVal) = val;
+    *dynarray_push_t(&ctx->outLiterals, ScriptVal) = script_zero_pad(val);
     emit_value(ctx, tgt.reg, literalId);
     break;
   }
