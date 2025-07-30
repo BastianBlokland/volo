@@ -425,7 +425,7 @@ static f32 gltf_access_max_f32(GltfLoad* ld, const u32 acc) {
 
 static AssetMeshDataPtr gltf_data_begin(GltfLoad* ld, const u32 align) {
   // Insert padding to reach the requested alignment.
-  dynarray_push(&ld->animData, bits_padding_32((u32)ld->animData.size, align));
+  mem_set(dynarray_push(&ld->animData, bits_padding_32((u32)ld->animData.size, align)), 0);
   return (u32)ld->animData.size;
 }
 
@@ -478,9 +478,9 @@ static AssetMeshDataPtr gltf_data_push_access_vec(GltfLoad* ld, const u32 acc) {
 
   const AssetMeshDataPtr res = gltf_data_begin(ld, alignof(GeoVector));
   for (u32 i = 0; i != totalCompCount; i += compCount) {
-    mem_cpy(
-        dynarray_push(&ld->animData, sizeof(f32) * 4),
-        mem_create(&ld->access[acc].data_f32[i], sizeof(f32) * compCount));
+    const Mem mem = dynarray_push(&ld->animData, sizeof(f32) * 4);
+    mem_set(mem, 0); // TODO: Avoid the duplicate writes of the used components.
+    mem_cpy(mem, mem_create(&ld->access[acc].data_f32[i], sizeof(f32) * compCount));
   }
   return res;
 }
