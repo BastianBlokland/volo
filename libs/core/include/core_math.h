@@ -127,6 +127,7 @@ f32 math_atan2_f32(f32 x, f32 y);
  */
 f32 math_pow_f32(f32 base, f32 exp);
 f64 math_pow_f64(f64 base, f64 exp);
+f32 math_pow_whole_f32(f32 base, u32 exp);
 
 /**
  * Compute the natural logarithm e raised to the power of exp.

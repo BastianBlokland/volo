@@ -61,6 +61,23 @@ f32 math_atan2_f32(const f32 x, const f32 y) { return intrinsic_atan2_f32(x, y);
 f32 math_pow_f32(const f32 base, const f32 exp) { return intrinsic_pow_f32(base, exp); }
 f64 math_pow_f64(const f64 base, const f64 exp) { return intrinsic_pow_f64(base, exp); }
 
+f32 math_pow_whole_f32(f32 base, u32 exp) {
+  /**
+   * Exponentiation by squaring.
+   * Based on ivaigult's aswner:
+   * https://stackoverflow.com/questions/48280854/how-to-force-powfloat-int-to-return-float
+   */
+  f32 result = 1.0f;
+  while (exp) {
+    if (exp & 1) {
+      result *= base;
+    }
+    exp >>= 1;
+    base *= base;
+  }
+  return result;
+}
+
 f32 math_exp_f32(const f32 exp) { return intrinsic_exp_f32(exp); }
 
 f32 math_round_nearest_f32(const f32 val) { return intrinsic_round_nearest_f32(val); }
