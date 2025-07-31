@@ -8,8 +8,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  test:
-    name: test-${{matrix.config.name}}
+  build-code:
+    name: code-${{matrix.config.name}}
     runs-on: ${{matrix.config.image}}
     strategy:
       fail-fast: false
@@ -125,14 +125,14 @@ jobs:
       with:
         fetch-depth: 0
 
-    - name: test-unix
+    - name: build-unix
       if: matrix.config.toolchain == 'unix'
       shell: bash
       run: |
         cmake -B build $CMAKE_OPTS &&
         make -sk -C build all test
 
-    - name: test-msvc
+    - name: build-msvc
       if: matrix.config.toolchain == 'msvc'
       shell: pwsh
       run: |
@@ -141,7 +141,7 @@ jobs:
         cd build                                                          &&
         nmake /C /K all test
 
-    - name: test-mingw
+    - name: build-mingw
       if: matrix.config.toolchain == 'mingw'
       shell: pwsh
       run: |
@@ -152,12 +152,11 @@ jobs:
       uses: actions/upload-artifact@v4
       if: success() || failure()
       with:
-        name: archive-test-${{matrix.config.name}}
+        name: archive-code-${{matrix.config.name}}
         path: |
           build/**/logs/*.crash
           build/**/logs/*.eventtrace
           build/**/logs/*.log
-          build/**/logs/*.mocha
 
     - name: report
       uses: dorny/test-reporter@v2
