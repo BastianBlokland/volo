@@ -29,7 +29,7 @@ Installation:
  		"volo-script": {
 			"enabled": true,
 			"command": [
-				"[REPOSITORY_PATH]/build/utilities/lsp",
+				"[REPOSITORY_PATH]/bin/lsp",
 				"--stdio",
 				"--binders",
 				"[REPOSITORY_PATH]/assets/schemas/script_import_mesh_binder.json"

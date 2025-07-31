@@ -5,7 +5,7 @@
     "volo-script": {
       "enabled": true,
       "command": [
-        "volo/build/utilities/lsp",
+        "volo/bin/lsp",
         "--stdio",
         "--binders",
         "volo/assets/schemas/script_import_mesh_binder.json"

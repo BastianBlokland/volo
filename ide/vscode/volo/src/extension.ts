@@ -12,7 +12,7 @@ import {
 let client: LanguageClient;
 
 function getWorkspaceServerPaths(workspaceFolder: WorkspaceFolder): string[] {
-  const serverPath = path.join(workspaceFolder.uri.fsPath, "build", "utilities", "lsp");
+  const serverPath = path.join(workspaceFolder.uri.fsPath, "bin", "lsp");
   return [serverPath, serverPath + ".exe"];
 }
 
