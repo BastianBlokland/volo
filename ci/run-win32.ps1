@@ -21,7 +21,7 @@
   Link time optimization.
 .PARAMETER Sanitize
   Default: Off
-  Should santizer instrumentation be enabled.
+  Should sanitizer instrumentation be enabled.
 #>
 [cmdletbinding()]
 param(
