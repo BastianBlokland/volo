@@ -154,6 +154,7 @@ jobs:
       with:
         name: archive-code-${{matrix.config.name}}
         path: |
+          bin/
           build/**/logs/*.crash
           build/**/logs/*.eventtrace
           build/**/logs/*.log
