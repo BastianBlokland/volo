@@ -17,6 +17,8 @@ add_executable(app_fetch fetch.c)
 target_link_libraries(app_fetch PRIVATE lib_app_cli lib_net lib_log lib_data)
 configure_debuggable(app_fetch)
 
+install(TARGETS app_fetch DESTINATION "${CMAKE_SOURCE_DIR}/bin")
+
 add_custom_target(run.fetch COMMAND app_fetch
   "${CMAKE_SOURCE_DIR}/assets/fetch.json" VERBATIM USES_TERMINAL)
 
@@ -29,6 +31,8 @@ add_executable(app_pack pack.c)
 target_link_libraries(app_pack PRIVATE lib_app_ecs lib_log lib_asset)
 configure_debuggable(app_pack)
 
+install(TARGETS app_pack DESTINATION "${CMAKE_SOURCE_DIR}/bin")
+
 add_custom_target(run.pack
   COMMAND app_fetch "${CMAKE_SOURCE_DIR}/assets/fetch.json" VERBATIM USES_TERMINAL
   COMMAND app_pack
@@ -36,8 +40,6 @@ add_custom_target(run.pack
     "--output" "${CMAKE_BINARY_DIR}/assets.blob"
     "${CMAKE_SOURCE_DIR}/assets/pack.json"
     VERBATIM USES_TERMINAL)
-
-install(FILES "${CMAKE_BINARY_DIR}/assets.blob" DESTINATION "${CMAKE_SOURCE_DIR}/package")
 
 message(STATUS "> application: dbgsetup")
 
@@ -50,6 +52,8 @@ add_executable(app_repl repl.c)
 target_link_libraries(app_repl PRIVATE lib_app_cli lib_script)
 configure_debuggable(app_repl)
 
+install(TARGETS app_repl DESTINATION "${CMAKE_SOURCE_DIR}/bin")
+
 add_custom_target(run.repl COMMAND app_repl VERBATIM USES_TERMINAL)
 
 message(STATUS "> application: lsp")
@@ -57,6 +61,8 @@ message(STATUS "> application: lsp")
 add_executable(app_lsp lsp.c)
 target_link_libraries(app_lsp PRIVATE lib_app_cli lib_script lib_json)
 configure_debuggable(app_lsp)
+
+install(TARGETS app_lsp DESTINATION "${CMAKE_SOURCE_DIR}/bin")
 
 message(STATUS "> application: bcu")
 
@@ -69,6 +75,8 @@ message(STATUS "> application: blob2j")
 add_executable(app_blob2j blob2j.c)
 target_link_libraries(app_blob2j PRIVATE lib_app_cli lib_asset)
 configure_debuggable(app_blob2j)
+
+install(TARGETS app_blob2j DESTINATION "${CMAKE_SOURCE_DIR}/bin")
 
 message(STATUS "> application: zipu")
 
