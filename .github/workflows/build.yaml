@@ -121,7 +121,7 @@ jobs:
       if: matrix.config.toolchain == 'unix'
       shell: bash
       run: |
-        cmake -B build $CMAKE_OPTS  &&
+        cmake -B build $CMAKE_OPTS &&
         make -sk -C build all test
 
     - name: test-msvc
@@ -152,13 +152,14 @@ jobs:
           build/**/logs/*.mocha
 
     - name: report
-      uses: dorny/test-reporter@v1
-      if: success() || failure()
+      uses: dorny/test-reporter@v2
+      if: ${{ !cancelled() }}
       with:
         name: report-${{matrix.config.name}}
         fail-on-error: false
         path: build/**/logs/*.mocha
         reporter: mocha-json
+        only-summary: 'true'
 
   package:
     name: package-${{matrix.config.name}}
