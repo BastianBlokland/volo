@@ -159,7 +159,7 @@ jobs:
         fail-on-error: false
         path: build/**/logs/*.mocha
         reporter: mocha-json
-        list-tests: 'failed'
+        only-summary: 'true'
 
   package:
     name: package-${{matrix.config.name}}
