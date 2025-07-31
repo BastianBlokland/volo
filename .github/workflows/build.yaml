@@ -130,7 +130,7 @@ jobs:
       shell: bash
       run: |
         cmake -B build $CMAKE_OPTS &&
-        make -sk -C build all test
+        make -sk -C build all test install
 
     - name: build-msvc
       if: matrix.config.toolchain == 'msvc'
@@ -139,14 +139,14 @@ jobs:
         ./ci/env-win32.ps1                                                &&
         cmake -B build -G 'NMake Makefiles' $($env:CMAKE_OPTS -split ' ') &&
         cd build                                                          &&
-        nmake /C /K all test
+        nmake /C /K all test install
 
     - name: build-mingw
       if: matrix.config.toolchain == 'mingw'
       shell: pwsh
       run: |
         cmake -B build -G 'MinGW Makefiles' $($env:CMAKE_OPTS -split ' ') &&
-        mingw32-make -sk -C build all test
+        mingw32-make -sk -C build all test install
 
     - name: archive
       uses: actions/upload-artifact@v4
