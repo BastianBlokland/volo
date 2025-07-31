@@ -157,6 +157,7 @@ jobs:
           build/**/logs/*.crash
           build/**/logs/*.eventtrace
           build/**/logs/*.log
+          build/**/logs/*.mocha
 
     - name: report
       uses: dorny/test-reporter@v2
