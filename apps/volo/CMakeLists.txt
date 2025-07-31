@@ -31,6 +31,6 @@ configure_debuggable(volo)
 install(TARGETS volo DESTINATION "${CMAKE_SOURCE_DIR}/bin")
 
 add_custom_target(run.volo
-  COMMAND app_fetch "${CMAKE_SOURCE_DIR}/assets/fetch.json" VERBATIM USES_TERMINAL
+  COMMAND fetch "${CMAKE_SOURCE_DIR}/assets/fetch.json" VERBATIM USES_TERMINAL
   COMMAND volo "-w" "--assets" "${CMAKE_SOURCE_DIR}/assets" VERBATIM USES_TERMINAL
 )
