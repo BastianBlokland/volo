@@ -2,10 +2,12 @@
 # Files to ignore in git.
 # --------------------------------------------------------------------------------------------------
 
-# Common build path.
+# Build paths.
 /build/
+/deps/
 
-# Common package path.
+# Output paths.
+/bin/
 /package/
 
 # User settings (Except portable common settings).
