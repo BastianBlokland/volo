@@ -16,7 +16,7 @@ jobs:
       matrix:
         config:
         - {
-            name: linux-gcc-x64,
+            name: linux-dev-gcc-x64,
             image: ubuntu-24.04,
             os: linux,
             toolchain: unix,
@@ -28,7 +28,7 @@ jobs:
             sanitize: On,
           }
         - {
-            name: linux-gcc-no-simd-x64,
+            name: linux-dev-gcc-no-simd-x64,
             image: ubuntu-24.04,
             os: linux,
             toolchain: unix,
@@ -40,7 +40,7 @@ jobs:
             sanitize: On,
           }
         - {
-            name: linux-clang-x64,
+            name: linux-dev-clang-x64,
             image: ubuntu-24.04,
             os: linux,
             toolchain: unix,
@@ -52,7 +52,7 @@ jobs:
             sanitize: On,
           }
         - {
-            name: windows-msvc-x64,
+            name: windows-dev-msvc-x64,
             image: windows-2025,
             os: windows,
             toolchain: msvc,
@@ -64,7 +64,7 @@ jobs:
             sanitize: On,
           }
         - {
-            name: windows-clang-x64,
+            name: windows-dev-clang-x64,
             image: windows-2025,
             os: windows,
             toolchain: msvc,
@@ -76,7 +76,7 @@ jobs:
             sanitize: On,
           }
         - {
-            name: windows-mingw-x64,
+            name: windows-dev-mingw-x64,
             image: windows-2025,
             os: windows,
             toolchain: mingw,
@@ -88,7 +88,7 @@ jobs:
             sanitize: On,
           }
         - {
-            name: linux-clang-release-x64,
+            name: linux-rel-x64,
             image: ubuntu-24.04,
             os: linux,
             toolchain: unix,
@@ -100,11 +100,11 @@ jobs:
             sanitize: Off,
           }
         - {
-            name: windows-msvc-release-x64,
+            name: windows-rel-x64,
             image: windows-2025,
             os: windows,
             toolchain: msvc,
-            cc: cl,
+            cc: clang,
             fast: On,
             simd: On,
             trace: Off,
