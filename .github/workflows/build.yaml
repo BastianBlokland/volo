@@ -25,6 +25,7 @@ jobs:
             simd: On,
             trace: On,
             lto: Off,
+            sanitize: On,
           }
         - {
             name: linux-gcc-no-simd-x64,
@@ -36,6 +37,7 @@ jobs:
             simd: Off,
             trace: On,
             lto: Off,
+            sanitize: On,
           }
         - {
             name: linux-clang-x64,
@@ -47,6 +49,7 @@ jobs:
             simd: On,
             trace: On,
             lto: Off,
+            sanitize: On,
           }
         - {
             name: windows-msvc-x64,
@@ -58,6 +61,7 @@ jobs:
             simd: On,
             trace: On,
             lto: Off,
+            sanitize: On,
           }
         - {
             name: windows-clang-x64,
@@ -69,6 +73,7 @@ jobs:
             simd: On,
             trace: On,
             lto: Off,
+            sanitize: On,
           }
         - {
             name: windows-mingw-x64,
@@ -80,6 +85,7 @@ jobs:
             simd: On,
             trace: On,
             lto: Off,
+            sanitize: On,
           }
         - {
             name: linux-clang-release-x64,
@@ -91,6 +97,7 @@ jobs:
             simd: On,
             trace: Off,
             lto: On,
+            sanitize: Off,
           }
         - {
             name: windows-msvc-release-x64,
@@ -102,6 +109,7 @@ jobs:
             simd: On,
             trace: Off,
             lto: On,
+            sanitize: Off,
           }
     env:
       CC: ${{matrix.config.cc}}
@@ -110,7 +118,7 @@ jobs:
         -DSIMD=${{matrix.config.simd}}
         -DLTO=${{matrix.config.lto}}
         -DTRACE=${{matrix.config.trace}}
-        -DSANITIZE=On
+        -DSANITIZE=${{matrix.config.sanitize}}
     steps:
     - name: checkout
       uses: actions/checkout@v4
