@@ -148,6 +148,16 @@ jobs:
         cmake -B build -G 'MinGW Makefiles' $($env:CMAKE_OPTS -split ' ') &&
         mingw32-make -sk -C build all test install
 
+    - name: strip-unix
+      if: matrix.config.toolchain == 'unix'
+      shell: bash
+      run: |
+        for file in $(find bin -type f ! -name "*.*"); do
+            objcopy --only-keep-debug "$file" "$file.dbg"
+            strip --strip-all "$file"
+            objcopy --add-gnu-debuglink="$file.dbg" "$file"
+        done
+
     - name: archive
       uses: actions/upload-artifact@v4
       if: success() || failure()
