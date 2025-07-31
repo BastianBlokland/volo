@@ -2,5 +2,5 @@
 # Applications cmake file.
 # --------------------------------------------------------------------------------------------------
 
-add_subdirectory(game)
+add_subdirectory(volo)
 add_subdirectory(utilities)

@@ -1,10 +1,10 @@
 # --------------------------------------------------------------------------------------------------
-# Game application cmake file.
+# Volo application cmake file.
 # --------------------------------------------------------------------------------------------------
 
-message(STATUS "> application: game")
+message(STATUS "> application: volo")
 
-add_executable(app_game
+add_executable(volo
   src/app.c
   src/cmd.c
   src/hud.c
@@ -12,7 +12,7 @@ add_executable(app_game
   src/prefs.c
   )
 
-target_link_libraries(app_game PRIVATE
+target_link_libraries(volo PRIVATE
   lib_app_ecs
   lib_asset
   lib_data
@@ -26,11 +26,11 @@ target_link_libraries(app_game PRIVATE
   lib_ui
   lib_vfx
   )
-configure_debuggable(app_game)
+configure_debuggable(volo)
 
-install(TARGETS app_game DESTINATION "${CMAKE_SOURCE_DIR}/bin")
+install(TARGETS volo DESTINATION "${CMAKE_SOURCE_DIR}/bin")
 
-add_custom_target(run.game
+add_custom_target(run.volo
   COMMAND app_fetch "${CMAKE_SOURCE_DIR}/assets/fetch.json" VERBATIM USES_TERMINAL
-  COMMAND app_game "-w" "--assets" "${CMAKE_SOURCE_DIR}/assets" VERBATIM USES_TERMINAL
+  COMMAND volo "-w" "--assets" "${CMAKE_SOURCE_DIR}/assets" VERBATIM USES_TERMINAL
 )
