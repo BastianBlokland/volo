@@ -33,7 +33,7 @@ static CliInvocationOption* cli_invocation_option(CliInvocation* invoc, const Cl
   return dynarray_at_t(&invoc->options, id, CliInvocationOption);
 }
 
-static void cli_parse_add_error(CliParseCtx* ctx, String err) {
+static void cli_parse_add_error(CliParseCtx* ctx, const String err) {
   *dynarray_push_t(&ctx->errors, String) = string_dup(ctx->alloc, err);
 }
 
@@ -48,11 +48,11 @@ static void cli_parse_consume_arg(CliParseCtx* ctx) {
 
 static u32 cli_parse_args_remaining(CliParseCtx* ctx) { return (u32)(ctx->argTail - ctx->argHead); }
 
-static bool cli_parse_already_provided(CliParseCtx* ctx, CliId id) {
+static bool cli_parse_already_provided(CliParseCtx* ctx, const CliId id) {
   return dynarray_at_t(&ctx->options, id, CliInvocationOption)->provided;
 }
 
-static void cli_parse_set_provided(CliParseCtx* ctx, CliId id) {
+static void cli_parse_set_provided(CliParseCtx* ctx, const CliId id) {
   dynarray_at_t(&ctx->options, id, CliInvocationOption)->provided = true;
 }
 
@@ -82,7 +82,7 @@ cli_parse_add_value(CliParseCtx* ctx, const CliId id, const CliOptionFlags flags
   }
 }
 
-static void cli_parse_add_values(CliParseCtx* ctx, CliId optId) {
+static void cli_parse_add_values(CliParseCtx* ctx, const CliId optId) {
   const CliOptionFlags flags = cli_option(ctx->app, optId)->flags;
   if (!(flags & CliOptionFlags_Value)) {
     return; // Option does not support passing values.
@@ -127,7 +127,7 @@ static void cli_parse_add_values(CliParseCtx* ctx, CliId optId) {
   }
 }
 
-static void cli_parse_long_flag(CliParseCtx* ctx, String name) {
+static void cli_parse_long_flag(CliParseCtx* ctx, const String name) {
   const CliId optId = cli_find_by_name(ctx->app, name);
   if (sentinel_check(optId)) {
     cli_parse_add_error(ctx, fmt_write_scratch("Unknown flag '{}'", fmt_text(name)));
@@ -141,7 +141,7 @@ static void cli_parse_long_flag(CliParseCtx* ctx, String name) {
   cli_parse_add_values(ctx, optId);
 }
 
-static void cli_parse_short_flag(CliParseCtx* ctx, u8 character) {
+static void cli_parse_short_flag(CliParseCtx* ctx, const u8 character) {
   const CliId optId = cli_find_by_character(ctx->app, character);
   if (sentinel_check(optId)) {
     cli_parse_add_error(ctx, fmt_write_scratch("Unknown flag '{}'", fmt_char(character)));
@@ -155,7 +155,7 @@ static void cli_parse_short_flag(CliParseCtx* ctx, u8 character) {
   cli_parse_add_values(ctx, optId);
 }
 
-static void cli_parse_short_flag_block(CliParseCtx* ctx, String characterBlock) {
+static void cli_parse_short_flag_block(CliParseCtx* ctx, const String characterBlock) {
   mem_for_u8(characterBlock, itr) {
     const CliId optId = cli_find_by_character(ctx->app, *itr);
     if (sentinel_check(optId)) {
