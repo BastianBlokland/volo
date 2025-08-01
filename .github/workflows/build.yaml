@@ -9,7 +9,7 @@ on:
 
 jobs:
   build-code:
-    name: code-${{matrix.config.name}}
+    name: build-code-${{matrix.config.name}}
     runs-on: ${{matrix.config.image}}
     strategy:
       fail-fast: false
@@ -134,23 +134,23 @@ jobs:
       if: matrix.config.toolchain == 'unix'
       shell: bash
       run: |
-        cmake -B build $CMAKE_OPTS &&
+        cmake -B build $CMAKE_OPTS
         make -sk -C build all test install
 
     - name: build-msvc
       if: matrix.config.toolchain == 'msvc'
       shell: pwsh
       run: |
-        ./ci/env-win32.ps1                                                &&
-        cmake -B build -G 'NMake Makefiles' $($env:CMAKE_OPTS -split ' ') &&
-        cd build                                                          &&
+        ./ci/env-win32.ps1
+        cmake -B build -G 'NMake Makefiles' $($env:CMAKE_OPTS -split ' ')
+        cd build
         nmake /C /K all test install
 
     - name: build-mingw
       if: matrix.config.toolchain == 'mingw'
       shell: pwsh
       run: |
-        cmake -B build -G 'MinGW Makefiles' $($env:CMAKE_OPTS -split ' ') &&
+        cmake -B build -G 'MinGW Makefiles' $($env:CMAKE_OPTS -split ' ')
         mingw32-make -sk -C build all test install
 
     - name: strip-unix
@@ -229,6 +229,7 @@ jobs:
     - name: pack
       shell: bash
       run: |
+        chmod +x bin/*
         ./bin/fetch assets/fetch.json
         ./bin/pack assets/pack.json --output assets.blob
 
