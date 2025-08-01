@@ -197,7 +197,8 @@ jobs:
       with:
         sparse-checkout: assets
 
-    - uses: actions/download-artifact@v4
+    - name: code-init
+      uses: actions/download-artifact@v4
       with:
         name: archive-code-linux-rel-x64
 
