@@ -23,10 +23,18 @@ int SYS_DECL main(const int argc, const char** argv) {
   CliApp* app = cli_app_create(g_allocHeap);
   app_cli_configure(app);
 
+  const CliId optDbgSyms =
+      cli_register_flag(app, '\0', string_lit("debug-symbols"), CliOptionFlags_Exclusive);
+  cli_register_desc(app, optDbgSyms, string_lit("Dump a listing of all debug symbols."));
+
   CliInvocation* invoc = cli_parse(app, argc - 1, argv + 1);
   if (cli_parse_result(invoc) == CliParseResult_Fail) {
     cli_failure_write_file(invoc, g_fileStdErr);
     exitCode = 2;
+    goto exit;
+  }
+  if (cli_parse_provided(invoc, optDbgSyms)) {
+    // TODO: Write symbols.
     goto exit;
   }
 
