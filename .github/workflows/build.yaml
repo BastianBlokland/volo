@@ -165,7 +165,7 @@ jobs:
 
     - name: archive
       uses: actions/upload-artifact@v4
-      if: success() || failure()
+      if: ${{ !cancelled() }}
       with:
         name: archive-code-${{matrix.config.name}}
         path: |
@@ -184,3 +184,60 @@ jobs:
         path: build/**/logs/*.mocha
         reporter: mocha-json
         only-summary: 'true'
+
+  build-assets:
+    name: assets
+    runs-on: ubuntu-24.04
+    env:
+      SHADERC_URL: https://bastian.tech/redist/linux-x64/libshaderc_shared.so.1
+      LD_LIBRARY_PATH: ${{github.workspace}}/deps
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4
+      with:
+        sparse-checkout: assets
+
+    - uses: actions/download-artifact@v4
+      with:
+        name: archive-code-linux-rel-x64
+
+    - name: deps-cache
+      id: deps-cache
+      uses: actions/cache@v4
+      with:
+        key: deps-linux-001
+        path: deps
+
+    - name: deps-init
+      if: ${{steps.deps-cache.outputs.cache-hit != 'true'}}
+      shell: bash
+      run: |
+        mkdir "$GITHUB_WORKSPACE/deps"
+        curl -o "$GITHUB_WORKSPACE/deps/libshaderc_shared.so.1" $SHADERC_URL
+
+    - name: assets-cache
+      id: assets-cache
+      uses: actions/cache@v4
+      with:
+        key: assets-${{github.sha}}
+        restore-keys: assets-
+        enableCrossOsArchive: true
+        path: |
+          assets/.cache
+          assets/external
+
+    - name: pack
+      shell: bash
+      run: |
+        ./bin/fetch assets/fetch.json
+        ./bin/pack assets/pack.json --output assets.blob
+
+    - name: archive
+      uses: actions/upload-artifact@v4
+      if: ${{ !cancelled() }}
+      with:
+        name: archive-assets
+        path: |
+          assets.blob
+          bin/**/logs/*.eventtrace
+          bin/**/logs/*.log
