@@ -9,7 +9,7 @@ on:
 
 jobs:
   build-code:
-    name: build-code-${{matrix.config.name}}
+    name: build-${{matrix.config.name}}
     runs-on: ${{matrix.config.image}}
     strategy:
       fail-fast: false
