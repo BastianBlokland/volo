@@ -49,12 +49,9 @@ set_compile_options()
 # Generate a 'compile_commands.json' for intellisense (for example clangd).
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-message(STATUS "Configuring libraries")
 add_subdirectory(libs)
+add_subdirectory(volo)
+add_subdirectory(utilities)
 
-message(STATUS "Configuring applications")
-add_subdirectory(apps)
-
-message(STATUS "Configuring utility targets")
 configure_test_target()
 configure_dbgsetup_target()

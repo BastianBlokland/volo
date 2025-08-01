@@ -99,7 +99,7 @@ build() {
 
 # Defaults.
 buildDir="build"
-buildTarget="run.game"
+buildTarget="run.volo"
 buildSystem="ninja"
 fastMode="Off"
 traceMode="Off"

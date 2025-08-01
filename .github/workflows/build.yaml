@@ -8,15 +8,15 @@ on:
   workflow_dispatch:
 
 jobs:
-  test:
-    name: test-${{matrix.config.name}}
+  build-code:
+    name: build-${{matrix.config.name}}
     runs-on: ${{matrix.config.image}}
     strategy:
       fail-fast: false
       matrix:
         config:
         - {
-            name: linux-gcc-x64,
+            name: linux-dev-gcc-x64,
             image: ubuntu-24.04,
             os: linux,
             toolchain: unix,
@@ -25,9 +25,10 @@ jobs:
             simd: On,
             trace: On,
             lto: Off,
+            sanitize: On,
           }
         - {
-            name: linux-gcc-no-simd-x64,
+            name: linux-dev-gcc-no-simd-x64,
             image: ubuntu-24.04,
             os: linux,
             toolchain: unix,
@@ -36,9 +37,10 @@ jobs:
             simd: Off,
             trace: On,
             lto: Off,
+            sanitize: On,
           }
         - {
-            name: linux-clang-x64,
+            name: linux-dev-clang-x64,
             image: ubuntu-24.04,
             os: linux,
             toolchain: unix,
@@ -47,9 +49,10 @@ jobs:
             simd: On,
             trace: On,
             lto: Off,
+            sanitize: On,
           }
         - {
-            name: windows-msvc-x64,
+            name: windows-dev-msvc-x64,
             image: windows-2025,
             os: windows,
             toolchain: msvc,
@@ -58,9 +61,10 @@ jobs:
             simd: On,
             trace: On,
             lto: Off,
+            sanitize: On,
           }
         - {
-            name: windows-clang-x64,
+            name: windows-dev-clang-x64,
             image: windows-2025,
             os: windows,
             toolchain: msvc,
@@ -69,9 +73,10 @@ jobs:
             simd: On,
             trace: On,
             lto: Off,
+            sanitize: On,
           }
         - {
-            name: windows-mingw-x64,
+            name: windows-dev-mingw-x64,
             image: windows-2025,
             os: windows,
             toolchain: mingw,
@@ -80,9 +85,10 @@ jobs:
             simd: On,
             trace: On,
             lto: Off,
+            sanitize: On,
           }
         - {
-            name: linux-clang-release-x64,
+            name: linux-rel-x64,
             image: ubuntu-24.04,
             os: linux,
             toolchain: unix,
@@ -91,17 +97,19 @@ jobs:
             simd: On,
             trace: Off,
             lto: On,
+            sanitize: Off,
           }
         - {
-            name: windows-msvc-release-x64,
+            name: windows-rel-x64,
             image: windows-2025,
             os: windows,
             toolchain: msvc,
-            cc: cl,
+            cc: clang,
             fast: On,
             simd: On,
             trace: Off,
             lto: On,
+            sanitize: Off,
           }
     env:
       CC: ${{matrix.config.cc}}
@@ -110,46 +118,58 @@ jobs:
         -DSIMD=${{matrix.config.simd}}
         -DLTO=${{matrix.config.lto}}
         -DTRACE=${{matrix.config.trace}}
-        -DSANITIZE=On
+        -DSANITIZE=${{matrix.config.sanitize}}
     steps:
     - name: checkout
       uses: actions/checkout@v4
       with:
-        fetch-depth: 0
+        sparse-checkout: |
+          ci
+          cmake
+          volo
+          libs
+          utilities
 
-    - name: test-unix
+    - name: build-unix
       if: matrix.config.toolchain == 'unix'
       shell: bash
       run: |
-        cmake -B build $CMAKE_OPTS &&
-        make -sk -C build all test
+        cmake -B build $CMAKE_OPTS
+        make -sk -C build all test install
 
-    - name: test-msvc
+    - name: build-msvc
       if: matrix.config.toolchain == 'msvc'
       shell: pwsh
       run: |
-        ./ci/env-win32.ps1                                                &&
-        cmake -B build -G 'NMake Makefiles' $($env:CMAKE_OPTS -split ' ') &&
-        cd build                                                          &&
-        nmake /C /K all test
+        ./ci/env-win32.ps1
+        cmake -B build -G 'NMake Makefiles' $($env:CMAKE_OPTS -split ' ')
+        Push-Location build; nmake /C /K all test install; Pop-Location
 
-    - name: test-mingw
+    - name: build-mingw
       if: matrix.config.toolchain == 'mingw'
       shell: pwsh
       run: |
-        cmake -B build -G 'MinGW Makefiles' $($env:CMAKE_OPTS -split ' ') &&
-        mingw32-make -sk -C build all test
+        cmake -B build -G 'MinGW Makefiles' $($env:CMAKE_OPTS -split ' ')
+        mingw32-make -sk -C build all test install
+
+    - name: strip-unix
+      if: matrix.config.toolchain == 'unix'
+      shell: bash
+      run: |
+        for file in $(find bin -type f ! -name "*.*"); do
+            objcopy --only-keep-debug "$file" "$file.dbg"
+            strip --strip-all "$file"
+            objcopy --add-gnu-debuglink="$file.dbg" "$file"
+        done
 
     - name: archive
       uses: actions/upload-artifact@v4
-      if: success() || failure()
+      if: ${{ !cancelled() }}
       with:
-        name: archive-test-${{matrix.config.name}}
+        name: code-${{matrix.config.name}}
         path: |
-          build/**/logs/*.crash
-          build/**/logs/*.eventtrace
-          build/**/logs/*.log
-          build/**/logs/*.mocha
+          bin/
+          build/**/logs/*
 
     - name: report
       uses: dorny/test-reporter@v2
@@ -161,63 +181,36 @@ jobs:
         reporter: mocha-json
         only-summary: 'true'
 
-  package:
-    name: package-${{matrix.config.name}}
-    runs-on: ${{matrix.config.image}}
-    strategy:
-      fail-fast: false
-      matrix:
-        config:
-        - {
-            name: linux-x64,
-            image: ubuntu-24.04,
-            os: linux,
-            toolchain: unix,
-            cc: clang-18,
-            shaderc: libshaderc_shared.so.1
-          }
-        - {
-            name: windows-x64,
-            image: windows-2025,
-            os: windows,
-            toolchain: msvc,
-            cc: clang,
-            shaderc: shaderc_shared.dll
-          }
+  build-assets:
+    needs: build-code
+    runs-on: ubuntu-24.04
     env:
-      CC: ${{matrix.config.cc}}
-      CMAKE_OPTS: >-
-        -DFAST=On
-        -DSIMD=On
-        -DLTO=On
-        -DTRACE=Off
-        -DSANITIZE=Off
-      SHADERC: ${{matrix.config.shaderc}}
-      SHADERC_URL: https://bastian.tech/redist/${{matrix.config.os}}-x64/${{matrix.config.shaderc}}
+      REDIST_URL: https://bastian.tech/redist/linux-x64
       LD_LIBRARY_PATH: ${{github.workspace}}/deps
     steps:
     - name: checkout
       uses: actions/checkout@v4
       with:
-        fetch-depth: 0
+        sparse-checkout: assets
+
+    - name: code-init
+      uses: actions/download-artifact@v4
+      with:
+        name: code-linux-rel-x64
 
     - name: deps-cache
       id: deps-cache
       uses: actions/cache@v4
       with:
-        key: deps-${{matrix.config.image}}-001
+        key: deps-linux-001
         path: deps
 
-    - name: deps-fetch
+    - name: deps-init
       if: ${{steps.deps-cache.outputs.cache-hit != 'true'}}
       shell: bash
       run: |
         mkdir "$GITHUB_WORKSPACE/deps"
-        curl -o "$GITHUB_WORKSPACE/deps/$SHADERC" $SHADERC_URL
-
-    - name: deps-prepare
-      shell: bash
-      run: echo "$GITHUB_WORKSPACE/deps" >> "$GITHUB_PATH"
+        curl -o "$GITHUB_WORKSPACE/deps/libshaderc_shared.so.1" $REDIST_URL/libshaderc_shared.so.1
 
     - name: assets-cache
       id: assets-cache
@@ -230,30 +223,18 @@ jobs:
           assets/.cache
           assets/external
 
-    - name: build-unix
-      if: matrix.config.toolchain == 'unix'
+    - name: pack
       shell: bash
       run: |
-        cmake -B build $CMAKE_OPTS         &&
-        make -s -C build app_game run.pack &&
-        make -s -C build install
-
-    - name: build-msvc
-      if: matrix.config.toolchain == 'msvc'
-      shell: pwsh
-      run: |
-        ./ci/env-win32.ps1                                                &&
-        cmake -B build -G 'NMake Makefiles' $($env:CMAKE_OPTS -split ' ') &&
-        cd build                                                          &&
-        nmake /C app_game run.pack                                        &&
-        nmake /C install
+        chmod +x bin/*
+        ./bin/fetch assets/fetch.json
+        ./bin/pack assets/pack.json --output assets.blob
 
     - name: archive
       uses: actions/upload-artifact@v4
+      if: ${{ !cancelled() }}
       with:
-        name: archive-package-${{matrix.config.name}}
+        name: assets
         path: |
-          package/
-          build/**/logs/*.eventtrace
-          build/**/logs/*.log
-
+          assets.blob
+          bin/**/logs/*

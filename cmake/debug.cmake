@@ -11,7 +11,7 @@
 function(configure_dbgsetup_target)
   message(STATUS "> target: dbgsetup")
 
-  if(TARGET dbgsetup)
+  if(TARGET run.dbgsetup)
     message(FATAL_ERROR "dbgsetup target already configured")
   endif()
 
