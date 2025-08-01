@@ -173,6 +173,15 @@ void cli_register_desc_choice(
 String cli_desc(const CliApp* app, const CliId id) { return cli_option(app, id)->desc; }
 
 bool cli_excludes(const CliApp* app, const CliId a, const CliId b) {
+  if (a == b) {
+    return false;
+  }
+  if (cli_option(app, a)->flags & CliOptionFlags_Exclusive) {
+    return true;
+  }
+  if (cli_option(app, b)->flags & CliOptionFlags_Exclusive) {
+    return true;
+  }
   dynarray_for_t(&app->exclusions, CliExclusion, ex) {
     if ((ex->a == a && ex->b == b) || (ex->b == a && ex->a == b)) {
       return true;
