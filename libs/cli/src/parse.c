@@ -231,7 +231,6 @@ static void cli_parse_options(CliParseCtx* ctx) {
 }
 
 static void cli_parse_check_validator(CliParseCtx* ctx, const CliId optId) {
-
   CliInvocationOption* invocOpt = dynarray_at_t(&ctx->options, optId, CliInvocationOption);
   dynarray_for_t(&invocOpt->values, String, val) {
     if (!cli_option(ctx->app, optId)->validator(*val)) {
