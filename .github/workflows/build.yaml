@@ -143,8 +143,7 @@ jobs:
       run: |
         ./ci/env-win32.ps1
         cmake -B build -G 'NMake Makefiles' $($env:CMAKE_OPTS -split ' ')
-        cd build
-        nmake /C /K all test install
+        Push-Location build; nmake /C /K all test install; Pop-Location
 
     - name: build-mingw
       if: matrix.config.toolchain == 'mingw'
@@ -170,10 +169,7 @@ jobs:
         name: code-${{matrix.config.name}}
         path: |
           bin/
-          build/**/logs/*.crash
-          build/**/logs/*.eventtrace
-          build/**/logs/*.log
-          build/**/logs/*.mocha
+          build/**/logs/*
 
     - name: report
       uses: dorny/test-reporter@v2
@@ -189,7 +185,7 @@ jobs:
     needs: build-code
     runs-on: ubuntu-24.04
     env:
-      SHADERC_URL: https://bastian.tech/redist/linux-x64/libshaderc_shared.so.1
+      REDIST_URL: https://bastian.tech/redist/linux-x64
       LD_LIBRARY_PATH: ${{github.workspace}}/deps
     steps:
     - name: checkout
@@ -214,7 +210,7 @@ jobs:
       shell: bash
       run: |
         mkdir "$GITHUB_WORKSPACE/deps"
-        curl -o "$GITHUB_WORKSPACE/deps/libshaderc_shared.so.1" $SHADERC_URL
+        curl -o "$GITHUB_WORKSPACE/deps/libshaderc_shared.so.1" $REDIST_URL/libshaderc_shared.so.1
 
     - name: assets-cache
       id: assets-cache
@@ -241,5 +237,4 @@ jobs:
         name: assets
         path: |
           assets.blob
-          bin/**/logs/*.eventtrace
-          bin/**/logs/*.log
+          bin/**/logs/*
