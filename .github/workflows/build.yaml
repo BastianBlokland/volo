@@ -123,7 +123,12 @@ jobs:
     - name: checkout
       uses: actions/checkout@v4
       with:
-        fetch-depth: 0
+        sparse-checkout: |
+          ci
+          cmake
+          volo
+          libs
+          utilities
 
     - name: build-unix
       if: matrix.config.toolchain == 'unix'
