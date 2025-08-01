@@ -167,7 +167,7 @@ jobs:
       uses: actions/upload-artifact@v4
       if: ${{ !cancelled() }}
       with:
-        name: archive-code-${{matrix.config.name}}
+        name: code-${{matrix.config.name}}
         path: |
           bin/
           build/**/logs/*.crash
@@ -200,7 +200,7 @@ jobs:
     - name: code-init
       uses: actions/download-artifact@v4
       with:
-        name: archive-code-linux-rel-x64
+        name: code-linux-rel-x64
 
     - name: deps-cache
       id: deps-cache
@@ -238,7 +238,7 @@ jobs:
       uses: actions/upload-artifact@v4
       if: ${{ !cancelled() }}
       with:
-        name: archive-assets
+        name: assets
         path: |
           assets.blob
           bin/**/logs/*.eventtrace
