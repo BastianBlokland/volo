@@ -24,6 +24,10 @@ typedef enum {
    * Indicates that a option takes one or more values and is required to be provided.
    */
   CliOptionFlags_RequiredMultiValue = CliOptionFlags_MultiValue | CliOptionFlags_Required,
+  /**
+   * Indicates that this option cannot be used together with any other option.
+   */
+  CliOptionFlags_Exclusive = 1 << 3,
 } CliOptionFlags;
 
 /**
