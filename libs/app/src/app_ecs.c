@@ -75,7 +75,7 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   // Enable custom signal handling, used for graceful shutdown on interrupt.
   signal_intercept_enable();
 
-  EcsRunnerFlags runnerFlags = EcsRunnerFlags_Replan;
+  EcsRunnerFlags runnerFlags = EcsRunnerFlags_Default;
   if (cli_parse_provided(invoc, g_optNoEcsReplan)) {
     runnerFlags &= ~EcsRunnerFlags_Replan;
   }
