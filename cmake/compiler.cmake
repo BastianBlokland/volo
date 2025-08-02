@@ -152,6 +152,9 @@ macro(set_clang_compile_options)
   add_compile_options(-fno-omit-frame-pointer) # Include frame-pointers for fast stack-traces.
 
   if(${VOLO_PLATFORM} STREQUAL "win32")
+    # Statically link the runtime library.
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded")
+
     # Forward declaration of enums is defined in c as all enums use int as underlying the type.
     add_compile_options(-Wno-microsoft-enum-forward-reference)
 
