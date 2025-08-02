@@ -65,4 +65,4 @@ SymbolAddrRel symbol_dbg_base(SymbolAddrRel);
 /**
  * Dump a listing of all debug symbols to the given file.
  */
-void symbol_dbg_dump(File*);
+bool symbol_dbg_dump(File*);

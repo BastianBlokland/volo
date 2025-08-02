@@ -351,20 +351,22 @@ SymbolAddrRel symbol_dbg_base(const SymbolAddrRel addr) {
   return info ? info->begin : sentinel_u32;
 }
 
-void symbol_dbg_dump(File* out) {
+bool symbol_dbg_dump(File* out) {
   const SymbolReg* reg = symbol_reg_get();
-  if (LIKELY(reg)) {
-    DynString str = dynstring_create(g_allocHeap, 4 * usize_kibibyte);
-    dynarray_for_t(&reg->syms, SymbolInfo, info) {
-      const SymbolAddrRel size = info->end - info->begin;
-      fmt_write(
-          &str,
-          "{} +{} {}\n",
-          fmt_int(info->begin, .base = 16, .minDigits = 8),
-          fmt_int(size),
-          fmt_text(info->name));
-    }
-    file_write_sync(out, dynstring_view(&str));
-    dynstring_destroy(&str);
+  if (!reg || !reg->syms.size) {
+    return false;
   }
+  DynString str = dynstring_create(g_allocHeap, 4 * usize_kibibyte);
+  dynarray_for_t(&reg->syms, SymbolInfo, info) {
+    const SymbolAddrRel size = info->end - info->begin;
+    fmt_write(
+        &str,
+        "{} +{} {}\n",
+        fmt_int(info->begin, .base = 16, .minDigits = 8),
+        fmt_int(size),
+        fmt_text(info->name));
+  }
+  file_write_sync(out, dynstring_view(&str));
+  dynstring_destroy(&str);
+  return true;
 }

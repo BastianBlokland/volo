@@ -35,7 +35,10 @@ int SYS_DECL main(const int argc, const char** argv) {
     goto exit;
   }
   if (cli_parse_provided(invoc, optDbgSyms)) {
-    symbol_dbg_dump(g_fileStdOut);
+    if (!symbol_dbg_dump(g_fileStdOut)) {
+      file_write_sync(g_fileStdErr, string_lit("No debug symbols found.\n"));
+      exitCode = 1;
+    }
     goto exit;
   }
 
