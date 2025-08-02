@@ -154,7 +154,7 @@ jobs:
 
     - name: build-symbols
       shell: bash
-      run: ./volo --debug-symbols > volo.syms
+      run: ./bin/volo --debug-symbols > ./bin/volo.syms
 
     - name: strip-unix
       if: matrix.config.toolchain == 'unix'
