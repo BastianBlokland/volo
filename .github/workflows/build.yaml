@@ -152,6 +152,10 @@ jobs:
         cmake -B build -G 'MinGW Makefiles' $($env:CMAKE_OPTS -split ' ')
         mingw32-make -sk -C build all test install
 
+    - name: build-symbols
+      shell: bash
+      run: ./volo --debug-symbols > volo.syms
+
     - name: strip-unix
       if: matrix.config.toolchain == 'unix'
       shell: bash
