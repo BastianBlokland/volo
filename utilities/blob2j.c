@@ -123,10 +123,8 @@ void app_cli_configure(CliApp* app) {
   g_optOffset = cli_register_flag(app, 'o', string_lit("offset"), CliOptionFlags_Value);
   cli_register_desc(app, g_optOffset, string_lit("Offset to read at."));
 
-  g_optHelp = cli_register_flag(app, 'h', string_lit("help"), CliOptionFlags_None);
+  g_optHelp = cli_register_flag(app, 'h', string_lit("help"), CliOptionFlags_Exclusive);
   cli_register_desc(app, g_optHelp, string_lit("Display this help page."));
-  cli_register_exclusions(app, g_optHelp, g_optPath);
-  cli_register_exclusions(app, g_optHelp, g_optOffset);
 }
 
 i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {

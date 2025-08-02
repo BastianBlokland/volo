@@ -188,16 +188,8 @@ void app_cli_configure(CliApp* app) {
   g_optPassword = cli_register_flag(app, 'P', string_lit("password"), CliOptionFlags_Value);
   cli_register_desc(app, g_optPassword, string_lit("Http basic auth password."));
 
-  g_optHelp = cli_register_flag(app, 'h', string_lit("help"), CliOptionFlags_None);
+  g_optHelp = cli_register_flag(app, 'h', string_lit("help"), CliOptionFlags_Exclusive);
   cli_register_desc(app, g_optHelp, string_lit("Display this help page."));
-  cli_register_exclusions(app, g_optHelp, g_optHost);
-  cli_register_exclusions(app, g_optHelp, g_optUri);
-  cli_register_exclusions(app, g_optHelp, g_optOutput);
-  cli_register_exclusions(app, g_optHelp, g_optProtocol);
-  cli_register_exclusions(app, g_optHelp, g_optMethod);
-  cli_register_exclusions(app, g_optHelp, g_optEtag);
-  cli_register_exclusions(app, g_optHelp, g_optUser);
-  cli_register_exclusions(app, g_optHelp, g_optPassword);
 }
 
 i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {

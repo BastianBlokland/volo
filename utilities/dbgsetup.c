@@ -158,9 +158,8 @@ void app_cli_configure(CliApp* app) {
       cli_register_flag(app, 't', string_lit("targets"), CliOptionFlags_RequiredMultiValue);
   cli_register_desc(app, g_optTargets, string_lit("List of debuggable executables."));
 
-  g_optHelp = cli_register_flag(app, 'h', string_lit("help"), CliOptionFlags_None);
+  g_optHelp = cli_register_flag(app, 'h', string_lit("help"), CliOptionFlags_Exclusive);
   cli_register_desc(app, g_optHelp, string_lit("Display this help page."));
-  cli_register_exclusions(app, g_optHelp, g_optDbg, g_optWorkspace, g_optTargets);
 }
 
 i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {

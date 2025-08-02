@@ -602,12 +602,8 @@ void app_ecs_configure(CliApp* app) {
   cli_register_desc(app, g_optHeight, string_lit("Game window height in pixels."));
   cli_register_validator(app, g_optHeight, cli_validate_u16);
 
-  g_optHelp = cli_register_flag(app, 'h', string_lit("help"), CliOptionFlags_None);
+  g_optHelp = cli_register_flag(app, 'h', string_lit("help"), CliOptionFlags_Exclusive);
   cli_register_desc(app, g_optHelp, string_lit("Display this help page."));
-  cli_register_exclusions(app, g_optHelp, g_optAssets);
-  cli_register_exclusions(app, g_optHelp, g_optWindow);
-  cli_register_exclusions(app, g_optHelp, g_optWidth);
-  cli_register_exclusions(app, g_optHelp, g_optHeight);
 }
 
 bool app_ecs_validate(const CliApp* app, const CliInvocation* invoc) {
