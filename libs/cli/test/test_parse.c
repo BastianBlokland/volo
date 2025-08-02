@@ -41,7 +41,7 @@ static void parse_check_values(
 spec(parse) {
 
   CliApp* app = null;
-  CliId   flagA, flagB, flagC, flagD, flagE, flagF, flagG, argA, argB;
+  CliId   flagA, flagB, flagC, flagD, flagE, flagF, flagG, flagH, argA, argB;
 
   setup() {
     app   = cli_app_create(g_allocHeap);
@@ -52,6 +52,7 @@ spec(parse) {
     flagE = cli_register_flag(app, '\0', string_lit("flag-e-multival"), CliOptionFlags_MultiValue);
     flagF = cli_register_flag(app, '\0', string_lit("flag-f"), CliOptionFlags_None);
     flagG = cli_register_flag(app, '\0', string_lit("flag-g"), CliOptionFlags_None);
+    flagH = cli_register_flag(app, '\0', string_lit("flag-h"), CliOptionFlags_Exclusive);
     argA  = cli_register_arg(app, string_lit("arg-a-req"), CliOptionFlags_Required);
     argB  = cli_register_arg(app, string_lit("arg-b-opt"), CliOptionFlags_MultiValue);
 
@@ -62,6 +63,7 @@ spec(parse) {
     cli_register_exclusion(app, flagD, flagE);
     cli_register_exclusion(app, flagE, flagF);
     cli_register_exclusion(app, argB, flagE);
+    (void)flagH;
   }
 
   it("succeeds when passing the required options") {
@@ -129,12 +131,12 @@ spec(parse) {
         app,
         7,
         (const char*[]){
-            "--flag-e-multival", "Hello", "Beautifull", "World", "-a", "Hello", "ArgVal"});
+            "--flag-e-multival", "Hello", "Beautiful", "World", "-a", "Hello", "ArgVal"});
     parse_check_values(
         _testCtx,
         invoc,
         flagE,
-        (String[]){string_lit("Hello"), string_lit("Beautifull"), string_lit("World")},
+        (String[]){string_lit("Hello"), string_lit("Beautiful"), string_lit("World")},
         3);
     cli_parse_destroy(invoc);
   }
@@ -143,12 +145,12 @@ spec(parse) {
     CliInvocation* invoc = cli_parse(
         app,
         5,
-        (const char*[]){"--flag-e-multival", "Hello,Beautifull,World", "-a", "Hello", "ArgVal"});
+        (const char*[]){"--flag-e-multival", "Hello,Beautiful,World", "-a", "Hello", "ArgVal"});
     parse_check_values(
         _testCtx,
         invoc,
         flagE,
-        (String[]){string_lit("Hello"), string_lit("Beautifull"), string_lit("World")},
+        (String[]){string_lit("Hello"), string_lit("Beautiful"), string_lit("World")},
         3);
     cli_parse_destroy(invoc);
   }
@@ -170,24 +172,24 @@ spec(parse) {
 
   it("supports arguments with multiple values as separate strings") {
     CliInvocation* invoc =
-        cli_parse(app, 6, (const char*[]){"-a", "Hello", "ArgVal", "Hello", "Beautifull", "World"});
+        cli_parse(app, 6, (const char*[]){"-a", "Hello", "ArgVal", "Hello", "Beautiful", "World"});
     parse_check_values(
         _testCtx,
         invoc,
         argB,
-        (String[]){string_lit("Hello"), string_lit("Beautifull"), string_lit("World")},
+        (String[]){string_lit("Hello"), string_lit("Beautiful"), string_lit("World")},
         3);
     cli_parse_destroy(invoc);
   }
 
   it("supports arguments with multiple values as a single string") {
     CliInvocation* invoc =
-        cli_parse(app, 4, (const char*[]){"-a", "Hello", "ArgVal", "Hello,Beautifull,World"});
+        cli_parse(app, 4, (const char*[]){"-a", "Hello", "ArgVal", "Hello,Beautiful,World"});
     parse_check_values(
         _testCtx,
         invoc,
         argB,
-        (String[]){string_lit("Hello"), string_lit("Beautifull"), string_lit("World")},
+        (String[]){string_lit("Hello"), string_lit("Beautiful"), string_lit("World")},
         3);
     cli_parse_destroy(invoc);
   }
@@ -327,6 +329,17 @@ spec(parse) {
     cli_parse_destroy(invoc);
   }
 
+  it("fails when combining an exclusive option with another option") {
+    CliInvocation* invoc = cli_parse(app, 2, (const char*[]){"--flag-b-opt", "--flag-h"});
+    parse_check_fail(
+        _testCtx,
+        invoc,
+        (String[]){
+            string_lit("Exclusive option 'flag-h' cannot be used together with another option")},
+        1);
+    cli_parse_destroy(invoc);
+  }
+
   it("fails when violating an exclusion") {
     CliInvocation* invoc = cli_parse(
         app, 7, (const char*[]){"-d", "42", "--flag-e-multival", "B", "-a", "Hello", "ArgVal"});
@@ -336,6 +349,13 @@ spec(parse) {
         (String[]){
             string_lit("Options 'flag-d-val' and 'flag-e-multival' cannot be used together")},
         1);
+    cli_parse_destroy(invoc);
+  }
+
+  it("succeeds when providing an exclusive option instead of a required option") {
+    CliInvocation* invoc = cli_parse(app, 1, (const char*[]){"--flag-h"});
+    parse_check_success(_testCtx, invoc);
+    parse_check_values(_testCtx, invoc, argA, null, 0);
     cli_parse_destroy(invoc);
   }
 
