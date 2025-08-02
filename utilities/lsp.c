@@ -2069,10 +2069,8 @@ void app_cli_configure(CliApp* app) {
   cli_register_desc(app, g_optBinders, binderDesc);
   cli_register_validator(app, g_optBinders, cli_validate_file_regular);
 
-  g_optHelp = cli_register_flag(app, 'h', string_lit("help"), CliOptionFlags_None);
+  g_optHelp = cli_register_flag(app, 'h', string_lit("help"), CliOptionFlags_Exclusive);
   cli_register_desc(app, g_optHelp, string_lit("Display this help page."));
-  cli_register_exclusions(app, g_optHelp, g_optStdio);
-  cli_register_exclusions(app, g_optHelp, g_optBinders);
 }
 
 i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {

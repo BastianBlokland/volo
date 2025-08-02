@@ -486,11 +486,8 @@ void app_cli_configure(CliApp* app) {
   g_optVerbose = cli_register_flag(app, 'v', string_lit("verbose"), CliOptionFlags_None);
   g_optForce   = cli_register_flag(app, 'f', string_lit("force"), CliOptionFlags_None);
 
-  g_optHelp = cli_register_flag(app, 'h', string_lit("help"), CliOptionFlags_None);
+  g_optHelp = cli_register_flag(app, 'h', string_lit("help"), CliOptionFlags_Exclusive);
   cli_register_desc(app, g_optHelp, string_lit("Display this help page."));
-  cli_register_exclusions(app, g_optHelp, g_optConfigPath);
-  cli_register_exclusions(app, g_optHelp, g_optVerbose);
-  cli_register_exclusions(app, g_optHelp, g_optForce);
 }
 
 i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {

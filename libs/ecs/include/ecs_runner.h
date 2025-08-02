@@ -13,14 +13,15 @@ typedef enum {
   EcsRunnerFlags_None   = 0,
   EcsRunnerFlags_Replan = 1 << 0, // Automatically compute new plans when running.
 
-  EcsRunnerFlags_Count = 1,
+  EcsRunnerFlags_Default = EcsRunnerFlags_Replan,
+  EcsRunnerFlags_Count   = 1,
 } EcsRunnerFlags;
 
 /**
  * True while the current thread is running an ecs system.
  */
-extern THREAD_LOCAL bool        g_ecsRunningSystem;
-extern THREAD_LOCAL EcsSystemId g_ecsRunningSystemId;
+extern THREAD_LOCAL bool             g_ecsRunningSystem;
+extern THREAD_LOCAL EcsSystemId      g_ecsRunningSystemId;
 extern THREAD_LOCAL const EcsRunner* g_ecsRunningRunner;
 
 /**

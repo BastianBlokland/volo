@@ -729,19 +729,8 @@ void app_cli_configure(CliApp* app) {
   g_optSyms = cli_register_flag(app, 'y', string_lit("syms"), CliOptionFlags_None);
   cli_register_desc(app, g_optSyms, string_lit("Output script symbols."));
 
-  g_optHelp = cli_register_flag(app, 'h', string_lit("help"), CliOptionFlags_None);
+  g_optHelp = cli_register_flag(app, 'h', string_lit("help"), CliOptionFlags_Exclusive);
   cli_register_desc(app, g_optHelp, string_lit("Display this help page."));
-  cli_register_exclusions(app, g_optHelp, g_optFile);
-  cli_register_exclusions(app, g_optHelp, g_optNoEval);
-  cli_register_exclusions(app, g_optHelp, g_optCompile);
-  cli_register_exclusions(app, g_optHelp, g_optOptimize);
-  cli_register_exclusions(app, g_optHelp, g_optWatch);
-  cli_register_exclusions(app, g_optHelp, g_optTokens);
-  cli_register_exclusions(app, g_optHelp, g_optAst);
-  cli_register_exclusions(app, g_optHelp, g_optStats);
-  cli_register_exclusions(app, g_optHelp, g_optProgram);
-  cli_register_exclusions(app, g_optHelp, g_optSyms);
-  cli_register_exclusions(app, g_optHelp, g_optBinder);
 }
 
 i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {

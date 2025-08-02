@@ -53,7 +53,7 @@ static const struct {
 } g_errorTestData[] = {
     {
         .id   = string_static("invalid.ttf"),
-        .text = string_static("Hello Beautifull World"),
+        .text = string_static("Hello Beautiful World"),
     },
 };
 

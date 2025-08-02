@@ -109,9 +109,8 @@ void app_cli_configure(CliApp* app) {
   g_optDir = cli_register_arg(app, string_lit("dir"), CliOptionFlags_Required);
   cli_register_desc(app, g_optDir, string_lit("Output directory."));
 
-  g_optHelp = cli_register_flag(app, 'h', string_lit("help"), CliOptionFlags_None);
+  g_optHelp = cli_register_flag(app, 'h', string_lit("help"), CliOptionFlags_Exclusive);
   cli_register_desc(app, g_optHelp, string_lit("Display this help page."));
-  cli_register_exclusions(app, g_optHelp, g_optDir);
 }
 
 i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {

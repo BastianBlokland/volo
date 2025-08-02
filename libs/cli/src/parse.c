@@ -33,7 +33,11 @@ static CliInvocationOption* cli_invocation_option(CliInvocation* invoc, const Cl
   return dynarray_at_t(&invoc->options, id, CliInvocationOption);
 }
 
-static void cli_parse_add_error(CliParseCtx* ctx, String err) {
+static CliId cli_parse_option_id(CliParseCtx* ctx, const CliInvocationOption* opt) {
+  return (CliId)(opt - dynarray_begin_t(&ctx->options, CliInvocationOption));
+}
+
+static void cli_parse_add_error(CliParseCtx* ctx, const String err) {
   *dynarray_push_t(&ctx->errors, String) = string_dup(ctx->alloc, err);
 }
 
@@ -48,11 +52,26 @@ static void cli_parse_consume_arg(CliParseCtx* ctx) {
 
 static u32 cli_parse_args_remaining(CliParseCtx* ctx) { return (u32)(ctx->argTail - ctx->argHead); }
 
-static bool cli_parse_already_provided(CliParseCtx* ctx, CliId id) {
+static u32 cli_parse_count_provided(CliParseCtx* ctx) {
+  u32 count = 0;
+  dynarray_for_t(&ctx->options, CliInvocationOption, opt) { count += opt->provided; }
+  return count;
+}
+
+static u32 cli_parse_count_provided_exclusive(CliParseCtx* ctx) {
+  u32 count = 0;
+  dynarray_for_t(&ctx->options, CliInvocationOption, opt) {
+    const CliId optId = cli_parse_option_id(ctx, opt);
+    count += opt->provided && (cli_option(ctx->app, optId)->flags & CliOptionFlags_Exclusive);
+  }
+  return count;
+}
+
+static bool cli_parse_already_provided(CliParseCtx* ctx, const CliId id) {
   return dynarray_at_t(&ctx->options, id, CliInvocationOption)->provided;
 }
 
-static void cli_parse_set_provided(CliParseCtx* ctx, CliId id) {
+static void cli_parse_set_provided(CliParseCtx* ctx, const CliId id) {
   dynarray_at_t(&ctx->options, id, CliInvocationOption)->provided = true;
 }
 
@@ -82,7 +101,7 @@ cli_parse_add_value(CliParseCtx* ctx, const CliId id, const CliOptionFlags flags
   }
 }
 
-static void cli_parse_add_values(CliParseCtx* ctx, CliId optId) {
+static void cli_parse_add_values(CliParseCtx* ctx, const CliId optId) {
   const CliOptionFlags flags = cli_option(ctx->app, optId)->flags;
   if (!(flags & CliOptionFlags_Value)) {
     return; // Option does not support passing values.
@@ -127,7 +146,7 @@ static void cli_parse_add_values(CliParseCtx* ctx, CliId optId) {
   }
 }
 
-static void cli_parse_long_flag(CliParseCtx* ctx, String name) {
+static void cli_parse_long_flag(CliParseCtx* ctx, const String name) {
   const CliId optId = cli_find_by_name(ctx->app, name);
   if (sentinel_check(optId)) {
     cli_parse_add_error(ctx, fmt_write_scratch("Unknown flag '{}'", fmt_text(name)));
@@ -141,7 +160,7 @@ static void cli_parse_long_flag(CliParseCtx* ctx, String name) {
   cli_parse_add_values(ctx, optId);
 }
 
-static void cli_parse_short_flag(CliParseCtx* ctx, u8 character) {
+static void cli_parse_short_flag(CliParseCtx* ctx, const u8 character) {
   const CliId optId = cli_find_by_character(ctx->app, character);
   if (sentinel_check(optId)) {
     cli_parse_add_error(ctx, fmt_write_scratch("Unknown flag '{}'", fmt_char(character)));
@@ -155,7 +174,7 @@ static void cli_parse_short_flag(CliParseCtx* ctx, u8 character) {
   cli_parse_add_values(ctx, optId);
 }
 
-static void cli_parse_short_flag_block(CliParseCtx* ctx, String characterBlock) {
+static void cli_parse_short_flag_block(CliParseCtx* ctx, const String characterBlock) {
   mem_for_u8(characterBlock, itr) {
     const CliId optId = cli_find_by_character(ctx->app, *itr);
     if (sentinel_check(optId)) {
@@ -231,7 +250,6 @@ static void cli_parse_options(CliParseCtx* ctx) {
 }
 
 static void cli_parse_check_validator(CliParseCtx* ctx, const CliId optId) {
-
   CliInvocationOption* invocOpt = dynarray_at_t(&ctx->options, optId, CliInvocationOption);
   dynarray_for_t(&invocOpt->values, String, val) {
     if (!cli_option(ctx->app, optId)->validator(*val)) {
@@ -253,6 +271,24 @@ static void cli_parse_check_validators(CliParseCtx* ctx) {
 }
 
 static void cli_parse_check_exclusions(CliParseCtx* ctx) {
+  // Check for exclusive options.
+  for (CliId optId = 0; optId != ctx->options.size; ++optId) {
+    if (!cli_parse_already_provided(ctx, optId)) {
+      continue; // Not provided.
+    }
+    if (!(cli_option(ctx->app, optId)->flags & CliOptionFlags_Exclusive)) {
+      continue; // Not exclusive.
+    }
+    if (cli_parse_count_provided(ctx) > 1) {
+      cli_parse_add_error(
+          ctx,
+          fmt_write_scratch(
+              "Exclusive option '{}' cannot be used together with another option",
+              fmt_text(cli_option_name(ctx->app, optId))));
+      return;
+    }
+  }
+  // Check specific exclusions.
   dynarray_for_t(&ctx->app->exclusions, CliExclusion, ex) {
     if (cli_parse_already_provided(ctx, ex->a) && cli_parse_already_provided(ctx, ex->b)) {
       cli_parse_add_error(
@@ -271,11 +307,15 @@ static void cli_parse_check_required_option(CliParseCtx* ctx, const CliId optId)
   if (!isRequired || cli_parse_already_provided(ctx, optId)) {
     return; // Option was not required or was actually provided; Success.
   }
-
   /**
-   * Option was not provided, check if an exclusion option was provided.
-   * This supports two mutually exclusive required options (meaning either one has to be provided).
+   * Option was not provided, check if an exclusive option was provided.
+   * This supports two usecases:
+   * - An option that overrides all other options (for example a '--version' option).
+   * - Two mutually exclusive required options (meaning either one has to be provided).
    */
+  if (cli_parse_count_provided_exclusive(ctx)) {
+    return; // An exclusive option was provided; Success.
+  }
   dynarray_for_t(&ctx->app->exclusions, CliExclusion, ex) {
     if (ex->a == optId && cli_parse_already_provided(ctx, ex->b)) {
       return; // Alternative option was provided; Success.

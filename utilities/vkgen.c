@@ -1595,12 +1595,8 @@ void app_cli_configure(CliApp* app) {
   g_optSchemaUri = cli_register_flag(app, '\0', string_lit("schema-uri"), CliOptionFlags_Value);
   cli_register_desc(app, g_optSchemaUri, string_lit("Uri of the Vulkan schema."));
 
-  g_optHelp = cli_register_flag(app, 'h', string_lit("help"), CliOptionFlags_None);
+  g_optHelp = cli_register_flag(app, 'h', string_lit("help"), CliOptionFlags_Exclusive);
   cli_register_desc(app, g_optHelp, string_lit("Display this help page."));
-  cli_register_exclusions(app, g_optHelp, g_optOutputPath);
-  cli_register_exclusions(app, g_optHelp, g_optVerbose);
-  cli_register_exclusions(app, g_optHelp, g_optSchemaHost);
-  cli_register_exclusions(app, g_optHelp, g_optSchemaUri);
 }
 
 i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {

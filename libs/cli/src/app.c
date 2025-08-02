@@ -124,7 +124,7 @@ void cli_register_exclusions_raw(
   }
 }
 
-void cli_register_desc(CliApp* app, const CliId id, String desc) {
+void cli_register_desc(CliApp* app, const CliId id, const String desc) {
   diag_assert_msg(!string_is_empty(desc), "Empty descriptions are not supported");
 
   CliOption* opt = cli_option(app, id);
@@ -140,10 +140,10 @@ void cli_register_desc(CliApp* app, const CliId id, String desc) {
 void cli_register_desc_choice(
     CliApp*       app,
     const CliId   id,
-    String        desc,
+    const String  desc,
     const String* choiceStrs,
-    usize         choiceCount,
-    usize         defaultChoice) {
+    const usize   choiceCount,
+    const usize   defaultChoice) {
   diag_assert_msg(choiceCount <= 1024, "Too many choices provided");
 
   DynString str = dynstring_create_over(alloc_alloc(g_allocScratch, usize_kibibyte, 1));
@@ -173,6 +173,15 @@ void cli_register_desc_choice(
 String cli_desc(const CliApp* app, const CliId id) { return cli_option(app, id)->desc; }
 
 bool cli_excludes(const CliApp* app, const CliId a, const CliId b) {
+  if (a == b) {
+    return false;
+  }
+  if (cli_option(app, a)->flags & CliOptionFlags_Exclusive) {
+    return true;
+  }
+  if (cli_option(app, b)->flags & CliOptionFlags_Exclusive) {
+    return true;
+  }
   dynarray_for_t(&app->exclusions, CliExclusion, ex) {
     if ((ex->a == a && ex->b == b) || (ex->b == a && ex->a == b)) {
       return true;

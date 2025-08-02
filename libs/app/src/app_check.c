@@ -33,9 +33,8 @@ void app_cli_configure(CliApp* app) {
   g_optJobWorkers = cli_register_flag(app, '\0', string_lit("workers"), CliOptionFlags_Value);
   cli_register_desc(app, g_optJobWorkers, string_lit("Amount of job workers."));
 
-  g_optHelp = cli_register_flag(app, 'h', string_lit("help"), 0);
+  g_optHelp = cli_register_flag(app, 'h', string_lit("help"), CliOptionFlags_Exclusive);
   cli_register_desc(app, g_optHelp, string_lit("Display this help page."));
-  cli_register_exclusion(app, g_optHelp, g_optOutputPassingTests);
 }
 
 i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {

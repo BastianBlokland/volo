@@ -422,9 +422,8 @@ void app_cli_configure(CliApp* app) {
   g_optOutput = cli_register_flag(app, 'o', string_lit("output"), CliOptionFlags_Required);
   cli_register_desc(app, g_optOutput, string_lit("Output image path."));
 
-  g_optHelp = cli_register_flag(app, 'h', string_lit("help"), CliOptionFlags_None);
+  g_optHelp = cli_register_flag(app, 'h', string_lit("help"), CliOptionFlags_Exclusive);
   cli_register_desc(app, g_optHelp, string_lit("Display this help page."));
-  cli_register_exclusions(app, g_optHelp, g_optMode, g_optInput, g_optOutput);
 }
 
 i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {

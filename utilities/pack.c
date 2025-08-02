@@ -369,11 +369,8 @@ void app_ecs_configure(CliApp* app) {
   g_optOutputPath = cli_register_flag(app, 'o', string_lit("output"), CliOptionFlags_Value);
   cli_register_desc(app, g_optOutputPath, string_lit("Output file path."));
 
-  g_optHelp = cli_register_flag(app, 'h', string_lit("help"), CliOptionFlags_None);
+  g_optHelp = cli_register_flag(app, 'h', string_lit("help"), CliOptionFlags_Exclusive);
   cli_register_desc(app, g_optHelp, string_lit("Display this help page."));
-  cli_register_exclusions(app, g_optHelp, g_optConfigPath);
-  cli_register_exclusions(app, g_optHelp, g_optOutputPath);
-  cli_register_exclusions(app, g_optHelp, g_optAssetsPath);
 }
 
 bool app_ecs_validate(const CliApp* app, const CliInvocation* invoc) {
