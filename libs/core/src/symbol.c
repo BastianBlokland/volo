@@ -16,8 +16,6 @@
 #include <Windows.h>
 #endif
 
-// #define VOLO_SYMBOL_VERBOSE
-
 #define symbol_reg_name_max 64
 #define symbol_reg_chunk_size (4 * usize_kibibyte)
 
@@ -111,27 +109,6 @@ static const SymbolInfo* symbol_reg_query(const SymbolReg* r, const SymbolAddrRe
   return sym_info_contains(candidate, addr) ? candidate : null;
 }
 
-static void symbol_reg_dump(const SymbolReg* r, DynString* out) {
-  fmt_write(out, "Debug symbols:\n");
-  dynarray_for_t(&r->syms, SymbolInfo, info) {
-    const SymbolAddrRel size = info->end - info->begin;
-    fmt_write(
-        out,
-        " {} {} +{}\n",
-        fmt_int(info->begin, .base = 16, .minDigits = 8),
-        fmt_text(info->name),
-        fmt_int(size));
-  }
-}
-
-MAYBE_UNUSED static void symbol_reg_dump_out(const SymbolReg* r) {
-  // NOTE: Cannot use the heap allocator as the symbol registry is used in heap leak detection.
-  DynString str = dynstring_create(g_allocPage, 4 * usize_kibibyte);
-  symbol_reg_dump(r, &str);
-  file_write_sync(g_fileStdOut, dynstring_view(&str));
-  dynstring_destroy(&str);
-}
-
 static const SymbolReg* symbol_reg_get(void) {
   if (g_symReg) {
     return g_symReg;
@@ -152,9 +129,6 @@ static const SymbolReg* symbol_reg_get(void) {
   if (!g_symReg) {
     SymbolReg* reg = symbol_reg_create();
     symbol_pal_dbg_init(reg);
-#if defined(VOLO_SYMBOL_VERBOSE)
-    symbol_reg_dump_out(reg);
-#endif
     thread_atomic_fence();
     g_symReg = reg;
   }
@@ -375,4 +349,22 @@ SymbolAddrRel symbol_dbg_base(const SymbolAddrRel addr) {
   }
   const SymbolInfo* info = symbol_reg_query(reg, addr);
   return info ? info->begin : sentinel_u32;
+}
+
+void symbol_dbg_dump(File* out) {
+  const SymbolReg* reg = symbol_reg_get();
+  if (LIKELY(reg)) {
+    DynString str = dynstring_create(g_allocHeap, 4 * usize_kibibyte);
+    dynarray_for_t(&reg->syms, SymbolInfo, info) {
+      const SymbolAddrRel size = info->end - info->begin;
+      fmt_write(
+          &str,
+          "{} +{} {}\n",
+          fmt_int(info->begin, .base = 16, .minDigits = 8),
+          fmt_int(size),
+          fmt_text(info->name));
+    }
+    file_write_sync(out, dynstring_view(&str));
+    dynstring_destroy(&str);
+  }
 }

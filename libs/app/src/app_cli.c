@@ -6,6 +6,7 @@
 #include "core_diag_except.h"
 #include "core_file.h"
 #include "core_init.h"
+#include "core_symbol.h"
 #include "data_init.h"
 #include "log_init.h"
 
@@ -34,7 +35,7 @@ int SYS_DECL main(const int argc, const char** argv) {
     goto exit;
   }
   if (cli_parse_provided(invoc, optDbgSyms)) {
-    // TODO: Write symbols.
+    symbol_dbg_dump(g_fileStdOut);
     goto exit;
   }
 
