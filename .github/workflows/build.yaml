@@ -153,6 +153,7 @@ jobs:
         mingw32-make -sk -C build all test install
 
     - name: build-symbols
+      if: matrix.config.toolchain != 'mingw'
       shell: bash
       run: ./bin/volo --debug-symbols > ./bin/volo.syms
 
