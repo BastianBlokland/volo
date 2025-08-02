@@ -61,3 +61,8 @@ String symbol_dbg_name(SymbolAddrRel);
  * Pre-condition: Address is contained in a (non-inlined) function in the executable itself.
  */
 SymbolAddrRel symbol_dbg_base(SymbolAddrRel);
+
+/**
+ * Dump a listing of all debug symbols to the given file.
+ */
+bool symbol_dbg_dump(File*);
