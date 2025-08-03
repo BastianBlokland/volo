@@ -152,6 +152,9 @@ macro(set_clang_compile_options)
   add_compile_options(-fno-omit-frame-pointer) # Include frame-pointers for fast stack-traces.
 
   if(${VOLO_PLATFORM} STREQUAL "win32")
+    # Use the 'vectorcall' calling convention.
+    add_compile_options(-Xclang -fdefault-calling-conv=vectorcall)
+
     # Statically link the runtime library.
     set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded")
 

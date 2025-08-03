@@ -84,7 +84,7 @@ void alloc_unpoison(Mem);
  */
 typedef struct sAllocTracker AllocTracker;
 
-AllocTracker* alloc_tracker_create();
+AllocTracker* alloc_tracker_create(void);
 void          alloc_tracker_destroy(AllocTracker*);
 void          alloc_tracker_add(AllocTracker*, Mem, SymbolStack);
 void          alloc_tracker_remove(AllocTracker*, Mem);
