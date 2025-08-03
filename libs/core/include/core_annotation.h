@@ -180,7 +180,7 @@
 #if defined(VOLO_MSVC) || defined(VOLO_CLANG)
 #define SYS_DECL __cdecl
 #elif defined(VOLO_GCC)
-#define SYS_DECL __attribute__((__cdecl__))
+#define SYS_DECL __attribute__((cdecl))
 #else
 #define SYS_DECL
 #endif
