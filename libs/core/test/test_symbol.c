@@ -6,9 +6,9 @@ static volatile i32 g_preserveFunc;
 
 NO_INLINE_HINT static void test_symbol_func() { g_preserveFunc = 42; }
 
-static bool test_symbol_stack_func1();
-static bool test_symbol_stack_func2();
-static bool test_symbol_stack_func3();
+static bool test_symbol_stack_func1(void);
+static bool test_symbol_stack_func2(void);
+static bool test_symbol_stack_func3(void);
 
 NO_INLINE_HINT static bool test_symbol_stack_func1() { return test_symbol_stack_func2() ^ true; }
 NO_INLINE_HINT static bool test_symbol_stack_func2() { return test_symbol_stack_func3() ^ true; }
