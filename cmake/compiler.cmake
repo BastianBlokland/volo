@@ -163,7 +163,8 @@ macro(set_clang_compile_options)
     add_compile_options(-Xclang -fdefault-calling-conv=vectorcall) # Use the 'vectorcall' call conv.
     add_compile_options(-Wno-microsoft-enum-forward-reference) # Forward declare enum as int.
     add_compile_options(-fms-compatibility-version=0)
-    add_link_options(-Xlinker /OPT:REF,ICF) # Remove functions and data that are never referenced.
+    add_link_options(-Xlinker /OPT:REF,ICF=2) # Remove functions and data that are never referenced.
+    add_link_options(-Xlinker /GUARD:NO) # Disable 'Control Flow Guard' (CFG).
   endif()
 
   # Enable various clang sanitizers on supported platforms.
@@ -234,7 +235,8 @@ macro(set_msvc_compile_options)
 
   # Linker options.
   add_link_options(/INCREMENTAL:NO) # No incremental linking.
-  add_link_options(/OPT:REF,ICF) # Remove functions and data that are never referenced.
+  add_link_options(/OPT:REF,ICF=2) # Remove functions and data that are never referenced.
+  add_link_options(/GUARD:NO) # Disable 'Control Flow Guard' (CFG).
 
   # Link time optimization.
   if(${LTO})
