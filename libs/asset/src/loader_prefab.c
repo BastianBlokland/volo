@@ -159,7 +159,7 @@ static void prefab_build(
       .traitCount = (u16)def->traits.count,
   };
 
-  const u8     addedTraitsBits[bits_to_bytes(AssetPrefabTrait_Count) + 1] = {0};
+  u8           addedTraitsBits[bits_to_bytes(AssetPrefabTrait_Count) + 1] = {0};
   const BitSet addedTraits = bitset_from_array(addedTraitsBits);
 
   heap_array_for_t(def->traits, AssetPrefabTraitDef, traitDef) {

@@ -141,6 +141,8 @@ macro(set_clang_compile_options)
   add_compile_options(-fno-math-errno) # Disable errno setting behavior for math functions.
   add_compile_options(-mf16c) # Enable output of f16c (f32 <-> f16 conversions)
   # add_compile_options(-mfma) # Enable output of 'fused multiply-add' instructions.
+  add_compile_options(-fmerge-all-constants)
+  add_compile_options(-fcf-protection=none) # Disable 'Control Flow Guard' (CFG).
 
   if(NOT ${SIMD})
     message(STATUS "Disabling auto-vectorization")
@@ -149,21 +151,14 @@ macro(set_clang_compile_options)
 
   # Debug options.
   add_compile_options(-g) # Enable debug symbols.
+  add_link_options(-g) # Output debug symbols.
   add_compile_options(-fno-omit-frame-pointer) # Include frame-pointers for fast stack-traces.
 
   if(${VOLO_PLATFORM} STREQUAL "win32")
-    # Use the 'vectorcall' calling convention.
-    add_compile_options(-Xclang -fdefault-calling-conv=vectorcall)
-
-    # Statically link the runtime library.
-    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded")
-
-    # Forward declaration of enums is defined in c as all enums use int as underlying the type.
-    add_compile_options(-Wno-microsoft-enum-forward-reference)
-
-    # On windows the linker explicitly needs to be given the -g flag to output debug symbols.
-    # Perhaps this is a ldd on windows quirk?
-    add_link_options(-g)
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded") # Statically link the runtime library.
+    add_compile_options(-Xclang -fdefault-calling-conv=vectorcall) # Use the 'vectorcall' call conv.
+    add_compile_options(-Wno-microsoft-enum-forward-reference) # Forward declare enum as int.
+    add_compile_options(-fms-compatibility-version=0)
   endif()
 
   # Enable various clang sanitizers on supported platforms.
@@ -219,6 +214,7 @@ macro(set_msvc_compile_options)
   add_compile_options(/Oi) # Enable intrinsic functions.
   add_compile_options(/Gv) # Use the 'vectorcall' calling convention.
   add_compile_options(/GS-) # Disable 'Buffer Security Check'.
+  add_compile_options(/guard:cf-) # Disable 'Control Flow Guard' (CFG).
 
   if(NOT ${SIMD})
     message(STATUS "Disabling auto-vectorization")

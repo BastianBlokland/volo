@@ -76,7 +76,7 @@ spec(mem) {
       script_mem_store(&m, string_hash(key), script_num(i));
     }
 
-    const u8     seenValsBits[bits_to_bytes(KeyCount) + 1] = {0};
+    u8           seenValsBits[bits_to_bytes(KeyCount) + 1] = {0};
     const BitSet seenVals                                  = bitset_from_array(seenValsBits);
 
     for (ScriptMemItr it = script_mem_begin(&m); it.key; it = script_mem_next(&m, it)) {
