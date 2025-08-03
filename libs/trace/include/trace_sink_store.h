@@ -22,7 +22,7 @@ typedef struct sTraceStoreEvent {
   u8             msgData[44];
 } TraceStoreEvent;
 
-ASSERT(sizeof(TraceStoreEvent) == 64, "Unexpected event size")
+ASSERT(sizeof(TraceStoreEvent) == 64, "Unexpected event size");
 
 typedef void (*TraceStoreVisitor)(
     const TraceSink*, void* userCtx, i32 streamId, String streamName, const TraceStoreEvent*);

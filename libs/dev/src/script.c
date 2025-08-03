@@ -37,7 +37,7 @@
 #define output_max_age time_seconds(60)
 #define output_max_message_size 64
 
-ASSERT(output_max_message_size < u8_max, "Message length has to be storable in a 8 bits")
+ASSERT(output_max_message_size < u8_max, "Message length has to be storable in a 8 bits");
 
 static const String g_tooltipOpenScript   = string_static("Open script in external editor.");
 static const String g_tooltipSelectEntity = string_static("Select the entity.");

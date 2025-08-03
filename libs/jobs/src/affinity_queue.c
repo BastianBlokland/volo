@@ -7,7 +7,7 @@
 
 #define item_wrap(_IDX_) ((_IDX_) & (affqueue_max_items - 1))
 
-ASSERT((affqueue_max_items & (affqueue_max_items - 1u)) == 0, "Max size has to be a power-of-two")
+ASSERT((affqueue_max_items & (affqueue_max_items - 1u)) == 0, "Max size has to be a power-of-two");
 
 AffQueue affqueue_create(Allocator* alloc) {
   Mem items = alloc_alloc(alloc, sizeof(AffQueueItem) * affqueue_max_items, alignof(AffQueueItem));

@@ -10,7 +10,7 @@
 #define jobs_graph_aux_chunk_size (4 * usize_kibibyte)
 #define jobs_graph_max_tasks 25000
 
-ASSERT(jobs_graph_max_tasks < u16_max, "JobTasks have to be representable with 16 bits")
+ASSERT(jobs_graph_max_tasks < u16_max, "JobTasks have to be representable with 16 bits");
 
 INLINE_HINT static void jobs_bit_set(const BitSet bits, const u32 idx) {
   *mem_at_u8(bits, bits_to_bytes(idx)) |= 1u << bit_in_byte(idx);

@@ -12,7 +12,7 @@
 #define VOLO_RVK_SAMPLER_LOGGING 0
 
 #define rvk_samplers_max 64
-ASSERT((rvk_samplers_max & (rvk_samplers_max - 1u)) == 0, "Max samplers has to be a power-of-two")
+ASSERT((rvk_samplers_max & (rvk_samplers_max - 1u)) == 0, "Max samplers has to be a power-of-two");
 
 struct sRvkSamplerPool {
   RvkDevice*     dev;

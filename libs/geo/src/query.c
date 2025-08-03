@@ -12,9 +12,9 @@
 #define geo_query_shape_align 16
 #define geo_query_bvh_node_divide_threshold 8
 
-ASSERT(alignof(GeoSphere) <= geo_query_shape_align, "Insufficient alignment")
-ASSERT(alignof(GeoCapsule) <= geo_query_shape_align, "Insufficient alignment")
-ASSERT(alignof(GeoBoxRotated) <= geo_query_shape_align, "Insufficient alignment")
+ASSERT(alignof(GeoSphere) <= geo_query_shape_align, "Insufficient alignment");
+ASSERT(alignof(GeoCapsule) <= geo_query_shape_align, "Insufficient alignment");
+ASSERT(alignof(GeoBoxRotated) <= geo_query_shape_align, "Insufficient alignment");
 
 typedef u32 QueryShape;
 
@@ -130,8 +130,8 @@ static void prim_copy(QueryPrim* dst, const QueryPrim* src, const QueryPrimType 
 
 #define cpy_entry_field(_FIELD_, _SIZE_)                                                           \
   mem_cpy(                                                                                         \
-      mem_create(dst->_FIELD_, (_SIZE_) * dst->capacity),                                          \
-      mem_create(src->_FIELD_, (_SIZE_) * src->count))
+      mem_create(dst->_FIELD_, (_SIZE_)*dst->capacity),                                            \
+      mem_create(src->_FIELD_, (_SIZE_)*src->count))
 
   cpy_entry_field(userIds, sizeof(u64));
   cpy_entry_field(layers, sizeof(GeoQueryLayer));

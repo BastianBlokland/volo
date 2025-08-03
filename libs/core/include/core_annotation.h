@@ -3,7 +3,7 @@
 /**
  * Compile-time assert the given condition.
  */
-#define ASSERT(_CONDITION_, _MSG_LIT_) _Static_assert(_CONDITION_, _MSG_LIT_);
+#define ASSERT(_CONDITION_, _MSG_LIT_) _Static_assert(_CONDITION_, _MSG_LIT_)
 
 /**
  * Compiler hints to indicate if a branch is likely or unlikely to be taken. Helps the compiler

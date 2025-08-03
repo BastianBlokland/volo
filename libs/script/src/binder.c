@@ -16,7 +16,7 @@
 
 #define script_binder_aux_chunk_size (4 * usize_kibibyte)
 
-ASSERT(script_binder_max_funcs <= u16_max, "Binder slot needs to be representable by a u16")
+ASSERT(script_binder_max_funcs <= u16_max, "Binder slot needs to be representable by a u16");
 
 static const String g_scriptBinderFlagNames[] = {
     string_static("DisallowMemoryAccess"),

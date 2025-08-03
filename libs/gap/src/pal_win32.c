@@ -19,7 +19,7 @@
 #define pal_window_default_refresh_rate 60.0f
 #define pal_window_default_dpi 96
 
-ASSERT(sizeof(GapWindowId) >= sizeof(HWND), "GapWindowId should be able to represent a Win32 HWND")
+ASSERT(sizeof(GapWindowId) >= sizeof(HWND), "GapWindowId should be able to represent a Win32 HWND");
 
 static const DWORD g_winStyle           = WS_OVERLAPPEDWINDOW | WS_CLIPSIBLINGS | WS_CLIPCHILDREN;
 static const DWORD g_winFullscreenStyle = WS_POPUP | WS_CLIPSIBLINGS | WS_CLIPCHILDREN;

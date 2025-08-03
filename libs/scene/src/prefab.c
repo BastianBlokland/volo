@@ -40,7 +40,7 @@
 #include "scene_visibility.h"
 #include "script_mem.h"
 
-ASSERT(AssetPrefabTrait_Count < 64, "Prefab trait masks need to be representable with 64 bits")
+ASSERT(AssetPrefabTrait_Count < 64, "Prefab trait masks need to be representable with 64 bits");
 
 // clang-format off
 
