@@ -91,7 +91,6 @@ macro(set_gcc_compile_options)
   add_compile_options(-Wno-missing-field-initializers -Wno-override-init -Wno-implicit-fallthrough
                       -Wno-clobbered -Wno-missing-braces -Wno-type-limits -Wno-maybe-uninitialized
                       -Wno-override-init-side-effects -Wno-enum-conversion)
-  add_compile_options(-U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=0)
 
   # Optimization settings.
   add_compile_options(-O2) # Optimization level 2.
@@ -101,6 +100,7 @@ macro(set_gcc_compile_options)
   add_compile_options(-fno-math-errno) # Disable errno setting behavior for math functions.
   add_compile_options(-mf16c) # Enable output of f16c (f32 <-> f16 conversions)
   # add_compile_options(-mfma) # Enable output of 'fused multiply-add' instructions.
+  add_compile_options(-U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=0) # Disable fortification.
 
   if(NOT ${SIMD})
     message(STATUS "Disabling auto-vectorization")
@@ -133,6 +133,9 @@ macro(set_clang_compile_options)
                       -Wno-implicit-int-conversion -Wno-missing-field-initializers
                       -Wno-enum-enum-conversion)
 
+  # Use the LLD linker (https://lld.llvm.org/).
+  add_link_options(-fuse-ld=lld)
+
   # Optimization settings.
   add_compile_options(-O2) # Optimization level 2.
   # add_compile_options(-march=native) # Optimize for the native cpu architecture (non portable).
@@ -143,6 +146,7 @@ macro(set_clang_compile_options)
   # add_compile_options(-mfma) # Enable output of 'fused multiply-add' instructions.
   add_compile_options(-fmerge-all-constants)
   add_compile_options(-fcf-protection=none) # Disable 'Control Flow Guard' (CFG).
+  add_compile_options(-U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=0) # Disable fortification.
 
   if(NOT ${SIMD})
     message(STATUS "Disabling auto-vectorization")
@@ -159,6 +163,8 @@ macro(set_clang_compile_options)
     add_compile_options(-Xclang -fdefault-calling-conv=vectorcall) # Use the 'vectorcall' call conv.
     add_compile_options(-Wno-microsoft-enum-forward-reference) # Forward declare enum as int.
     add_compile_options(-fms-compatibility-version=0)
+    add_link_options(--for-linker=/OPT:REF,ICF=2) # Remove functions and data that are never referenced.
+    add_link_options(--for-linker=/GUARD:NO) # Disable 'Control Flow Guard' (CFG).
   endif()
 
   # Enable various clang sanitizers on supported platforms.
@@ -176,7 +182,7 @@ macro(set_clang_compile_options)
   if(${LTO})
     message(STATUS "Enabling link-time-optimization")
     add_compile_options(-flto=full)
-    add_link_options(-fuse-ld=lld -flto=full -O2 -mf16c)
+    add_link_options(-flto=full -O2 -mf16c)
   endif()
 
 endmacro(set_clang_compile_options)
@@ -229,7 +235,8 @@ macro(set_msvc_compile_options)
 
   # Linker options.
   add_link_options(/INCREMENTAL:NO) # No incremental linking.
-  add_link_options(/OPT:REF,ICF) # Remove functions and data that are never referenced.
+  add_link_options(/OPT:REF,ICF=2) # Remove functions and data that are never referenced.
+  add_link_options(/GUARD:NO) # Disable 'Control Flow Guard' (CFG).
 
   # Link time optimization.
   if(${LTO})
