@@ -177,9 +177,9 @@
  * Specify that this function should use the system's default calling conventions.
  * Use this for functions that interop with external libraries.
  */
-#if defined(VOLO_MSVC) || defined(VOLO_CLANG)
+#if defined(VOLO_MSVC) || (defined(VOLO_CLANG) && defined(VOLO_WIN32))
 #define SYS_DECL __cdecl
-#elif defined(VOLO_GCC)
+#elif defined(VOLO_GCC) && defined(VOLO_WIN32)
 #define SYS_DECL __attribute__((cdecl))
 #else
 #define SYS_DECL
