@@ -23,9 +23,9 @@
 #define trace_store_buffer_events 1024
 #define trace_store_buffer_max_depth 8
 
-ASSERT(trace_store_max_ids < u8_max, "Trace id has to be representable by a u8")
+ASSERT(trace_store_max_ids < u8_max, "Trace id has to be representable by a u8");
 ASSERT((trace_store_buffer_events & (trace_store_buffer_events - 1u)) == 0, "Has to be a pow2");
-ASSERT(trace_store_buffer_events < u16_max, "Events have to be representable with a u16")
+ASSERT(trace_store_buffer_events < u16_max, "Events have to be representable with a u16");
 
 static THREAD_LOCAL bool g_traceStoreIsVisiting;
 

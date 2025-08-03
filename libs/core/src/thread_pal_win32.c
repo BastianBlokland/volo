@@ -109,7 +109,7 @@ void thread_pal_teardown(void) {
   }
 }
 
-ASSERT(sizeof(ThreadId) >= sizeof(DWORD), "ThreadId type too small")
+ASSERT(sizeof(ThreadId) >= sizeof(DWORD), "ThreadId type too small");
 
 ThreadId thread_pal_pid(void) { return (ThreadId)GetCurrentProcessId(); }
 ThreadId thread_pal_tid(void) { return (ThreadId)GetCurrentThreadId(); }

@@ -622,7 +622,7 @@ static ScriptVal eval_query_sphere(EvalContext* ctx, ScriptBinderCall* call) {
     script_panic_raise(call->panicHandler, (ScriptPanic){ScriptPanic_QueryLimitExceeded});
   }
 
-  ASSERT(array_elems(query->values) >= scene_query_max_hits, "Maximum query count too small")
+  ASSERT(array_elems(query->values) >= scene_query_max_hits, "Maximum query count too small");
 
   const GeoSphere sphere = {.point = pos, .radius = radius};
 
@@ -645,7 +645,7 @@ static ScriptVal eval_query_box(EvalContext* ctx, ScriptBinderCall* call) {
     script_panic_raise(call->panicHandler, (ScriptPanic){ScriptPanic_QueryLimitExceeded});
   }
 
-  ASSERT(array_elems(query->values) >= scene_query_max_hits, "Maximum query count too small")
+  ASSERT(array_elems(query->values) >= scene_query_max_hits, "Maximum query count too small");
 
   GeoBoxRotated boxRotated;
   boxRotated.box      = geo_box_from_center(pos, size);

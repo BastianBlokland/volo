@@ -57,7 +57,7 @@ void thread_pal_init(void) {}
 void thread_pal_init_late(void) {}
 void thread_pal_teardown(void) {}
 
-ASSERT(sizeof(ThreadId) >= sizeof(pid_t), "ThreadId type too small")
+ASSERT(sizeof(ThreadId) >= sizeof(pid_t), "ThreadId type too small");
 
 ThreadId thread_pal_pid(void) { return (ThreadId)syscall(SYS_getpid); }
 ThreadId thread_pal_tid(void) { return (ThreadId)syscall(SYS_gettid); }

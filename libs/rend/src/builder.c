@@ -31,7 +31,7 @@ struct sRendBuilder {
   RendImgCopyBatch imgCopyBatch;
 };
 
-ASSERT(alignof(RendBuilder) == 64, "Unexpected builder alignment")
+ASSERT(alignof(RendBuilder) == 64, "Unexpected builder alignment");
 
 struct sRendBuilderContainer {
   Allocator*  allocator;

@@ -33,7 +33,7 @@ typedef struct {
 } SetStorage;
 
 static SetStorage* set_storage_create(Allocator* alloc) {
-  ASSERT(sizeof(SetStorage) <= (usize_kibibyte * 4), "SceneSetStorage has to fit in a page")
+  ASSERT(sizeof(SetStorage) <= (usize_kibibyte * 4), "SceneSetStorage has to fit in a page");
 
   SetStorage* s = alloc_alloc_t(g_allocHeap, SetStorage);
   mem_set(array_mem(s->ids), 0);
@@ -303,7 +303,7 @@ static void ecs_destruct_set_env_comp(void* data) {
 
 static bool set_member_contains(const SceneSetMemberComp* member, const StringHash set) {
 #ifdef VOLO_SIMD
-  ASSERT(scene_set_member_max_sets == 8, "set_member_contains only supports 8 elems at the moment")
+  ASSERT(scene_set_member_max_sets == 8, "set_member_contains only supports 8 elems at the moment");
 
   const SimdVec setVec = simd_vec_broadcast_u32(set);
   const SimdVec eqA    = simd_vec_eq_u32(simd_vec_load(member->sets), setVec);
@@ -323,7 +323,7 @@ static bool set_member_contains(const SceneSetMemberComp* member, const StringHa
 
 static bool set_member_add(SceneSetMemberComp* member, const StringHash set) {
 #ifdef VOLO_SIMD
-  ASSERT(scene_set_member_max_sets == 8, "set_member_add only supports 8 elems at the moment")
+  ASSERT(scene_set_member_max_sets == 8, "set_member_add only supports 8 elems at the moment");
 
   const SimdVec setVec      = simd_vec_broadcast_u32(set);
   const SimdVec memberSetsA = simd_vec_load(member->sets);
@@ -364,7 +364,7 @@ static bool set_member_add(SceneSetMemberComp* member, const StringHash set) {
 
 static bool set_member_remove(SceneSetMemberComp* member, const StringHash set) {
 #ifdef VOLO_SIMD
-  ASSERT(scene_set_member_max_sets == 8, "set_member_contains only supports 8 elems at the moment")
+  ASSERT(scene_set_member_max_sets == 8, "set_member_contains only supports 8 elems at the moment");
 
   const SimdVec setVec = simd_vec_broadcast_u32(set);
   const SimdVec eqA    = simd_vec_eq_u32(simd_vec_load(member->sets), setVec);

@@ -16,7 +16,7 @@
 #include "rvk/sampler_internal.h"
 #include "rvk/swapchain_internal.h"
 
-ASSERT(rend_stats_max_passes == rvk_canvas_max_passes, "Unexpected pass count")
+ASSERT(rend_stats_max_passes == rvk_canvas_max_passes, "Unexpected pass count");
 
 ecs_comp_define_public(RendStatsComp);
 

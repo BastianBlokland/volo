@@ -6,7 +6,7 @@
 
 #define item_wrap(_IDX_) ((_IDX_) & (workqueue_max_items - 1))
 
-ASSERT((workqueue_max_items & (workqueue_max_items - 1u)) == 0, "Max size has to be a power-of-two")
+ASSERT(!(workqueue_max_items & (workqueue_max_items - 1u)), "Max size has to be a power-of-two");
 
 /**
  * Amount of items in the queue, only an indication as it can be raced by the mutating apis.

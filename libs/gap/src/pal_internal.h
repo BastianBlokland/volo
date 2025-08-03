@@ -12,7 +12,7 @@
 
 typedef u64 GapWindowId;
 
-ASSERT(sizeof(GapWindowId) >= sizeof(uptr), "GapWindowId needs to be capable of storing pointers")
+ASSERT(sizeof(GapWindowId) >= sizeof(uptr), "GapWindowId needs to be capable of storing pointers");
 
 typedef enum {
   GapPalWindowFlags_CloseRequested     = 1 << 0,
