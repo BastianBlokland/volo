@@ -13,7 +13,7 @@ spec(utils_clone) {
 
   it("can clone a string") {
     const String original = string_dup(g_allocHeap, string_lit("Hello World"));
-    const String clone    = {0};
+    String       clone    = {0};
 
     const DataMeta meta = data_meta_t(data_prim_t(String));
     data_clone(reg, g_allocHeap, meta, mem_var(original), mem_var(clone));
@@ -26,7 +26,7 @@ spec(utils_clone) {
 
   it("can clone an interned string") {
     const String original = string_lit("Hello World");
-    const String clone    = {0};
+    String       clone    = {0};
 
     const DataMeta meta = data_meta_t(data_prim_t(String), .flags = DataFlags_Intern);
     data_clone(reg, g_allocHeap, meta, mem_var(original), mem_var(clone));
@@ -39,7 +39,7 @@ spec(utils_clone) {
 
   it("can clone an empty string") {
     const String original = string_empty;
-    const String clone    = {0};
+    String       clone    = {0};
 
     const DataMeta meta = data_meta_t(data_prim_t(String));
     data_clone(reg, g_allocHeap, meta, mem_var(original), mem_var(clone));
@@ -49,7 +49,7 @@ spec(utils_clone) {
 
   it("can clone memory") {
     const DataMem original = data_mem_create(string_dup(g_allocHeap, string_lit("Hello World")));
-    const DataMem clone    = {0};
+    DataMem       clone    = {0};
 
     const DataMeta meta = data_meta_t(data_prim_t(DataMem));
     data_clone(reg, g_allocHeap, meta, mem_var(original), mem_var(clone));
@@ -62,7 +62,7 @@ spec(utils_clone) {
 
   it("can clone external memory") {
     const DataMem original = data_mem_create_ext(string_lit("Hello World"));
-    const DataMem clone    = {0};
+    DataMem       clone    = {0};
 
     const DataMeta meta = data_meta_t(data_prim_t(DataMem));
     data_clone(reg, g_allocHeap, meta, mem_var(original), mem_var(clone));
@@ -72,7 +72,7 @@ spec(utils_clone) {
 
   it("can clone empty memory") {
     const DataMem original = data_mem_create(mem_empty);
-    const DataMem clone    = {0};
+    DataMem       clone    = {0};
 
     const DataMeta meta = data_meta_t(data_prim_t(DataMem));
     data_clone(reg, g_allocHeap, meta, mem_var(original), mem_var(clone));
@@ -108,7 +108,6 @@ spec(utils_clone) {
   }
 
   it("can clone a heap-array of primitives") {
-
     i32 orgValues[] = {0, 1, 2, 3, 4, 5, 6, 7};
 
     HeapArray_t(i32) original = {.values = orgValues, .count = array_elems(orgValues)};
