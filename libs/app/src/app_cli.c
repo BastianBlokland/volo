@@ -13,6 +13,8 @@
 
 #ifdef VOLO_WIN32
 
+usize wcslen(const wchar_t*);
+
 static CliInvocation* app_cli_parse(const CliApp* app, const int argc, const wchar_t** argv) {
   // NOTE: Skip the first argument as it is expected to contain the program path.
   const u32 valueCount = argc > 0 ? (argc - 1) : 0;
