@@ -7,6 +7,8 @@
 
 #include "app_internal.h"
 
+#define cli_text_chunk_size (8 * usize_kibibyte)
+
 typedef struct {
   bool     provided;
   DynArray values; // String[]
@@ -14,13 +16,15 @@ typedef struct {
 
 struct sCliInvocation {
   Allocator* alloc;
-  DynArray   errors;  // String[]
-  DynArray   options; // CliInvocationOption[]
+  Allocator* allocText; // Chunked allocator for text data.
+  DynArray   errors;    // String[]
+  DynArray   options;   // CliInvocationOption[]
 };
 
 typedef struct {
   const CliApp* app;
   Allocator*    alloc;
+  Allocator*    allocText; // Chunked allocator for text data.
   bool          acceptFlags;
   u16           nextPositional;
   const char**  argHead;
@@ -38,7 +42,11 @@ static CliId cli_parse_option_id(CliParseCtx* ctx, const CliInvocationOption* op
 }
 
 static void cli_parse_add_error(CliParseCtx* ctx, const String err) {
-  *dynarray_push_t(&ctx->errors, String) = string_dup(ctx->alloc, err);
+  const String errDup = string_dup(ctx->allocText, err);
+  if (UNLIKELY(!errDup.ptr)) {
+    diag_crash_msg("Cli text allocator ran out of space");
+  }
+  *dynarray_push_t(&ctx->errors, String) = errDup;
 }
 
 static String cli_parse_peek_arg(CliParseCtx* ctx) {
@@ -90,14 +98,24 @@ cli_parse_add_value(CliParseCtx* ctx, const CliId id, const CliOptionFlags flags
     while (!sentinel_check(commaPos = string_find_first_char(value, ','))) {
       const String partBeforeComma = string_slice(value, 0, commaPos);
       if (LIKELY(!string_is_empty(partBeforeComma))) {
-        *dynarray_push_t(&opt->values, String) = partBeforeComma;
+        const String valueDup = string_dup(ctx->allocText, partBeforeComma);
+        if (LIKELY(valueDup.ptr)) {
+          *dynarray_push_t(&opt->values, String) = valueDup;
+        } else {
+          cli_parse_add_error(ctx, string_lit("Option value size exceeds maximum"));
+        }
       }
       value = string_consume(value, commaPos + 1);
     }
   }
 
   if (LIKELY(!string_is_empty(value))) {
-    *dynarray_push_t(&opt->values, String) = value;
+    const String valueDup = string_dup(ctx->allocText, value);
+    if (LIKELY(valueDup.ptr)) {
+      *dynarray_push_t(&opt->values, String) = valueDup;
+    } else {
+      cli_parse_add_error(ctx, string_lit("Option value size exceeds maximum"));
+    }
   }
 }
 
@@ -339,9 +357,12 @@ static void cli_parse_check_required_options(CliParseCtx* ctx) {
 CliInvocation* cli_parse(const CliApp* app, const int argc, const char** argv) {
   diag_assert_msg(argc >= 0, "'argc' (argument count) with a negative value is not supported");
 
+  Allocator* allocText = alloc_chunked_create(app->alloc, alloc_bump_create, cli_text_chunk_size);
+
   CliParseCtx ctx = {
       .app            = app,
       .alloc          = app->alloc,
+      .allocText      = allocText,
       .acceptFlags    = true,
       .nextPositional = 0,
       .argHead        = argv,
@@ -349,6 +370,7 @@ CliInvocation* cli_parse(const CliApp* app, const int argc, const char** argv) {
       .errors         = dynarray_create_t(app->alloc, String, 0),
       .options        = dynarray_create_t(app->alloc, CliInvocationOption, app->options.size),
   };
+
   // Initialize all options to a default state.
   for (u32 i = 0; i != app->options.size; ++i) {
     *dynarray_push_t(&ctx.options, CliInvocationOption) = (CliInvocationOption){
@@ -363,16 +385,19 @@ CliInvocation* cli_parse(const CliApp* app, const int argc, const char** argv) {
   cli_parse_check_required_options(&ctx);
 
   CliInvocation* invoc = alloc_alloc_t(app->alloc, CliInvocation);
-  *invoc               = (CliInvocation){
-                    .alloc   = app->alloc,
-                    .errors  = ctx.errors,
-                    .options = ctx.options,
+
+  *invoc = (CliInvocation){
+      .alloc     = app->alloc,
+      .allocText = allocText,
+      .errors    = ctx.errors,
+      .options   = ctx.options,
   };
+
   return invoc;
 }
 
 void cli_parse_destroy(CliInvocation* invoc) {
-  dynarray_for_t(&invoc->errors, String, err) { string_free(invoc->alloc, *err); }
+  alloc_chunked_destroy(invoc->allocText);
   dynarray_destroy(&invoc->errors);
 
   dynarray_for_t(&invoc->options, CliInvocationOption, opt) { dynarray_destroy(&opt->values); }
