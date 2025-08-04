@@ -167,7 +167,7 @@ macro(set_clang_compile_options)
     add_compile_options(-Xclang -fdefault-calling-conv=vectorcall) # Use the 'vectorcall' call conv.
     add_compile_options(-Wno-microsoft-enum-forward-reference) # Forward declare enum as int.
     add_compile_options(-fms-compatibility-version=0)
-    add_link_options(/ENTRY:wmainCRTStartup) # Entry point with unicode support.
+    add_link_options(--for-linker=/ENTRY:wmainCRTStartup) # Entry point with unicode support.
     add_link_options(--for-linker=/OPT:REF,ICF=2) # Remove functions and data that are never referenced.
     add_link_options(--for-linker=/GUARD:NO) # Disable 'Control Flow Guard' (CFG).
   endif()
