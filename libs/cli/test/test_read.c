@@ -13,7 +13,7 @@ spec(read) {
   it("returns the provided string") {
     const CliId flag = cli_register_flag(app, 's', string_lit("string"), CliOptionFlags_Value);
 
-    CliInvocation* invoc = cli_parse(app, 2, (const char*[]){"-s", "Hello World"});
+    CliInvocation* invoc = cli_parse_lit(app, string_lit("-s"), string_lit("Hello World"));
 
     check_eq_string(cli_read_string(invoc, flag, string_lit("Backup")), string_lit("Hello World"));
 
@@ -23,7 +23,7 @@ spec(read) {
   it("returns the default when not providing a string") {
     const CliId flag = cli_register_flag(app, 's', string_lit("string"), CliOptionFlags_Value);
 
-    CliInvocation* invoc = cli_parse(app, 0, null);
+    CliInvocation* invoc = cli_parse(app, null, 0);
 
     check_eq_string(cli_read_string(invoc, flag, string_lit("Goodbye")), string_lit("Goodbye"));
 
@@ -33,7 +33,7 @@ spec(read) {
   it("returns the provided i64") {
     const CliId flag = cli_register_flag(app, 'i', string_lit("int"), CliOptionFlags_Value);
 
-    CliInvocation* invoc = cli_parse(app, 2, (const char*[]){"-i", "-42"});
+    CliInvocation* invoc = cli_parse_lit(app, string_lit("-i"), string_lit("-42"));
 
     check_eq_int(cli_read_i64(invoc, flag, -1), -42);
 
@@ -43,7 +43,7 @@ spec(read) {
   it("returns the default when not providing a i64") {
     const CliId flag = cli_register_flag(app, 'i', string_lit("int"), CliOptionFlags_Value);
 
-    CliInvocation* invoc = cli_parse(app, 0, null);
+    CliInvocation* invoc = cli_parse(app, null, 0);
 
     check_eq_int(cli_read_i64(invoc, flag, -1), -1);
 
@@ -53,7 +53,7 @@ spec(read) {
   it("returns the provided u64") {
     const CliId flag = cli_register_flag(app, 'i', string_lit("int"), CliOptionFlags_Value);
 
-    CliInvocation* invoc = cli_parse(app, 2, (const char*[]){"-i", "42"});
+    CliInvocation* invoc = cli_parse_lit(app, string_lit("-i"), string_lit("42"));
 
     check_eq_int(cli_read_u64(invoc, flag, 999), 42);
 
@@ -63,7 +63,7 @@ spec(read) {
   it("returns the default when not providing a u64") {
     const CliId flag = cli_register_flag(app, 'i', string_lit("int"), CliOptionFlags_Value);
 
-    CliInvocation* invoc = cli_parse(app, 0, null);
+    CliInvocation* invoc = cli_parse(app, null, 0);
 
     check_eq_int(cli_read_u64(invoc, flag, 999), 999);
 
@@ -73,7 +73,7 @@ spec(read) {
   it("returns the provided f64") {
     const CliId flag = cli_register_flag(app, 'f', string_lit("float"), CliOptionFlags_Value);
 
-    CliInvocation* invoc = cli_parse(app, 2, (const char*[]){"-f", "42.1337e-2"});
+    CliInvocation* invoc = cli_parse_lit(app, string_lit("-f"), string_lit("42.1337e-2"));
 
     check_eq_float(cli_read_f64(invoc, flag, 999.999), 42.1337e-2, 1e-32);
 
@@ -83,7 +83,7 @@ spec(read) {
   it("returns the default when not providing a f64") {
     const CliId flag = cli_register_flag(app, 'f', string_lit("float"), CliOptionFlags_Value);
 
-    CliInvocation* invoc = cli_parse(app, 0, null);
+    CliInvocation* invoc = cli_parse(app, null, 0);
 
     check_eq_float(cli_read_f64(invoc, flag, 999.999), 999.999, 1e-32);
 
@@ -95,11 +95,11 @@ spec(read) {
 
     const CliId flag = cli_register_flag(app, 'c', string_lit("choice"), CliOptionFlags_Value);
 
-    CliInvocation* invocA = cli_parse(app, 2, (const char*[]){"-c", "choiceA"});
+    CliInvocation* invocA = cli_parse_lit(app, string_lit("-c"), string_lit("choiceA"));
     check_eq_int(cli_read_choice_array(invocA, flag, g_choices, 999), 0);
     cli_parse_destroy(invocA);
 
-    CliInvocation* invocB = cli_parse(app, 2, (const char*[]){"-c", "choiceB"});
+    CliInvocation* invocB = cli_parse_lit(app, string_lit("-c"), string_lit("choiceB"));
     check_eq_int(cli_read_choice_array(invocB, flag, g_choices, 999), 1);
     cli_parse_destroy(invocB);
   }
@@ -109,7 +109,7 @@ spec(read) {
 
     const CliId flag = cli_register_flag(app, 'c', string_lit("choice"), CliOptionFlags_Value);
 
-    CliInvocation* invoc = cli_parse(app, 0, null);
+    CliInvocation* invoc = cli_parse(app, null, 0);
     check_eq_int(cli_read_choice_array(invoc, flag, g_choices, 999), 999);
 
     cli_parse_destroy(invoc);
@@ -120,7 +120,7 @@ spec(read) {
 
     const CliId flag = cli_register_flag(app, 'c', string_lit("choice"), CliOptionFlags_Value);
 
-    CliInvocation* invoc = cli_parse(app, 2, (const char*[]){"-c", "choiceC"});
+    CliInvocation* invoc = cli_parse_lit(app, string_lit("-c"), string_lit("choiceC"));
     check_eq_int(cli_read_choice_array(invoc, flag, g_choices, 999), 999);
 
     cli_parse_destroy(invoc);

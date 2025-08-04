@@ -10,6 +10,16 @@
 #include "data_init.h"
 #include "log_init.h"
 
+static CliInvocation* app_cli_parse(const CliApp* app, const int argc, const char** argv) {
+  // NOTE: Skip the first argument as it is expected to contain the program path.
+  const u32 valueCount = argc > 0 ? (argc - 1) : 0;
+  String*   values     = mem_stack(sizeof(String) * valueCount).ptr;
+  for (u32 i = 0; i != valueCount; ++i) {
+    values[i] = string_from_null_term(argv[i + 1]);
+  }
+  return cli_parse(app, values, valueCount);
+}
+
 int SYS_DECL main(const int argc, const char** argv) {
   core_init();
 
@@ -28,7 +38,7 @@ int SYS_DECL main(const int argc, const char** argv) {
       cli_register_flag(app, '\0', string_lit("debug-symbols"), CliOptionFlags_Exclusive);
   cli_register_desc(app, optDbgSyms, string_lit("Dump a listing of all debug symbols."));
 
-  CliInvocation* invoc = cli_parse(app, argc - 1, argv + 1);
+  CliInvocation* invoc = app_cli_parse(app, argc, argv);
   if (cli_parse_result(invoc) == CliParseResult_Fail) {
     cli_failure_write_file(invoc, g_fileStdErr);
     exitCode = 2;

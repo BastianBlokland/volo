@@ -67,13 +67,14 @@ spec(parse) {
   }
 
   it("succeeds when passing the required options") {
-    CliInvocation* invoc = cli_parse(app, 3, (const char*[]){"-a", "Hello", "ArgVal"});
+    CliInvocation* invoc =
+        cli_parse_lit(app, string_lit("-a"), string_lit("Hello"), string_lit("ArgVal"));
     parse_check_success(_testCtx, invoc);
     cli_parse_destroy(invoc);
   }
 
   it("fails when omitting required options") {
-    CliInvocation* invoc = cli_parse(app, 0, null);
+    CliInvocation* invoc = cli_parse(app, null, 0);
     parse_check_fail(
         _testCtx,
         invoc,
@@ -86,8 +87,14 @@ spec(parse) {
   }
 
   it("supports both short and long forms for flags") {
-    CliInvocation* invoc =
-        cli_parse(app, 6, (const char*[]){"--flag-a-req", "Hello", "-d", "42", "-c", "ArgVal"});
+    CliInvocation* invoc = cli_parse_lit(
+        app,
+        string_lit("--flag-a-req"),
+        string_lit("Hello"),
+        string_lit("-d"),
+        string_lit("42"),
+        string_lit("-c"),
+        string_lit("ArgVal"));
     parse_check_success(_testCtx, invoc);
     check(cli_parse_provided(invoc, flagA));
     check(cli_parse_provided(invoc, flagC));
@@ -96,7 +103,8 @@ spec(parse) {
   }
 
   it("supports passing multiple short flags in a single block") {
-    CliInvocation* invoc = cli_parse(app, 4, (const char*[]){"-bc", "-a", "Hello", "ArgVal"});
+    CliInvocation* invoc = cli_parse_lit(
+        app, string_lit("-bc"), string_lit("-a"), string_lit("Hello"), string_lit("ArgVal"));
     parse_check_success(_testCtx, invoc);
     check(cli_parse_provided(invoc, flagB));
     check(cli_parse_provided(invoc, flagC));
@@ -104,22 +112,24 @@ spec(parse) {
   }
 
   it("supports long form flags with a value") {
-    CliInvocation* invoc =
-        cli_parse(app, 3, (const char*[]){"--flag-a-req", "Hello World", "ArgVal"});
+    CliInvocation* invoc = cli_parse_lit(
+        app, string_lit("--flag-a-req"), string_lit("Hello World"), string_lit("ArgVal"));
     parse_check_success(_testCtx, invoc);
     parse_check_values(_testCtx, invoc, flagA, (String[]){string_lit("Hello World")}, 1);
     cli_parse_destroy(invoc);
   }
 
   it("supports short form flags with a value") {
-    CliInvocation* invoc = cli_parse(app, 3, (const char*[]){"-a", "Hello World", "ArgVal"});
+    CliInvocation* invoc =
+        cli_parse_lit(app, string_lit("-a"), string_lit("Hello World"), string_lit("ArgVal"));
     parse_check_success(_testCtx, invoc);
     parse_check_values(_testCtx, invoc, flagA, (String[]){string_lit("Hello World")}, 1);
     cli_parse_destroy(invoc);
   }
 
   it("supports retrieving argument values") {
-    CliInvocation* invoc = cli_parse(app, 4, (const char*[]){"Hello World", "-a", "Hello", "42"});
+    CliInvocation* invoc = cli_parse_lit(
+        app, string_lit("Hello World"), string_lit("-a"), string_lit("Hello"), string_lit("42"));
     parse_check_success(_testCtx, invoc);
     parse_check_values(_testCtx, invoc, argA, (String[]){string_lit("Hello World")}, 1);
     parse_check_values(_testCtx, invoc, argB, (String[]){string_lit("42")}, 1);
@@ -127,11 +137,15 @@ spec(parse) {
   }
 
   it("supports value flags with multiple values as separate strings") {
-    CliInvocation* invoc = cli_parse(
+    CliInvocation* invoc = cli_parse_lit(
         app,
-        7,
-        (const char*[]){
-            "--flag-e-multival", "Hello", "Beautiful", "World", "-a", "Hello", "ArgVal"});
+        string_lit("--flag-e-multival"),
+        string_lit("Hello"),
+        string_lit("Beautiful"),
+        string_lit("World"),
+        string_lit("-a"),
+        string_lit("Hello"),
+        string_lit("ArgVal"));
     parse_check_values(
         _testCtx,
         invoc,
@@ -142,10 +156,13 @@ spec(parse) {
   }
 
   it("supports value flags with multiple values as a single string") {
-    CliInvocation* invoc = cli_parse(
+    CliInvocation* invoc = cli_parse_lit(
         app,
-        5,
-        (const char*[]){"--flag-e-multival", "Hello,Beautiful,World", "-a", "Hello", "ArgVal"});
+        string_lit("--flag-e-multival"),
+        string_lit("Hello,Beautiful,World"),
+        string_lit("-a"),
+        string_lit("Hello"),
+        string_lit("ArgVal"));
     parse_check_values(
         _testCtx,
         invoc,
@@ -156,10 +173,15 @@ spec(parse) {
   }
 
   it("supports value flags with multiple values as a mix of single and multiple strings") {
-    CliInvocation* invoc = cli_parse(
+    CliInvocation* invoc = cli_parse_lit(
         app,
-        7,
-        (const char*[]){"--flag-e-multival", "A,,,B", "C,,", "D,E", "-a", "Hello", "ArgVal"});
+        string_lit("--flag-e-multival"),
+        string_lit("A,,,B"),
+        string_lit("C,,"),
+        string_lit("D,E"),
+        string_lit("-a"),
+        string_lit("Hello"),
+        string_lit("ArgVal"));
     parse_check_values(
         _testCtx,
         invoc,
@@ -171,8 +193,14 @@ spec(parse) {
   }
 
   it("supports arguments with multiple values as separate strings") {
-    CliInvocation* invoc =
-        cli_parse(app, 6, (const char*[]){"-a", "Hello", "ArgVal", "Hello", "Beautiful", "World"});
+    CliInvocation* invoc = cli_parse_lit(
+        app,
+        string_lit("-a"),
+        string_lit("Hello"),
+        string_lit("ArgVal"),
+        string_lit("Hello"),
+        string_lit("Beautiful"),
+        string_lit("World"));
     parse_check_values(
         _testCtx,
         invoc,
@@ -183,8 +211,12 @@ spec(parse) {
   }
 
   it("supports arguments with multiple values as a single string") {
-    CliInvocation* invoc =
-        cli_parse(app, 4, (const char*[]){"-a", "Hello", "ArgVal", "Hello,Beautiful,World"});
+    CliInvocation* invoc = cli_parse_lit(
+        app,
+        string_lit("-a"),
+        string_lit("Hello"),
+        string_lit("ArgVal"),
+        string_lit("Hello,Beautiful,World"));
     parse_check_values(
         _testCtx,
         invoc,
@@ -195,8 +227,14 @@ spec(parse) {
   }
 
   it("supports arguments with multiple values as a mix of single and multiple strings") {
-    CliInvocation* invoc =
-        cli_parse(app, 6, (const char*[]){"-a", "Hello", "ArgVal", ",A,B,", "C", "D,E"});
+    CliInvocation* invoc = cli_parse_lit(
+        app,
+        string_lit("-a"),
+        string_lit("Hello"),
+        string_lit("ArgVal"),
+        string_lit(",A,B,"),
+        string_lit("C"),
+        string_lit("D,E"));
     parse_check_values(
         _testCtx,
         invoc,
@@ -208,11 +246,17 @@ spec(parse) {
   }
 
   it("supports single dash for terminating a list of values") {
-    CliInvocation* invoc = cli_parse(
+    CliInvocation* invoc = cli_parse_lit(
         app,
-        9,
-        (const char*[]){
-            "-a", "Hello", "ArgVal", "--flag-e-multival", "Some", "Values", "-", "Hello", "World"});
+        string_lit("-a"),
+        string_lit("Hello"),
+        string_lit("ArgVal"),
+        string_lit("--flag-e-multival"),
+        string_lit("Some"),
+        string_lit("Values"),
+        string_lit("-"),
+        string_lit("Hello"),
+        string_lit("World"));
     parse_check_values(
         _testCtx, invoc, flagE, (String[]){string_lit("Some"), string_lit("Values")}, 2);
     parse_check_values(
@@ -221,8 +265,15 @@ spec(parse) {
   }
 
   it("supports double dash to stop accepting flags") {
-    CliInvocation* invoc =
-        cli_parse(app, 7, (const char*[]){"-a", "Hello", "--", "-b", "--some-value", "-", "--"});
+    CliInvocation* invoc = cli_parse_lit(
+        app,
+        string_lit("-a"),
+        string_lit("Hello"),
+        string_lit("--"),
+        string_lit("-b"),
+        string_lit("--some-value"),
+        string_lit("-"),
+        string_lit("--"));
     parse_check_values(_testCtx, invoc, argA, (String[]){string_lit("-b")}, 1);
     parse_check_values(
         _testCtx,
@@ -234,10 +285,20 @@ spec(parse) {
   }
 
   it("ignores empty values") {
-    CliInvocation* invoc = cli_parse(
+    CliInvocation* invoc = cli_parse_lit(
         app,
-        12,
-        (const char*[]){"", "-a", "", "Hello", "", "ArgVal1", "", "1337", "", "", "42", ""});
+        string_lit(""),
+        string_lit("-a"),
+        string_lit(""),
+        string_lit("Hello"),
+        string_lit(""),
+        string_lit("ArgVal1"),
+        string_lit(""),
+        string_lit("1337"),
+        string_lit(""),
+        string_lit(""),
+        string_lit("42"),
+        string_lit(""));
     parse_check_success(_testCtx, invoc);
     parse_check_values(_testCtx, invoc, flagA, (String[]){string_lit("Hello")}, 1);
     parse_check_values(_testCtx, invoc, argA, (String[]){string_lit("ArgVal1")}, 1);
@@ -246,26 +307,39 @@ spec(parse) {
   }
 
   it("fails when passing the same flag twice in short form") {
-    CliInvocation* invoc = cli_parse(app, 5, (const char*[]){"-a", "Hello", "-a", "World", "42"});
+    CliInvocation* invoc = cli_parse_lit(
+        app,
+        string_lit("-a"),
+        string_lit("Hello"),
+        string_lit("-a"),
+        string_lit("World"),
+        string_lit("42"));
     parse_check_fail(_testCtx, invoc, (String[]){string_lit("Duplicate flag 'a'")}, 1);
     cli_parse_destroy(invoc);
   }
 
   it("fails when passing the same flag twice in long form") {
-    CliInvocation* invoc =
-        cli_parse(app, 5, (const char*[]){"--flag-a-req", "Hello", "--flag-a-req", "World", "42"});
+    CliInvocation* invoc = cli_parse_lit(
+        app,
+        string_lit("--flag-a-req"),
+        string_lit("Hello"),
+        string_lit("--flag-a-req"),
+        string_lit("World"),
+        string_lit("42"));
     parse_check_fail(_testCtx, invoc, (String[]){string_lit("Duplicate flag 'flag-a-req'")}, 1);
     cli_parse_destroy(invoc);
   }
 
   it("fails when passing the same flag twice in a flag block") {
-    CliInvocation* invoc = cli_parse(app, 4, (const char*[]){"-bbc", "-a", "Hello", "ArgVal"});
+    CliInvocation* invoc = cli_parse_lit(
+        app, string_lit("-bbc"), string_lit("-a"), string_lit("Hello"), string_lit("ArgVal"));
     parse_check_fail(_testCtx, invoc, (String[]){string_lit("Duplicate flag 'b'")}, 1);
     cli_parse_destroy(invoc);
   }
 
   it("fails when trying to pass a flag with a value in a flag block") {
-    CliInvocation* invoc = cli_parse(app, 3, (const char*[]){"-ba", "Hello", "42"});
+    CliInvocation* invoc =
+        cli_parse_lit(app, string_lit("-ba"), string_lit("Hello"), string_lit("42"));
     parse_check_fail(
         _testCtx,
         invoc,
@@ -277,48 +351,72 @@ spec(parse) {
   }
 
   it("fails when omitting the value for a value flag") {
-    CliInvocation* invoc = cli_parse(app, 4, (const char*[]){"-a", "Hello", "ArgVal", "-d"});
+    CliInvocation* invoc = cli_parse_lit(
+        app, string_lit("-a"), string_lit("Hello"), string_lit("ArgVal"), string_lit("-d"));
     parse_check_fail(
         _testCtx, invoc, (String[]){string_lit("Value missing for option 'flag-d-val'")}, 1);
     cli_parse_destroy(invoc);
   }
 
   it("fails when passing the same flag in both short and long form") {
-    CliInvocation* invoc =
-        cli_parse(app, 5, (const char*[]){"-a", "Hello", "--flag-a-req", "World", "42"});
+    CliInvocation* invoc = cli_parse_lit(
+        app,
+        string_lit("-a"),
+        string_lit("Hello"),
+        string_lit("--flag-a-req"),
+        string_lit("World"),
+        string_lit("42"));
     parse_check_fail(_testCtx, invoc, (String[]){string_lit("Duplicate flag 'flag-a-req'")}, 1);
     cli_parse_destroy(invoc);
   }
 
   it("fails when passing an unknown flag in short form") {
-    CliInvocation* invoc = cli_parse(app, 4, (const char*[]){"-a", "Hello", "-g", "ArgVal"});
+    CliInvocation* invoc = cli_parse_lit(
+        app, string_lit("-a"), string_lit("Hello"), string_lit("-g"), string_lit("ArgVal"));
     parse_check_fail(_testCtx, invoc, (String[]){string_lit("Unknown flag 'g'")}, 1);
     cli_parse_destroy(invoc);
   }
 
   it("fails when passing an unknown flag in long form") {
-    CliInvocation* invoc =
-        cli_parse(app, 4, (const char*[]){"-a", "Hello", "--some-flag", "ArgVal"});
+    CliInvocation* invoc = cli_parse_lit(
+        app,
+        string_lit("-a"),
+        string_lit("Hello"),
+        string_lit("--some-flag"),
+        string_lit("ArgVal"));
     parse_check_fail(_testCtx, invoc, (String[]){string_lit("Unknown flag 'some-flag'")}, 1);
     cli_parse_destroy(invoc);
   }
 
   it("fails when passing an unknown flag in a flag block") {
-    CliInvocation* invoc = cli_parse(app, 4, (const char*[]){"-bgc", "-a", "Hello", "ArgVal"});
+    CliInvocation* invoc = cli_parse_lit(
+        app, string_lit("-bgc"), string_lit("-a"), string_lit("Hello"), string_lit("ArgVal"));
     parse_check_fail(_testCtx, invoc, (String[]){string_lit("Unknown flag 'g'")}, 1);
     cli_parse_destroy(invoc);
   }
 
   it("fails when providing more arguments then expected") {
-    CliInvocation* invoc =
-        cli_parse(app, 6, (const char*[]){"-a", "Hello", "Arg1Val", "1337", "-", "AnotherArg"});
+    CliInvocation* invoc = cli_parse_lit(
+        app,
+        string_lit("-a"),
+        string_lit("Hello"),
+        string_lit("Arg1Val"),
+        string_lit("1337"),
+        string_lit("-"),
+        string_lit("AnotherArg"));
     parse_check_fail(_testCtx, invoc, (String[]){string_lit("Invalid input 'AnotherArg'")}, 1);
     cli_parse_destroy(invoc);
   }
 
   it("fails when providing a value that is incompatible with the validator") {
-    CliInvocation* invoc =
-        cli_parse(app, 6, (const char*[]){"-a", "Hello", "ArgVal", "1", "Hello", "World"});
+    CliInvocation* invoc = cli_parse_lit(
+        app,
+        string_lit("-a"),
+        string_lit("Hello"),
+        string_lit("ArgVal"),
+        string_lit("1"),
+        string_lit("Hello"),
+        string_lit("World"));
     parse_check_fail(
         _testCtx,
         invoc,
@@ -330,7 +428,7 @@ spec(parse) {
   }
 
   it("fails when combining an exclusive option with another option") {
-    CliInvocation* invoc = cli_parse(app, 2, (const char*[]){"--flag-b-opt", "--flag-h"});
+    CliInvocation* invoc = cli_parse_lit(app, string_lit("--flag-b-opt"), string_lit("--flag-h"));
     parse_check_fail(
         _testCtx,
         invoc,
@@ -341,8 +439,15 @@ spec(parse) {
   }
 
   it("fails when violating an exclusion") {
-    CliInvocation* invoc = cli_parse(
-        app, 7, (const char*[]){"-d", "42", "--flag-e-multival", "B", "-a", "Hello", "ArgVal"});
+    CliInvocation* invoc = cli_parse_lit(
+        app,
+        string_lit("-d"),
+        string_lit("42"),
+        string_lit("--flag-e-multival"),
+        string_lit("B"),
+        string_lit("-a"),
+        string_lit("Hello"),
+        string_lit("ArgVal"));
     parse_check_fail(
         _testCtx,
         invoc,
@@ -353,14 +458,14 @@ spec(parse) {
   }
 
   it("succeeds when providing an exclusive option instead of a required option") {
-    CliInvocation* invoc = cli_parse(app, 1, (const char*[]){"--flag-h"});
+    CliInvocation* invoc = cli_parse_lit(app, string_lit("--flag-h"));
     parse_check_success(_testCtx, invoc);
     parse_check_values(_testCtx, invoc, argA, null, 0);
     cli_parse_destroy(invoc);
   }
 
   it("succeeds when providing an alternative instead of a required option") {
-    CliInvocation* invoc = cli_parse(app, 2, (const char*[]){"ArgVal", "--flag-g"});
+    CliInvocation* invoc = cli_parse_lit(app, string_lit("ArgVal"), string_lit("--flag-g"));
     parse_check_success(_testCtx, invoc);
     parse_check_values(_testCtx, invoc, argA, (String[]){string_lit("ArgVal")}, 1);
     cli_parse_destroy(invoc);
