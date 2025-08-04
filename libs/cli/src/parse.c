@@ -7,6 +7,8 @@
 
 #include "app_internal.h"
 
+#define cli_text_chunk_size (8 * usize_kibibyte)
+
 typedef struct {
   bool     provided;
   DynArray values; // String[]
@@ -14,17 +16,19 @@ typedef struct {
 
 struct sCliInvocation {
   Allocator* alloc;
-  DynArray   errors;  // String[]
-  DynArray   options; // CliInvocationOption[]
+  Allocator* allocText; // Chunked allocator for text data.
+  DynArray   errors;    // String[]
+  DynArray   options;   // CliInvocationOption[]
 };
 
 typedef struct {
   const CliApp* app;
   Allocator*    alloc;
+  Allocator*    allocText; // Chunked allocator for text data.
   bool          acceptFlags;
   u16           nextPositional;
-  const char**  argHead;
-  const char**  argTail;
+  const String* inputHead;
+  const String* inputTail;
   DynArray      errors;  // String[]
   DynArray      options; // CliInvocationOption[]
 } CliParseCtx;
@@ -38,19 +42,25 @@ static CliId cli_parse_option_id(CliParseCtx* ctx, const CliInvocationOption* op
 }
 
 static void cli_parse_add_error(CliParseCtx* ctx, const String err) {
-  *dynarray_push_t(&ctx->errors, String) = string_dup(ctx->alloc, err);
+  const String errDup = string_dup(ctx->allocText, err);
+  if (UNLIKELY(!errDup.ptr)) {
+    diag_crash_msg("Cli text allocator ran out of space");
+  }
+  *dynarray_push_t(&ctx->errors, String) = errDup;
 }
 
-static String cli_parse_peek_arg(CliParseCtx* ctx) {
-  return ctx->argHead == ctx->argTail ? string_empty : string_from_null_term(*ctx->argHead);
+static String cli_parse_input_peek(CliParseCtx* ctx) {
+  return ctx->inputHead == ctx->inputTail ? string_empty : *ctx->inputHead;
 }
 
-static void cli_parse_consume_arg(CliParseCtx* ctx) {
-  diag_assert(ctx->argHead != ctx->argTail);
-  ++ctx->argHead;
+static void cli_parse_input_consume(CliParseCtx* ctx) {
+  diag_assert(ctx->inputHead != ctx->inputTail);
+  ++ctx->inputHead;
 }
 
-static u32 cli_parse_args_remaining(CliParseCtx* ctx) { return (u32)(ctx->argTail - ctx->argHead); }
+static u32 cli_parse_input_remaining(CliParseCtx* ctx) {
+  return (u32)(ctx->inputTail - ctx->inputHead);
+}
 
 static u32 cli_parse_count_provided(CliParseCtx* ctx) {
   u32 count = 0;
@@ -90,14 +100,24 @@ cli_parse_add_value(CliParseCtx* ctx, const CliId id, const CliOptionFlags flags
     while (!sentinel_check(commaPos = string_find_first_char(value, ','))) {
       const String partBeforeComma = string_slice(value, 0, commaPos);
       if (LIKELY(!string_is_empty(partBeforeComma))) {
-        *dynarray_push_t(&opt->values, String) = partBeforeComma;
+        const String valueDup = string_dup(ctx->allocText, partBeforeComma);
+        if (LIKELY(valueDup.ptr)) {
+          *dynarray_push_t(&opt->values, String) = valueDup;
+        } else {
+          cli_parse_add_error(ctx, string_lit("Option value size exceeds maximum"));
+        }
       }
       value = string_consume(value, commaPos + 1);
     }
   }
 
   if (LIKELY(!string_is_empty(value))) {
-    *dynarray_push_t(&opt->values, String) = value;
+    const String valueDup = string_dup(ctx->allocText, value);
+    if (LIKELY(valueDup.ptr)) {
+      *dynarray_push_t(&opt->values, String) = valueDup;
+    } else {
+      cli_parse_add_error(ctx, string_lit("Option value size exceeds maximum"));
+    }
   }
 }
 
@@ -108,11 +128,11 @@ static void cli_parse_add_values(CliParseCtx* ctx, const CliId optId) {
   }
 
   // Skip any empty arguments.
-  while (cli_parse_args_remaining(ctx) && string_is_empty(cli_parse_peek_arg(ctx))) {
-    cli_parse_consume_arg(ctx);
+  while (cli_parse_input_remaining(ctx) && string_is_empty(cli_parse_input_peek(ctx))) {
+    cli_parse_input_consume(ctx);
   }
 
-  if (!cli_parse_args_remaining(ctx)) {
+  if (!cli_parse_input_remaining(ctx)) {
     cli_parse_add_error(
         ctx,
         fmt_write_scratch(
@@ -121,8 +141,8 @@ static void cli_parse_add_values(CliParseCtx* ctx, const CliId optId) {
   }
 
   // Consume the next argument.
-  cli_parse_add_value(ctx, optId, flags, cli_parse_peek_arg(ctx));
-  cli_parse_consume_arg(ctx);
+  cli_parse_add_value(ctx, optId, flags, cli_parse_input_peek(ctx));
+  cli_parse_input_consume(ctx);
 
   /**
    * For 'multiValue' options we keep consuming args until the next flag is found.
@@ -131,18 +151,18 @@ static void cli_parse_add_values(CliParseCtx* ctx, const CliId optId) {
    */
 
   const bool multiValue = (flags & CliOptionFlags_MultiValue) == CliOptionFlags_MultiValue;
-  while (multiValue && cli_parse_args_remaining(ctx)) {
-    String head = cli_parse_peek_arg(ctx);
+  while (multiValue && cli_parse_input_remaining(ctx)) {
+    String head = cli_parse_input_peek(ctx);
     if (string_is_empty(head)) {
-      cli_parse_consume_arg(ctx);
+      cli_parse_input_consume(ctx);
       continue;
     }
     if (ctx->acceptFlags && string_starts_with(head, string_lit("-"))) {
       // Stop when a flag is encountered.
       break;
     }
-    cli_parse_add_value(ctx, optId, flags, cli_parse_peek_arg(ctx));
-    cli_parse_consume_arg(ctx);
+    cli_parse_add_value(ctx, optId, flags, cli_parse_input_peek(ctx));
+    cli_parse_input_consume(ctx);
   }
 }
 
@@ -197,8 +217,8 @@ static void cli_parse_arg(CliParseCtx* ctx) {
   const CliId optId = cli_find_by_position(ctx->app, ctx->nextPositional);
   if (sentinel_check(optId)) {
     cli_parse_add_error(
-        ctx, fmt_write_scratch("Invalid input '{}'", fmt_text(cli_parse_peek_arg(ctx))));
-    cli_parse_consume_arg(ctx);
+        ctx, fmt_write_scratch("Invalid input '{}'", fmt_text(cli_parse_input_peek(ctx))));
+    cli_parse_input_consume(ctx);
     return;
   }
   ++ctx->nextPositional;
@@ -207,39 +227,39 @@ static void cli_parse_arg(CliParseCtx* ctx) {
 }
 
 static void cli_parse_options(CliParseCtx* ctx) {
-  while (cli_parse_args_remaining(ctx)) {
-    const String head = cli_parse_peek_arg(ctx);
+  while (cli_parse_input_remaining(ctx)) {
+    const String head = cli_parse_input_peek(ctx);
 
     if (string_is_empty(head)) {
       // Ignore empty arguments.
-      cli_parse_consume_arg(ctx);
+      cli_parse_input_consume(ctx);
       continue;
     }
 
     if (ctx->acceptFlags && string_eq(head, string_lit("--"))) {
-      cli_parse_consume_arg(ctx);
+      cli_parse_input_consume(ctx);
       ctx->acceptFlags = false;
       continue;
     }
 
     if (ctx->acceptFlags && string_eq(head, string_lit("-"))) {
       // Single dash is ignored, useful as a separator for list arguments.
-      cli_parse_consume_arg(ctx);
+      cli_parse_input_consume(ctx);
       continue;
     }
 
     if (ctx->acceptFlags && string_starts_with(head, string_lit("--"))) {
-      cli_parse_consume_arg(ctx);
+      cli_parse_input_consume(ctx);
       cli_parse_long_flag(ctx, string_consume(head, 2));
       continue;
     }
 
     if (ctx->acceptFlags && string_starts_with(head, string_lit("-"))) {
       if (head.size == 2) {
-        cli_parse_consume_arg(ctx);
+        cli_parse_input_consume(ctx);
         cli_parse_short_flag(ctx, *string_at(head, 1));
       } else {
-        cli_parse_consume_arg(ctx);
+        cli_parse_input_consume(ctx);
         cli_parse_short_flag_block(ctx, string_consume(head, 1));
       }
       continue;
@@ -336,19 +356,21 @@ static void cli_parse_check_required_options(CliParseCtx* ctx) {
   }
 }
 
-CliInvocation* cli_parse(const CliApp* app, const int argc, const char** argv) {
-  diag_assert_msg(argc >= 0, "'argc' (argument count) with a negative value is not supported");
+CliInvocation* cli_parse(const CliApp* app, const String* input, const u32 inputCount) {
+  Allocator* allocText = alloc_chunked_create(app->alloc, alloc_bump_create, cli_text_chunk_size);
 
   CliParseCtx ctx = {
       .app            = app,
       .alloc          = app->alloc,
+      .allocText      = allocText,
       .acceptFlags    = true,
       .nextPositional = 0,
-      .argHead        = argv,
-      .argTail        = argv + argc,
+      .inputHead      = input,
+      .inputTail      = input + inputCount,
       .errors         = dynarray_create_t(app->alloc, String, 0),
       .options        = dynarray_create_t(app->alloc, CliInvocationOption, app->options.size),
   };
+
   // Initialize all options to a default state.
   for (u32 i = 0; i != app->options.size; ++i) {
     *dynarray_push_t(&ctx.options, CliInvocationOption) = (CliInvocationOption){
@@ -363,16 +385,19 @@ CliInvocation* cli_parse(const CliApp* app, const int argc, const char** argv) {
   cli_parse_check_required_options(&ctx);
 
   CliInvocation* invoc = alloc_alloc_t(app->alloc, CliInvocation);
-  *invoc               = (CliInvocation){
-                    .alloc   = app->alloc,
-                    .errors  = ctx.errors,
-                    .options = ctx.options,
+
+  *invoc = (CliInvocation){
+      .alloc     = app->alloc,
+      .allocText = allocText,
+      .errors    = ctx.errors,
+      .options   = ctx.options,
   };
+
   return invoc;
 }
 
 void cli_parse_destroy(CliInvocation* invoc) {
-  dynarray_for_t(&invoc->errors, String, err) { string_free(invoc->alloc, *err); }
+  alloc_chunked_destroy(invoc->allocText);
   dynarray_destroy(&invoc->errors);
 
   dynarray_for_t(&invoc->options, CliInvocationOption, opt) { dynarray_destroy(&opt->values); }

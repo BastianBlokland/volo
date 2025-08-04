@@ -1,5 +1,6 @@
 #pragma once
 #include "cli.h"
+#include "core_macro.h"
 #include "core_string.h"
 
 typedef enum {
@@ -26,13 +27,14 @@ typedef struct sCliInvocation CliInvocation;
 
 /**
  * Parse a set of input strings for the given application.
- *
- * NOTE: Does not strip off the initial invocation-path that (many?) operating systems pass as the
- * first argument.
+ * NOTE: Values are copied into the invocation so input only needs to remain valid during parsing.
  *
  * Destroy using 'cli_parse_destroy()'.
  */
-CliInvocation* cli_parse(const CliApp*, int argc, const char** argv);
+CliInvocation* cli_parse(const CliApp*, const String* input, u32 inputCount);
+
+#define cli_parse_lit(_APP_, ...)                                                                  \
+  cli_parse((_APP_), (const String[]){__VA_ARGS__}, COUNT_VA_ARGS(__VA_ARGS__));
 
 /**
  * Destroy a CliInvocation.

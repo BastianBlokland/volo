@@ -102,6 +102,10 @@ macro(set_gcc_compile_options)
   # add_compile_options(-mfma) # Enable output of 'fused multiply-add' instructions.
   add_compile_options(-U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=0) # Disable fortification.
 
+  if(${VOLO_PLATFORM} STREQUAL "win32")
+    add_link_options(-municode) # Entry point with unicode support.
+  endif()
+
   if(NOT ${SIMD})
     message(STATUS "Disabling auto-vectorization")
     add_compile_options(-fno-tree-vectorize)
@@ -163,6 +167,7 @@ macro(set_clang_compile_options)
     add_compile_options(-Xclang -fdefault-calling-conv=vectorcall) # Use the 'vectorcall' call conv.
     add_compile_options(-Wno-microsoft-enum-forward-reference) # Forward declare enum as int.
     add_compile_options(-fms-compatibility-version=0)
+    add_link_options(--for-linker=/ENTRY:wmainCRTStartup) # Entry point with unicode support.
     add_link_options(--for-linker=/OPT:REF,ICF=2) # Remove functions and data that are never referenced.
     add_link_options(--for-linker=/GUARD:NO) # Disable 'Control Flow Guard' (CFG).
   endif()
@@ -234,6 +239,7 @@ macro(set_msvc_compile_options)
   set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded")
 
   # Linker options.
+  add_link_options(/ENTRY:wmainCRTStartup) # Entry point with unicode support.
   add_link_options(/INCREMENTAL:NO) # No incremental linking.
   add_link_options(/OPT:REF,ICF=2) # Remove functions and data that are never referenced.
   add_link_options(/GUARD:NO) # Disable 'Control Flow Guard' (CFG).
