@@ -643,7 +643,7 @@ static AssetManagerComp* app_init_assets(EcsWorld* world, const CliInvocation* i
   if (file_stat_path_sync(pathFsDefault).type == FileType_Directory) {
     return asset_manager_create_fs(world, flags | AssetManagerFlags_TrackChanges, pathFsDefault);
   }
-  log_e("No assets source found");
+  log_e("No asset source found");
   return null;
 }
 
