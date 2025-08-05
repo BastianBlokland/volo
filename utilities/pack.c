@@ -9,7 +9,6 @@
 #include "asset_terrain.h"
 #include "asset_weapon.h"
 #include "cli_app.h"
-#include "cli_help.h"
 #include "cli_parse.h"
 #include "cli_read.h"
 #include "cli_validate.h"
@@ -353,7 +352,7 @@ ecs_module_init(pack_module) {
   ecs_register_system(PackUpdateSys, ecs_view_id(PackGlobalView), ecs_view_id(PackAssetView));
 }
 
-static CliId g_optConfigPath, g_optAssetsPath, g_optOutputPath, g_optHelp;
+static CliId g_optConfigPath, g_optAssetsPath, g_optOutputPath;
 
 void app_ecs_configure(CliApp* app) {
   cli_app_register_desc(app, string_lit("Volo asset packer"));
@@ -368,17 +367,6 @@ void app_ecs_configure(CliApp* app) {
 
   g_optOutputPath = cli_register_flag(app, 'o', string_lit("output"), CliOptionFlags_Value);
   cli_register_desc(app, g_optOutputPath, string_lit("Output file path."));
-
-  g_optHelp = cli_register_flag(app, 'h', string_lit("help"), CliOptionFlags_Exclusive);
-  cli_register_desc(app, g_optHelp, string_lit("Display this help page."));
-}
-
-bool app_ecs_validate(const CliApp* app, const CliInvocation* invoc) {
-  if (cli_parse_provided(invoc, g_optHelp)) {
-    cli_help_write_file(app, g_fileStdErr);
-    return false;
-  }
-  return true;
 }
 
 void app_ecs_register(EcsDef* def, MAYBE_UNUSED const CliInvocation* invoc) {

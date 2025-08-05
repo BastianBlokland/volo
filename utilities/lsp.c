@@ -1,6 +1,5 @@
 #include "app_cli.h"
 #include "cli_app.h"
-#include "cli_help.h"
 #include "cli_parse.h"
 #include "cli_validate.h"
 #include "core_alloc.h"
@@ -2055,7 +2054,7 @@ Ret:
   return out;
 }
 
-static CliId g_optStdio, g_optBinders, g_optHelp;
+static CliId g_optStdio, g_optBinders;
 
 void app_cli_configure(CliApp* app) {
   cli_app_register_desc(app, string_lit("Volo Script Language Server"));
@@ -2068,19 +2067,11 @@ void app_cli_configure(CliApp* app) {
                                        "\nFirst matching binder is used per doc.");
   cli_register_desc(app, g_optBinders, binderDesc);
   cli_register_validator(app, g_optBinders, cli_validate_file_regular);
-
-  g_optHelp = cli_register_flag(app, 'h', string_lit("help"), CliOptionFlags_Exclusive);
-  cli_register_desc(app, g_optHelp, string_lit("Display this help page."));
 }
 
-i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
+i32 app_cli_run(MAYBE_UNUSED const CliApp* app, const CliInvocation* invoc) {
   i32           exitCode                              = 0;
   ScriptBinder* scriptBinders[lsp_script_binders_max] = {0};
-
-  if (cli_parse_provided(invoc, g_optHelp)) {
-    cli_help_write_file(app, g_fileStdOut);
-    goto Exit;
-  }
 
   const CliParseValues binderArgs = cli_parse_values(invoc, g_optBinders);
   if (binderArgs.count > lsp_script_binders_max) {

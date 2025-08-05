@@ -1,6 +1,5 @@
 #include "app_cli.h"
 #include "cli_app.h"
-#include "cli_help.h"
 #include "cli_parse.h"
 #include "cli_read.h"
 #include "cli_validate.h"
@@ -406,7 +405,7 @@ static BcuResult bcu_run(const BcuMode mode, const BcuImage* input, const String
   return result;
 }
 
-static CliId g_optMode, g_optInput, g_optOutput, g_optHelp;
+static CliId g_optMode, g_optInput, g_optOutput;
 
 void app_cli_configure(CliApp* app) {
   cli_app_register_desc(app, string_lit("Texture block compression utility."));
@@ -421,16 +420,9 @@ void app_cli_configure(CliApp* app) {
 
   g_optOutput = cli_register_flag(app, 'o', string_lit("output"), CliOptionFlags_Required);
   cli_register_desc(app, g_optOutput, string_lit("Output image path."));
-
-  g_optHelp = cli_register_flag(app, 'h', string_lit("help"), CliOptionFlags_Exclusive);
-  cli_register_desc(app, g_optHelp, string_lit("Display this help page."));
 }
 
-i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
-  if (cli_parse_provided(invoc, g_optHelp)) {
-    cli_help_write_file(app, g_fileStdOut);
-    return 0;
-  }
+i32 app_cli_run(MAYBE_UNUSED const CliApp* app, const CliInvocation* invoc) {
 
   log_add_sink(g_logger, log_sink_pretty_default(g_allocHeap, ~LogMask_Debug));
   log_add_sink(g_logger, log_sink_json_default(g_allocHeap, LogMask_All));

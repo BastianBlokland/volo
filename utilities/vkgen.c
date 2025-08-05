@@ -1,6 +1,5 @@
 #include "app_cli.h"
 #include "cli_app.h"
-#include "cli_help.h"
 #include "cli_parse.h"
 #include "cli_read.h"
 #include "core_alloc.h"
@@ -1576,7 +1575,7 @@ static const String g_schemaDefaultHost = string_static("raw.githubusercontent.c
 static const String g_schemaDefaultUri  = string_static("/KhronosGroup/Vulkan-Docs/refs/tags/v1.4.308/xml/vk.xml");
 // clang-format on
 
-static CliId g_optVerbose, g_optOutputPath, g_optSchemaHost, g_optSchemaUri, g_optHelp;
+static CliId g_optVerbose, g_optOutputPath, g_optSchemaHost, g_optSchemaUri;
 
 void app_cli_configure(CliApp* app) {
   cli_app_register_desc(app, g_appDesc);
@@ -1594,16 +1593,10 @@ void app_cli_configure(CliApp* app) {
 
   g_optSchemaUri = cli_register_flag(app, '\0', string_lit("schema-uri"), CliOptionFlags_Value);
   cli_register_desc(app, g_optSchemaUri, string_lit("Uri of the Vulkan schema."));
-
-  g_optHelp = cli_register_flag(app, 'h', string_lit("help"), CliOptionFlags_Exclusive);
-  cli_register_desc(app, g_optHelp, string_lit("Display this help page."));
 }
 
-i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
-  if (cli_parse_provided(invoc, g_optHelp)) {
-    cli_help_write_file(app, g_fileStdOut);
-    return 0;
-  }
+i32 app_cli_run(MAYBE_UNUSED const CliApp* app, const CliInvocation* invoc) {
+
   const String outputPath = cli_read_string(invoc, g_optOutputPath, string_empty);
   if (string_is_empty(outputPath)) {
     file_write_sync(g_fileStdErr, string_lit("Output path missing.\n"));

@@ -1,6 +1,7 @@
 #include "app_cli.h"
 #include "cli_app.h"
 #include "cli_failure.h"
+#include "cli_help.h"
 #include "cli_parse.h"
 #include "core_alloc.h"
 #include "core_diag_except.h"
@@ -62,6 +63,9 @@ int SYS_DECL main(const int argc, const char** argv) {
       cli_register_flag(app, '\0', string_lit("debug-symbols"), CliOptionFlags_Exclusive);
   cli_register_desc(app, optDbgSyms, string_lit("Dump a listing of all debug symbols."));
 
+  const CliId optHelp = cli_register_flag(app, 'h', string_lit("help"), CliOptionFlags_Exclusive);
+  cli_register_desc(app, optHelp, string_lit("Display this help page."));
+
   CliInvocation* invoc = app_cli_parse(app, argc, argv);
   if (cli_parse_result(invoc) == CliParseResult_Fail) {
     cli_failure_write_file(invoc, g_fileStdErr);
@@ -73,6 +77,10 @@ int SYS_DECL main(const int argc, const char** argv) {
       file_write_sync(g_fileStdErr, string_lit("No debug symbols found.\n"));
       exitCode = 1;
     }
+    goto exit;
+  }
+  if (cli_parse_provided(invoc, optHelp)) {
+    cli_help_write_file(app, g_fileStdOut);
     goto exit;
   }
 

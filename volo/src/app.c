@@ -2,7 +2,6 @@
 #include "asset_manager.h"
 #include "asset_register.h"
 #include "cli_app.h"
-#include "cli_help.h"
 #include "cli_parse.h"
 #include "cli_read.h"
 #include "cli_validate.h"
@@ -582,7 +581,7 @@ ecs_module_init(game_app_module) {
       ecs_view_id(DevLogViewerView));
 }
 
-static CliId g_optAssets, g_optWindow, g_optWidth, g_optHeight, g_optHelp;
+static CliId g_optAssets, g_optWindow, g_optWidth, g_optHeight;
 
 void app_ecs_configure(CliApp* app) {
   cli_app_register_desc(app, string_lit("Volo RTS Demo"));
@@ -601,17 +600,6 @@ void app_ecs_configure(CliApp* app) {
   g_optHeight = cli_register_flag(app, '\0', string_lit("height"), CliOptionFlags_Value);
   cli_register_desc(app, g_optHeight, string_lit("Game window height in pixels."));
   cli_register_validator(app, g_optHeight, cli_validate_u16);
-
-  g_optHelp = cli_register_flag(app, 'h', string_lit("help"), CliOptionFlags_Exclusive);
-  cli_register_desc(app, g_optHelp, string_lit("Display this help page."));
-}
-
-bool app_ecs_validate(const CliApp* app, const CliInvocation* invoc) {
-  if (cli_parse_provided(invoc, g_optHelp)) {
-    cli_help_write_file(app, g_fileStdErr);
-    return false;
-  }
-  return true;
 }
 
 void app_ecs_register(EcsDef* def, MAYBE_UNUSED const CliInvocation* invoc) {
@@ -655,7 +643,7 @@ static AssetManagerComp* app_init_assets(EcsWorld* world, const CliInvocation* i
   if (file_stat_path_sync(pathFsDefault).type == FileType_Directory) {
     return asset_manager_create_fs(world, flags | AssetManagerFlags_TrackChanges, pathFsDefault);
   }
-  log_e("No assets source found");
+  log_e("No asset source found");
   return null;
 }
 
