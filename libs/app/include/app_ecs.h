@@ -6,6 +6,12 @@
  * Apis to be implemented by ecs applications.
  */
 
+typedef enum {
+  AppEcsStatus_Running,
+  AppEcsStatus_Finished,
+  AppEcsStatus_Failed,
+} AppEcsStatus;
+
 /**
  * Configure the command-line application.
  * Use the various 'cli_register_*' apis from the cli_app.h header.
@@ -20,21 +26,15 @@ void app_ecs_register(EcsDef*, const CliInvocation*);
 /**
  * Initialize the Ecs world.
  * Can be used to add inital entities to the world based on the passed command-line options.
+ * NOTE: Return true if initialization succeeded.
  */
-void app_ecs_init(EcsWorld*, const CliInvocation*);
+bool app_ecs_init(EcsWorld*, const CliInvocation*);
 
 /**
- * Query application state.
+ * Query application status.
  * NOTE: Runs outside of the Ecs update loop so any view can be used to observe the state.
  */
-bool app_ecs_query_quit(EcsWorld*);
-
-/**
- * Query application exit-code.
- * Called once at application exit.
- * NOTE: Runs outside of the Ecs update loop so any view can be used to observe the state.
- */
-i32 app_ecs_exit_code(EcsWorld*);
+AppEcsStatus app_ecs_status(EcsWorld*);
 
 /**
  * Set application state.

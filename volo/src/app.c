@@ -647,12 +647,12 @@ static AssetManagerComp* app_init_assets(EcsWorld* world, const CliInvocation* i
   return null;
 }
 
-void app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
+bool app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
   dev_log_tracker_init(world, g_logger);
 
   AssetManagerComp* assets = app_init_assets(world, invoc);
   if (UNLIKELY(!assets)) {
-    return;
+    return false; // Initialization failed.
   }
   GamePrefsComp* prefs      = prefs_init(world);
   const bool     fullscreen = prefs->fullscreen && !cli_parse_provided(invoc, g_optWindow);
@@ -680,15 +680,15 @@ void app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
   scene_prefab_init(world, string_lit("global/game.prefabs"));
   scene_weapon_init(world, string_lit("global/game.weapons"));
   scene_product_init(world, string_lit("global/game.products"));
+
+  return true; // Initialization succeeded.
 }
 
-bool app_ecs_query_quit(EcsWorld* world) { return !ecs_utils_any(world, MainWindowView); }
-
-i32 app_ecs_exit_code(EcsWorld* world) {
-  if (!ecs_world_has_t(world, ecs_world_global(world), AppComp)) {
-    return 1; // Initialization failed.
+AppEcsStatus app_ecs_status(EcsWorld* world) {
+  if (!ecs_utils_any(world, MainWindowView)) {
+    return AppEcsStatus_Finished;
   }
-  return 0;
+  return AppEcsStatus_Running;
 }
 
 void app_ecs_set_frame(EcsWorld* world, const u64 frameIdx) {
