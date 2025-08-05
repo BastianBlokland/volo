@@ -420,20 +420,12 @@ bool app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
   return true; // Initialization succeeded.
 }
 
-bool app_ecs_query_quit(EcsWorld* world) {
+AppEcsStatus app_ecs_status(EcsWorld* world) {
   PackComp* packComp = ecs_utils_write_first_t(world, PackGlobalView, PackComp);
-  return !packComp || packComp->state >= PackState_Interupted;
-}
-
-i32 app_ecs_exit_code(EcsWorld* world) {
-  PackComp* packComp = ecs_utils_write_first_t(world, PackGlobalView, PackComp);
-  if (!packComp) {
-    return 1;
+  if (!packComp || packComp->state == PackState_Interupted || packComp->state == PackState_Failed) {
+    return AppEcsStatus_Failed;
   }
-  if (packComp->state == PackState_Interupted || packComp->state == PackState_Failed) {
-    return 2;
-  }
-  return 0;
+  return packComp->state == PackState_Finished ? AppEcsStatus_Finished : AppEcsStatus_Running;
 }
 
 void app_ecs_set_frame(EcsWorld* world, const u64 frameIdx) {

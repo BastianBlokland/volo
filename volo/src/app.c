@@ -684,13 +684,11 @@ bool app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
   return true; // Initialization succeeded.
 }
 
-bool app_ecs_query_quit(EcsWorld* world) { return !ecs_utils_any(world, MainWindowView); }
-
-i32 app_ecs_exit_code(EcsWorld* world) {
-  if (!ecs_world_has_t(world, ecs_world_global(world), AppComp)) {
-    return 1; // Initialization failed.
+AppEcsStatus app_ecs_status(EcsWorld* world) {
+  if (!ecs_utils_any(world, MainWindowView)) {
+    return AppEcsStatus_Finished;
   }
-  return 0;
+  return AppEcsStatus_Running;
 }
 
 void app_ecs_set_frame(EcsWorld* world, const u64 frameIdx) {
