@@ -82,7 +82,7 @@ bool process_poll(Process*);
 /**
  * Retrieve a file handle to process pipes.
  * NOTE: Returns null if the process failed to start.
- * Pre-condition:  he process was started with the corresponding pipe flag.
+ * Pre-condition: The process was started with the corresponding pipe flag.
  */
 File* process_pipe_in(Process*);
 File* process_pipe_out(Process*);
