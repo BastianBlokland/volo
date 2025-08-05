@@ -1,6 +1,5 @@
 #include "app_cli.h"
 #include "cli_app.h"
-#include "cli_help.h"
 #include "cli_parse.h"
 #include "cli_validate.h"
 #include "core_alloc.h"
@@ -687,7 +686,6 @@ static CliId g_optFile;
 static CliId g_optBinder;
 static CliId g_optNoEval, g_optCompile, g_optOptimize, g_optWatch;
 static CliId g_optTokens, g_optAst, g_optStats, g_optProgram, g_optSyms;
-static CliId g_optHelp;
 
 void app_cli_configure(CliApp* app) {
   static const String g_desc = string_static("Execute a script from a file or stdin "
@@ -728,19 +726,11 @@ void app_cli_configure(CliApp* app) {
 
   g_optSyms = cli_register_flag(app, 'y', string_lit("syms"), CliOptionFlags_None);
   cli_register_desc(app, g_optSyms, string_lit("Output script symbols."));
-
-  g_optHelp = cli_register_flag(app, 'h', string_lit("help"), CliOptionFlags_Exclusive);
-  cli_register_desc(app, g_optHelp, string_lit("Display this help page."));
 }
 
 i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   i32           exitCode = 0;
   ScriptBinder* binder   = null;
-
-  if (cli_parse_provided(invoc, g_optHelp)) {
-    cli_help_write_file(app, g_fileStdOut);
-    goto Exit;
-  }
 
   ReplFlags flags = ReplFlags_None;
   if (cli_parse_provided(invoc, g_optNoEval)) {

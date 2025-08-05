@@ -13,12 +13,6 @@
 void app_ecs_configure(CliApp*);
 
 /**
- * Validate the provided command-line options.
- * If 'false' is returned the application will not be started.
- */
-bool app_ecs_validate(const CliApp*, const CliInvocation*);
-
-/**
  * Register Ecs modules, potentially based on the passed command-line options.
  */
 void app_ecs_register(EcsDef*, const CliInvocation*);

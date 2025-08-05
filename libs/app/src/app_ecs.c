@@ -43,12 +43,6 @@ void app_cli_configure(CliApp* app) {
 i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   trace_init();
 
-  i32 exitCode = 0;
-  if (!app_ecs_validate(app, invoc)) {
-    exitCode = 1;
-    goto Exit;
-  }
-
   log_add_sink(g_logger, log_sink_pretty_default(g_allocHeap, LogMask_All));
   log_add_sink(g_logger, log_sink_json_default(g_allocHeap, LogMask_All));
 
@@ -101,7 +95,7 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
     ++frameIdx;
   } while (!app_ecs_query_quit(world));
 
-  exitCode = app_ecs_exit_code(world);
+  const i32 exitCode = app_ecs_exit_code(world);
 
   ecs_runner_destroy(runner);
   ecs_world_destroy(world);
@@ -109,7 +103,6 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
 
   log_i("Application shutdown", log_param("exit-code", fmt_int(exitCode)));
 
-Exit:
   jobs_teardown();
   trace_teardown();
   return exitCode;

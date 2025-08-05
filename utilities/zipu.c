@@ -1,6 +1,5 @@
 #include "app_cli.h"
 #include "cli_app.h"
-#include "cli_help.h"
 #include "cli_parse.h"
 #include "cli_validate.h"
 #include "core_alloc.h"
@@ -148,7 +147,7 @@ Ret:
   return res;
 }
 
-static CliId g_optFiles, g_optHelp;
+static CliId g_optFiles;
 
 void app_cli_configure(CliApp* app) {
   cli_app_register_desc(app, string_lit("Zip Utility."));
@@ -156,16 +155,9 @@ void app_cli_configure(CliApp* app) {
   g_optFiles = cli_register_arg(app, string_lit("files"), CliOptionFlags_RequiredMultiValue);
   cli_register_desc(app, g_optFiles, string_lit("GZip (.gz) / ZLib (.zz) files to decompress."));
   cli_register_validator(app, g_optFiles, cli_validate_file_regular);
-
-  g_optHelp = cli_register_flag(app, 'h', string_lit("help"), CliOptionFlags_Exclusive);
-  cli_register_desc(app, g_optHelp, string_lit("Display this help page."));
 }
 
 i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
-  if (cli_parse_provided(invoc, g_optHelp)) {
-    cli_help_write_file(app, g_fileStdOut);
-    return 0;
-  }
 
   log_add_sink(g_logger, log_sink_pretty_default(g_allocHeap, ~LogMask_Debug));
   log_add_sink(g_logger, log_sink_json_default(g_allocHeap, LogMask_All));

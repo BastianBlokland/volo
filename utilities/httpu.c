@@ -1,6 +1,5 @@
 #include "app_cli.h"
 #include "cli_app.h"
-#include "cli_help.h"
 #include "cli_parse.h"
 #include "cli_read.h"
 #include "core_alloc.h"
@@ -157,7 +156,6 @@ Done:
 
 static CliId g_optHost, g_optUri, g_optOutput, g_optProtocol, g_optMethod, g_optEtag;
 static CliId g_optUser, g_optPassword;
-static CliId g_optHelp;
 
 void app_cli_configure(CliApp* app) {
   cli_app_register_desc(app, string_lit("Http Utility."));
@@ -187,17 +185,9 @@ void app_cli_configure(CliApp* app) {
 
   g_optPassword = cli_register_flag(app, 'P', string_lit("password"), CliOptionFlags_Value);
   cli_register_desc(app, g_optPassword, string_lit("Http basic auth password."));
-
-  g_optHelp = cli_register_flag(app, 'h', string_lit("help"), CliOptionFlags_Exclusive);
-  cli_register_desc(app, g_optHelp, string_lit("Display this help page."));
 }
 
 i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
-  if (cli_parse_provided(invoc, g_optHelp)) {
-    cli_help_write_file(app, g_fileStdOut);
-    return 0;
-  }
-
   if (tty_isatty(g_fileStdOut)) {
     log_add_sink(g_logger, log_sink_pretty_default(g_allocHeap, LogMask_All));
   }

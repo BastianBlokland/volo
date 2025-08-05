@@ -3,7 +3,6 @@
 #include "check_def.h"
 #include "check_runner.h"
 #include "cli_app.h"
-#include "cli_help.h"
 #include "cli_parse.h"
 #include "cli_read.h"
 #include "core_alloc.h"
@@ -16,7 +15,7 @@
 #include "trace_sink_store.h"
 #include "trace_tracer.h"
 
-static CliId g_optOutputPassingTests, g_optJobWorkers, g_optHelp;
+static CliId g_optOutputPassingTests, g_optJobWorkers;
 
 static CheckRunFlags app_check_runflags(const CliInvocation* invoc) {
   CheckRunFlags flags = CheckRunFlags_None;
@@ -32,9 +31,6 @@ void app_cli_configure(CliApp* app) {
 
   g_optJobWorkers = cli_register_flag(app, '\0', string_lit("workers"), CliOptionFlags_Value);
   cli_register_desc(app, g_optJobWorkers, string_lit("Amount of job workers."));
-
-  g_optHelp = cli_register_flag(app, 'h', string_lit("help"), CliOptionFlags_Exclusive);
-  cli_register_desc(app, g_optHelp, string_lit("Display this help page."));
 }
 
 i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
@@ -47,11 +43,6 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   TraceSink* traceStore = trace_sink_store(g_allocHeap);
   trace_add_sink(g_tracer, traceStore);
 #endif
-
-  if (cli_parse_provided(invoc, g_optHelp)) {
-    cli_help_write_file(app, g_fileStdOut);
-    goto Exit;
-  }
 
   const JobsConfig jobsConfig = {
       .workerCount = (u16)cli_read_u64(invoc, g_optJobWorkers, 0),
@@ -72,7 +63,6 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   app_check_teardown();
   check_destroy(check);
 
-Exit:
   jobs_teardown();
   trace_teardown();
   return exitCode;

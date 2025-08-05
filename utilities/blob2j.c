@@ -1,7 +1,6 @@
 #include "app_cli.h"
 #include "asset_data.h"
 #include "cli_app.h"
-#include "cli_help.h"
 #include "cli_parse.h"
 #include "cli_read.h"
 #include "cli_validate.h"
@@ -111,7 +110,7 @@ Ret:
   return exitCode;
 }
 
-static CliId g_optPath, g_optOffset, g_optHelp;
+static CliId g_optPath, g_optOffset;
 
 void app_cli_configure(CliApp* app) {
   cli_app_register_desc(app, string_lit("Utility to convert Volo binary blobs to json."));
@@ -122,18 +121,10 @@ void app_cli_configure(CliApp* app) {
 
   g_optOffset = cli_register_flag(app, 'o', string_lit("offset"), CliOptionFlags_Value);
   cli_register_desc(app, g_optOffset, string_lit("Offset to read at."));
-
-  g_optHelp = cli_register_flag(app, 'h', string_lit("help"), CliOptionFlags_Exclusive);
-  cli_register_desc(app, g_optHelp, string_lit("Display this help page."));
 }
 
 i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   asset_data_init();
-
-  if (cli_parse_provided(invoc, g_optHelp)) {
-    cli_help_write_file(app, g_fileStdOut);
-    return 0;
-  }
 
   const Blob2jConfig cfg = {
       .offset = cli_read_u64(invoc, g_optOffset, 0),
