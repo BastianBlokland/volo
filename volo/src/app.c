@@ -647,12 +647,12 @@ static AssetManagerComp* app_init_assets(EcsWorld* world, const CliInvocation* i
   return null;
 }
 
-void app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
+bool app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
   dev_log_tracker_init(world, g_logger);
 
   AssetManagerComp* assets = app_init_assets(world, invoc);
   if (UNLIKELY(!assets)) {
-    return;
+    return false; // Initialization failed.
   }
   GamePrefsComp* prefs      = prefs_init(world);
   const bool     fullscreen = prefs->fullscreen && !cli_parse_provided(invoc, g_optWindow);
@@ -680,6 +680,8 @@ void app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
   scene_prefab_init(world, string_lit("global/game.prefabs"));
   scene_weapon_init(world, string_lit("global/game.weapons"));
   scene_product_init(world, string_lit("global/game.products"));
+
+  return true; // Initialization succeeded.
 }
 
 bool app_ecs_query_quit(EcsWorld* world) { return !ecs_utils_any(world, MainWindowView); }

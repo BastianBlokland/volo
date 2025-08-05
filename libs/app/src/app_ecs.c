@@ -43,6 +43,8 @@ void app_cli_configure(CliApp* app) {
 i32 app_cli_run(MAYBE_UNUSED const CliApp* app, const CliInvocation* invoc) {
   trace_init();
 
+  i32 exitCode = 0;
+
   log_add_sink(g_logger, log_sink_pretty_default(g_allocHeap, LogMask_All));
   log_add_sink(g_logger, log_sink_json_default(g_allocHeap, LogMask_All));
 
@@ -79,7 +81,10 @@ i32 app_cli_run(MAYBE_UNUSED const CliApp* app, const CliInvocation* invoc) {
 
   EcsWorld*  world  = ecs_world_create(g_allocHeap, def);
   EcsRunner* runner = ecs_runner_create(g_allocHeap, world, runnerFlags);
-  app_ecs_init(world, invoc);
+  if (!app_ecs_init(world, invoc)) {
+    exitCode = 1;
+    goto Shutdown;
+  }
 
   ecs_world_flush(world); // Flush any entity / component additions made during the init.
 
@@ -95,8 +100,9 @@ i32 app_cli_run(MAYBE_UNUSED const CliApp* app, const CliInvocation* invoc) {
     ++frameIdx;
   } while (!app_ecs_query_quit(world));
 
-  const i32 exitCode = app_ecs_exit_code(world);
+  exitCode = app_ecs_exit_code(world);
 
+Shutdown:
   ecs_runner_destroy(runner);
   ecs_world_destroy(world);
   ecs_def_destroy(def);

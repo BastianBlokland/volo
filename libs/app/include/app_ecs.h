@@ -20,8 +20,9 @@ void app_ecs_register(EcsDef*, const CliInvocation*);
 /**
  * Initialize the Ecs world.
  * Can be used to add inital entities to the world based on the passed command-line options.
+ * NOTE: Return true if initialization succeeded.
  */
-void app_ecs_init(EcsWorld*, const CliInvocation*);
+bool app_ecs_init(EcsWorld*, const CliInvocation*);
 
 /**
  * Query application state.

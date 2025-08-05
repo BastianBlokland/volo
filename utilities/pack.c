@@ -377,21 +377,21 @@ void app_ecs_register(EcsDef* def, MAYBE_UNUSED const CliInvocation* invoc) {
   ecs_register_module(def, pack_module);
 }
 
-void app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
+bool app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
   const String assetPath = cli_read_string(invoc, g_optAssetsPath, string_lit("assets"));
   if (file_stat_path_sync(assetPath).type != FileType_Directory) {
     log_e("Asset directory not found", log_param("path", fmt_path(assetPath)));
-    return;
+    return false;
   }
   const String outputPath = cli_read_string(invoc, g_optOutputPath, string_lit("assets.blob"));
   if (string_is_empty(outputPath)) {
     log_e("Invalid output path", log_param("path", fmt_path(outputPath)));
-    return;
+    return false;
   }
   const String cfgPath = cli_read_string(invoc, g_optConfigPath, string_empty);
   PackConfig   cfg;
   if (!pack_config_load(cfgPath, &cfg)) {
-    return;
+    return false; // Invalid config.
   }
 
   PackComp* packComp = ecs_world_add_t(
@@ -416,6 +416,8 @@ void app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
       log_w("No assets found for root", log_param("root", fmt_text(*root)));
     }
   }
+
+  return true; // Initialization succeeded.
 }
 
 bool app_ecs_query_quit(EcsWorld* world) {
