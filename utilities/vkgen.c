@@ -1595,7 +1595,7 @@ void app_cli_configure(CliApp* app) {
   cli_register_desc(app, g_optSchemaUri, string_lit("Uri of the Vulkan schema."));
 }
 
-i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
+i32 app_cli_run(MAYBE_UNUSED const CliApp* app, const CliInvocation* invoc) {
 
   const String outputPath = cli_read_string(invoc, g_optOutputPath, string_empty);
   if (string_is_empty(outputPath)) {

@@ -486,7 +486,7 @@ void app_cli_configure(CliApp* app) {
   g_optForce   = cli_register_flag(app, 'f', string_lit("force"), CliOptionFlags_None);
 }
 
-i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
+i32 app_cli_run(MAYBE_UNUSED const CliApp* app, const CliInvocation* invoc) {
 
   const LogMask logMask = cli_parse_provided(invoc, g_optVerbose) ? LogMask_All : ~LogMask_Debug;
   log_add_sink(g_logger, log_sink_pretty_default(g_allocHeap, logMask));

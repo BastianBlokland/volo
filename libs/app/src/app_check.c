@@ -33,7 +33,7 @@ void app_cli_configure(CliApp* app) {
   cli_register_desc(app, g_optJobWorkers, string_lit("Amount of job workers."));
 }
 
-i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
+i32 app_cli_run(MAYBE_UNUSED const CliApp* app, const CliInvocation* invoc) {
   trace_init();
 
   i32 exitCode = 0;

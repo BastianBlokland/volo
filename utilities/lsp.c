@@ -2069,7 +2069,7 @@ void app_cli_configure(CliApp* app) {
   cli_register_validator(app, g_optBinders, cli_validate_file_regular);
 }
 
-i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
+i32 app_cli_run(MAYBE_UNUSED const CliApp* app, const CliInvocation* invoc) {
   i32           exitCode                              = 0;
   ScriptBinder* scriptBinders[lsp_script_binders_max] = {0};
 

@@ -40,7 +40,7 @@ void app_cli_configure(CliApp* app) {
 #endif
 }
 
-i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
+i32 app_cli_run(MAYBE_UNUSED const CliApp* app, const CliInvocation* invoc) {
   trace_init();
 
   log_add_sink(g_logger, log_sink_pretty_default(g_allocHeap, LogMask_All));
