@@ -91,6 +91,43 @@ static FileType file_type_from_attributes(const DWORD attributes) {
   return FileType_Regular;
 }
 
+bool file_std_exclusive(void) {
+  if (g_fileStdIn && GetFileType(g_fileStdIn->handle) != FILE_TYPE_CHAR) {
+    return false; // Attached to a pipe. TODO: Detect if the parent has closed their end.
+  }
+  if (g_fileStdOut && GetFileType(g_fileStdOut->handle) != FILE_TYPE_CHAR) {
+    return false; // Attached to a pipe. TODO: Detect if the parent has closed their end.
+  }
+  if (g_fileStdErr && GetFileType(g_fileStdErr->handle) != FILE_TYPE_CHAR) {
+    return false; // Attached to a pipe. TODO: Detect if the parent has closed their end.
+  }
+  DWORD       pids[2];
+  const DWORD numPids = GetConsoleProcessList(pids, array_elems(pids));
+  if (numPids > 1) {
+    return false; // Multiple processes are attached to our console.
+  }
+  return true; // No other processes are reading our std handles.
+}
+
+FileResult file_std_close(void) {
+  FileResult result = FileResult_Success;
+  if (g_fileStdIn) {
+    CloseHandle(g_fileStdIn->handle);
+  }
+  if (g_fileStdOut) {
+    CloseHandle(g_fileStdOut->handle);
+  }
+  if (g_fileStdErr) {
+    CloseHandle(g_fileStdErr->handle);
+  }
+  g_fileStdIn = g_fileStdOut = g_fileStdErr = null;
+
+  if (!FreeConsole()) {
+    diag_crash_msg("FreeConsole() failed");
+  }
+  return result;
+}
+
 FileResult
 file_pal_create(Allocator* alloc, String path, FileMode mode, FileAccessFlags access, File** file) {
   // Convert the path to a null-terminated wide-char string.
