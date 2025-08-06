@@ -687,7 +687,7 @@ static CliId g_optBinder;
 static CliId g_optNoEval, g_optCompile, g_optOptimize, g_optWatch;
 static CliId g_optTokens, g_optAst, g_optStats, g_optProgram, g_optSyms;
 
-void app_cli_configure(CliApp* app) {
+AppType app_cli_configure(CliApp* app) {
   static const String g_desc = string_static("Execute a script from a file or stdin "
                                              "(interactive when stdin is a tty).");
   cli_app_register_desc(app, g_desc);
@@ -726,6 +726,8 @@ void app_cli_configure(CliApp* app) {
 
   g_optSyms = cli_register_flag(app, 'y', string_lit("syms"), CliOptionFlags_None);
   cli_register_desc(app, g_optSyms, string_lit("Output script symbols."));
+
+  return AppType_Console;
 }
 
 i32 app_cli_run(MAYBE_UNUSED const CliApp* app, const CliInvocation* invoc) {

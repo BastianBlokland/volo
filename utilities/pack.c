@@ -354,7 +354,7 @@ ecs_module_init(pack_module) {
 
 static CliId g_optConfigPath, g_optAssetsPath, g_optOutputPath;
 
-void app_ecs_configure(CliApp* app) {
+AppType app_ecs_configure(CliApp* app) {
   cli_app_register_desc(app, string_lit("Volo asset packer"));
 
   g_optConfigPath = cli_register_arg(app, string_lit("config"), CliOptionFlags_Required);
@@ -367,6 +367,8 @@ void app_ecs_configure(CliApp* app) {
 
   g_optOutputPath = cli_register_flag(app, 'o', string_lit("output"), CliOptionFlags_Value);
   cli_register_desc(app, g_optOutputPath, string_lit("Output file path."));
+
+  return AppType_Console;
 }
 
 void app_ecs_register(EcsDef* def, MAYBE_UNUSED const CliInvocation* invoc) {

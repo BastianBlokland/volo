@@ -102,11 +102,13 @@ static bool schema_write(const SchemaConfig* config, const String outDir) {
 
 static CliId g_optDir;
 
-void app_cli_configure(CliApp* app) {
+AppType app_cli_configure(CliApp* app) {
   cli_app_register_desc(app, string_lit("Utility to generate schema files."));
 
   g_optDir = cli_register_arg(app, string_lit("dir"), CliOptionFlags_Required);
   cli_register_desc(app, g_optDir, string_lit("Output directory."));
+
+  return AppType_Console;
 }
 
 i32 app_cli_run(MAYBE_UNUSED const CliApp* app, const CliInvocation* invoc) {

@@ -149,12 +149,14 @@ Ret:
 
 static CliId g_optFiles;
 
-void app_cli_configure(CliApp* app) {
+AppType app_cli_configure(CliApp* app) {
   cli_app_register_desc(app, string_lit("Zip Utility."));
 
   g_optFiles = cli_register_arg(app, string_lit("files"), CliOptionFlags_RequiredMultiValue);
   cli_register_desc(app, g_optFiles, string_lit("GZip (.gz) / ZLib (.zz) files to decompress."));
   cli_register_validator(app, g_optFiles, cli_validate_file_regular);
+
+  return AppType_Console;
 }
 
 i32 app_cli_run(MAYBE_UNUSED const CliApp* app, const CliInvocation* invoc) {

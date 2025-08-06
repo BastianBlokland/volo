@@ -1577,7 +1577,7 @@ static const String g_schemaDefaultUri  = string_static("/KhronosGroup/Vulkan-Do
 
 static CliId g_optVerbose, g_optOutputPath, g_optSchemaHost, g_optSchemaUri;
 
-void app_cli_configure(CliApp* app) {
+AppType app_cli_configure(CliApp* app) {
   cli_app_register_desc(app, g_appDesc);
 
   g_optVerbose = cli_register_flag(app, 'v', string_lit("verbose"), CliOptionFlags_None);
@@ -1593,6 +1593,8 @@ void app_cli_configure(CliApp* app) {
 
   g_optSchemaUri = cli_register_flag(app, '\0', string_lit("schema-uri"), CliOptionFlags_Value);
   cli_register_desc(app, g_optSchemaUri, string_lit("Uri of the Vulkan schema."));
+
+  return AppType_Console;
 }
 
 i32 app_cli_run(MAYBE_UNUSED const CliApp* app, const CliInvocation* invoc) {

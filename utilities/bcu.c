@@ -407,7 +407,7 @@ static BcuResult bcu_run(const BcuMode mode, const BcuImage* input, const String
 
 static CliId g_optMode, g_optInput, g_optOutput;
 
-void app_cli_configure(CliApp* app) {
+AppType app_cli_configure(CliApp* app) {
   cli_app_register_desc(app, string_lit("Texture block compression utility."));
 
   g_optMode = cli_register_arg(app, string_lit("mode"), CliOptionFlags_None);
@@ -420,6 +420,8 @@ void app_cli_configure(CliApp* app) {
 
   g_optOutput = cli_register_flag(app, 'o', string_lit("output"), CliOptionFlags_Required);
   cli_register_desc(app, g_optOutput, string_lit("Output image path."));
+
+  return AppType_Console;
 }
 
 i32 app_cli_run(MAYBE_UNUSED const CliApp* app, const CliInvocation* invoc) {

@@ -56,8 +56,9 @@ int SYS_DECL main(const int argc, const char** argv) {
 
   int exitCode = 0;
 
-  CliApp* app = cli_app_create(g_allocHeap);
-  app_cli_configure(app);
+  CliApp*       app     = cli_app_create(g_allocHeap);
+  const AppType appType = app_cli_configure(app);
+  (void)appType;
 
   const CliId optDbgSyms =
       cli_register_flag(app, '\0', string_lit("debug-symbols"), CliOptionFlags_Exclusive);

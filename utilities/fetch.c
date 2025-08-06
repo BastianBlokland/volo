@@ -475,7 +475,7 @@ static bool fetch_is_complete(const FetchConfig* cfg, FetchRegistry* reg, const 
 
 static CliId g_optConfigPath, g_optVerbose, g_optForce;
 
-void app_cli_configure(CliApp* app) {
+AppType app_cli_configure(CliApp* app) {
   cli_app_register_desc(app, string_lit("Fetch utility."));
 
   g_optConfigPath = cli_register_arg(app, string_lit("config"), CliOptionFlags_Required);
@@ -484,6 +484,8 @@ void app_cli_configure(CliApp* app) {
 
   g_optVerbose = cli_register_flag(app, 'v', string_lit("verbose"), CliOptionFlags_None);
   g_optForce   = cli_register_flag(app, 'f', string_lit("force"), CliOptionFlags_None);
+
+  return AppType_Console;
 }
 
 i32 app_cli_run(MAYBE_UNUSED const CliApp* app, const CliInvocation* invoc) {

@@ -1,4 +1,5 @@
 #pragma once
+#include "app_type.h"
 #include "cli.h"
 
 /**
@@ -9,7 +10,7 @@
  * Configure the CommandLineInterface application.
  * Use the various 'cli_register_*' apis from the cli_app.h header.
  */
-void app_cli_configure(CliApp*);
+AppType app_cli_configure(CliApp*);
 
 /**
  * Run the application logic.

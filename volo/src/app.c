@@ -583,7 +583,7 @@ ecs_module_init(game_app_module) {
 
 static CliId g_optAssets, g_optWindow, g_optWidth, g_optHeight;
 
-void app_ecs_configure(CliApp* app) {
+AppType app_ecs_configure(CliApp* app) {
   cli_app_register_desc(app, string_lit("Volo RTS Demo"));
 
   g_optAssets = cli_register_flag(app, 'a', string_lit("assets"), CliOptionFlags_Value);
@@ -600,6 +600,8 @@ void app_ecs_configure(CliApp* app) {
   g_optHeight = cli_register_flag(app, '\0', string_lit("height"), CliOptionFlags_Value);
   cli_register_desc(app, g_optHeight, string_lit("Game window height in pixels."));
   cli_register_validator(app, g_optHeight, cli_validate_u16);
+
+  return AppType_Gui;
 }
 
 void app_ecs_register(EcsDef* def, MAYBE_UNUSED const CliInvocation* invoc) {

@@ -1,4 +1,5 @@
 #pragma once
+#include "app_type.h"
 #include "cli.h"
 #include "ecs_def.h"
 
@@ -16,7 +17,7 @@ typedef enum {
  * Configure the command-line application.
  * Use the various 'cli_register_*' apis from the cli_app.h header.
  */
-void app_ecs_configure(CliApp*);
+AppType app_ecs_configure(CliApp*);
 
 /**
  * Register Ecs modules, potentially based on the passed command-line options.

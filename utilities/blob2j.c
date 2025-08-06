@@ -112,7 +112,7 @@ Ret:
 
 static CliId g_optPath, g_optOffset;
 
-void app_cli_configure(CliApp* app) {
+AppType app_cli_configure(CliApp* app) {
   cli_app_register_desc(app, string_lit("Utility to convert Volo binary blobs to json."));
 
   g_optPath = cli_register_arg(app, string_lit("path"), CliOptionFlags_Value);
@@ -121,6 +121,8 @@ void app_cli_configure(CliApp* app) {
 
   g_optOffset = cli_register_flag(app, 'o', string_lit("offset"), CliOptionFlags_Value);
   cli_register_desc(app, g_optOffset, string_lit("Offset to read at."));
+
+  return AppType_Console;
 }
 
 i32 app_cli_run(MAYBE_UNUSED const CliApp* app, const CliInvocation* invoc) {
