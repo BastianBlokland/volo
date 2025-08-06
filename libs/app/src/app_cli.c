@@ -63,6 +63,12 @@ int SYS_DECL main(const int argc, const char** argv) {
       cli_register_flag(app, '\0', string_lit("debug-symbols"), CliOptionFlags_Exclusive);
   cli_register_desc(app, optDbgSyms, string_lit("Dump a listing of all debug symbols."));
 
+  CliId optConsole;
+  if (appType == AppType_Gui) {
+    optConsole = cli_register_flag(app, '\0', string_lit("console"), CliOptionFlags_None);
+    cli_register_desc(app, optConsole, string_lit("Enable console input / output."));
+  }
+
   const CliId optHelp = cli_register_flag(app, 'h', string_lit("help"), CliOptionFlags_Exclusive);
   cli_register_desc(app, optHelp, string_lit("Display this help page."));
 
@@ -83,7 +89,7 @@ int SYS_DECL main(const int argc, const char** argv) {
     cli_help_write_file(app, g_fileStdOut);
     goto exit;
   }
-  if (appType == AppType_Gui && file_std_exclusive()) {
+  if (appType == AppType_Gui && !cli_parse_provided(invoc, optConsole) && file_std_exclusive()) {
     /**
      * The standard file handles (stdIn, stdOut, stdErr) are not in use; close them. On Windows this
      * closes the console window if launched from another Gui application (like the file explorer).
