@@ -66,7 +66,7 @@ int SYS_DECL main(const int argc, const char** argv) {
   CliId optConsole;
   if (appType == AppType_Gui) {
     optConsole = cli_register_flag(app, '\0', string_lit("console"), CliOptionFlags_None);
-    cli_register_desc(app, optConsole, string_lit("Enable console input / output."));
+    cli_register_desc(app, optConsole, string_lit("Require console input / output."));
   }
 
   const CliId optHelp = cli_register_flag(app, 'h', string_lit("help"), CliOptionFlags_Exclusive);
