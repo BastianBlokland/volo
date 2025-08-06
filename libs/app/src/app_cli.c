@@ -99,7 +99,7 @@ int SYS_DECL main(const int argc, const char** argv) {
      * Close the standard file handles (stdIn, stdOut, stdErr) if they are not in use.
      * On Windows this closes the console if launched from another Gui application (eg explorer).
      */
-    bool closeStdHandles = file_std_exclusive();
+    bool closeStdHandles = file_std_unused();
     if (cli_parse_provided(invoc, optNoConsole)) {
       closeStdHandles = true;
     }

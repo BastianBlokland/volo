@@ -93,10 +93,10 @@ extern File* g_fileStdErr;
 String file_result_str(FileResult);
 
 /**
- * Check if the standard file handles (stdIn, stdOut, stdErr) are exclusive to us (and thus not
- * being observed by any other process).
+ * Check if the standard file handles (stdIn, stdOut, stdErr) are unused (not being observed by any
+ * other process).
  */
-bool file_std_exclusive(void);
+bool file_std_unused(void);
 
 /**
  * Close the standard file handles (stdIn, stdOut, stdErr).

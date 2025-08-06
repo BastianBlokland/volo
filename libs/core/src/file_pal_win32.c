@@ -91,7 +91,7 @@ static FileType file_type_from_attributes(const DWORD attributes) {
   return FileType_Regular;
 }
 
-bool file_std_exclusive(void) {
+bool file_std_unused(void) {
   if (g_fileStdIn && GetFileType(g_fileStdIn->handle) != FILE_TYPE_CHAR) {
     return false; // Attached to a pipe. TODO: Detect if the parent has closed their end.
   }

@@ -87,7 +87,7 @@ void file_pal_init(void) {
   }
 }
 
-bool file_std_exclusive(void) {
+bool file_std_unused(void) {
   // TODO: Detect if the parent has closed their end of the std pipes.
   return false;
 }
