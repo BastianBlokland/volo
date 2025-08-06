@@ -58,7 +58,6 @@ int SYS_DECL main(const int argc, const char** argv) {
 
   CliApp*       app     = cli_app_create(g_allocHeap);
   const AppType appType = app_cli_configure(app);
-  (void)appType;
 
   const CliId optDbgSyms =
       cli_register_flag(app, '\0', string_lit("debug-symbols"), CliOptionFlags_Exclusive);
@@ -83,6 +82,13 @@ int SYS_DECL main(const int argc, const char** argv) {
   if (cli_parse_provided(invoc, optHelp)) {
     cli_help_write_file(app, g_fileStdOut);
     goto exit;
+  }
+  if (appType == AppType_Gui && file_std_exclusive()) {
+    /**
+     * The standard file handles (stdIn, stdOut, stdErr) are not in use; close them. On Windows this
+     * closes the console window if launched from another Gui application (like the file explorer).
+     */
+    file_std_close();
   }
 
   exitCode = app_cli_run(app, invoc);
