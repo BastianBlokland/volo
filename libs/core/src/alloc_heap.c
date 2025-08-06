@@ -96,7 +96,9 @@ void alloc_heap_leak_detect(void) {
 #ifdef VOLO_MEMORY_TRACKING
   const usize leakedAllocations = alloc_tracker_count(g_allocatorIntern.tracker);
   if (UNLIKELY(leakedAllocations)) {
-    alloc_tracker_dump_file(g_allocatorIntern.tracker, g_fileStdErr);
+    if (g_fileStdErr) {
+      alloc_tracker_dump_file(g_allocatorIntern.tracker, g_fileStdErr);
+    }
     diag_crash_msg("heap: leaked {} allocation(s)", fmt_int(leakedAllocations));
   }
 #endif
@@ -131,8 +133,8 @@ u64 alloc_heap_active(void) {
 
 u64 alloc_heap_counter(void) { return (u64)thread_atomic_load_i64(&g_allocatorIntern.counter); }
 
-void alloc_heap_dump(void) {
+void alloc_heap_dump(File* file) {
 #ifdef VOLO_MEMORY_TRACKING
-  alloc_tracker_dump_file(g_allocatorIntern.tracker, g_fileStdOut);
+  alloc_tracker_dump_file(g_allocatorIntern.tracker, file);
 #endif
 }

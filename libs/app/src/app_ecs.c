@@ -4,6 +4,7 @@
 #include "cli_parse.h"
 #include "cli_read.h"
 #include "core_alloc.h"
+#include "core_file.h"
 #include "core_path.h"
 #include "core_signal.h"
 #include "core_thread.h"
@@ -45,7 +46,7 @@ i32 app_cli_run(MAYBE_UNUSED const CliApp* app, const CliInvocation* invoc) {
 
   AppEcsStatus status = AppEcsStatus_Running;
 
-  log_add_sink(g_logger, log_sink_pretty_default(g_allocHeap, LogMask_All));
+  log_add_sink(g_logger, log_sink_pretty_default(g_allocHeap, g_fileStdOut, LogMask_All));
   log_add_sink(g_logger, log_sink_json_default(g_allocHeap, LogMask_All));
 
   log_i(

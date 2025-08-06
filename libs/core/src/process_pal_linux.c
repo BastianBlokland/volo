@@ -161,7 +161,7 @@ NORETURN static void process_child_exec(const ProcessStartInfo* info, const int 
   const usize argSize   = process_start_arg_null_term_size(info);
   Mem         argBuffer = alloc_alloc(g_allocPage, argSize, 1);
   if (!mem_valid(argBuffer)) {
-    if (info->flags & ProcessPipe_StdErr) {
+    if (g_fileStdErr && info->flags & ProcessPipe_StdErr) {
       file_write_sync(g_fileStdErr, string_lit("[process error] Out of memory\n"));
     }
     process_child_abort(ProcessExitCode_OutOfMemory);
@@ -180,23 +180,23 @@ NORETURN static void process_child_exec(const ProcessStartInfo* info, const int 
   // An error occurred (this path is only reachable if exec failed).
   switch (errno) {
   case ENOENT:
-    if (info->flags & ProcessPipe_StdErr) {
+    if (g_fileStdErr && info->flags & ProcessPipe_StdErr) {
       file_write_sync(g_fileStdErr, string_lit("[process error] Executable not found\n"));
     }
     process_child_abort(ProcessExitCode_ExecutableNotFound);
   case EACCES:
   case EINVAL:
-    if (info->flags & ProcessPipe_StdErr) {
+    if (g_fileStdErr && info->flags & ProcessPipe_StdErr) {
       file_write_sync(g_fileStdErr, string_lit("[process error] Invalid executable\n"));
     }
     process_child_abort(ProcessExitCode_InvalidExecutable);
   case ENOMEM:
-    if (info->flags & ProcessPipe_StdErr) {
+    if (g_fileStdErr && info->flags & ProcessPipe_StdErr) {
       file_write_sync(g_fileStdErr, string_lit("[process error] Out of memory\n"));
     }
     process_child_abort(ProcessExitCode_OutOfMemory);
   default:
-    if (info->flags & ProcessPipe_StdErr) {
+    if (g_fileStdErr && info->flags & ProcessPipe_StdErr) {
       file_write_sync(g_fileStdErr, string_lit("[process error] Unknown error while executing\n"));
     }
     process_child_abort(ProcessExitCode_UnknownExecError);
