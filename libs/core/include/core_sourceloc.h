@@ -17,6 +17,7 @@ typedef struct sSourceLoc {
 #else
 #define source_file(void) string_lit(__FILE__)
 #endif
+
 /**
  * Return a 'u32' containing the current source line number.
  */
