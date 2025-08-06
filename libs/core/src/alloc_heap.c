@@ -133,7 +133,7 @@ u64 alloc_heap_active(void) {
 
 u64 alloc_heap_counter(void) { return (u64)thread_atomic_load_i64(&g_allocatorIntern.counter); }
 
-void alloc_heap_dump(File* file) {
+void alloc_heap_dump(MAYBE_UNUSED File* file) {
 #ifdef VOLO_MEMORY_TRACKING
   alloc_tracker_dump_file(g_allocatorIntern.tracker, file);
 #endif
