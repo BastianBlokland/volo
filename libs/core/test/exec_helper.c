@@ -15,13 +15,15 @@
 
 static CliId g_optExitCode, g_optBlock, g_optWait, g_optGreet, g_optGreetErr, g_optCountInChars;
 
-void app_cli_configure(CliApp* app) {
+AppType app_cli_configure(CliApp* app) {
   g_optExitCode     = cli_register_flag(app, 0, string_lit("exitcode"), CliOptionFlags_Value);
   g_optBlock        = cli_register_flag(app, 0, string_lit("block"), CliOptionFlags_None);
   g_optWait         = cli_register_flag(app, 0, string_lit("wait"), CliOptionFlags_None);
   g_optGreet        = cli_register_flag(app, 0, string_lit("greet"), CliOptionFlags_None);
   g_optGreetErr     = cli_register_flag(app, 0, string_lit("greetErr"), CliOptionFlags_None);
   g_optCountInChars = cli_register_flag(app, 0, string_lit("countInChars"), CliOptionFlags_None);
+
+  return AppType_Console;
 }
 
 i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {

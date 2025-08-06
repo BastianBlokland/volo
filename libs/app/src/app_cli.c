@@ -56,12 +56,23 @@ int SYS_DECL main(const int argc, const char** argv) {
 
   int exitCode = 0;
 
-  CliApp* app = cli_app_create(g_allocHeap);
-  app_cli_configure(app);
+  CliApp*       app     = cli_app_create(g_allocHeap);
+  const AppType appType = app_cli_configure(app);
 
   const CliId optDbgSyms =
       cli_register_flag(app, '\0', string_lit("debug-symbols"), CliOptionFlags_Exclusive);
   cli_register_desc(app, optDbgSyms, string_lit("Dump a listing of all debug symbols."));
+
+  CliId optConsole, optNoConsole;
+  if (appType == AppType_Gui) {
+    optConsole = cli_register_flag(app, '\0', string_lit("console"), CliOptionFlags_None);
+    cli_register_desc(app, optConsole, string_lit("Require console input / output."));
+
+    optNoConsole = cli_register_flag(app, '\0', string_lit("no-console"), CliOptionFlags_None);
+    cli_register_desc(app, optNoConsole, string_lit("Disable console input / output."));
+
+    cli_register_exclusion(app, optConsole, optNoConsole);
+  }
 
   const CliId optHelp = cli_register_flag(app, 'h', string_lit("help"), CliOptionFlags_Exclusive);
   cli_register_desc(app, optHelp, string_lit("Display this help page."));
@@ -82,6 +93,22 @@ int SYS_DECL main(const int argc, const char** argv) {
   if (cli_parse_provided(invoc, optHelp)) {
     cli_help_write_file(app, g_fileStdOut);
     goto exit;
+  }
+  if (appType == AppType_Gui) {
+    /**
+     * Close the standard file handles (stdIn, stdOut, stdErr) if they are not in use.
+     * On Windows this closes the console if launched from another Gui application (eg explorer).
+     */
+    bool closeStdHandles = file_std_unused();
+    if (cli_parse_provided(invoc, optNoConsole)) {
+      closeStdHandles = true;
+    }
+    if (cli_parse_provided(invoc, optConsole)) {
+      closeStdHandles = false;
+    }
+    if (closeStdHandles) {
+      file_std_close();
+    }
   }
 
   exitCode = app_cli_run(app, invoc);

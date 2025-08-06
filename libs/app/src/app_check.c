@@ -25,12 +25,14 @@ static CheckRunFlags app_check_runflags(const CliInvocation* invoc) {
   return flags;
 }
 
-void app_cli_configure(CliApp* app) {
+AppType app_cli_configure(CliApp* app) {
   g_optOutputPassingTests = cli_register_flag(app, 'o', string_lit("output-passing"), 0);
   cli_register_desc(app, g_optOutputPassingTests, string_lit("Display passing tests."));
 
   g_optJobWorkers = cli_register_flag(app, '\0', string_lit("workers"), CliOptionFlags_Value);
   cli_register_desc(app, g_optJobWorkers, string_lit("Amount of job workers."));
+
+  return AppType_Console;
 }
 
 i32 app_cli_run(MAYBE_UNUSED const CliApp* app, const CliInvocation* invoc) {

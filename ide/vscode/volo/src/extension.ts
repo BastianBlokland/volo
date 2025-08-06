@@ -39,7 +39,7 @@ function getBinderPaths(): string[] {
 export function activate(context: ExtensionContext) {
   const serverPath: string | undefined = getValidServerPath();
   if (serverPath === undefined) {
-    throw Error("No app_lsp binary found in workspace, did you build the project?");
+    throw Error("No bin/lsp binary found in workspace, did you build the project?");
   }
 
   let serverArgs: string[] = [];

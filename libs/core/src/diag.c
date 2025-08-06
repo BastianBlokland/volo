@@ -49,7 +49,9 @@ NO_INLINE_HINT void diag_crash_report(const SymbolStack* stack, const String msg
   dynstring_append(&str, string_slice(msg, 0, math_min(msg.size, 512)));
   symbol_stack_write(stack, &str);
 
-  file_write_sync(g_fileStdErr, dynstring_view(&str));
+  if (g_fileStdErr) {
+    file_write_sync(g_fileStdErr, dynstring_view(&str));
+  }
 
   /**
    * Write a crash-file and invoke any user crash-handler (if registered).
@@ -77,8 +79,17 @@ NO_INLINE_HINT void diag_crash_report(const SymbolStack* stack, const String msg
   g_crashBusy = false;
 }
 
-void diag_print_raw(const String userMsg) { file_write_sync(g_fileStdOut, userMsg); }
-void diag_print_err_raw(const String userMsg) { file_write_sync(g_fileStdErr, userMsg); }
+void diag_print_raw(const String userMsg) {
+  if (g_fileStdOut) {
+    file_write_sync(g_fileStdOut, userMsg);
+  }
+}
+
+void diag_print_err_raw(const String userMsg) {
+  if (g_fileStdErr) {
+    file_write_sync(g_fileStdErr, userMsg);
+  }
+}
 
 void diag_assert_report_fail(const String userMsg, const SourceLoc sourceLoc) {
   if (g_assertHandler && g_assertHandler(userMsg, sourceLoc, g_assertHandlerContext)) {

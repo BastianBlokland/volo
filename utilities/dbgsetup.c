@@ -142,7 +142,7 @@ static bool dbgsetup_vscode_generate_launch_file(DbgSetupCtx* ctx) {
 
 static CliId g_optDbg, g_optWorkspace, g_optTargets;
 
-void app_cli_configure(CliApp* app) {
+AppType app_cli_configure(CliApp* app) {
   cli_app_register_desc(app, string_lit("Utility to generate debugger configuration files."));
 
   g_optDbg = cli_register_flag(app, 'd', string_lit("debugger"), CliOptionFlags_Value);
@@ -156,11 +156,13 @@ void app_cli_configure(CliApp* app) {
   g_optTargets =
       cli_register_flag(app, 't', string_lit("targets"), CliOptionFlags_RequiredMultiValue);
   cli_register_desc(app, g_optTargets, string_lit("List of debuggable executables."));
+
+  return AppType_Console;
 }
 
 i32 app_cli_run(MAYBE_UNUSED const CliApp* app, const CliInvocation* invoc) {
 
-  log_add_sink(g_logger, log_sink_pretty_default(g_allocHeap, ~LogMask_Debug));
+  log_add_sink(g_logger, log_sink_pretty_default(g_allocHeap, g_fileStdOut, ~LogMask_Debug));
   log_add_sink(g_logger, log_sink_json_default(g_allocHeap, LogMask_All));
 
   DbgSetupCtx ctx = {

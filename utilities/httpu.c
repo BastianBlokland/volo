@@ -157,7 +157,7 @@ Done:
 static CliId g_optHost, g_optUri, g_optOutput, g_optProtocol, g_optMethod, g_optEtag;
 static CliId g_optUser, g_optPassword;
 
-void app_cli_configure(CliApp* app) {
+AppType app_cli_configure(CliApp* app) {
   cli_app_register_desc(app, string_lit("Http Utility."));
 
   g_optHost = cli_register_arg(app, string_lit("host"), CliOptionFlags_Required);
@@ -185,11 +185,13 @@ void app_cli_configure(CliApp* app) {
 
   g_optPassword = cli_register_flag(app, 'P', string_lit("password"), CliOptionFlags_Value);
   cli_register_desc(app, g_optPassword, string_lit("Http basic auth password."));
+
+  return AppType_Console;
 }
 
 i32 app_cli_run(MAYBE_UNUSED const CliApp* app, const CliInvocation* invoc) {
   if (tty_isatty(g_fileStdOut)) {
-    log_add_sink(g_logger, log_sink_pretty_default(g_allocHeap, LogMask_All));
+    log_add_sink(g_logger, log_sink_pretty_default(g_allocHeap, g_fileStdOut, LogMask_All));
   }
   log_add_sink(g_logger, log_sink_json_default(g_allocHeap, LogMask_All));
 

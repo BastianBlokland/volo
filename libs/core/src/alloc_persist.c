@@ -91,8 +91,8 @@ u64 alloc_persist_counter(void) {
   return result;
 }
 
-void alloc_persist_dump(void) {
+void alloc_persist_dump(MAYBE_UNUSED File* file) {
 #ifdef VOLO_MEMORY_TRACKING
-  alloc_tracker_dump_file(g_allocatorIntern.tracker, g_fileStdOut);
+  alloc_tracker_dump_file(g_allocatorIntern.tracker, file);
 #endif
 }

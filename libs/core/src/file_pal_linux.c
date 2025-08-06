@@ -68,6 +68,18 @@ static FileInfo fileinfo_from_stat(const struct stat* stat) {
   };
 }
 
+static void file_pal_close(const int fd) {
+TryClose:
+  if (UNLIKELY(close(fd) < 0)) {
+    switch (errno) {
+    case EINTR:
+      goto TryClose; // Interrupted; retry.
+    default:
+      diag_crash_msg("Failed to close file-descriptor: {}", fmt_int(fd));
+    }
+  }
+}
+
 void file_pal_init(void) {
   g_filePageSize = getpagesize();
   if (UNLIKELY(!bits_ispow2(g_filePageSize))) {
@@ -75,8 +87,32 @@ void file_pal_init(void) {
   }
 }
 
-FileResult
-file_pal_create(Allocator* alloc, String path, FileMode mode, FileAccessFlags access, File** file) {
+bool file_std_unused(void) {
+  // TODO: Detect if the parent has closed their end of the std pipes.
+  return false;
+}
+
+FileResult file_std_close(void) {
+  FileResult result = FileResult_Success;
+  if (g_fileStdIn) {
+    file_pal_close(g_fileStdIn->handle);
+  }
+  if (g_fileStdOut) {
+    file_pal_close(g_fileStdOut->handle);
+  }
+  if (g_fileStdErr) {
+    file_pal_close(g_fileStdErr->handle);
+  }
+  g_fileStdIn = g_fileStdOut = g_fileStdErr = null;
+  return result;
+}
+
+FileResult file_pal_create(
+    Allocator*            alloc,
+    const String          path,
+    const FileMode        mode,
+    const FileAccessFlags access,
+    File**                file) {
   // Copy the path on the stack and null-terminate it.
   if (path.size >= PATH_MAX) {
     return FileResult_PathTooLong;
@@ -156,7 +192,7 @@ void file_pal_destroy(File* file) {
   if (file->mappings.stride) {
     dynarray_destroy(&file->mappings);
   }
-  close(file->handle);
+  file_pal_close(file->handle);
   alloc_free_t(file->alloc, file);
 }
 
@@ -323,7 +359,7 @@ FileInfo file_stat_path_sync(const String path) {
   return fileinfo_from_stat(&statOutput);
 }
 
-FileResult file_delete_sync(String path) {
+FileResult file_delete_sync(const String path) {
   // Copy the path on the stack and null-terminate it.
   if (path.size >= PATH_MAX) {
     return FileResult_PathTooLong;
@@ -338,7 +374,7 @@ FileResult file_delete_sync(String path) {
   return FileResult_Success;
 }
 
-FileResult file_delete_dir_sync(String path) {
+FileResult file_delete_dir_sync(const String path) {
   // Copy the path on the stack and null-terminate it.
   if (path.size >= PATH_MAX) {
     return FileResult_PathTooLong;
@@ -432,7 +468,7 @@ FileResult file_rename(const String oldPath, const String newPath) {
   return res != 0 ? fileresult_from_errno() : FileResult_Success;
 }
 
-FileResult file_pal_create_dir_single_sync(String path) {
+FileResult file_pal_create_dir_single_sync(const String path) {
   // Copy the path on the stack and null-terminate it.
   if (path.size >= PATH_MAX) {
     return FileResult_PathTooLong;

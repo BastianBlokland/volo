@@ -93,6 +93,18 @@ extern File* g_fileStdErr;
 String file_result_str(FileResult);
 
 /**
+ * Check if the standard file handles (stdIn, stdOut, stdErr) are unused (not being observed by any
+ * other process).
+ */
+bool file_std_unused(void);
+
+/**
+ * Close the standard file handles (stdIn, stdOut, stdErr).
+ * NOTE: The handles cannot be re-opened.
+ */
+FileResult file_std_close(void);
+
+/**
  * Create a file handle.
  * On success a file will be assigned to the file pointer. Retrieved file pointer should be
  * destroyed with 'file_destroy'.

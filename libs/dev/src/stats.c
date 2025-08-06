@@ -779,12 +779,12 @@ static void dev_stats_draw_interface(
     stats_draw_val_entry(c, string_lit("Page counter"), fmt_write_scratch("count:  {<7} {}delta: {}\ar", fmt_int(allocStats->pageCounter), pageDeltaColor, fmt_int(pageDelta)));
     stats_draw_val_entry(c, string_lit("Heap"), fmt_write_scratch("active: {}", fmt_int(allocStats->heapActive)));
     stats_draw_val_entry(c, string_lit("Heap counter"), fmt_write_scratch("count:  {<7} {}delta: {}\ar", fmt_int(allocStats->heapCounter), heapDeltaColor, fmt_int(heapDelta)));
-    if (stats_draw_button_entry(c, string_lit("Heap tracking"), string_lit("Dump"))) {
-      alloc_heap_dump();
+    if (g_fileStdOut && stats_draw_button_entry(c, string_lit("Heap tracking"), string_lit("Dump"))) {
+      alloc_heap_dump(g_fileStdOut);
     }
     stats_draw_val_entry(c, string_lit("Persist counter"), fmt_write_scratch("count:  {<7} {}delta: {}\ar", fmt_int(allocStats->persistCounter), persistDeltaColor, fmt_int(persistDelta)));
-    if (stats_draw_button_entry(c, string_lit("Persist tracking"), string_lit("Dump"))) {
-      alloc_persist_dump();
+    if (g_fileStdOut && stats_draw_button_entry(c, string_lit("Persist tracking"), string_lit("Dump"))) {
+      alloc_persist_dump(g_fileStdOut);
     }
     stats_draw_val_entry(c, string_lit("Renderer chunks"), fmt_write_scratch("{}", fmt_int(rendStats->memChunks)));
     stats_draw_val_entry(c, string_lit("Renderer"), fmt_write_scratch("{<8} reserved: {}", fmt_size(rendStats->ramOccupied), fmt_size(rendStats->ramReserved)));

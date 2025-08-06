@@ -4,6 +4,7 @@
 #include "cli_parse.h"
 #include "cli_read.h"
 #include "core_alloc.h"
+#include "core_file.h"
 #include "core_path.h"
 #include "core_signal.h"
 #include "core_thread.h"
@@ -22,8 +23,8 @@ static CliId              g_optJobWorkers;
 static CliId              g_optNoEcsReplan;
 MAYBE_UNUSED static CliId g_optTraceNoStore, g_optTraceSl;
 
-void app_cli_configure(CliApp* app) {
-  app_ecs_configure(app);
+AppType app_cli_configure(CliApp* app) {
+  const AppType appType = app_ecs_configure(app);
 
   g_optJobWorkers = cli_register_flag(app, '\0', string_lit("workers"), CliOptionFlags_Value);
   cli_register_desc(app, g_optJobWorkers, string_lit("Amount of job workers."));
@@ -38,6 +39,8 @@ void app_cli_configure(CliApp* app) {
   g_optTraceSl = cli_register_flag(app, '\0', string_lit("trace-sl"), 0);
   cli_register_desc(app, g_optTraceSl, string_lit("Enable the SuperLuminal trace sink."));
 #endif
+
+  return appType;
 }
 
 i32 app_cli_run(MAYBE_UNUSED const CliApp* app, const CliInvocation* invoc) {
@@ -45,7 +48,9 @@ i32 app_cli_run(MAYBE_UNUSED const CliApp* app, const CliInvocation* invoc) {
 
   AppEcsStatus status = AppEcsStatus_Running;
 
-  log_add_sink(g_logger, log_sink_pretty_default(g_allocHeap, LogMask_All));
+  if (g_fileStdOut) {
+    log_add_sink(g_logger, log_sink_pretty_default(g_allocHeap, g_fileStdOut, LogMask_All));
+  }
   log_add_sink(g_logger, log_sink_json_default(g_allocHeap, LogMask_All));
 
   log_i(
