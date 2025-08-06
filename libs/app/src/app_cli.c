@@ -71,7 +71,7 @@ int SYS_DECL main(const int argc, const char** argv) {
     optNoConsole = cli_register_flag(app, '\0', string_lit("no-console"), CliOptionFlags_None);
     cli_register_desc(app, optNoConsole, string_lit("Disable console input / output."));
 
-    cli_excludes(app, optConsole, optNoConsole);
+    cli_register_exclusion(app, optConsole, optNoConsole);
   }
 
   const CliId optHelp = cli_register_flag(app, 'h', string_lit("help"), CliOptionFlags_Exclusive);
