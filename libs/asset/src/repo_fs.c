@@ -337,6 +337,10 @@ static void asset_repo_fs_destroy(AssetRepo* repo) {
 }
 
 AssetRepo* asset_repo_create_fs(const String rootPath, const bool portableCache) {
+  if (file_stat_path_sync(rootPath).type != FileType_Directory) {
+    log_e("Assets directory not found", log_param("path", fmt_path(rootPath)));
+    return null;
+  }
   AssetRepoFs* repo = alloc_alloc_t(g_allocHeap, AssetRepoFs);
 
   AssetCacheFlags cacheFlags = AssetCacheFlags_None;
