@@ -1377,6 +1377,8 @@ uptr gap_pal_native_app_handle(const GapPal* pal) { return (uptr)pal->moduleInst
 void gap_pal_modal_error(GapPal* pal, String message) {
   (void)pal;
 
+  // NOTE: Can be called in parallel with any of the other apis (and itself).
+
   enum { MessageMaxSize = 1024 };
 
   if (message.size > MessageMaxSize) {

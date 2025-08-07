@@ -2398,5 +2398,6 @@ void gap_pal_modal_error(GapPal* pal, const String message) {
   (void)pal;
   (void)message;
 
+  // NOTE: Can be called in parallel with any of the other apis (and itself).
   // TODO: Implement.
 }
