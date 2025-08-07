@@ -1389,6 +1389,6 @@ void gap_pal_modal_error(GapPal* pal, String message) {
     return; // Invalid message.
   }
 
-  UINT type = MB_OK | MB_ICONERROR | MB_TASKMODAL | MB_SETFOREGROUND | MB_TOPMOST;
+  const UINT type = MB_OK | MB_ICONERROR | MB_TASKMODAL | MB_SETFOREGROUND | MB_TOPMOST;
   MessageBox(null /* owner */, (const wchar_t*)messageBuffer, null /* caption */, type);
 }
