@@ -44,6 +44,7 @@ typedef u32                    XcbGcContext;
 typedef u32                    XcbPictFormat;
 typedef u32                    XcbPicture;
 typedef u32                    XcbPixmap;
+typedef u32                    XcbFont;
 typedef u32                    XcbTimestamp;
 typedef u32                    XcbVisualId;
 typedef u32                    XcbWindow;
@@ -401,6 +402,8 @@ typedef struct {
   XcbCookie               (SYS_DECL* set_selection_owner)(XcbConnection*, XcbWindow owner, XcbAtom selection, XcbTimestamp);
   XcbCookie               (SYS_DECL* ungrab_pointer)(XcbConnection*, XcbTimestamp);
   XcbCookie               (SYS_DECL* warp_pointer)(XcbConnection*, XcbWindow srcWindow, XcbWindow dstWindow, i16 srcX, i16 srcY, u16 srcWidth, u16 srcHeight, i16 dstX, i16 dstY);
+  XcbCookie               (SYS_DECL* open_font)(XcbConnection*, XcbFont, u16 nameLen, const char* nameData);
+  XcbCookie               (SYS_DECL* close_font)(XcbConnection*, XcbFont);
   XcbGenericEvent*        (SYS_DECL* poll_for_event)(XcbConnection*);
   XcbGenericEvent*        (SYS_DECL* wait_for_event)(XcbConnection*);
   XcbPointerData*         (SYS_DECL* query_pointer_reply)(XcbConnection*, XcbCookie, XcbGenericError**);
@@ -921,6 +924,8 @@ static bool pal_init_xcb(Allocator* alloc, Xcb* out, const PalXcbInitFlags flags
   XCB_LOAD_SYM(intern_atom_reply);
   XCB_LOAD_SYM(intern_atom);
   XCB_LOAD_SYM(map_window);
+  XCB_LOAD_SYM(open_font);
+  XCB_LOAD_SYM(close_font);
   XCB_LOAD_SYM(poll_for_event);
   XCB_LOAD_SYM(wait_for_event);
   XCB_LOAD_SYM(put_image);
@@ -2444,12 +2449,17 @@ void gap_pal_modal_error(const String message) {
 
   XcbWindow    window = sentinel_u32;
   XcbGcContext gc     = sentinel_u32;
+  XcbFont      font   = sentinel_u32;
 
   Xcb xcb = {0};
   if (!pal_init_xcb(g_allocHeap, &xcb, PalXcbInitFlags_Optional | PalXcbInitFlags_Silent)) {
     return; // Xcb not available.
   }
-  window                     = xcb.generate_id(xcb.con);
+
+  font                  = xcb.generate_id(xcb.con);
+  const String fontName = string_lit("-misc-fixed-medium-*");
+  xcb.open_font(xcb.con, font, (u16)fontName.size, fontName.ptr);
+
   const GapVector windowSize = gap_vector(300, 200);
 
   // clang-format off
@@ -2460,14 +2470,22 @@ void gap_pal_modal_error(const String message) {
     32768  /* XCB_EVENT_MASK_EXPOSURE */;
   // clang-format on
 
+  window = xcb.generate_id(xcb.con);
   pal_xcb_create_window(&xcb, window, windowSize, g_windowEventMask);
   pal_xcb_register_delete_msg(&xcb, window);
 
   pal_xcb_title_set(&xcb, window, string_lit("Error"));
   xcb.map_window(xcb.con, window);
 
+  const u32 gcMask =
+      4 /* XCB_GC_FOREGROUND */ | 8 /* XCB_GC_BACKGROUND */ | 16384 /* XCB_GC_FONT */;
+  const u32 gcValues[] = {
+      xcb.screen->blackPixel,
+      xcb.screen->whitePixel,
+      font,
+  };
   gc = xcb.generate_id(xcb.con);
-  xcb.create_gc(xcb.con, gc, window, 0, null);
+  xcb.create_gc(xcb.con, gc, window, gcMask, gcValues);
 
   xcb.flush(xcb.con);
   const int error = xcb.connection_has_error(xcb.con);
@@ -2499,6 +2517,9 @@ void gap_pal_modal_error(const String message) {
 Close:
   if (!sentinel_check(gc)) {
     xcb.free_gc(xcb.con, gc);
+  }
+  if (!sentinel_check(font)) {
+    xcb.close_font(xcb.con, font);
   }
   if (!sentinel_check(window)) {
     xcb.destroy_window(xcb.con, window);
