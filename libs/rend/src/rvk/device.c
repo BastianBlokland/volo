@@ -301,9 +301,7 @@ static VkPhysicalDevice rvk_pick_physical_device(RvkLib* lib) {
       bestScore     = score;
     }
   }
-  if (!bestVkPhysDev) {
-    diag_crash_msg("No compatible Vulkan device found");
-  }
+
   return bestVkPhysDev;
 }
 
@@ -443,15 +441,20 @@ static VkDevice rvk_device_create_internal(RvkLib* lib, RvkDevice* dev) {
 }
 
 RvkDevice* rvk_device_create(RvkLib* lib) {
+  const VkPhysicalDevice physicalDev = rvk_pick_physical_device(lib);
+  if (!physicalDev) {
+    log_e("No compatible Vulkan device found");
+    return null;
+  }
+
   RvkDevice* dev = alloc_alloc_t(g_allocHeap, RvkDevice);
 
   *dev = (RvkDevice){
       .lib              = lib,
       .vkAlloc          = lib->vkAlloc,
       .queueSubmitMutex = thread_mutex_create(g_allocHeap),
+      .vkPhysDev        = physicalDev,
   };
-
-  dev->vkPhysDev = rvk_pick_physical_device(lib);
 
   dev->graphicsQueueIndex = rvk_pick_graphics_queue(lib, dev->vkPhysDev);
   dev->transferQueueIndex = rvk_pick_transfer_queue(lib, dev->vkPhysDev);
