@@ -4,6 +4,7 @@
 #include "rend_register.h"
 
 void rend_register(EcsDef* def) {
+  ecs_register_module(def, rend_error_module);
   ecs_register_module(def, rend_fog_module);
   ecs_register_module(def, rend_instance_module);
   ecs_register_module(def, rend_light_module);
