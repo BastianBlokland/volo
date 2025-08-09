@@ -2394,9 +2394,9 @@ GapNativeWm gap_pal_native_wm(void) { return GapNativeWm_Xcb; }
 
 uptr gap_pal_native_app_handle(const GapPal* pal) { return (uptr)pal->xcb.con; }
 
-void gap_pal_modal_error(GapPal* pal, const String message) {
-  (void)pal;
-  (void)message;
+void gap_pal_modal_error(const String message) {
+  // NOTE: Can be called in parallel with any of the other apis (and itself).
 
   // TODO: Implement.
+  (void)message;
 }

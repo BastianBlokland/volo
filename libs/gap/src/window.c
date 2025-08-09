@@ -448,3 +448,11 @@ GapNativeWm gap_native_wm(void) { return gap_pal_native_wm(); }
 uptr gap_native_window_handle(const GapWindowComp* comp) { return (uptr)comp->id; }
 
 uptr gap_native_app_handle(const GapWindowComp* comp) { return comp->nativeAppHandle; }
+
+void gap_window_modal_error(const String message) {
+  /**
+   * NOTE: This function can be called during early startup (and in parallel with any other apis),
+   * thus care should be taken to make sure minimal dependencies are needed to show the error modal.
+   */
+  gap_pal_modal_error(message);
+}

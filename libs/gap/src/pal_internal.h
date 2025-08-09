@@ -83,4 +83,4 @@ bool        gap_pal_require_thread_affinity(void);
 GapNativeWm gap_pal_native_wm(void);
 uptr        gap_pal_native_app_handle(const GapPal*);
 
-void gap_pal_modal_error(GapPal*, String message);
+void gap_pal_modal_error(String message); // NOTE: Can be called in parallel.

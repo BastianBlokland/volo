@@ -27,7 +27,7 @@ ASSERT(sizeof(GapVector) == 8, "GapVector has to be 64 bits");
 #define gap_vector_equal(_A_, _B_) ((_A_).data == (_B_).data)
 
 /**
- * Substract two vectors.
+ * Subtract two vectors.
  * NOTE: Args are expanded twice, so care must be taken when providing complex expressions.
  */
 #define gap_vector_sub(_A_, _B_) gap_vector((_A_).x - (_B_).x, (_A_).y - (_B_).y)

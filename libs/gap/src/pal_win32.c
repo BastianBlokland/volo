@@ -1374,8 +1374,8 @@ GapNativeWm gap_pal_native_wm(void) { return GapNativeWm_Win32; }
 
 uptr gap_pal_native_app_handle(const GapPal* pal) { return (uptr)pal->moduleInstance; }
 
-void gap_pal_modal_error(GapPal* pal, String message) {
-  (void)pal;
+void gap_pal_modal_error(String message) {
+  // NOTE: Can be called in parallel with any of the other apis (and itself).
 
   enum { MessageMaxSize = 1024 };
 
@@ -1389,6 +1389,6 @@ void gap_pal_modal_error(GapPal* pal, String message) {
     return; // Invalid message.
   }
 
-  UINT type = MB_OK | MB_ICONERROR | MB_TASKMODAL | MB_SETFOREGROUND | MB_TOPMOST;
+  const UINT type = MB_OK | MB_ICONERROR | MB_TASKMODAL | MB_SETFOREGROUND | MB_TOPMOST;
   MessageBox(null /* owner */, (const wchar_t*)messageBuffer, null /* caption */, type);
 }

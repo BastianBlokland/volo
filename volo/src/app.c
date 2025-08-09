@@ -5,6 +5,7 @@
 #include "cli_parse.h"
 #include "cli_read.h"
 #include "cli_validate.h"
+#include "core_diag.h"
 #include "core_file.h"
 #include "core_float.h"
 #include "core_math.h"
@@ -604,7 +605,19 @@ AppType app_ecs_configure(CliApp* app) {
   return AppType_Gui;
 }
 
+static void game_crash_handler(const String message, void* ctx) {
+  (void)ctx;
+  /**
+   * Application has crashed.
+   * NOTE: Crashes are always fatal, this handler cannot prevent application shutdown. Care must be
+   * taken while writing this handler as the application is in an unknown state.
+   */
+  gap_window_modal_error(message);
+}
+
 void app_ecs_register(EcsDef* def, MAYBE_UNUSED const CliInvocation* invoc) {
+  diag_crash_handler(game_crash_handler, null); // Register a crash handler.
+
   asset_register(def);
   dev_register(def);
   gap_register(def);
@@ -654,6 +667,7 @@ bool app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
 
   AssetManagerComp* assets = app_init_assets(world, invoc);
   if (UNLIKELY(!assets)) {
+    gap_window_modal_error(string_lit("No (valid) assets found"));
     return false; // Initialization failed.
   }
   GamePrefsComp* prefs      = prefs_init(world);
