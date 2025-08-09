@@ -25,6 +25,7 @@ String rend_error_str(const RendErrorType type) {
   return g_errorMsgs[type];
 }
 
+bool rend_error(const RendErrorComp* comp) { return comp->type != RendErrorType_None; }
 void rend_error_clear(RendErrorComp* comp) { comp->type = RendErrorType_None; }
 
 void rend_error_report(EcsWorld* world, const RendErrorType type) {

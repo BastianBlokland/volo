@@ -18,4 +18,5 @@ typedef enum {
 ecs_comp_extern_public(RendErrorComp) { RendErrorType type; };
 
 String rend_error_str(RendErrorType);
+bool   rend_error(const RendErrorComp*);
 void   rend_error_clear(RendErrorComp*);
