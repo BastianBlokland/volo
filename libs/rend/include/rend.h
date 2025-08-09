@@ -6,6 +6,7 @@
  * Forward header for the rend library.
  */
 
+ecs_comp_extern(RendErrorComp);
 ecs_comp_extern(RendLightComp);
 ecs_comp_extern(RendObjectComp);
 ecs_comp_extern(RendResComp);

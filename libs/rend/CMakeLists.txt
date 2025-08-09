@@ -6,6 +6,7 @@ message(STATUS "> library: rend")
 
 add_library(lib_rend STATIC
   src/builder.c
+  src/error.c
   src/fog.c
   src/instance.c
   src/light.c

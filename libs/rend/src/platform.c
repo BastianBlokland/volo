@@ -6,6 +6,7 @@
 #include "rend_settings.h"
 
 #include "builder_internal.h"
+#include "error_internal.h"
 #include "platform_internal.h"
 #include "reset_internal.h"
 #include "rvk/device_internal.h"
@@ -149,7 +150,10 @@ static void destruct_platform_intern_comp(void* data) {
   rvk_device_wait_idle(comp->device);
 }
 
-ecs_view_define(GlobalPlatformView) { ecs_access_write(RendPlatformComp); }
+ecs_view_define(GlobalPlatformView) {
+  ecs_access_write(RendPlatformComp);
+  ecs_access_maybe_read(RendErrorComp);
+}
 ecs_view_define(GlobalSettingsView) { ecs_access_read(RendSettingsGlobalComp); }
 
 static const RendSettingsGlobalComp* rend_global_settings(EcsWorld* world) {
@@ -168,19 +172,38 @@ ecs_system_define(RendPlatformUpdateSys) {
   if (rend_will_reset(world)) {
     return;
   }
+  if (rend_error_check(world)) {
+    return; // An renderer error has occurred; wait until its cleared.
+  }
 
-  const EcsEntityId global       = ecs_world_global(world);
-  EcsView*          platformView = ecs_world_view_t(world, GlobalPlatformView);
-  EcsIterator*      platformItr  = ecs_view_maybe_at(platformView, global);
+  const EcsEntityId             global       = ecs_world_global(world);
+  EcsView*                      platformView = ecs_world_view_t(world, GlobalPlatformView);
+  EcsIterator*                  platformItr  = ecs_view_maybe_at(platformView, global);
+  const RendSettingsGlobalComp* settings     = rend_global_settings(world);
 
   if (!platformItr) {
     log_i("Setting up renderer");
 
-    const RendSettingsGlobalComp* settings = rend_global_settings(world);
-    RendPlatformComp*             plat     = ecs_world_add_t(world, global, RendPlatformComp);
-    plat->lib                              = rvk_lib_create(settings);
-    plat->device                           = rvk_device_create(plat->lib);
-    plat->builderContainer                 = rend_builder_container_create(g_allocHeap);
+    RvkLib* lib = rvk_lib_create(settings);
+    if (!lib) {
+      rend_error_report(world, RendErrorType_VulkanNotFound);
+      return;
+    }
+
+    RvkDevice* device = rvk_device_create(lib);
+    if (!device) {
+      rend_error_report(world, RendErrorType_DeviceNotFound);
+      rvk_lib_destroy(lib);
+      return;
+    }
+
+    RendPlatformComp* plat = ecs_world_add_t(
+        world,
+        global,
+        RendPlatformComp,
+        .lib              = lib,
+        .device           = device,
+        .builderContainer = rend_builder_container_create(g_allocHeap));
 
     for (AssetGraphicPass i = 0; i != AssetGraphicPass_Count; ++i) {
       plat->passes[i] = rvk_pass_create(plat->device, &g_passConfig[i]);

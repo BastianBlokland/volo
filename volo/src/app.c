@@ -24,6 +24,7 @@
 #include "input_register.h"
 #include "input_resource.h"
 #include "log_logger.h"
+#include "rend_error.h"
 #include "rend_register.h"
 #include "rend_settings.h"
 #include "scene_camera.h"
@@ -433,6 +434,7 @@ static void app_action_bar_draw(UiCanvasComp* canvas, const AppActionContext* ct
   }
 }
 
+ecs_view_define(AppErrorView) { ecs_access_read(RendErrorComp); }
 ecs_view_define(AppTimeView) { ecs_access_write(SceneTimeComp); }
 
 ecs_view_define(AppUpdateGlobalView) {
@@ -567,6 +569,7 @@ ecs_module_init(game_app_module) {
   ecs_register_comp(AppMainWindowComp);
 
   ecs_register_view(AppTimeView);
+  ecs_register_view(AppErrorView);
   ecs_register_view(AppUpdateGlobalView);
   ecs_register_view(MainWindowView);
   ecs_register_view(UiCanvasView);
@@ -701,6 +704,11 @@ bool app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
 }
 
 AppEcsStatus app_ecs_status(EcsWorld* world) {
+  const RendErrorComp* rendErrorComp = ecs_utils_read_first_t(world, AppErrorView, RendErrorComp);
+  if (rendErrorComp) {
+    gap_window_modal_error(rend_error_str(rendErrorComp->type));
+    return AppEcsStatus_Failed;
+  }
   if (!ecs_utils_any(world, MainWindowView)) {
     return AppEcsStatus_Finished;
   }
