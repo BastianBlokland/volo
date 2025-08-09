@@ -295,27 +295,32 @@ static void rvk_lib_profile_init(RvkLib* lib) {
 }
 
 RvkLib* rvk_lib_create(const RendSettingsGlobalComp* set) {
-  RvkLib* lib = alloc_alloc_t(g_allocHeap, RvkLib);
-
-  *lib = (RvkLib){.vkAlloc = rvk_mem_allocator(g_allocHeap)};
-  if (set->flags & RendGlobalFlags_DebugGpu) {
-    lib->flags |= RvkLibFlags_ExecutableStatistics;
-  }
-
   String    libNames[rvk_lib_vulkan_names_max];
   const u32 libNameCount = rvk_lib_names(libNames);
 
-  DynLibResult loadRes = dynlib_load_first(g_allocHeap, libNames, libNameCount, &lib->vulkanLib);
+  DynLib*      vulkanLib;
+  DynLibResult loadRes = dynlib_load_first(g_allocHeap, libNames, libNameCount, &vulkanLib);
   if (loadRes != DynLibResult_Success) {
     const String err = dynlib_result_str(loadRes);
-    diag_crash_msg("Failed to load Vulkan library: {}", fmt_text(err));
+    log_e("Failed to load Vulkan library", log_param("error", fmt_text(err)));
+    return null;
   }
+
   VkInterfaceLoader loaderApi;
-  rvk_api_check(string_lit("loadLoader"), vkLoadLoader(lib->vulkanLib, &loaderApi));
+  rvk_api_check(string_lit("loadLoader"), vkLoadLoader(vulkanLib, &loaderApi));
 
   const u32 loaderVersion = rvk_loader_version(&loaderApi);
   if (!rvk_lib_api_version_supported(loaderVersion)) {
-    diag_crash_msg("Vulkan loader is too old; Driver update is required");
+    log_e("Vulkan loader is too old; Driver update is required");
+    dynlib_destroy(&vulkanLib);
+    return null;
+  }
+
+  RvkLib* lib = alloc_alloc_t(g_allocHeap, RvkLib);
+
+  *lib = (RvkLib){.vkAlloc = rvk_mem_allocator(g_allocHeap), .vulkanLib = vulkanLib};
+  if (set->flags & RendGlobalFlags_DebugGpu) {
+    lib->flags |= RvkLibFlags_ExecutableStatistics;
   }
 
   rvk_inst_log_layers(&loaderApi);
