@@ -1719,6 +1719,16 @@ void gap_pal_destroy(GapPal* pal) {
     pal->xkb.state_unref(pal->xkb.state);
   }
 
+  array_for_t(pal->icons, Mem, icon) { alloc_maybe_free(pal->alloc, *icon); }
+  array_for_t(pal->cursors, XcbCursor, cursor) {
+    if (*cursor) {
+      pal->xcb.free_cursor(pal->xcb.con, *cursor);
+    }
+  }
+
+  pal->xcb.disconnect(pal->xcb.con);
+  log_i("Xcb disconnected");
+
   dynlib_destroy(pal->xcb.lib);
   if (pal->xkb.lib) {
     dynlib_destroy(pal->xkb.lib);
@@ -1732,16 +1742,6 @@ void gap_pal_destroy(GapPal* pal) {
   if (pal->xrender.lib) {
     dynlib_destroy(pal->xrender.lib);
   }
-
-  array_for_t(pal->icons, Mem, icon) { alloc_maybe_free(pal->alloc, *icon); }
-  array_for_t(pal->cursors, XcbCursor, cursor) {
-    if (*cursor) {
-      pal->xcb.free_cursor(pal->xcb.con, *cursor);
-    }
-  }
-
-  pal->xcb.disconnect(pal->xcb.con);
-  log_i("Xcb disconnected");
 
   dynarray_destroy(&pal->windows);
   dynarray_destroy(&pal->displays);
