@@ -1,3 +1,4 @@
+#include "ecs_world.h"
 #include "rend_error.h"
 
 ecs_comp_define_public(RendErrorComp);
@@ -25,3 +26,16 @@ String rend_error_str(const RendErrorType type) {
 }
 
 void rend_error_clear(RendErrorComp* comp) { comp->type = RendErrorType_None; }
+
+void rend_error_report(EcsWorld* world, const RendErrorType type) {
+  ecs_world_add_t(world, ecs_world_global(world), RendErrorComp, .type = type);
+}
+
+void rend_error_report_direct(RendErrorComp* comp, const RendErrorType type) {
+  if (type >= comp->type) {
+    /**
+     * Higher priority error.
+     */
+    comp->type = type;
+  }
+}
