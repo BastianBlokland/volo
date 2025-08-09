@@ -920,7 +920,7 @@ static bool pal_init_xcb(Allocator* alloc, Xcb* out, const PalXcbInitFlags flags
         log_param("screen-size", gap_vector_fmt(screenSize)));
   }
 
-  return false;
+  return true;
 }
 
 static void pal_xcb_wm_state_update(
