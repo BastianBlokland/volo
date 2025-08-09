@@ -26,6 +26,10 @@ String rend_error_str(const RendErrorType type) {
   return g_errorMsgs[type];
 }
 
+bool rend_error_check(EcsWorld* world) {
+  return ecs_world_has_t(world, ecs_world_global(world), RendErrorComp);
+}
+
 void rend_error_clear(EcsWorld* world) {
   ecs_utils_maybe_remove_t(world, ecs_world_global(world), RendErrorComp);
 }
