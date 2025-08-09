@@ -539,18 +539,6 @@ struct sGapPal {
   XcbCursor cursors[GapCursor_Count];
 };
 
-// clang-format off
-static const XcbEventMask g_xcbWindowEventMask =
-  1       /* XCB_EVENT_MASK_KEY_PRESS */        |
-  2       /* XCB_EVENT_MASK_KEY_RELEASE */      |
-  4       /* XCB_EVENT_MASK_BUTTON_PRESS */     |
-  8       /* XCB_EVENT_MASK_BUTTON_RELEASE */   |
-  64      /* XCB_EVENT_MASK_POINTER_MOTION */   |
-  131072  /* XCB_EVENT_MASK_STRUCTURE_NOTIFY */ |
-  2097152 /* XCB_EVENT_MASK_FOCUS_CHANGE */     |
-  4194304 /* XCB_EVENT_MASK_PROPERTY_CHANGE */;
-// clang-format on
-
 static GapPalWindow* pal_maybe_window(GapPal* pal, const GapWindowId id) {
   dynarray_for_t(&pal->windows, GapPalWindow, window) {
     if (window->id == id) {
@@ -804,6 +792,29 @@ static void pal_xcb_title_set(Xcb* xcb, const GapWindowId windowId, const String
       sizeof(u8) * 8,
       (u32)title.size,
       title.ptr);
+}
+
+static void pal_xcb_create_window(
+    Xcb* xcb, const GapWindowId id, const GapVector size, const XcbEventMask eventMask) {
+  const u32 valuesMask = 2 /* XCB_CW_BACK_PIXEL */ | 2048 /* XCB_CW_EVENT_MASK */;
+  const u32 values[2]  = {
+      xcb->screen->blackPixel,
+      eventMask,
+  };
+  xcb->create_window(
+      xcb->con,
+      0 /* XCB_COPY_FROM_PARENT */,
+      (XcbWindow)id,
+      xcb->screen->root,
+      0,
+      0,
+      (u16)size.width,
+      (u16)size.height,
+      0,
+      1 /* XCB_WINDOW_CLASS_INPUT_OUTPUT */,
+      xcb->screen->rootVisual,
+      valuesMask,
+      values);
 }
 
 typedef enum {
@@ -2110,26 +2121,19 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
     size.height = pal_window_min_height;
   }
 
-  const u32 valuesMask = 2 /* XCB_CW_BACK_PIXEL */ | 2048 /* XCB_CW_EVENT_MASK */;
-  const u32 values[2]  = {
-      pal->xcb.screen->blackPixel,
-      g_xcbWindowEventMask,
-  };
+  // clang-format off
+  const XcbEventMask g_eventMask =
+    1       /* XCB_EVENT_MASK_KEY_PRESS */        |
+    2       /* XCB_EVENT_MASK_KEY_RELEASE */      |
+    4       /* XCB_EVENT_MASK_BUTTON_PRESS */     |
+    8       /* XCB_EVENT_MASK_BUTTON_RELEASE */   |
+    64      /* XCB_EVENT_MASK_POINTER_MOTION */   |
+    131072  /* XCB_EVENT_MASK_STRUCTURE_NOTIFY */ |
+    2097152 /* XCB_EVENT_MASK_FOCUS_CHANGE */     |
+    4194304 /* XCB_EVENT_MASK_PROPERTY_CHANGE */;
+  // clang-format on
 
-  pal->xcb.create_window(
-      con,
-      0 /* XCB_COPY_FROM_PARENT */,
-      (XcbWindow)id,
-      pal->xcb.screen->root,
-      0,
-      0,
-      (u16)size.width,
-      (u16)size.height,
-      0,
-      1 /* XCB_WINDOW_CLASS_INPUT_OUTPUT */,
-      pal->xcb.screen->rootVisual,
-      valuesMask,
-      values);
+  pal_xcb_create_window(&pal->xcb, id, size, g_eventMask);
 
   // Register a custom delete message atom.
   pal->xcb.change_property(
@@ -2436,34 +2440,18 @@ void gap_pal_modal_error(const String message) {
   if (!pal_init_xcb(g_allocHeap, &xcb, PalXcbInitFlags_Optional | PalXcbInitFlags_Silent)) {
     return; // Xcb not available.
   }
-  const GapWindowId windowId = xcb.generate_id(xcb.con);
-  const u16         width    = 300;
-  const u16         height   = 200;
+  const GapWindowId windowId   = xcb.generate_id(xcb.con);
+  const GapVector   windowSize = gap_vector(300, 200);
 
-  static const XcbEventMask windowEventMask = 4 /* XCB_EVENT_MASK_BUTTON_PRESS */ |
-                                              8 /* XCB_EVENT_MASK_BUTTON_RELEASE */ |
-                                              64 /* XCB_EVENT_MASK_POINTER_MOTION */;
+  // clang-format off
+  const XcbEventMask g_windowEventMask =
+    4       /* XCB_EVENT_MASK_BUTTON_PRESS */     |
+    8       /* XCB_EVENT_MASK_BUTTON_RELEASE */   |
+    64      /* XCB_EVENT_MASK_POINTER_MOTION */   |
+    32768  /* XCB_EVENT_MASK_EXPOSURE */;
+  // clang-format on
 
-  const u32 valuesMask = 2 /* XCB_CW_BACK_PIXEL */ | 2048 /* XCB_CW_EVENT_MASK */;
-  const u32 values[2]  = {
-      xcb.screen->blackPixel,
-      windowEventMask,
-  };
-
-  xcb.create_window(
-      xcb.con,
-      0 /* XCB_COPY_FROM_PARENT */,
-      (XcbWindow)windowId,
-      xcb.screen->root,
-      0,
-      0,
-      width,
-      height,
-      0,
-      1 /* XCB_WINDOW_CLASS_INPUT_OUTPUT */,
-      xcb.screen->rootVisual,
-      valuesMask,
-      values);
+  pal_xcb_create_window(&xcb, windowId, windowSize, g_windowEventMask);
 
   pal_xcb_title_set(&xcb, windowId, string_lit("Error"));
   xcb.map_window(xcb.con, (XcbWindow)windowId);
