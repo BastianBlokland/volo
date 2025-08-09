@@ -818,6 +818,7 @@ static bool pal_init_xcb(Allocator* alloc, Xcb* out, const PalXcbInitFlags flags
       if (!(flags & PalXcbInitFlags_Optional)) {                                                   \
         diag_crash_msg("Xcb symbol '{}' missing", fmt_text(symName));                              \
       }                                                                                            \
+      dynlib_destroy(out->lib);                                                                    \
       return false;                                                                                \
     }                                                                                              \
   } while (false)
@@ -876,6 +877,8 @@ static bool pal_init_xcb(Allocator* alloc, Xcb* out, const PalXcbInitFlags flags
     if (!(flags & PalXcbInitFlags_Optional)) {
       diag_crash_msg("Xcb no screen found");
     }
+    out->disconnect(out->con);
+    dynlib_destroy(out->lib);
     return false;
   }
   out->screen = screenItr.data;
