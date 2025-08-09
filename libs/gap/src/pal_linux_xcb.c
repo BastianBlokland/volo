@@ -2478,6 +2478,12 @@ void gap_pal_modal_error(const String message) {
   for (XcbGenericEvent* evt; (evt = xcb.wait_for_event(xcb.con)); free(evt)) {
     const u32 eventId = evt->responseType & ~0x80;
     switch (eventId) {
+    case 0: {
+      const XcbGenericError* errMsg = (const void*)evt;
+      (void)errMsg;
+      goto Close; // An error was returned from the x-server.
+    }
+
     case 32768 /* XCB_EVENT_MASK_EXPOSURE */:
       break;
 
