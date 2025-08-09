@@ -2422,8 +2422,60 @@ GapNativeWm gap_pal_native_wm(void) { return GapNativeWm_Xcb; }
 uptr gap_pal_native_app_handle(const GapPal* pal) { return (uptr)pal->xcb.con; }
 
 void gap_pal_modal_error(const String message) {
-  // NOTE: Can be called in parallel with any of the other apis (and itself).
-
-  // TODO: Implement.
+  /**
+   * Create a modal (blocking) error popup (like the win32 MessageBox).
+   *
+   * To support being called during early startup (potentially before 'gap_pal_create()') and from
+   * crash handlers (where the application is in an unknown state) this function should be as
+   * self-contained as possible.
+   * NOTE: We should avoid crashing / logging in this function (silent return is preferred).
+   */
   (void)message;
+
+  Xcb xcb = {0};
+  if (!pal_init_xcb(g_allocHeap, &xcb, PalXcbInitFlags_Optional | PalXcbInitFlags_Silent)) {
+    return; // Xcb not available.
+  }
+  const GapWindowId windowId = xcb.generate_id(xcb.con);
+  const u16         width    = 300;
+  const u16         height   = 200;
+
+  static const XcbEventMask windowEventMask = 4 /* XCB_EVENT_MASK_BUTTON_PRESS */ |
+                                              8 /* XCB_EVENT_MASK_BUTTON_RELEASE */ |
+                                              64 /* XCB_EVENT_MASK_POINTER_MOTION */;
+
+  const u32 valuesMask = 2 /* XCB_CW_BACK_PIXEL */ | 2048 /* XCB_CW_EVENT_MASK */;
+  const u32 values[2]  = {
+      xcb.screen->blackPixel,
+      windowEventMask,
+  };
+
+  xcb.create_window(
+      xcb.con,
+      0 /* XCB_COPY_FROM_PARENT */,
+      (XcbWindow)windowId,
+      xcb.screen->root,
+      0,
+      0,
+      width,
+      height,
+      0,
+      1 /* XCB_WINDOW_CLASS_INPUT_OUTPUT */,
+      xcb.screen->rootVisual,
+      valuesMask,
+      values);
+
+  pal_xcb_title_set(&xcb, windowId, string_lit("Error"));
+  xcb.map_window(xcb.con, (XcbWindow)windowId);
+
+  xcb.flush(xcb.con);
+  const int error = xcb.connection_has_error(xcb.con);
+  if (error) {
+    goto Ret; // Failed to create a window.
+  }
+
+Ret:
+  xcb.destroy_window(xcb.con, (XcbWindow)windowId);
+  xcb.disconnect(xcb.con);
+  dynlib_destroy(xcb.lib);
 }
