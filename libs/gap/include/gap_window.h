@@ -161,3 +161,10 @@ u16 gap_window_dpi(const GapWindowComp*);
  * Retrieve the system's double click interval.
  */
 TimeDuration gap_window_doubleclick_interval(const GapWindowComp*);
+
+/**
+ * Show a modal error window.
+ * NOTE: Function blocks until the window is closed by the user. Useful for reporting errors during
+ * startup, for more general usage the normal async window api should be preferred.
+ */
+void gap_window_modal_error(String message);

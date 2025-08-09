@@ -1374,9 +1374,7 @@ GapNativeWm gap_pal_native_wm(void) { return GapNativeWm_Win32; }
 
 uptr gap_pal_native_app_handle(const GapPal* pal) { return (uptr)pal->moduleInstance; }
 
-void gap_pal_modal_error(GapPal* pal, String message) {
-  (void)pal;
-
+void gap_pal_modal_error(String message) {
   // NOTE: Can be called in parallel with any of the other apis (and itself).
 
   enum { MessageMaxSize = 1024 };
