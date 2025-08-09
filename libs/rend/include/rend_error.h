@@ -3,9 +3,10 @@
 
 /**
  * Renderer errors.
- * NOTE: Errors are sorted by priority, higher errors will take precedence over lower onces.
+ * NOTE: Errors are sorted by priority, lower errors will take precedence over higher onces.
  */
 typedef enum {
+  RendErrorType_VulkanNotFound,
   RendErrorType_DeviceNotFound,
 
   RendErrorType_Count,

@@ -185,6 +185,10 @@ ecs_system_define(RendPlatformUpdateSys) {
     log_i("Setting up renderer");
 
     RvkLib* lib = rvk_lib_create(settings);
+    if (!lib) {
+      rend_error_report(world, RendErrorType_VulkanNotFound);
+      return;
+    }
 
     RvkDevice* device = rvk_device_create(lib);
     if (!device) {

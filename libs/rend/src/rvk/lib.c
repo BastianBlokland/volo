@@ -312,7 +312,7 @@ RvkLib* rvk_lib_create(const RendSettingsGlobalComp* set) {
   const u32 loaderVersion = rvk_loader_version(&loaderApi);
   if (!rvk_lib_api_version_supported(loaderVersion)) {
     log_e("Vulkan loader is too old; Driver update is required");
-    dynlib_destroy(&vulkanLib);
+    dynlib_destroy(vulkanLib);
     return null;
   }
 
