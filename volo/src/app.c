@@ -667,6 +667,7 @@ bool app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
 
   AssetManagerComp* assets = app_init_assets(world, invoc);
   if (UNLIKELY(!assets)) {
+    gap_window_modal_error(string_lit("No (valid) assets found"));
     return false; // Initialization failed.
   }
   GamePrefsComp* prefs      = prefs_init(world);
