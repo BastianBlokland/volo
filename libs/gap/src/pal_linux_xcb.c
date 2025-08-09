@@ -783,11 +783,11 @@ static XcbAtom pal_xcb_atom(Xcb* xcb, const String name) {
   return result;
 }
 
-static void pal_xcb_title_set(Xcb* xcb, const GapWindowId windowId, const String title) {
+static void pal_xcb_title_set(Xcb* xcb, const XcbWindow window, const String title) {
   xcb->change_property(
       xcb->con,
       0 /* XCB_PROP_MODE_REPLACE */,
-      (XcbWindow)windowId,
+      window,
       39 /* XCB_ATOM_WM_NAME */,
       xcb->atomUtf8String,
       sizeof(u8) * 8,
@@ -796,7 +796,7 @@ static void pal_xcb_title_set(Xcb* xcb, const GapWindowId windowId, const String
 }
 
 static void pal_xcb_create_window(
-    Xcb* xcb, const GapWindowId windowId, const GapVector size, const XcbEventMask eventMask) {
+    Xcb* xcb, const XcbWindow window, const GapVector size, const XcbEventMask eventMask) {
   const u32 valuesMask = 2 /* XCB_CW_BACK_PIXEL */ | 2048 /* XCB_CW_EVENT_MASK */;
   const u32 values[2]  = {
       xcb->screen->blackPixel,
@@ -805,7 +805,7 @@ static void pal_xcb_create_window(
   xcb->create_window(
       xcb->con,
       0 /* XCB_COPY_FROM_PARENT */,
-      (XcbWindow)windowId,
+      window,
       xcb->screen->root,
       0,
       0,
@@ -818,11 +818,11 @@ static void pal_xcb_create_window(
       values);
 }
 
-static void pal_xcb_register_delete_msg(Xcb* xcb, const GapWindowId windowId) {
+static void pal_xcb_register_delete_msg(Xcb* xcb, const XcbWindow window) {
   xcb->change_property(
       xcb->con,
       0 /* XCB_PROP_MODE_REPLACE */,
-      (XcbWindow)windowId,
+      window,
       xcb->atomProtoMsg,
       4 /* XCB_ATOM_ATOM */,
       sizeof(XcbAtom) * 8,
@@ -830,7 +830,7 @@ static void pal_xcb_register_delete_msg(Xcb* xcb, const GapWindowId windowId) {
       &xcb->atomDeleteMsg);
 }
 
-static void pal_xcb_set_window_min_size(Xcb* xcb, const GapWindowId windowId, const GapVector val) {
+static void pal_xcb_set_window_min_size(Xcb* xcb, const XcbWindow window, const GapVector val) {
   // Needs to match 'WinXSizeHints' from the XServer.
   struct SizeHints {
     u32 flags;
@@ -854,7 +854,7 @@ static void pal_xcb_set_window_min_size(Xcb* xcb, const GapWindowId windowId, co
   xcb->change_property(
       xcb->con,
       0 /* XCB_PROP_MODE_REPLACE */,
-      (XcbWindow)windowId,
+      window,
       40 /* XCB_ATOM_WM_NORMAL_HINTS */,
       41 /* XCB_ATOM_WM_SIZE_HINTS */,
       32,
@@ -2146,7 +2146,7 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
     4194304 /* XCB_EVENT_MASK_PROPERTY_CHANGE */;
   // clang-format on
 
-  pal_xcb_create_window(&pal->xcb, id, size, g_eventMask);
+  pal_xcb_create_window(&pal->xcb, (XcbWindow)id, size, g_eventMask);
   pal_xcb_register_delete_msg(&pal->xcb, (XcbWindow)id); // Register a custom delete message atom.
 
   *dynarray_push_t(&pal->windows, GapPalWindow) = (GapPalWindow){
@@ -2166,7 +2166,7 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
   gap_pal_window_icon_set(pal, id, GapIcon_Main);
 
   const GapVector sizeMin = gap_vector(pal_window_min_width, pal_window_min_height);
-  pal_xcb_set_window_min_size(&pal->xcb, id, sizeMin);
+  pal_xcb_set_window_min_size(&pal->xcb, (XcbWindow)id, sizeMin);
 
   pal->xcb.map_window(pal->xcb.con, (XcbWindow)id);
 
@@ -2226,7 +2226,7 @@ String gap_pal_window_input_text(const GapPal* pal, const GapWindowId windowId) 
 }
 
 void gap_pal_window_title_set(GapPal* pal, const GapWindowId windowId, const String title) {
-  pal_xcb_title_set(&pal->xcb, windowId, title);
+  pal_xcb_title_set(&pal->xcb, (XcbWindow)windowId, title);
 }
 
 void gap_pal_window_resize(
@@ -2442,12 +2442,15 @@ void gap_pal_modal_error(const String message) {
    */
   (void)message;
 
+  XcbWindow    window = sentinel_u32;
+  XcbGcContext gc     = sentinel_u32;
+
   Xcb xcb = {0};
   if (!pal_init_xcb(g_allocHeap, &xcb, PalXcbInitFlags_Optional | PalXcbInitFlags_Silent)) {
     return; // Xcb not available.
   }
-  const GapWindowId windowId   = xcb.generate_id(xcb.con);
-  const GapVector   windowSize = gap_vector(300, 200);
+  window                     = xcb.generate_id(xcb.con);
+  const GapVector windowSize = gap_vector(300, 200);
 
   // clang-format off
   const XcbEventMask g_windowEventMask =
@@ -2457,16 +2460,19 @@ void gap_pal_modal_error(const String message) {
     32768  /* XCB_EVENT_MASK_EXPOSURE */;
   // clang-format on
 
-  pal_xcb_create_window(&xcb, windowId, windowSize, g_windowEventMask);
-  pal_xcb_register_delete_msg(&xcb, windowId);
+  pal_xcb_create_window(&xcb, window, windowSize, g_windowEventMask);
+  pal_xcb_register_delete_msg(&xcb, window);
 
-  pal_xcb_title_set(&xcb, windowId, string_lit("Error"));
-  xcb.map_window(xcb.con, (XcbWindow)windowId);
+  pal_xcb_title_set(&xcb, window, string_lit("Error"));
+  xcb.map_window(xcb.con, window);
+
+  gc = xcb.generate_id(xcb.con);
+  xcb.create_gc(xcb.con, gc, window, 0, null);
 
   xcb.flush(xcb.con);
   const int error = xcb.connection_has_error(xcb.con);
   if (error) {
-    goto Close; // Failed to create a window.
+    goto Close; // Failed to initialize.
   }
 
   for (XcbGenericEvent* evt; (evt = xcb.wait_for_event(xcb.con)); free(evt)) {
@@ -2485,7 +2491,14 @@ void gap_pal_modal_error(const String message) {
   }
 
 Close:
-  xcb.destroy_window(xcb.con, (XcbWindow)windowId);
-  xcb.disconnect(xcb.con);
+  if (!sentinel_check(gc)) {
+    xcb.free_gc(xcb.con, gc);
+  }
+  if (!sentinel_check(window)) {
+    xcb.destroy_window(xcb.con, window);
+  }
+  if (xcb.con) {
+    xcb.disconnect(xcb.con);
+  }
   dynlib_destroy(xcb.lib);
 }
