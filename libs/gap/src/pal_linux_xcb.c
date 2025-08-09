@@ -794,6 +794,18 @@ static XcbAtom pal_xcb_atom(Xcb* xcb, const String name) {
   return result;
 }
 
+static void pal_xcb_title_set(Xcb* xcb, const GapWindowId windowId, const String title) {
+  xcb->change_property(
+      xcb->con,
+      0 /* XCB_PROP_MODE_REPLACE */,
+      (XcbWindow)windowId,
+      39 /* XCB_ATOM_WM_NAME */,
+      xcb->atomUtf8String,
+      sizeof(u8) * 8,
+      (u32)title.size,
+      title.ptr);
+}
+
 typedef enum {
   PalXcbInitFlags_None     = 0,
   PalXcbInitFlags_Optional = 1 << 0, // Do not crash if the xcb library is missing.
@@ -2204,15 +2216,7 @@ String gap_pal_window_input_text(const GapPal* pal, const GapWindowId windowId) 
 }
 
 void gap_pal_window_title_set(GapPal* pal, const GapWindowId windowId, const String title) {
-  pal->xcb.change_property(
-      pal->xcb.con,
-      0 /* XCB_PROP_MODE_REPLACE */,
-      (XcbWindow)windowId,
-      39 /* XCB_ATOM_WM_NAME */,
-      pal->xcb.atomUtf8String,
-      sizeof(u8) * 8,
-      (u32)title.size,
-      title.ptr);
+  pal_xcb_title_set(&pal->xcb, windowId, title);
 }
 
 void gap_pal_window_resize(
