@@ -1,3 +1,4 @@
+#include "ecs_utils.h"
 #include "ecs_world.h"
 #include "rend_error.h"
 
@@ -25,18 +26,10 @@ String rend_error_str(const RendErrorType type) {
   return g_errorMsgs[type];
 }
 
-bool rend_error(const RendErrorComp* comp) { return comp->type != RendErrorType_None; }
-void rend_error_clear(RendErrorComp* comp) { comp->type = RendErrorType_None; }
+void rend_error_clear(EcsWorld* world) {
+  ecs_utils_maybe_remove_t(world, ecs_world_global(world), RendErrorComp);
+}
 
 void rend_error_report(EcsWorld* world, const RendErrorType type) {
   ecs_world_add_t(world, ecs_world_global(world), RendErrorComp, .type = type);
-}
-
-void rend_error_report_direct(RendErrorComp* comp, const RendErrorType type) {
-  if (type >= comp->type) {
-    /**
-     * Higher priority error.
-     */
-    comp->type = type;
-  }
 }
