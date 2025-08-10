@@ -15,6 +15,11 @@ typedef struct {
 Version version_executable(void);
 
 /**
+ * Create a version object.
+ */
+Version version_create(u32 major, u32 minor, u32 patch, String label);
+
+/**
  * Lookup the version string for the given version.
  */
 String version_label(const Version*);

@@ -2,6 +2,7 @@
 #include "core_array.h"
 #include "core_dynstring.h"
 #include "core_format.h"
+#include "core_math.h"
 #include "core_version.h"
 
 static u32 version_label_length(const Version* v) {
@@ -12,6 +13,16 @@ static u32 version_label_length(const Version* v) {
 }
 
 Version version_executable(void);
+
+Version version_create(const u32 major, const u32 minor, const u32 patch, const String label) {
+  Version v = {
+      .major = major,
+      .minor = minor,
+      .patch = patch,
+  };
+  mem_cpy(array_mem(v.label), mem_slice(label, 0, math_min(label.size, array_elems(v.label))));
+  return v;
+}
 
 String version_label(const Version* v) { return mem_create(v->label, version_label_length(v)); }
 
