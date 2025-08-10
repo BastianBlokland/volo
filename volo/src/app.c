@@ -17,6 +17,7 @@
 #include "ecs_utils.h"
 #include "ecs_view.h"
 #include "ecs_world.h"
+#include "gap_error.h"
 #include "gap_register.h"
 #include "gap_vector.h"
 #include "gap_window.h"
@@ -434,7 +435,10 @@ static void app_action_bar_draw(UiCanvasComp* canvas, const AppActionContext* ct
   }
 }
 
-ecs_view_define(AppErrorView) { ecs_access_read(RendErrorComp); }
+ecs_view_define(AppErrorView) {
+  ecs_access_maybe_read(GapErrorComp);
+  ecs_access_maybe_read(RendErrorComp);
+}
 ecs_view_define(AppTimeView) { ecs_access_write(SceneTimeComp); }
 
 ecs_view_define(AppUpdateGlobalView) {
@@ -704,11 +708,26 @@ bool app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
 }
 
 AppEcsStatus app_ecs_status(EcsWorld* world) {
-  const RendErrorComp* rendErrorComp = ecs_utils_read_first_t(world, AppErrorView, RendErrorComp);
-  if (rendErrorComp) {
-    gap_window_modal_error(rend_error_str(rendErrorComp->type));
+  /**
+   * Detect any fatal errors.
+   */
+  EcsView*            errView    = ecs_world_view_t(world, AppErrorView);
+  EcsIterator*        errItr     = ecs_view_at(errView, ecs_world_global(world));
+  const GapErrorComp* errGapComp = ecs_view_read_t(errItr, GapErrorComp);
+  if (errGapComp) {
+    log_e("Fatal platform error", log_param("error", fmt_text(gap_error_str(errGapComp->type))));
+    gap_window_modal_error(gap_error_str(errGapComp->type));
     return AppEcsStatus_Failed;
   }
+  const RendErrorComp* errRendComp = ecs_view_read_t(errItr, RendErrorComp);
+  if (errRendComp) {
+    log_e("Fatal renderer error", log_param("error", fmt_text(rend_error_str(errRendComp->type))));
+    gap_window_modal_error(rend_error_str(errRendComp->type));
+    return AppEcsStatus_Failed;
+  }
+  /**
+   * Run until the last window has been closed.
+   */
   if (!ecs_utils_any(world, MainWindowView)) {
     return AppEcsStatus_Finished;
   }
