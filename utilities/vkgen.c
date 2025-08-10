@@ -1580,7 +1580,7 @@ static CliId g_optVerbose, g_optOutputPath, g_optSchemaHost, g_optSchemaUri;
 AppType app_cli_configure(CliApp* app) {
   cli_app_register_desc(app, g_appDesc);
 
-  g_optVerbose = cli_register_flag(app, 'v', string_lit("verbose"), CliOptionFlags_None);
+  g_optVerbose = cli_register_flag(app, '\0', string_lit("verbose"), CliOptionFlags_None);
 
   g_optOutputPath = cli_register_arg(app, string_lit("output-path"), CliOptionFlags_Required);
   cli_register_desc(

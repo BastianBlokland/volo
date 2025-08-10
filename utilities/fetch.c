@@ -482,7 +482,7 @@ AppType app_cli_configure(CliApp* app) {
   cli_register_desc(app, g_optConfigPath, string_lit("Path to a fetch config file."));
   cli_register_validator(app, g_optConfigPath, cli_validate_file_regular);
 
-  g_optVerbose = cli_register_flag(app, 'v', string_lit("verbose"), CliOptionFlags_None);
+  g_optVerbose = cli_register_flag(app, '\0', string_lit("verbose"), CliOptionFlags_None);
   g_optForce   = cli_register_flag(app, 'f', string_lit("force"), CliOptionFlags_None);
 
   return AppType_Console;

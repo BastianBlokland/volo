@@ -61,22 +61,22 @@ spec(help) {
 
   it("can write a help page for an app with flags") {
     CliApp*     app     = cli_app_create(g_allocHeap);
-    const CliId verbose = cli_register_flag(app, 'v', string_lit("verbose"), CliOptionFlags_None);
+    const CliId verbose = cli_register_flag(app, '\0', string_lit("verbose"), CliOptionFlags_None);
     const CliId count   = cli_register_flag(app, 'c', string_lit("count"), CliOptionFlags_Value);
 
     cli_register_desc(app, verbose, string_lit("Enable verbose logging"));
-    cli_register_desc(app, count, string_lit("How many interations to run"));
+    cli_register_desc(app, count, string_lit("How many iterations to run"));
 
     DynString string = dynstring_create_over(mem_stack(1024));
     cli_help_write(&string, app, CliHelpFlags_None);
 
     check_eq_string(
         dynstring_view(&string),
-        string_lit("usage: test_lib_cli [-v] [-c <value>]\n"
+        string_lit("usage: test_lib_cli [--verbose] [-c <value>]\n"
                    "\n"
                    "Flags:\n"
-                   " -v, --verbose            OPTIONAL  Enable verbose logging\n"
-                   " -c, --count              OPTIONAL  How many interations to run\n"));
+                   "     --verbose            OPTIONAL  Enable verbose logging\n"
+                   " -c, --count              OPTIONAL  How many iterations to run\n"));
 
     dynstring_destroy(&string);
     cli_app_destroy(app);
@@ -85,13 +85,13 @@ spec(help) {
   it("can write a help page for an app with an descriptions, arguments and flags") {
     CliApp* app = cli_app_create(g_allocHeap);
     cli_app_register_desc(app, string_lit("My app"));
-    const CliId verbose = cli_register_flag(app, 'v', string_lit("verbose"), CliOptionFlags_None);
+    const CliId verbose = cli_register_flag(app, '\0', string_lit("verbose"), CliOptionFlags_None);
     const CliId count   = cli_register_flag(app, 'c', string_lit("count"), CliOptionFlags_Value);
     const CliId src     = cli_register_arg(app, string_lit("src-path"), CliOptionFlags_Required);
     const CliId dst     = cli_register_arg(app, string_lit("dst-path"), CliOptionFlags_None);
 
     cli_register_desc(app, verbose, string_lit("Enable verbose logging"));
-    cli_register_desc(app, count, string_lit("How many interations to run"));
+    cli_register_desc(app, count, string_lit("How many iterations to run"));
     cli_register_desc(app, src, string_lit("Path to copy from"));
     cli_register_desc(app, dst, string_lit("Path to copy to"));
 
@@ -100,7 +100,7 @@ spec(help) {
 
     check_eq_string(
         dynstring_view(&string),
-        string_lit("usage: test_lib_cli [-v] [-c <value>] <src-path> [<dst-path>]\n"
+        string_lit("usage: test_lib_cli [--verbose] [-c <value>] <src-path> [<dst-path>]\n"
                    "\n"
                    "My app\n"
                    "\n"
@@ -109,8 +109,8 @@ spec(help) {
                    " dst-path                 OPTIONAL  Path to copy to\n"
                    "\n"
                    "Flags:\n"
-                   " -v, --verbose            OPTIONAL  Enable verbose logging\n"
-                   " -c, --count              OPTIONAL  How many interations to run\n"));
+                   "     --verbose            OPTIONAL  Enable verbose logging\n"
+                   " -c, --count              OPTIONAL  How many iterations to run\n"));
 
     dynstring_destroy(&string);
     cli_app_destroy(app);
