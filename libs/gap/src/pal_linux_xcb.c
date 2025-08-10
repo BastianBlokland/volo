@@ -422,7 +422,7 @@ typedef struct {
   XcbCookie               (SYS_DECL* close_font)(XcbConnection*, XcbFont);
   XcbCookie               (SYS_DECL* query_text_extents)(XcbConnection*, XcbFont, u32 textLen, const u16* textData);
   XcbTextExtentsData*     (SYS_DECL* query_text_extents_reply)(XcbConnection*, XcbCookie, XcbGenericError**);
-  XcbCookie               (SYS_DECL* image_text_8)(XcbConnection*, u8 textLen, XcbDrawable, XcbGcContext, u16 x, u16 y, const char* textData);
+  XcbCookie               (SYS_DECL* image_text_16)(XcbConnection*, u8 textLen, XcbDrawable, XcbGcContext, i16 x, i16 y, const u16* textData);
   XcbGenericEvent*        (SYS_DECL* poll_for_event)(XcbConnection*);
   XcbGenericEvent*        (SYS_DECL* wait_for_event)(XcbConnection*);
   XcbScreenItr            (SYS_DECL* setup_roots_iterator)(const XcbSetup*);
@@ -882,16 +882,16 @@ static void pal_xcb_set_window_min_size(Xcb* xcb, const XcbWindow window, const 
       &newHints);
 }
 
-static GapVector pal_xcb_measure_text(Xcb* xcb, const XcbFont font, String msg) {
+static GapVector pal_xcb_measure_text(Xcb* xcb, const XcbFont font, String text) {
   GapVector result = gap_vector(0, 0);
-  if (string_is_empty(msg)) {
+  if (string_is_empty(text)) {
     return result;
   }
-  u16     charData[1024];
+  u16     charData[u8_max];
   u32     charCount = 0;
   Unicode codePoint;
-  while (!string_is_empty(msg)) {
-    msg = utf8_cp_read(msg, &codePoint);
+  while (!string_is_empty(text)) {
+    text = utf8_cp_read(text, &codePoint);
     if (!codePoint) {
       break;
     }
@@ -901,7 +901,7 @@ static GapVector pal_xcb_measure_text(Xcb* xcb, const XcbFont font, String msg) 
     if (charCount == array_elems(charData)) {
       break; // Maximum size exceeded.
     }
-    charData[charCount++] = (u16)codePoint;
+    mem_write_be_u16(mem_var(charData[charCount++]), (u16)codePoint);
   }
   XcbGenericError*    err = null;
   XcbTextExtentsData* data =
@@ -914,6 +914,28 @@ static GapVector pal_xcb_measure_text(Xcb* xcb, const XcbFont font, String msg) 
 
   free(data);
   return result;
+}
+
+static void pal_xcb_draw_text(
+    Xcb* xcb, const XcbWindow window, const XcbGcContext gc, const GapVector pos, String text) {
+  u16     charData[u8_max];
+  u32     charCount = 0;
+  Unicode codePoint;
+  while (!string_is_empty(text)) {
+    text = utf8_cp_read(text, &codePoint);
+    if (!codePoint) {
+      break;
+    }
+    if (codePoint > u16_max) {
+      continue; // Code-point cannot be represented as utf-16.
+    }
+    if (charCount == array_elems(charData)) {
+      break; // Maximum size exceeded.
+    }
+    mem_write_be_u16(mem_var(charData[charCount++]), (u16)codePoint);
+  }
+  xcb->image_text_16(xcb->con, (u8)charCount, window, gc, pos.x, pos.y, charData);
+  xcb->flush(xcb->con);
 }
 
 typedef enum {
@@ -979,7 +1001,7 @@ static bool pal_init_xcb(Allocator* alloc, Xcb* out, const PalXcbInitFlags flags
   XCB_LOAD_SYM(close_font);
   XCB_LOAD_SYM(query_text_extents);
   XCB_LOAD_SYM(query_text_extents_reply);
-  XCB_LOAD_SYM(image_text_8);
+  XCB_LOAD_SYM(image_text_16);
   XCB_LOAD_SYM(poll_for_event);
   XCB_LOAD_SYM(wait_for_event);
   XCB_LOAD_SYM(put_image);
@@ -2601,11 +2623,9 @@ void gap_pal_modal_error(String message) {
     } break;
 
     case 12 /* XCB_EXPOSE */: {
-      const u8  msgLen = (u8)math_min(message.size, u8_max);
-      const u16 x      = (u16)(windowSizeHalf.width - textSizeHalf.width);
-      const u16 y      = (u16)(windowSizeHalf.height + textSizeHalf.height);
-      xcb.image_text_8(xcb.con, msgLen, window, gc, x, y, message.ptr);
-      xcb.flush(xcb.con);
+      const GapVector pos = gap_vector(
+          windowSizeHalf.width - textSizeHalf.width, windowSizeHalf.height + textSizeHalf.height);
+      pal_xcb_draw_text(&xcb, window, gc, pos, message);
     } break;
     }
   }
