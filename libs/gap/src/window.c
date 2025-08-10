@@ -4,6 +4,7 @@
 #include "core_sentinel.h"
 #include "core_signal.h"
 #include "core_thread.h"
+#include "core_version.h"
 #include "ecs_utils.h"
 #include "ecs_view.h"
 #include "ecs_world.h"
@@ -62,8 +63,9 @@ static void ecs_destruct_window_comp(void* data) {
 
 static String window_default_title_scratch(const GapWindowComp* window) {
   return fmt_write_scratch(
-      "{} (pid: {}, wid: {})",
+      "{} v{} (pid: {}, wid: {})",
       fmt_text(path_stem(g_pathExecutable)),
+      fmt_text(version_str_scratch(g_versionExecutable)),
       fmt_int(g_threadPid),
       fmt_int(window->id));
 }
