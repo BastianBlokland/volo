@@ -1,1 +1,36 @@
+// -------------------------------------------------------------------------------------------------
+// Win32 resource file.
+// -------------------------------------------------------------------------------------------------
+
+#include <Windows.h>
+
 IDI_ICON1 ICON "app.ico"
+
+VS_VERSION_INFO VERSIONINFO
+  FILEVERSION     0, 0, 1, 0
+  PRODUCTVERSION  0, 0, 1, 0
+  FILEFLAGSMASK   0x3fL
+  FILEFLAGS       0
+  FILEOS          VOS_NT_WINDOWS32
+  FILETYPE        VFT_APP
+  FILESUBTYPE     VFT2_UNKNOWN
+BEGIN
+  BLOCK "VarFileInfo"
+  BEGIN
+    VALUE "Translation", 0x409, 1200
+  END
+  BLOCK "StringFileInfo"
+  BEGIN
+    BLOCK "040904b0"
+    BEGIN
+      VALUE "CompanyName",      "BastianBlokland\0"
+      VALUE "FileDescription",  "Volo Game\0"
+      VALUE "FileVersion",      "0.0.1\0"
+      VALUE "InternalName",     "volo\0"
+      VALUE "LegalCopyright",   "https://github.com/BastianBlokland/volo/blob/master/LICENSE\0"
+      VALUE "OriginalFilename", "volo.exe\0"
+      VALUE "ProductName",      "Volo\0"
+      VALUE "ProductVersion",   "0.0.1\0"
+    END
+  END
+END
