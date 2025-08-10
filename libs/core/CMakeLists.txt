@@ -77,7 +77,7 @@ if(${VOLO_PLATFORM} STREQUAL "linux")
   target_link_libraries(lib_core PRIVATE m) # Math library.
 endif()
 
-configure_file("src/version_internal.in" "${CMAKE_CURRENT_LIST_DIR}/src/version_internal.h")
+configure_file("src/version_internal.h.in" "${CMAKE_CURRENT_LIST_DIR}/src/version_internal.h")
 
 add_executable(test_lib_core
   test/config.c
