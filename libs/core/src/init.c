@@ -8,6 +8,7 @@ static THREAD_LOCAL bool g_initializedThread;
 
 void core_init(void) {
   if (!g_initalized) {
+    version_init();
     thread_init();
     float_init();
   }

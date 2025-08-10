@@ -9,10 +9,7 @@ typedef struct {
   u8  label[52]; // Unused characters are zero filled.
 } Version;
 
-/**
- * Query the version of the running executable.
- */
-Version version_executable(void);
+extern const Version* g_versionExecutable;
 
 /**
  * Create a version object.

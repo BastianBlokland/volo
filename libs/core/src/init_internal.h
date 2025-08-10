@@ -18,6 +18,7 @@ void thread_init_late(void);
 void thread_init(void);
 void time_init(void);
 void tty_init(void);
+void version_init(void);
 
 /**
  * Thread initialization routines.

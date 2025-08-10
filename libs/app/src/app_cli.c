@@ -97,8 +97,8 @@ int SYS_DECL main(const int argc, const char** argv) {
     goto exit;
   }
   if (cli_parse_provided(invoc, optVer)) {
-    const Version ver = version_executable();
-    file_write_sync(g_fileStdOut, fmt_write_scratch("v{}\n", fmt_text(version_str_scratch(&ver))));
+    const String exeVerStr = version_str_scratch(g_versionExecutable);
+    file_write_sync(g_fileStdOut, fmt_write_scratch("v{}\n", fmt_text(exeVerStr)));
     goto exit;
   }
   if (cli_parse_provided(invoc, optHelp)) {

@@ -14,8 +14,12 @@ static u32 version_label_length(const Version* v) {
   return count;
 }
 
-Version version_executable(void) {
-  return version_create(VOLO_VER_MAJOR, VOLO_VER_MINOR, VOLO_VER_PATCH, VOLO_VER_LABEL);
+const Version* g_versionExecutable;
+
+void version_init() {
+  static Version g_exeVer;
+  g_exeVer = version_create(VOLO_VER_MAJOR, VOLO_VER_MINOR, VOLO_VER_PATCH, VOLO_VER_LABEL);
+  g_versionExecutable = &g_exeVer;
 }
 
 Version version_create(const u32 major, const u32 minor, const u32 patch, const String label) {
