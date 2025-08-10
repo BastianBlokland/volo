@@ -1799,25 +1799,30 @@ static void pal_event_clip_paste_notify(GapPal* pal, const GapWindowId windowId)
 }
 
 GapPal* gap_pal_create(Allocator* alloc) {
+  Xcb xcb = {0};
+  if (!pal_init_xcb(alloc, &xcb, PalXcbInitFlags_None)) {
+    return null; // Failed to initialize xcb.
+  }
+
+  MAYBE_UNUSED const GapVector screenSize =
+      gap_vector(xcb.screen->widthInPixels, xcb.screen->heightInPixels);
+
+  log_i(
+      "Xcb initialized",
+      log_param("fd", fmt_int(xcb.get_file_descriptor(xcb.con))),
+      log_param("max-req-length", fmt_size(xcb.maxRequestLen)),
+      log_param("screen-num", fmt_int(xcb.screenNum)),
+      log_param("screen-size", gap_vector_fmt(screenSize)));
+
   GapPal* pal = alloc_alloc_t(alloc, GapPal);
 
   *pal = (GapPal){
       .alloc    = alloc,
+      .xcb      = xcb,
       .windows  = dynarray_create_t(alloc, GapPalWindow, 1),
       .displays = dynarray_create_t(alloc, GapPalDisplay, 4),
   };
 
-  if (pal_init_xcb(alloc, &pal->xcb, PalXcbInitFlags_None)) {
-    MAYBE_UNUSED const GapVector screenSize =
-        gap_vector(pal->xcb.screen->widthInPixels, pal->xcb.screen->heightInPixels);
-
-    log_i(
-        "Xcb initialized",
-        log_param("fd", fmt_int(pal->xcb.get_file_descriptor(pal->xcb.con))),
-        log_param("max-req-length", fmt_size(pal->xcb.maxRequestLen)),
-        log_param("screen-num", fmt_int(pal->xcb.screenNum)),
-        log_param("screen-size", gap_vector_fmt(screenSize)));
-  }
   pal_init_extensions(pal);
 
   if (pal->extensions & GapPalXcbExtFlags_Xkb) {
