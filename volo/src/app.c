@@ -715,11 +715,13 @@ AppEcsStatus app_ecs_status(EcsWorld* world) {
   EcsIterator*        errItr     = ecs_view_at(errView, ecs_world_global(world));
   const GapErrorComp* errGapComp = ecs_view_read_t(errItr, GapErrorComp);
   if (errGapComp) {
+    log_e("Fatal platform error", log_param("error", fmt_text(gap_error_str(errGapComp->type))));
     gap_window_modal_error(gap_error_str(errGapComp->type));
     return AppEcsStatus_Failed;
   }
   const RendErrorComp* errRendComp = ecs_view_read_t(errItr, RendErrorComp);
   if (errRendComp) {
+    log_e("Fatal renderer error", log_param("error", fmt_text(rend_error_str(errRendComp->type))));
     gap_window_modal_error(rend_error_str(errRendComp->type));
     return AppEcsStatus_Failed;
   }
