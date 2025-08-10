@@ -6,6 +6,7 @@
 * text eol=lf
 
 # Binary files.
+*.ico binary
 *.jpg binary
 *.png binary
 *.tga binary
