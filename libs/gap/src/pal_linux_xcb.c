@@ -374,6 +374,8 @@ typedef struct {
           atomWmStateFullscreen,
           atomWmStateModal,
           atomWmStateBypassCompositor,
+          atomWmWindowType,
+          atomWmWindowTypeDialog,
           atomClipboard,
           atomVoloClipboard,
           atomTargets,
@@ -1017,6 +1019,8 @@ static bool pal_init_xcb(Allocator* alloc, Xcb* out, const PalXcbInitFlags flags
   out->atomWmStateFullscreen       = pal_xcb_atom(out, string_lit("_NET_WM_STATE_FULLSCREEN"));
   out->atomWmStateModal            = pal_xcb_atom(out, string_lit("_NET_WM_STATE_MODAL"));
   out->atomWmStateBypassCompositor = pal_xcb_atom(out, string_lit("_NET_WM_BYPASS_COMPOSITOR"));
+  out->atomWmWindowType            = pal_xcb_atom(out, string_lit("_NET_WM_WINDOW_TYPE"));
+  out->atomWmWindowTypeDialog      = pal_xcb_atom(out, string_lit("_NET_WM_WINDOW_TYPE_DIALOG"));
   out->atomClipboard               = pal_xcb_atom(out, string_lit("CLIPBOARD"));
   out->atomVoloClipboard           = pal_xcb_atom(out, string_lit("VOLO_CLIPBOARD"));
   out->atomTargets                 = pal_xcb_atom(out, string_lit("TARGETS"));
@@ -1064,6 +1068,18 @@ static void pal_xcb_bypass_compositor(Xcb* xcb, const GapWindowId windowId, cons
       sizeof(u32) * 8,
       1,
       (const char*)&value);
+}
+
+static void pal_xcb_set_window_type(Xcb* xcb, const GapWindowId windowId, const XcbAtom type) {
+  xcb->change_property(
+      xcb->con,
+      0 /* XCB_PROP_MODE_REPLACE */,
+      (XcbWindow)windowId,
+      xcb->atomWmWindowType,
+      6 /* XCB_ATOM_CARDINAL */,
+      sizeof(u32) * 8,
+      1,
+      (const char*)&type);
 }
 
 static void pal_xcb_cursor_grab(Xcb* xcb, const GapWindowId windowId) {
@@ -2536,6 +2552,7 @@ void gap_pal_modal_error(String message) {
   window = xcb.generate_id(xcb.con);
   pal_xcb_create_window(&xcb, window, windowSize, g_windowEventMask);
   pal_xcb_wm_state_update(&xcb, window, xcb.atomWmStateModal, true);
+  pal_xcb_set_window_type(&xcb, window, xcb.atomWmWindowTypeDialog);
   pal_xcb_set_window_min_size(&xcb, window, textSize);
   pal_xcb_title_set(&xcb, window, string_lit("Error"));
   xcb.map_window(xcb.con, window);
