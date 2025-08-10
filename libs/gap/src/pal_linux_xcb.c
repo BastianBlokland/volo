@@ -2510,7 +2510,7 @@ void gap_pal_modal_error(String message) {
   }
 
   font                  = xcb.generate_id(xcb.con);
-  const String fontName = string_lit("-misc-fixed-medium-*");
+  const String fontName = string_lit("-*-fixed-bold-*");
   xcb.open_font(xcb.con, font, (u16)fontName.size, fontName.ptr);
 
   const GapVector textSize     = pal_xcb_measure_text(&xcb, font, message);
