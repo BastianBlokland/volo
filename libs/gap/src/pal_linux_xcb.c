@@ -404,6 +404,7 @@ typedef struct {
   XcbCookie               (SYS_DECL* warp_pointer)(XcbConnection*, XcbWindow srcWindow, XcbWindow dstWindow, i16 srcX, i16 srcY, u16 srcWidth, u16 srcHeight, i16 dstX, i16 dstY);
   XcbCookie               (SYS_DECL* open_font)(XcbConnection*, XcbFont, u16 nameLen, const char* nameData);
   XcbCookie               (SYS_DECL* close_font)(XcbConnection*, XcbFont);
+  XcbCookie               (SYS_DECL* image_text_8)(XcbConnection*, u8 textLen, XcbDrawable, XcbGcContext, u16 x, u16 y, const char* textData);
   XcbGenericEvent*        (SYS_DECL* poll_for_event)(XcbConnection*);
   XcbGenericEvent*        (SYS_DECL* wait_for_event)(XcbConnection*);
   XcbPointerData*         (SYS_DECL* query_pointer_reply)(XcbConnection*, XcbCookie, XcbGenericError**);
@@ -926,6 +927,7 @@ static bool pal_init_xcb(Allocator* alloc, Xcb* out, const PalXcbInitFlags flags
   XCB_LOAD_SYM(map_window);
   XCB_LOAD_SYM(open_font);
   XCB_LOAD_SYM(close_font);
+  XCB_LOAD_SYM(image_text_8);
   XCB_LOAD_SYM(poll_for_event);
   XCB_LOAD_SYM(wait_for_event);
   XCB_LOAD_SYM(put_image);
@@ -2445,8 +2447,6 @@ void gap_pal_modal_error(const String message) {
    * self-contained as possible.
    * NOTE: We should avoid crashing / logging in this function (silent return is preferred).
    */
-  (void)message;
-
   XcbWindow    window = sentinel_u32;
   XcbGcContext gc     = sentinel_u32;
   XcbFont      font   = sentinel_u32;
@@ -2464,24 +2464,24 @@ void gap_pal_modal_error(const String message) {
 
   // clang-format off
   const XcbEventMask g_windowEventMask =
-    4       /* XCB_EVENT_MASK_BUTTON_PRESS */     |
-    8       /* XCB_EVENT_MASK_BUTTON_RELEASE */   |
-    64      /* XCB_EVENT_MASK_POINTER_MOTION */   |
-    32768  /* XCB_EVENT_MASK_EXPOSURE */;
+    2     /* XCB_EVENT_MASK_KEY_RELEASE */ |
+    32768 /* XCB_EVENT_MASK_EXPOSURE */;
   // clang-format on
 
   window = xcb.generate_id(xcb.con);
   pal_xcb_create_window(&xcb, window, windowSize, g_windowEventMask);
-  pal_xcb_register_delete_msg(&xcb, window);
-
   pal_xcb_title_set(&xcb, window, string_lit("Error"));
   xcb.map_window(xcb.con, window);
 
+  // clang-format off
   const u32 gcMask =
-      4 /* XCB_GC_FOREGROUND */ | 8 /* XCB_GC_BACKGROUND */ | 16384 /* XCB_GC_FONT */;
+      4     /* XCB_GC_FOREGROUND */ |
+      8     /* XCB_GC_BACKGROUND */ |
+      16384 /* XCB_GC_FONT */;
+  // clang-format on
   const u32 gcValues[] = {
-      xcb.screen->blackPixel,
       xcb.screen->whitePixel,
+      xcb.screen->blackPixel,
       font,
   };
   gc = xcb.generate_id(xcb.con);
@@ -2502,14 +2502,18 @@ void gap_pal_modal_error(const String message) {
       goto Close; // An error was returned from the x-server.
     }
 
-    case 32768 /* XCB_EVENT_MASK_EXPOSURE */:
-      break;
-
-    case 33 /* XCB_CLIENT_MESSAGE */: {
-      const XcbClientMessageEvent* clientMsg = (const void*)evt;
-      if (clientMsg->data[0] == xcb.atomDeleteMsg) {
+    case 3: /* XCB_KEY_RELEASE */ {
+      const XcbKeyEvent* releaseMsg = (const void*)evt;
+      const GapKey       key        = pal_xcb_translate_key(releaseMsg->detail);
+      if (key == GapKey_Escape || key == GapKey_Return) {
         goto Close;
       }
+    } break;
+
+    case 12 /* XCB_EXPOSE */: {
+      const u8 msgLen = (u8)math_min(message.size, u8_max);
+      xcb.image_text_8(xcb.con, msgLen, window, gc, 0, 25, message.ptr);
+      xcb.flush(xcb.con);
     } break;
     }
   }
