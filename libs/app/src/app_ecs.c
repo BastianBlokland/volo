@@ -56,8 +56,8 @@ i32 app_cli_run(MAYBE_UNUSED const CliApp* app, const CliInvocation* invoc) {
 
   log_i(
       "Application startup",
-      log_param("version", fmt_text(version_str_scratch(g_versionExecutable))),
       log_param("pid", fmt_int(g_threadPid)),
+      log_param("version", fmt_text(version_str_scratch(g_versionExecutable))),
       log_param("executable", fmt_path(g_pathExecutable)),
       log_param("working-dir", fmt_path(g_pathWorkingDir)));
 
