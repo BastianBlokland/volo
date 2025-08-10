@@ -3,6 +3,7 @@
 #include "core_dynlib.h"
 #include "core_dynstring.h"
 #include "core_math.h"
+#include "core_utf8.h"
 #include "log_logger.h"
 
 #include "pal_internal.h"
@@ -44,6 +45,7 @@ typedef u32                    XcbGcContext;
 typedef u32                    XcbPictFormat;
 typedef u32                    XcbPicture;
 typedef u32                    XcbPixmap;
+typedef u32                    XcbFont;
 typedef u32                    XcbTimestamp;
 typedef u32                    XcbVisualId;
 typedef u32                    XcbWindow;
@@ -103,6 +105,16 @@ typedef struct {
   u32     valueLen;
   u8      pad0[12];
 } XcbPropertyData;
+
+typedef struct {
+  u8  responseType, drawDirection;
+  u16 sequence;
+  u32 length;
+  i16 fontAscent, fontDescent;
+  i16 overallAscent, overallDescent;
+  i32 overallWidth;
+  i32 overallLeft, overallRight;
+} XcbTextExtentsData;
 
 typedef struct {
   u8  responseType, pad0;
@@ -360,7 +372,10 @@ typedef struct {
           atomWmIcon,
           atomWmState,
           atomWmStateFullscreen,
+          atomWmStateModal,
           atomWmStateBypassCompositor,
+          atomWmWindowType,
+          atomWmWindowTypeDialog,
           atomClipboard,
           atomVoloClipboard,
           atomTargets,
@@ -376,7 +391,9 @@ typedef struct {
   u32                     (SYS_DECL* generate_id)(XcbConnection*);
   u32                     (SYS_DECL* get_maximum_request_length)(XcbConnection*);
   void                    (SYS_DECL* disconnect)(XcbConnection*);
+  XcbCookie               (SYS_DECL* get_property)(XcbConnection*, u8 del, XcbWindow window, XcbAtom property, XcbAtom type, u32 longOffset, u32 longLength);
   void*                   (SYS_DECL* get_property_value)(const XcbPropertyData*);
+  XcbPropertyData*        (SYS_DECL* get_property_reply)(XcbConnection*, XcbCookie, XcbGenericError**);
   XcbAtomData*            (SYS_DECL* intern_atom_reply)(XcbConnection*, XcbCookie, XcbGenericError**);
   XcbConnection*          (SYS_DECL* connect)(const char* displayName, int* screenOut);
   XcbCookie               (SYS_DECL* change_property)(XcbConnection*, u8 mode, XcbWindow window, XcbAtom property, XcbAtom type, u8 format, u32 dataLen, const void* data);
@@ -391,19 +408,23 @@ typedef struct {
   XcbCookie               (SYS_DECL* free_cursor)(XcbConnection*, XcbCursor);
   XcbCookie               (SYS_DECL* free_gc)(XcbConnection*, XcbGcContext);
   XcbCookie               (SYS_DECL* free_pixmap)(XcbConnection*, XcbPixmap);
-  XcbCookie               (SYS_DECL* get_property)(XcbConnection*, u8 del, XcbWindow window, XcbAtom property, XcbAtom type, u32 longOffset, u32 longLength);
   XcbCookie               (SYS_DECL* grab_pointer)(XcbConnection*, u8 ownerEvents, XcbWindow grabWindow, u16 eventMask, u8 pointerMode, u8 keyboardMode, XcbWindow confineTo, XcbCursor cursor, XcbTimestamp);
   XcbCookie               (SYS_DECL* intern_atom)(XcbConnection*, u8 onlyIfExists, u16 nameLen, const char* name);
   XcbCookie               (SYS_DECL* map_window)(XcbConnection*, XcbWindow);
   XcbCookie               (SYS_DECL* put_image)(XcbConnection*, u8 format, XcbDrawable, XcbGcContext, u16 width, u16 height, i16 dstX, i16 dstY, u8 leftPad, u8 depth, u32 dataLen, const u8* data);
   XcbCookie               (SYS_DECL* query_pointer)(XcbConnection*, XcbWindow);
+  XcbPointerData*         (SYS_DECL* query_pointer_reply)(XcbConnection*, XcbCookie, XcbGenericError**);
   XcbCookie               (SYS_DECL* send_event)(XcbConnection*, u8 propagate, XcbWindow destination, u32 eventMask, const char* event);
   XcbCookie               (SYS_DECL* set_selection_owner)(XcbConnection*, XcbWindow owner, XcbAtom selection, XcbTimestamp);
   XcbCookie               (SYS_DECL* ungrab_pointer)(XcbConnection*, XcbTimestamp);
   XcbCookie               (SYS_DECL* warp_pointer)(XcbConnection*, XcbWindow srcWindow, XcbWindow dstWindow, i16 srcX, i16 srcY, u16 srcWidth, u16 srcHeight, i16 dstX, i16 dstY);
+  XcbCookie               (SYS_DECL* open_font)(XcbConnection*, XcbFont, u16 nameLen, const char* nameData);
+  XcbCookie               (SYS_DECL* close_font)(XcbConnection*, XcbFont);
+  XcbCookie               (SYS_DECL* query_text_extents)(XcbConnection*, XcbFont, u32 textLen, const u16* textData);
+  XcbTextExtentsData*     (SYS_DECL* query_text_extents_reply)(XcbConnection*, XcbCookie, XcbGenericError**);
+  XcbCookie               (SYS_DECL* image_text_16)(XcbConnection*, u8 textLen, XcbDrawable, XcbGcContext, i16 x, i16 y, const u16* textData);
   XcbGenericEvent*        (SYS_DECL* poll_for_event)(XcbConnection*);
-  XcbPointerData*         (SYS_DECL* query_pointer_reply)(XcbConnection*, XcbCookie, XcbGenericError**);
-  XcbPropertyData*        (SYS_DECL* get_property_reply)(XcbConnection*, XcbCookie, XcbGenericError**);
+  XcbGenericEvent*        (SYS_DECL* wait_for_event)(XcbConnection*);
   XcbScreenItr            (SYS_DECL* setup_roots_iterator)(const XcbSetup*);
   // clang-format on
 } Xcb;
@@ -538,18 +559,6 @@ struct sGapPal {
   Mem       icons[GapIcon_Count];
   XcbCursor cursors[GapCursor_Count];
 };
-
-// clang-format off
-static const XcbEventMask g_xcbWindowEventMask =
-  1       /* XCB_EVENT_MASK_KEY_PRESS */        |
-  2       /* XCB_EVENT_MASK_KEY_RELEASE */      |
-  4       /* XCB_EVENT_MASK_BUTTON_PRESS */     |
-  8       /* XCB_EVENT_MASK_BUTTON_RELEASE */   |
-  64      /* XCB_EVENT_MASK_POINTER_MOTION */   |
-  131072  /* XCB_EVENT_MASK_STRUCTURE_NOTIFY */ |
-  2097152 /* XCB_EVENT_MASK_FOCUS_CHANGE */     |
-  4194304 /* XCB_EVENT_MASK_PROPERTY_CHANGE */;
-// clang-format on
 
 static GapPalWindow* pal_maybe_window(GapPal* pal, const GapWindowId id) {
   dynarray_for_t(&pal->windows, GapPalWindow, window) {
@@ -782,9 +791,9 @@ static GapKey pal_xcb_translate_key(const XkbKeycode key) {
  * Synchonously retrieve an xcb atom by name.
  * Xcb atoms are named tokens that are used in the x11 specification.
  */
-static XcbAtom pal_xcb_atom(GapPal* pal, const String name) {
-  XcbGenericError* err = null;
-  XcbAtomData* data    = xcb_call(pal->xcb.con, pal->xcb.intern_atom, &err, 0, name.size, name.ptr);
+static XcbAtom pal_xcb_atom(Xcb* xcb, const String name) {
+  XcbGenericError* err  = null;
+  XcbAtomData*     data = xcb_call(xcb->con, xcb->intern_atom, &err, 0, name.size, name.ptr);
   if (UNLIKELY(err)) {
     diag_crash_msg(
         "Failed to retrieve Xcb atom: {}, err: {}", fmt_text(name), fmt_int(err->errorCode));
@@ -794,11 +803,155 @@ static XcbAtom pal_xcb_atom(GapPal* pal, const String name) {
   return result;
 }
 
-static void pal_init_xcb(GapPal* pal, Xcb* out) {
-  DynLibResult loadRes = dynlib_load(pal->alloc, string_lit("libxcb.so"), &out->lib);
+static void pal_xcb_title_set(Xcb* xcb, const XcbWindow window, const String title) {
+  xcb->change_property(
+      xcb->con,
+      0 /* XCB_PROP_MODE_REPLACE */,
+      window,
+      39 /* XCB_ATOM_WM_NAME */,
+      xcb->atomUtf8String,
+      sizeof(u8) * 8,
+      (u32)title.size,
+      title.ptr);
+}
+
+static void pal_xcb_create_window(
+    Xcb* xcb, const XcbWindow window, const GapVector size, const XcbEventMask eventMask) {
+  const u32 valuesMask = 2 /* XCB_CW_BACK_PIXEL */ | 2048 /* XCB_CW_EVENT_MASK */;
+  const u32 values[2]  = {
+      xcb->screen->blackPixel,
+      eventMask,
+  };
+  xcb->create_window(
+      xcb->con,
+      0 /* XCB_COPY_FROM_PARENT */,
+      window,
+      xcb->screen->root,
+      0,
+      0,
+      (u16)size.width,
+      (u16)size.height,
+      0,
+      1 /* XCB_WINDOW_CLASS_INPUT_OUTPUT */,
+      xcb->screen->rootVisual,
+      valuesMask,
+      values);
+}
+
+static void pal_xcb_register_delete_msg(Xcb* xcb, const XcbWindow window) {
+  xcb->change_property(
+      xcb->con,
+      0 /* XCB_PROP_MODE_REPLACE */,
+      window,
+      xcb->atomProtoMsg,
+      4 /* XCB_ATOM_ATOM */,
+      sizeof(XcbAtom) * 8,
+      1,
+      &xcb->atomDeleteMsg);
+}
+
+static void pal_xcb_set_window_min_size(Xcb* xcb, const XcbWindow window, const GapVector val) {
+  // Needs to match 'WinXSizeHints' from the XServer.
+  struct SizeHints {
+    u32 flags;
+    i32 x, y;
+    i32 width, height;
+    i32 minWidth, minHeight;
+    i32 maxWidth, maxHeight;
+    i32 widthInc, heightInc;
+    i32 minAspectNum, minAspectDen;
+    i32 maxAspectNum, maxAspectDen;
+    i32 baseWidth, baseHeight;
+    u32 winGravity;
+  };
+
+  const struct SizeHints newHints = {
+      .flags     = 1 << 4 /* PMinSize */,
+      .minWidth  = val.width,
+      .minHeight = val.height,
+  };
+
+  xcb->change_property(
+      xcb->con,
+      0 /* XCB_PROP_MODE_REPLACE */,
+      window,
+      40 /* XCB_ATOM_WM_NORMAL_HINTS */,
+      41 /* XCB_ATOM_WM_SIZE_HINTS */,
+      32,
+      bytes_to_words(sizeof(newHints)),
+      &newHints);
+}
+
+static GapVector pal_xcb_measure_text(Xcb* xcb, const XcbFont font, String text) {
+  GapVector result = gap_vector(0, 0);
+  if (string_is_empty(text)) {
+    return result;
+  }
+  u16     charData[u8_max];
+  u32     charCount = 0;
+  Unicode codePoint;
+  while (!string_is_empty(text)) {
+    text = utf8_cp_read(text, &codePoint);
+    if (!codePoint) {
+      break;
+    }
+    if (codePoint > u16_max) {
+      continue; // Code-point cannot be represented as utf-16.
+    }
+    if (charCount == array_elems(charData)) {
+      break; // Maximum size exceeded.
+    }
+    mem_write_be_u16(mem_var(charData[charCount++]), (u16)codePoint);
+  }
+  XcbGenericError*    err = null;
+  XcbTextExtentsData* data =
+      xcb_call(xcb->con, xcb->query_text_extents, &err, font, charCount, charData);
+
+  if (LIKELY(!err)) {
+    result.width  = data->overallWidth;
+    result.height = data->fontAscent + data->fontDescent;
+  }
+
+  free(data);
+  return result;
+}
+
+static void pal_xcb_draw_text(
+    Xcb* xcb, const XcbWindow window, const XcbGcContext gc, const GapVector pos, String text) {
+  u16     charData[u8_max];
+  u32     charCount = 0;
+  Unicode codePoint;
+  while (!string_is_empty(text)) {
+    text = utf8_cp_read(text, &codePoint);
+    if (!codePoint) {
+      break;
+    }
+    if (codePoint > u16_max) {
+      continue; // Code-point cannot be represented as utf-16.
+    }
+    if (charCount == array_elems(charData)) {
+      break; // Maximum size exceeded.
+    }
+    mem_write_be_u16(mem_var(charData[charCount++]), (u16)codePoint);
+  }
+  xcb->image_text_16(xcb->con, (u8)charCount, window, gc, pos.x, pos.y, charData);
+  xcb->flush(xcb->con);
+}
+
+typedef enum {
+  PalXcbInitFlags_None     = 0,
+  PalXcbInitFlags_Optional = 1 << 0, // Do not crash if the xcb library is missing.
+  PalXcbInitFlags_Silent   = 1 << 1, // Disable logging.
+} PalXcbInitFlags;
+
+static bool pal_init_xcb(Allocator* alloc, Xcb* out, const PalXcbInitFlags flags) {
+  DynLibResult loadRes = dynlib_load(alloc, string_lit("libxcb.so"), &out->lib);
   if (loadRes != DynLibResult_Success) {
-    const String err = dynlib_result_str(loadRes);
-    diag_crash_msg("Failed to load Xcb ('libxcb.so'): {}", fmt_text(err));
+    if (!(flags & PalXcbInitFlags_Optional)) {
+      const String err = dynlib_result_str(loadRes);
+      diag_crash_msg("Failed to load Xcb ('libxcb.so'): {}", fmt_text(err));
+    }
+    return false;
   }
 
 #define XCB_LOAD_SYM(_NAME_)                                                                       \
@@ -806,7 +959,11 @@ static void pal_init_xcb(GapPal* pal, Xcb* out) {
     const String symName = string_lit("xcb_" #_NAME_);                                             \
     out->_NAME_          = dynlib_symbol(out->lib, symName);                                       \
     if (!out->_NAME_) {                                                                            \
-      diag_crash_msg("Xcb symbol '{}' missing", fmt_text(symName));                                \
+      if (!(flags & PalXcbInitFlags_Optional)) {                                                   \
+        diag_crash_msg("Xcb symbol '{}' missing", fmt_text(symName));                              \
+      }                                                                                            \
+      dynlib_destroy(out->lib);                                                                    \
+      return false;                                                                                \
     }                                                                                              \
   } while (false)
 
@@ -840,7 +997,13 @@ static void pal_init_xcb(GapPal* pal, Xcb* out) {
   XCB_LOAD_SYM(intern_atom_reply);
   XCB_LOAD_SYM(intern_atom);
   XCB_LOAD_SYM(map_window);
+  XCB_LOAD_SYM(open_font);
+  XCB_LOAD_SYM(close_font);
+  XCB_LOAD_SYM(query_text_extents);
+  XCB_LOAD_SYM(query_text_extents_reply);
+  XCB_LOAD_SYM(image_text_16);
   XCB_LOAD_SYM(poll_for_event);
+  XCB_LOAD_SYM(wait_for_event);
   XCB_LOAD_SYM(put_image);
   XCB_LOAD_SYM(query_pointer_reply);
   XCB_LOAD_SYM(query_pointer);
@@ -861,67 +1024,91 @@ static void pal_init_xcb(GapPal* pal, Xcb* out) {
   const XcbSetup* setup     = out->get_setup(out->con);
   XcbScreenItr    screenItr = out->setup_roots_iterator(setup);
   if (!screenItr.data) {
-    diag_crash_msg("Xcb no screen found");
+    if (!(flags & PalXcbInitFlags_Optional)) {
+      diag_crash_msg("Xcb no screen found");
+    }
+    out->disconnect(out->con);
+    dynlib_destroy(out->lib);
+    return false;
   }
   out->screen = screenItr.data;
 
   // Retrieve atoms to use while communicating with the x-server.
-  out->atomProtoMsg                = pal_xcb_atom(pal, string_lit("WM_PROTOCOLS"));
-  out->atomDeleteMsg               = pal_xcb_atom(pal, string_lit("WM_DELETE_WINDOW"));
-  out->atomWmIcon                  = pal_xcb_atom(pal, string_lit("_NET_WM_ICON"));
-  out->atomWmState                 = pal_xcb_atom(pal, string_lit("_NET_WM_STATE"));
-  out->atomWmStateFullscreen       = pal_xcb_atom(pal, string_lit("_NET_WM_STATE_FULLSCREEN"));
-  out->atomWmStateBypassCompositor = pal_xcb_atom(pal, string_lit("_NET_WM_BYPASS_COMPOSITOR"));
-  out->atomClipboard               = pal_xcb_atom(pal, string_lit("CLIPBOARD"));
-  out->atomVoloClipboard           = pal_xcb_atom(pal, string_lit("VOLO_CLIPBOARD"));
-  out->atomTargets                 = pal_xcb_atom(pal, string_lit("TARGETS"));
-  out->atomUtf8String              = pal_xcb_atom(pal, string_lit("UTF8_STRING"));
-  out->atomPlainUtf8               = pal_xcb_atom(pal, string_lit("text/plain;charset=utf-8"));
+  out->atomProtoMsg                = pal_xcb_atom(out, string_lit("WM_PROTOCOLS"));
+  out->atomDeleteMsg               = pal_xcb_atom(out, string_lit("WM_DELETE_WINDOW"));
+  out->atomWmIcon                  = pal_xcb_atom(out, string_lit("_NET_WM_ICON"));
+  out->atomWmState                 = pal_xcb_atom(out, string_lit("_NET_WM_STATE"));
+  out->atomWmStateFullscreen       = pal_xcb_atom(out, string_lit("_NET_WM_STATE_FULLSCREEN"));
+  out->atomWmStateModal            = pal_xcb_atom(out, string_lit("_NET_WM_STATE_MODAL"));
+  out->atomWmStateBypassCompositor = pal_xcb_atom(out, string_lit("_NET_WM_BYPASS_COMPOSITOR"));
+  out->atomWmWindowType            = pal_xcb_atom(out, string_lit("_NET_WM_WINDOW_TYPE"));
+  out->atomWmWindowTypeDialog      = pal_xcb_atom(out, string_lit("_NET_WM_WINDOW_TYPE_DIALOG"));
+  out->atomClipboard               = pal_xcb_atom(out, string_lit("CLIPBOARD"));
+  out->atomVoloClipboard           = pal_xcb_atom(out, string_lit("VOLO_CLIPBOARD"));
+  out->atomTargets                 = pal_xcb_atom(out, string_lit("TARGETS"));
+  out->atomUtf8String              = pal_xcb_atom(out, string_lit("UTF8_STRING"));
+  out->atomPlainUtf8               = pal_xcb_atom(out, string_lit("text/plain;charset=utf-8"));
 
   MAYBE_UNUSED const GapVector screenSize =
       gap_vector(out->screen->widthInPixels, out->screen->heightInPixels);
 
-  log_i(
-      "Xcb connected",
-      log_param("fd", fmt_int(out->get_file_descriptor(out->con))),
-      log_param("max-req-length", fmt_size(out->maxRequestLen)),
-      log_param("screen-num", fmt_int(screen)),
-      log_param("screen-size", gap_vector_fmt(screenSize)));
+  if (!(PalXcbInitFlags_Silent)) {
+    log_i(
+        "Xcb connected",
+        log_param("fd", fmt_int(out->get_file_descriptor(out->con))),
+        log_param("max-req-length", fmt_size(out->maxRequestLen)),
+        log_param("screen-num", fmt_int(screen)),
+        log_param("screen-size", gap_vector_fmt(screenSize)));
+  }
+
+  return true;
 }
 
 static void pal_xcb_wm_state_update(
-    GapPal* pal, const GapWindowId windowId, const XcbAtom stateAtom, const bool active) {
+    Xcb* xcb, const GapWindowId windowId, const XcbAtom stateAtom, const bool active) {
   const XcbClientMessageEvent evt = {
       .responseType = 33 /* XCB_CLIENT_MESSAGE */,
       .format       = sizeof(XcbAtom) * 8,
       .window       = (XcbWindow)windowId,
-      .type         = pal->xcb.atomWmState,
+      .type         = xcb->atomWmState,
       .data[0]      = active,
       .data[1]      = stateAtom,
   };
   const u32 mask = 131072 /* XCB_EVENT_MASK_STRUCTURE_NOTIFY */ |
                    1048576 /* XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT */;
-  pal->xcb.send_event(pal->xcb.con, false, pal->xcb.screen->root, mask, (const char*)&evt);
+  xcb->send_event(xcb->con, false, xcb->screen->root, mask, (const char*)&evt);
 }
 
-static void pal_xcb_bypass_compositor(GapPal* pal, const GapWindowId windowId, const bool active) {
+static void pal_xcb_bypass_compositor(Xcb* xcb, const GapWindowId windowId, const bool active) {
   const u32 value = active;
-  pal->xcb.change_property(
-      pal->xcb.con,
+  xcb->change_property(
+      xcb->con,
       0 /* XCB_PROP_MODE_REPLACE */,
       (XcbWindow)windowId,
-      pal->xcb.atomWmStateBypassCompositor,
+      xcb->atomWmStateBypassCompositor,
       6 /* XCB_ATOM_CARDINAL */,
       sizeof(u32) * 8,
       1,
       (const char*)&value);
 }
 
-static void pal_xcb_cursor_grab(GapPal* pal, const GapWindowId windowId) {
+static void pal_xcb_set_window_type(Xcb* xcb, const GapWindowId windowId, const XcbAtom type) {
+  xcb->change_property(
+      xcb->con,
+      0 /* XCB_PROP_MODE_REPLACE */,
+      (XcbWindow)windowId,
+      xcb->atomWmWindowType,
+      6 /* XCB_ATOM_CARDINAL */,
+      sizeof(u32) * 8,
+      1,
+      (const char*)&type);
+}
+
+static void pal_xcb_cursor_grab(Xcb* xcb, const GapWindowId windowId) {
   const u16 mask = 4 /* XCB_EVENT_MASK_BUTTON_PRESS */ | 8 /* XCB_EVENT_MASK_BUTTON_RELEASE */ |
                    64 /* XCB_EVENT_MASK_POINTER_MOTION */;
-  pal->xcb.grab_pointer(
-      pal->xcb.con,
+  xcb->grab_pointer(
+      xcb->con,
       true,
       (XcbWindow)windowId,
       mask,
@@ -932,19 +1119,19 @@ static void pal_xcb_cursor_grab(GapPal* pal, const GapWindowId windowId) {
       0);
 }
 
-static void pal_xcb_cursor_grab_release(GapPal* pal) { pal->xcb.ungrab_pointer(pal->xcb.con, 0); }
+static void pal_xcb_cursor_grab_release(Xcb* xcb) { xcb->ungrab_pointer(xcb->con, 0); }
 
-static void pal_xkb_enable_flag(GapPal* pal, const i32 flag) {
+static void pal_xkb_enable_flag(Xcb* xcb, XkbCommon* xkb, const i32 flag) {
   const u16 deviceSpec = 256 /* XCB_XKB_ID_USE_CORE_KBD */;
-  pal->xkb.per_client_flags_unchecked(pal->xcb.con, deviceSpec, flag, flag, 0, 0, 0);
+  xkb->per_client_flags_unchecked(xcb->con, deviceSpec, flag, flag, 0, 0, 0);
 }
 
 /**
  * Initialize the xkb extension, gives us additional control over keyboard input.
  * More info: https://en.wikipedia.org/wiki/X_keyboard_extension
  */
-static bool pal_init_xkb(GapPal* pal, XkbCommon* out) {
-  DynLibResult loadRes = dynlib_load(pal->alloc, string_lit("libxkbcommon-x11.so"), &out->lib);
+static bool pal_init_xkb(Xcb* xcb, Allocator* alloc, XkbCommon* out) {
+  DynLibResult loadRes = dynlib_load(alloc, string_lit("libxkbcommon-x11.so"), &out->lib);
   if (loadRes != DynLibResult_Success) {
     const String err = dynlib_result_str(loadRes);
     log_w("Failed to load XkbCommon ('libxkbcommon-x11.so')", log_param("err", fmt_text(err)));
@@ -983,7 +1170,7 @@ static bool pal_init_xkb(GapPal* pal, XkbCommon* out) {
   u16       versionMajor;
   u16       versionMinor;
   const int setupRes = out->setup_xkb_extension(
-      pal->xcb.con, 1, 0, 0, &versionMajor, &versionMinor, &out->firstEvent, &out->firstError);
+      xcb->con, 1, 0, 0, &versionMajor, &versionMinor, &out->firstEvent, &out->firstError);
 
   if (UNLIKELY(!setupRes)) {
     log_w("Failed to initialize Xkb", log_param("error", fmt_int(err->errorCode)));
@@ -994,8 +1181,8 @@ static bool pal_init_xkb(GapPal* pal, XkbCommon* out) {
   const u16       deviceSpec = 256 /* XCB_XKB_ID_USE_CORE_KBD */;
   const u16       eventTypes = 4 /* XCB_XKB_EVENT_TYPE_STATE_NOTIFY */;
   const XcbCookie selectEventsCookie =
-      out->select_events_checked(pal->xcb.con, deviceSpec, eventTypes, 0, eventTypes, 0, 0, null);
-  err = pal->xcb.request_check(pal->xcb.con, selectEventsCookie);
+      out->select_events_checked(xcb->con, deviceSpec, eventTypes, 0, eventTypes, 0, 0, null);
+  err = xcb->request_check(xcb->con, selectEventsCookie);
   if (UNLIKELY(err)) {
     log_w("Failed to select Xkb events", log_param("error", fmt_int(err->errorCode)));
     free(err);
@@ -1007,17 +1194,17 @@ static bool pal_init_xkb(GapPal* pal, XkbCommon* out) {
     log_w("Failed to create the XkbCommon context");
     return false;
   }
-  out->deviceId = out->get_core_keyboard_device_id(pal->xcb.con);
+  out->deviceId = out->get_core_keyboard_device_id(xcb->con);
   if (UNLIKELY(out->deviceId < 0)) {
     log_w("Failed to retrieve the Xkb keyboard device-id");
     return false;
   }
-  out->keymap = out->keymap_new_from_device(out->context, pal->xcb.con, out->deviceId, 0);
+  out->keymap = out->keymap_new_from_device(out->context, xcb->con, out->deviceId, 0);
   if (!out->keymap) {
     log_w("Failed to retrieve the Xkb keyboard keymap");
     return false;
   }
-  out->state = out->state_new_from_device(out->keymap, pal->xcb.con, out->deviceId);
+  out->state = out->state_new_from_device(out->keymap, xcb->con, out->deviceId);
   if (!out->keymap) {
     log_w("Failed to retrieve the Xkb keyboard state");
     return false;
@@ -1040,8 +1227,8 @@ static bool pal_init_xkb(GapPal* pal, XkbCommon* out) {
 /**
  * Initialize xfixes extension, contains various utilities.
  */
-static bool pal_init_xfixes(GapPal* pal, XFixes* out) {
-  DynLibResult loadRes = dynlib_load(pal->alloc, string_lit("libxcb-xfixes.so"), &out->lib);
+static bool pal_init_xfixes(Xcb* xcb, Allocator* alloc, XFixes* out) {
+  DynLibResult loadRes = dynlib_load(alloc, string_lit("libxcb-xfixes.so"), &out->lib);
   if (loadRes != DynLibResult_Success) {
     const String err = dynlib_result_str(loadRes);
     log_w("Failed to load XFixes ('libxcb-xfixes.so')", log_param("err", fmt_text(err)));
@@ -1066,7 +1253,7 @@ static bool pal_init_xfixes(GapPal* pal, XFixes* out) {
 #undef XFIXES_LOAD_SYM
 
   XcbGenericError* err   = null;
-  void*            reply = xcb_call(pal->xcb.con, out->query_version, &err, 5, 0);
+  void*            reply = xcb_call(xcb->con, out->query_version, &err, 5, 0);
   free(reply);
 
   if (UNLIKELY(err)) {
@@ -1082,8 +1269,8 @@ static bool pal_init_xfixes(GapPal* pal, XFixes* out) {
  * Initialize the RandR extension.
  * More info: https://xcb.freedesktop.org/manual/group__XCB__RandR__API.html
  */
-static bool pal_init_randr(GapPal* pal, XRandr* out) {
-  DynLibResult loadRes = dynlib_load(pal->alloc, string_lit("libxcb-randr.so"), &out->lib);
+static bool pal_init_randr(Xcb* xcb, Allocator* alloc, XRandr* out) {
+  DynLibResult loadRes = dynlib_load(alloc, string_lit("libxcb-randr.so"), &out->lib);
   if (loadRes != DynLibResult_Success) {
     const String err = dynlib_result_str(loadRes);
     log_w("Failed to load XRandR ('libxcb-randr.so')", log_param("err", fmt_text(err)));
@@ -1119,13 +1306,13 @@ static bool pal_init_randr(GapPal* pal, XRandr* out) {
 
 #undef XRANDR_LOAD_SYM
 
-  const XcbExtensionData* data = pal->xcb.get_extension_data(pal->xcb.con, out->id);
+  const XcbExtensionData* data = xcb->get_extension_data(xcb->con, out->id);
   if (!data || !data->present) {
     log_w("XRandR extention not present");
     return false;
   }
   XcbGenericError* err     = null;
-  void*            version = xcb_call(pal->xcb.con, out->query_version, &err, 1, 6);
+  void*            version = xcb_call(xcb->con, out->query_version, &err, 1, 6);
   free(version);
 
   if (UNLIKELY(err)) {
@@ -1138,16 +1325,16 @@ static bool pal_init_randr(GapPal* pal, XRandr* out) {
   return true;
 }
 
-static bool pal_xrender_find_formats(GapPal* pal) {
+static bool pal_xrender_find_formats(Xcb* xcb, XRender* xrender) {
   XcbGenericError* err     = null;
-  XcbPictFormats*  formats = xcb_call_void(pal->xcb.con, pal->xrender.query_pict_formats, &err);
+  XcbPictFormats*  formats = xcb_call_void(xcb->con, xrender->query_pict_formats, &err);
 
   if (UNLIKELY(err)) {
     return false;
   }
 
-  XcbPictFormatInfoItr itr = pal->xrender.query_pict_formats_formats_iterator(formats);
-  for (; itr.rem; pal->xrender.pictforminfo_next(&itr)) {
+  XcbPictFormatInfoItr itr = xrender->query_pict_formats_formats_iterator(formats);
+  for (; itr.rem; xrender->pictforminfo_next(&itr)) {
     if (itr.data->depth != 32) {
       continue;
     }
@@ -1166,7 +1353,7 @@ static bool pal_xrender_find_formats(GapPal* pal) {
     if (itr.data->direct.blueShift != 24 || itr.data->direct.blueMask != 0xFF) {
       continue;
     }
-    pal->xrender.formatArgb32 = itr.data->id;
+    xrender->formatArgb32 = itr.data->id;
     return true;
   }
 
@@ -1174,8 +1361,8 @@ static bool pal_xrender_find_formats(GapPal* pal) {
   return false; // Argb32 not found.
 }
 
-static bool pal_init_xrender(GapPal* pal, XRender* out) {
-  DynLibResult loadRes = dynlib_load(pal->alloc, string_lit("libxcb-render.so"), &out->lib);
+static bool pal_init_xrender(Xcb* xcb, Allocator* alloc, XRender* out) {
+  DynLibResult loadRes = dynlib_load(alloc, string_lit("libxcb-render.so"), &out->lib);
   if (loadRes != DynLibResult_Success) {
     const String err = dynlib_result_str(loadRes);
     log_w("Failed to load XRender ('libxcb-render.so')", log_param("err", fmt_text(err)));
@@ -1205,20 +1392,20 @@ static bool pal_init_xrender(GapPal* pal, XRender* out) {
 
 #undef XRENDER_LOAD_SYM
 
-  const XcbExtensionData* data = pal->xcb.get_extension_data(pal->xcb.con, out->id);
+  const XcbExtensionData* data = xcb->get_extension_data(xcb->con, out->id);
   if (!data || !data->present) {
     log_w("XRender extention not present");
     return false;
   }
   XcbGenericError* err     = null;
-  void*            version = xcb_call(pal->xcb.con, out->query_version, &err, 0, 11);
+  void*            version = xcb_call(xcb->con, out->query_version, &err, 0, 11);
   free(version);
 
   if (UNLIKELY(err)) {
     log_w("Failed to initialize XRender", log_param("err", fmt_int(err->errorCode)));
     return false;
   }
-  if (!pal_xrender_find_formats(pal)) {
+  if (!pal_xrender_find_formats(xcb, out)) {
     log_w("XRenderfailed to find required render formats");
     return false;
   }
@@ -1228,23 +1415,23 @@ static bool pal_init_xrender(GapPal* pal, XRender* out) {
 }
 
 static void pal_init_extensions(GapPal* pal) {
-  if (pal_init_xkb(pal, &pal->xkb)) {
+  if (pal_init_xkb(&pal->xcb, pal->alloc, &pal->xkb)) {
     pal->extensions |= GapPalXcbExtFlags_Xkb;
   }
-  if (pal_init_xfixes(pal, &pal->xfixes)) {
+  if (pal_init_xfixes(&pal->xcb, pal->alloc, &pal->xfixes)) {
     pal->extensions |= GapPalXcbExtFlags_XFixes;
   }
-  if (pal_init_randr(pal, &pal->xrandr)) {
+  if (pal_init_randr(&pal->xcb, pal->alloc, &pal->xrandr)) {
     pal->extensions |= GapPalXcbExtFlags_Randr;
   }
-  if (pal_init_xrender(pal, &pal->xrender)) {
+  if (pal_init_xrender(&pal->xcb, pal->alloc, &pal->xrender)) {
     pal->extensions |= GapPalXcbExtFlags_Render;
   }
 }
 
-static f32 pal_randr_refresh_rate(GapPal* pal, XRandrScreenResources* s, const XRandrMode mode) {
-  XRandrModeInfoIterator i = pal->xrandr.get_screen_resources_current_modes_iterator(s);
-  for (; i.rem; pal->xrandr.mode_info_next(&i)) {
+static f32 pal_randr_refresh_rate(XRandr* xrandr, XRandrScreenResources* s, const XRandrMode mode) {
+  XRandrModeInfoIterator i = xrandr->get_screen_resources_current_modes_iterator(s);
+  for (; i.rem; xrandr->mode_info_next(&i)) {
     if (i.data->id != mode) {
       continue;
     }
@@ -1263,8 +1450,10 @@ static f32 pal_randr_refresh_rate(GapPal* pal, XRandrScreenResources* s, const X
   return pal_window_default_refresh_rate;
 }
 
-static void pal_randr_query_displays(GapPal* pal) {
-  diag_assert(pal->extensions & GapPalXcbExtFlags_Randr);
+static void pal_query_displays(GapPal* pal) {
+  if (!(pal->extensions & GapPalXcbExtFlags_Randr)) {
+    return; // XRandR extension required.
+  }
 
   // Clear any previous queried displays.
   dynarray_for_t(&pal->displays, GapPalDisplay, d) { string_maybe_free(g_allocHeap, d->name); }
@@ -1299,7 +1488,7 @@ static void pal_randr_query_displays(GapPal* pal) {
       const GapVector position       = gap_vector(crtc->x, crtc->y);
       const GapVector size           = gap_vector(crtc->width, crtc->height);
       const GapVector physicalSizeMm = gap_vector(output->mmWidth, output->mmHeight);
-      const f32       refreshRate    = pal_randr_refresh_rate(pal, screen, crtc->mode);
+      const f32       refreshRate    = pal_randr_refresh_rate(&pal->xrandr, screen, crtc->mode);
       u16             dpi            = pal_window_default_dpi;
       if (output->mmWidth) {
         dpi = (u16)math_round_nearest_f32(crtc->width * 25.4f / physicalSizeMm.width);
@@ -1357,38 +1546,6 @@ Return:
   return result;
 }
 
-static void pal_set_window_min_size(GapPal* pal, const GapWindowId windowId, const GapVector val) {
-  // Needs to match 'WinXSizeHints' from the XServer.
-  struct SizeHints {
-    u32 flags;
-    i32 x, y;
-    i32 width, height;
-    i32 minWidth, minHeight;
-    i32 maxWidth, maxHeight;
-    i32 widthInc, heightInc;
-    i32 minAspectNum, minAspectDen;
-    i32 maxAspectNum, maxAspectDen;
-    i32 baseWidth, baseHeight;
-    u32 winGravity;
-  };
-
-  const struct SizeHints newHints = {
-      .flags     = 1 << 4 /* PMinSize */,
-      .minWidth  = val.width,
-      .minHeight = val.height,
-  };
-
-  pal->xcb.change_property(
-      pal->xcb.con,
-      0 /* XCB_PROP_MODE_REPLACE */,
-      (XcbWindow)windowId,
-      40 /* XCB_ATOM_WM_NORMAL_HINTS */,
-      41 /* XCB_ATOM_WM_SIZE_HINTS */,
-      32,
-      bytes_to_words(sizeof(newHints)),
-      &newHints);
-}
-
 static void pal_event_close(GapPal* pal, const GapWindowId windowId) {
   GapPalWindow* window = pal_maybe_window(pal, windowId);
   if (window) {
@@ -1405,7 +1562,7 @@ static void pal_event_focus_gained(GapPal* pal, const GapWindowId windowId) {
   window->flags |= GapPalWindowFlags_FocusGained;
 
   if (pal->flags & GapPalFlags_CursorConfined) {
-    pal_xcb_cursor_grab(pal, windowId);
+    pal_xcb_cursor_grab(&pal->xcb, windowId);
   }
 
   log_d("Window focus gained", log_param("id", fmt_int(windowId)));
@@ -1421,7 +1578,7 @@ static void pal_event_focus_lost(GapPal* pal, const GapWindowId windowId) {
   window->flags |= GapPalWindowFlags_FocusLost;
 
   if (pal->flags & GapPalFlags_CursorConfined) {
-    pal_xcb_cursor_grab_release(pal);
+    pal_xcb_cursor_grab_release(&pal->xcb);
   }
 
   gap_keyset_clear(&window->keysDown);
@@ -1557,14 +1714,14 @@ static void pal_event_clip_copy_clear(GapPal* pal, const GapWindowId windowId) {
   }
 }
 
-static void pal_clip_send_targets(GapPal* pal, const XcbWindow requestor, const XcbAtom property) {
+static void pal_clip_send_targets(Xcb* xcb, const XcbWindow requestor, const XcbAtom property) {
   const XcbAtom targets[] = {
-      pal->xcb.atomTargets,
-      pal->xcb.atomUtf8String,
-      pal->xcb.atomPlainUtf8,
+      xcb->atomTargets,
+      xcb->atomUtf8String,
+      xcb->atomPlainUtf8,
   };
-  pal->xcb.change_property(
-      pal->xcb.con,
+  xcb->change_property(
+      xcb->con,
       0 /* XCB_PROP_MODE_REPLACE */,
       requestor,
       property,
@@ -1575,13 +1732,13 @@ static void pal_clip_send_targets(GapPal* pal, const XcbWindow requestor, const 
 }
 
 static void pal_clip_send_utf8(
-    GapPal* pal, const GapPalWindow* window, const XcbWindow requestor, const XcbAtom property) {
-  pal->xcb.change_property(
-      pal->xcb.con,
+    Xcb* xcb, const GapPalWindow* window, const XcbWindow requestor, const XcbAtom property) {
+  xcb->change_property(
+      xcb->con,
       0 /* XCB_PROP_MODE_REPLACE */,
       requestor,
       property,
-      pal->xcb.atomUtf8String,
+      xcb->atomUtf8String,
       sizeof(u8) * 8,
       (u32)window->clipCopy.size,
       window->clipCopy.ptr);
@@ -1605,10 +1762,10 @@ static void pal_event_clip_copy_request(
      * itself as utf8.
      */
     if (req->target == pal->xcb.atomTargets) {
-      pal_clip_send_targets(pal, req->requestor, req->property);
+      pal_clip_send_targets(&pal->xcb, req->requestor, req->property);
       notifyEvt.property = req->property;
     } else if (req->target == pal->xcb.atomUtf8String || req->target == pal->xcb.atomPlainUtf8) {
-      pal_clip_send_utf8(pal, window, req->requestor, req->property);
+      pal_clip_send_utf8(&pal->xcb, window, req->requestor, req->property);
       notifyEvt.property = req->property;
     } else {
       log_w("Xcb copy request for unsupported target received");
@@ -1661,7 +1818,7 @@ GapPal* gap_pal_create(Allocator* alloc) {
       .displays = dynarray_create_t(alloc, GapPalDisplay, 4),
   };
 
-  pal_init_xcb(pal, &pal->xcb);
+  pal_init_xcb(alloc, &pal->xcb, PalXcbInitFlags_None);
   pal_init_extensions(pal);
 
   if (pal->extensions & GapPalXcbExtFlags_Xkb) {
@@ -1670,12 +1827,11 @@ GapPal* gap_pal_create(Allocator* alloc) {
      * By default x-server will send repeated press and release when holding a key, making it
      * impossible to detect 'true' presses and releases. This flag disables that behavior.
      */
-    pal_xkb_enable_flag(pal, 1 /* XCB_XKB_PER_CLIENT_FLAG_DETECTABLE_AUTO_REPEAT */);
+    pal_xkb_enable_flag(
+        &pal->xcb, &pal->xkb, 1 /* XCB_XKB_PER_CLIENT_FLAG_DETECTABLE_AUTO_REPEAT */);
   }
 
-  if (pal->extensions & GapPalXcbExtFlags_Randr) {
-    pal_randr_query_displays(pal);
-  }
+  pal_query_displays(pal);
 
   return pal;
 }
@@ -1696,6 +1852,16 @@ void gap_pal_destroy(GapPal* pal) {
     pal->xkb.state_unref(pal->xkb.state);
   }
 
+  array_for_t(pal->icons, Mem, icon) { alloc_maybe_free(pal->alloc, *icon); }
+  array_for_t(pal->cursors, XcbCursor, cursor) {
+    if (*cursor) {
+      pal->xcb.free_cursor(pal->xcb.con, *cursor);
+    }
+  }
+
+  pal->xcb.disconnect(pal->xcb.con);
+  log_i("Xcb disconnected");
+
   dynlib_destroy(pal->xcb.lib);
   if (pal->xkb.lib) {
     dynlib_destroy(pal->xkb.lib);
@@ -1709,16 +1875,6 @@ void gap_pal_destroy(GapPal* pal) {
   if (pal->xrender.lib) {
     dynlib_destroy(pal->xrender.lib);
   }
-
-  array_for_t(pal->icons, Mem, icon) { alloc_maybe_free(pal->alloc, *icon); }
-  array_for_t(pal->cursors, XcbCursor, cursor) {
-    if (*cursor) {
-      pal->xcb.free_cursor(pal->xcb.con, *cursor);
-    }
-  }
-
-  pal->xcb.disconnect(pal->xcb.con);
-  log_i("Xcb disconnected");
 
   dynarray_destroy(&pal->windows);
   dynarray_destroy(&pal->displays);
@@ -1782,7 +1938,7 @@ void gap_pal_update(GapPal* pal) {
       }
 
       if (pal->flags & GapPalFlags_CursorConfined) {
-        pal_xcb_cursor_grab(pal, configureMsg->window);
+        pal_xcb_cursor_grab(&pal->xcb, configureMsg->window);
       }
 
       // Update the cursor position.
@@ -1903,7 +2059,7 @@ void gap_pal_update(GapPal* pal) {
           const XRandrScreenChangeEvent* screenChangeMsg = (const void*)evt;
 
           log_d("Display change detected");
-          pal_randr_query_displays(pal);
+          pal_query_displays(pal);
 
           const GapWindowId windowId = screenChangeMsg->requestWindow;
           GapPalWindow*     window   = pal_maybe_window(pal, windowId);
@@ -2061,8 +2217,7 @@ void gap_pal_cursor_load(GapPal* pal, const GapCursor id, const AssetIconComp* a
 }
 
 GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
-  XcbConnection*    con = pal->xcb.con;
-  const GapWindowId id  = pal->xcb.generate_id(con);
+  const GapWindowId id = pal->xcb.generate_id(pal->xcb.con);
 
   if (size.width <= 0) {
     size.width = pal->xcb.screen->widthInPixels;
@@ -2075,37 +2230,20 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
     size.height = pal_window_min_height;
   }
 
-  const u32 valuesMask = 2 /* XCB_CW_BACK_PIXEL */ | 2048 /* XCB_CW_EVENT_MASK */;
-  const u32 values[2]  = {
-      pal->xcb.screen->blackPixel,
-      g_xcbWindowEventMask,
-  };
+  // clang-format off
+  const XcbEventMask g_eventMask =
+    1       /* XCB_EVENT_MASK_KEY_PRESS */        |
+    2       /* XCB_EVENT_MASK_KEY_RELEASE */      |
+    4       /* XCB_EVENT_MASK_BUTTON_PRESS */     |
+    8       /* XCB_EVENT_MASK_BUTTON_RELEASE */   |
+    64      /* XCB_EVENT_MASK_POINTER_MOTION */   |
+    131072  /* XCB_EVENT_MASK_STRUCTURE_NOTIFY */ |
+    2097152 /* XCB_EVENT_MASK_FOCUS_CHANGE */     |
+    4194304 /* XCB_EVENT_MASK_PROPERTY_CHANGE */;
+  // clang-format on
 
-  pal->xcb.create_window(
-      con,
-      0 /* XCB_COPY_FROM_PARENT */,
-      (XcbWindow)id,
-      pal->xcb.screen->root,
-      0,
-      0,
-      (u16)size.width,
-      (u16)size.height,
-      0,
-      1 /* XCB_WINDOW_CLASS_INPUT_OUTPUT */,
-      pal->xcb.screen->rootVisual,
-      valuesMask,
-      values);
-
-  // Register a custom delete message atom.
-  pal->xcb.change_property(
-      con,
-      0 /* XCB_PROP_MODE_REPLACE */,
-      (XcbWindow)id,
-      pal->xcb.atomProtoMsg,
-      4 /* XCB_ATOM_ATOM */,
-      sizeof(XcbAtom) * 8,
-      1,
-      &pal->xcb.atomDeleteMsg);
+  pal_xcb_create_window(&pal->xcb, (XcbWindow)id, size, g_eventMask);
+  pal_xcb_register_delete_msg(&pal->xcb, (XcbWindow)id); // Register a custom delete message atom.
 
   *dynarray_push_t(&pal->windows, GapPalWindow) = (GapPalWindow){
       .id                          = id,
@@ -2122,8 +2260,11 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
   }
 
   gap_pal_window_icon_set(pal, id, GapIcon_Main);
-  pal_set_window_min_size(pal, id, gap_vector(pal_window_min_width, pal_window_min_height));
-  pal->xcb.map_window(con, (XcbWindow)id);
+
+  const GapVector sizeMin = gap_vector(pal_window_min_width, pal_window_min_height);
+  pal_xcb_set_window_min_size(&pal->xcb, (XcbWindow)id, sizeMin);
+
+  pal->xcb.map_window(pal->xcb.con, (XcbWindow)id);
 
   log_i("Window created", log_param("id", fmt_int(id)), log_param("size", gap_vector_fmt(size)));
 
@@ -2181,15 +2322,7 @@ String gap_pal_window_input_text(const GapPal* pal, const GapWindowId windowId) 
 }
 
 void gap_pal_window_title_set(GapPal* pal, const GapWindowId windowId, const String title) {
-  pal->xcb.change_property(
-      pal->xcb.con,
-      0 /* XCB_PROP_MODE_REPLACE */,
-      (XcbWindow)windowId,
-      39 /* XCB_ATOM_WM_NAME */,
-      pal->xcb.atomUtf8String,
-      sizeof(u8) * 8,
-      (u32)title.size,
-      title.ptr);
+  pal_xcb_title_set(&pal->xcb, (XcbWindow)windowId, title);
 }
 
 void gap_pal_window_resize(
@@ -2221,13 +2354,13 @@ void gap_pal_window_resize(
 
     // TODO: Investigate supporting different sizes in fullscreen, this requires actually changing
     // the system display-adapter settings.
-    pal_xcb_wm_state_update(pal, windowId, pal->xcb.atomWmStateFullscreen, true);
-    pal_xcb_bypass_compositor(pal, windowId, true);
+    pal_xcb_wm_state_update(&pal->xcb, windowId, pal->xcb.atomWmStateFullscreen, true);
+    pal_xcb_bypass_compositor(&pal->xcb, windowId, true);
   } else {
     window->flags &= ~GapPalWindowFlags_Fullscreen;
 
-    pal_xcb_wm_state_update(pal, windowId, pal->xcb.atomWmStateFullscreen, false);
-    pal_xcb_bypass_compositor(pal, windowId, false);
+    pal_xcb_wm_state_update(&pal->xcb, windowId, pal->xcb.atomWmStateFullscreen, false);
+    pal_xcb_bypass_compositor(&pal->xcb, windowId, false);
 
     const u16 valueMask = 4 /* XCB_CONFIG_WINDOW_WIDTH */ | 8 /* XCB_CONFIG_WINDOW_HEIGHT */;
     const u32 values[2] = {size.x, size.y};
@@ -2267,14 +2400,14 @@ void gap_pal_window_cursor_confine(GapPal* pal, const GapWindowId windowId, cons
   diag_assert(window);
   if (confined && !(pal->flags & GapPalFlags_CursorConfined)) {
     if (window->flags & GapPalWindowFlags_Focussed) {
-      pal_xcb_cursor_grab(pal, windowId);
+      pal_xcb_cursor_grab(&pal->xcb, windowId);
     }
     pal->flags |= GapPalFlags_CursorConfined;
     return;
   }
   if (!confined && (pal->flags & GapPalFlags_CursorConfined)) {
     if (window->flags & GapPalWindowFlags_Focussed) {
-      pal_xcb_cursor_grab_release(pal);
+      pal_xcb_cursor_grab_release(&pal->xcb);
     }
     pal->flags &= ~GapPalFlags_CursorConfined;
     return;
@@ -2394,9 +2527,140 @@ GapNativeWm gap_pal_native_wm(void) { return GapNativeWm_Xcb; }
 
 uptr gap_pal_native_app_handle(const GapPal* pal) { return (uptr)pal->xcb.con; }
 
-void gap_pal_modal_error(const String message) {
-  // NOTE: Can be called in parallel with any of the other apis (and itself).
+void gap_pal_modal_error(String message) {
+  /**
+   * Create a modal (blocking) error popup (like the win32 MessageBox).
+   *
+   * To support being called during early startup (potentially before 'gap_pal_create()') and from
+   * crash handlers (where the application is in an unknown state) this function should be as
+   * self-contained as possible.
+   * NOTE: We should avoid crashing / logging in this function (silent return is preferred).
+   */
+  if (string_is_empty(message)) {
+    return;
+  }
+  enum { MessageMaxSize = 1024, MessageMaxLines = 100 };
+  if (message.size > MessageMaxSize) {
+    message = string_slice(message, 0, MessageMaxSize);
+  }
+  u32    lineCount = MessageMaxLines;
+  String lines[MessageMaxLines];
+  string_split(message, '\n', lines, &lineCount);
 
-  // TODO: Implement.
-  (void)message;
+  XcbWindow    window = sentinel_u32;
+  XcbGcContext gc     = sentinel_u32;
+  XcbFont      font   = sentinel_u32;
+
+  Xcb xcb = {0};
+  if (!pal_init_xcb(g_allocHeap, &xcb, PalXcbInitFlags_Optional | PalXcbInitFlags_Silent)) {
+    return; // Xcb not available.
+  }
+
+  font                  = xcb.generate_id(xcb.con);
+  const String fontName = string_lit("-*-fixed-bold-*");
+  xcb.open_font(xcb.con, font, (u16)fontName.size, fontName.ptr);
+
+  u16       lineHeight = 0;
+  GapVector textSize   = {0};
+  for (u32 i = 0; i != lineCount; ++i) {
+    const GapVector lineSize = pal_xcb_measure_text(&xcb, font, lines[i]);
+    if (i == 0) {
+      lineHeight = (u16)lineSize.height;
+    }
+    textSize.width = math_max(textSize.width, lineSize.width);
+  }
+  if (!lineHeight || !textSize.width) {
+    goto Close; // Unable to measure text (possibly due to an invalid / missing font).
+  }
+  const u16 lineSpacing = math_max(lineHeight / 5, 1);
+  textSize.height       = lineCount * lineHeight + (lineCount - 1) * lineSpacing;
+
+  const GapVector textSizeHalf   = gap_vector_div(textSize, 2);
+  GapVector       windowSize     = gap_vector(math_max(textSize.x, 300), math_max(textSize.y, 200));
+  GapVector       windowSizeHalf = gap_vector_div(windowSize, 2);
+
+  // clang-format off
+  const XcbEventMask g_windowEventMask =
+    2      /* XCB_EVENT_MASK_KEY_RELEASE */     |
+    32768  /* XCB_EVENT_MASK_EXPOSURE */        |
+    131072 /* XCB_EVENT_MASK_STRUCTURE_NOTIFY */;
+  // clang-format on
+
+  window = xcb.generate_id(xcb.con);
+  pal_xcb_create_window(&xcb, window, windowSize, g_windowEventMask);
+  pal_xcb_wm_state_update(&xcb, window, xcb.atomWmStateModal, true);
+  pal_xcb_set_window_type(&xcb, window, xcb.atomWmWindowTypeDialog);
+  pal_xcb_set_window_min_size(&xcb, window, textSize);
+  pal_xcb_title_set(&xcb, window, string_lit("Error"));
+  xcb.map_window(xcb.con, window);
+
+  // clang-format off
+  const u32 gcMask =
+      4     /* XCB_GC_FOREGROUND */ |
+      8     /* XCB_GC_BACKGROUND */ |
+      16384 /* XCB_GC_FONT */;
+  // clang-format on
+  const u32 gcValues[] = {
+      xcb.screen->whitePixel,
+      xcb.screen->blackPixel,
+      font,
+  };
+  gc = xcb.generate_id(xcb.con);
+  xcb.create_gc(xcb.con, gc, window, gcMask, gcValues);
+
+  xcb.flush(xcb.con);
+  const int error = xcb.connection_has_error(xcb.con);
+  if (error) {
+    goto Close; // Failed to initialize.
+  }
+
+  for (XcbGenericEvent* evt; (evt = xcb.wait_for_event(xcb.con)); free(evt)) {
+    const u32 eventId = evt->responseType & ~0x80;
+    switch (eventId) {
+    case 0: {
+      const XcbGenericError* errMsg = (const void*)evt;
+      (void)errMsg;
+      goto Close; // An error was returned from the x-server.
+    }
+
+    case 3: /* XCB_KEY_RELEASE */ {
+      const XcbKeyEvent* releaseMsg = (const void*)evt;
+      const GapKey       key        = pal_xcb_translate_key(releaseMsg->detail);
+      if (key == GapKey_Escape || key == GapKey_Return) {
+        goto Close;
+      }
+    } break;
+
+    case 22 /* XCB_CONFIGURE_NOTIFY */: {
+      const XcbConfigureNotifyEvent* configureMsg = (const void*)evt;
+      windowSize     = gap_vector(configureMsg->width, configureMsg->height);
+      windowSizeHalf = gap_vector_div(windowSize, 2);
+    } break;
+
+    case 12 /* XCB_EXPOSE */: {
+      GapVector pos = gap_vector(
+          windowSizeHalf.width - textSizeHalf.width,
+          windowSizeHalf.height - textSizeHalf.height + lineHeight);
+      for (u32 i = 0; i != lineCount; ++i) {
+        pal_xcb_draw_text(&xcb, window, gc, pos, lines[i]);
+        pos.y += lineHeight + lineSpacing;
+      }
+    } break;
+    }
+  }
+
+Close:
+  if (!sentinel_check(gc)) {
+    xcb.free_gc(xcb.con, gc);
+  }
+  if (!sentinel_check(font)) {
+    xcb.close_font(xcb.con, font);
+  }
+  if (!sentinel_check(window)) {
+    xcb.destroy_window(xcb.con, window);
+  }
+  if (xcb.con) {
+    xcb.disconnect(xcb.con);
+  }
+  dynlib_destroy(xcb.lib);
 }
