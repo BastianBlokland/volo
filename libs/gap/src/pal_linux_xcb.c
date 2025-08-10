@@ -3,6 +3,7 @@
 #include "core_dynlib.h"
 #include "core_dynstring.h"
 #include "core_math.h"
+#include "core_utf8.h"
 #include "log_logger.h"
 
 #include "pal_internal.h"
@@ -879,26 +880,30 @@ static void pal_xcb_set_window_min_size(Xcb* xcb, const XcbWindow window, const 
       &newHints);
 }
 
-static GapVector pal_xcb_measure_text(Xcb* xcb, const XcbFont font, const String msg) {
-  GapVector result  = gap_vector(0, 0);
-  const u32 msgSize = msg.size > u32_max ? u32_max : (u32)msg.size;
-  if (!msgSize) {
+static GapVector pal_xcb_measure_text(Xcb* xcb, const XcbFont font, String msg) {
+  GapVector result = gap_vector(0, 0);
+  if (string_is_empty(msg)) {
     return result;
   }
-  /**
-   * Measure text uses 16 bit character data, thus we widen to 16 bit.
-   * TODO: Investigate if this properly supports utf8.
-   */
-  u16* textData = alloc_array_t(g_allocScratch, u16, msgSize);
-  if (!textData) {
-    return result; // NOTE: Text too big to fit into scratch memory. TODO: Should we crash here?
-  }
-  for (u32 i = 0; i != msgSize; ++i) {
-    textData[i] = *string_at(msg, i);
+  u16     charData[1024];
+  u32     charCount = 0;
+  Unicode codePoint;
+  while (!string_is_empty(msg)) {
+    msg = utf8_cp_read(msg, &codePoint);
+    if (!codePoint) {
+      break;
+    }
+    if (codePoint > u16_max) {
+      continue; // Code-point cannot be represented as utf-16.
+    }
+    if (charCount == array_elems(charData)) {
+      break; // Maximum size exceeded.
+    }
+    charData[charCount++] = (u16)codePoint;
   }
   XcbGenericError*    err = null;
   XcbTextExtentsData* data =
-      xcb_call(xcb->con, xcb->query_text_extents, &err, font, msgSize, textData);
+      xcb_call(xcb->con, xcb->query_text_extents, &err, font, charCount, charData);
 
   if (LIKELY(!err)) {
     result.width  = data->overallWidth;
