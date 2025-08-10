@@ -2539,10 +2539,14 @@ void gap_pal_modal_error(String message) {
   if (string_is_empty(message)) {
     return;
   }
-  enum { MessageMaxSize = 1024 };
+  enum { MessageMaxSize = 1024, MessageMaxLines = 100 };
   if (message.size > MessageMaxSize) {
     message = string_slice(message, 0, MessageMaxSize);
   }
+  u32    lineCount = MessageMaxLines;
+  String lines[MessageMaxLines];
+  string_split(message, '\n', lines, &lineCount);
+
   XcbWindow    window = sentinel_u32;
   XcbGcContext gc     = sentinel_u32;
   XcbFont      font   = sentinel_u32;
@@ -2556,13 +2560,24 @@ void gap_pal_modal_error(String message) {
   const String fontName = string_lit("-*-fixed-bold-*");
   xcb.open_font(xcb.con, font, (u16)fontName.size, fontName.ptr);
 
-  const GapVector textSize     = pal_xcb_measure_text(&xcb, font, message);
-  const GapVector textSizeHalf = gap_vector_div(textSize, 2);
-  if (textSize.x <= 0 || textSize.y <= 0) {
+  u16       lineHeight = 0;
+  GapVector textSize   = {0};
+  for (u32 i = 0; i != lineCount; ++i) {
+    const GapVector lineSize = pal_xcb_measure_text(&xcb, font, lines[i]);
+    if (i == 0) {
+      lineHeight = (u16)lineSize.height;
+    }
+    textSize.width = math_max(textSize.width, lineSize.width);
+  }
+  if (!lineHeight || !textSize.width) {
     goto Close; // Unable to measure text (possibly due to an invalid / missing font).
   }
-  GapVector windowSize     = gap_vector(math_max(textSize.x, 300), math_max(textSize.y, 200));
-  GapVector windowSizeHalf = gap_vector_div(windowSize, 2);
+  const u16 lineSpacing = math_max(lineHeight / 5, 1);
+  textSize.height       = lineCount * lineHeight + (lineCount - 1) * lineSpacing;
+
+  const GapVector textSizeHalf   = gap_vector_div(textSize, 2);
+  GapVector       windowSize     = gap_vector(math_max(textSize.x, 300), math_max(textSize.y, 200));
+  GapVector       windowSizeHalf = gap_vector_div(windowSize, 2);
 
   // clang-format off
   const XcbEventMask g_windowEventMask =
@@ -2623,9 +2638,13 @@ void gap_pal_modal_error(String message) {
     } break;
 
     case 12 /* XCB_EXPOSE */: {
-      const GapVector pos = gap_vector(
-          windowSizeHalf.width - textSizeHalf.width, windowSizeHalf.height + textSizeHalf.height);
-      pal_xcb_draw_text(&xcb, window, gc, pos, message);
+      GapVector pos = gap_vector(
+          windowSizeHalf.width - textSizeHalf.width,
+          windowSizeHalf.height - textSizeHalf.height + lineHeight);
+      for (u32 i = 0; i != lineCount; ++i) {
+        pal_xcb_draw_text(&xcb, window, gc, pos, lines[i]);
+        pos.y += lineHeight + lineSpacing;
+      }
     } break;
     }
   }
