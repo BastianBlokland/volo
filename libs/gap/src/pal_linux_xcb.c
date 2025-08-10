@@ -2438,7 +2438,7 @@ GapNativeWm gap_pal_native_wm(void) { return GapNativeWm_Xcb; }
 
 uptr gap_pal_native_app_handle(const GapPal* pal) { return (uptr)pal->xcb.con; }
 
-void gap_pal_modal_error(const String message) {
+void gap_pal_modal_error(String message) {
   /**
    * Create a modal (blocking) error popup (like the win32 MessageBox).
    *
@@ -2447,6 +2447,13 @@ void gap_pal_modal_error(const String message) {
    * self-contained as possible.
    * NOTE: We should avoid crashing / logging in this function (silent return is preferred).
    */
+  if (string_is_empty(message)) {
+    return;
+  }
+  enum { MessageMaxSize = 1024 };
+  if (message.size > MessageMaxSize) {
+    message = string_slice(message, 0, MessageMaxSize);
+  }
   XcbWindow    window = sentinel_u32;
   XcbGcContext gc     = sentinel_u32;
   XcbFont      font   = sentinel_u32;
