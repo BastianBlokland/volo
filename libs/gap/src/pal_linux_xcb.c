@@ -361,6 +361,7 @@ typedef struct {
           atomWmIcon,
           atomWmState,
           atomWmStateFullscreen,
+          atomWmStateModal,
           atomWmStateBypassCompositor,
           atomClipboard,
           atomVoloClipboard,
@@ -965,6 +966,7 @@ static bool pal_init_xcb(Allocator* alloc, Xcb* out, const PalXcbInitFlags flags
   out->atomWmIcon                  = pal_xcb_atom(out, string_lit("_NET_WM_ICON"));
   out->atomWmState                 = pal_xcb_atom(out, string_lit("_NET_WM_STATE"));
   out->atomWmStateFullscreen       = pal_xcb_atom(out, string_lit("_NET_WM_STATE_FULLSCREEN"));
+  out->atomWmStateModal            = pal_xcb_atom(out, string_lit("_NET_WM_STATE_MODAL"));
   out->atomWmStateBypassCompositor = pal_xcb_atom(out, string_lit("_NET_WM_BYPASS_COMPOSITOR"));
   out->atomClipboard               = pal_xcb_atom(out, string_lit("CLIPBOARD"));
   out->atomVoloClipboard           = pal_xcb_atom(out, string_lit("VOLO_CLIPBOARD"));
@@ -2477,6 +2479,7 @@ void gap_pal_modal_error(String message) {
 
   window = xcb.generate_id(xcb.con);
   pal_xcb_create_window(&xcb, window, windowSize, g_windowEventMask);
+  pal_xcb_wm_state_update(&xcb, window, xcb.atomWmStateModal, true);
   pal_xcb_set_window_min_size(&xcb, window, windowSize);
   pal_xcb_title_set(&xcb, window, string_lit("Error"));
   xcb.map_window(xcb.con, window);
