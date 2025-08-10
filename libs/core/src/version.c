@@ -5,6 +5,8 @@
 #include "core_math.h"
 #include "core_version.h"
 
+#include "version_internal.h"
+
 static u32 version_label_length(const Version* v) {
   u32 count = 0;
   for (; count != array_elems(v->label) && v->label[count]; ++count)
@@ -12,7 +14,9 @@ static u32 version_label_length(const Version* v) {
   return count;
 }
 
-Version version_executable(void);
+Version version_executable(void) {
+  return version_create(VOLO_VER_MAJOR, VOLO_VER_MINOR, VOLO_VER_PATCH, VOLO_VER_LABEL);
+}
 
 Version version_create(const u32 major, const u32 minor, const u32 patch, const String label) {
   Version v = {
