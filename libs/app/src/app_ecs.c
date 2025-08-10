@@ -8,6 +8,7 @@
 #include "core_path.h"
 #include "core_signal.h"
 #include "core_thread.h"
+#include "core_version.h"
 #include "ecs_runner.h"
 #include "ecs_world.h"
 #include "jobs_init.h"
@@ -55,6 +56,7 @@ i32 app_cli_run(MAYBE_UNUSED const CliApp* app, const CliInvocation* invoc) {
 
   log_i(
       "Application startup",
+      log_param("version", fmt_text(version_str_scratch(g_versionExecutable))),
       log_param("pid", fmt_int(g_threadPid)),
       log_param("executable", fmt_path(g_pathExecutable)),
       log_param("working-dir", fmt_path(g_pathWorkingDir)));
