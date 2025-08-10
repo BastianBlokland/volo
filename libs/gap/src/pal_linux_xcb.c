@@ -940,16 +940,16 @@ static void pal_xcb_draw_text(
 }
 
 typedef enum {
-  PalXcbInitFlags_None     = 0,
-  PalXcbInitFlags_Optional = 1 << 0, // Do not crash if the xcb library is missing.
+  PalXcbInitFlags_None   = 0,
+  PalXcbInitFlags_Silent = 1 << 0, // Disable logging.
 } PalXcbInitFlags;
 
 static bool pal_init_xcb(Allocator* alloc, Xcb* out, const PalXcbInitFlags flags) {
   DynLibResult loadRes = dynlib_load(alloc, string_lit("libxcb.so"), &out->lib);
   if (loadRes != DynLibResult_Success) {
-    if (!(flags & PalXcbInitFlags_Optional)) {
+    if (!(flags & PalXcbInitFlags_Silent)) {
       const String err = dynlib_result_str(loadRes);
-      diag_crash_msg("Failed to load Xcb ('libxcb.so'): {}", fmt_text(err));
+      log_e("Failed to load Xcb ('libxcb.so')", log_param("error", fmt_text(err)));
     }
     return false;
   }
@@ -959,8 +959,8 @@ static bool pal_init_xcb(Allocator* alloc, Xcb* out, const PalXcbInitFlags flags
     const String symName = string_lit("xcb_" #_NAME_);                                             \
     out->_NAME_          = dynlib_symbol(out->lib, symName);                                       \
     if (!out->_NAME_) {                                                                            \
-      if (!(flags & PalXcbInitFlags_Optional)) {                                                   \
-        diag_crash_msg("Xcb symbol '{}' missing", fmt_text(symName));                              \
+      if (!(flags & PalXcbInitFlags_Silent)) {                                                     \
+        log_e("Xcb symbol '{}' missing", log_param("error", fmt_text(symName)));                   \
       }                                                                                            \
       dynlib_destroy(out->lib);                                                                    \
       return false;                                                                                \
@@ -1025,8 +1025,8 @@ static bool pal_init_xcb(Allocator* alloc, Xcb* out, const PalXcbInitFlags flags
   const XcbSetup* setup     = out->get_setup(out->con);
   XcbScreenItr    screenItr = out->setup_roots_iterator(setup);
   if (!screenItr.data) {
-    if (!(flags & PalXcbInitFlags_Optional)) {
-      diag_crash_msg("Xcb no screen found");
+    if (!(flags & PalXcbInitFlags_Silent)) {
+      log_e("Xcb no screen found");
     }
     out->disconnect(out->con);
     dynlib_destroy(out->lib);
@@ -2556,7 +2556,7 @@ void gap_pal_modal_error(String message) {
   XcbFont      font   = sentinel_u32;
 
   Xcb xcb = {0};
-  if (!pal_init_xcb(g_allocHeap, &xcb, PalXcbInitFlags_Optional)) {
+  if (!pal_init_xcb(g_allocHeap, &xcb, PalXcbInitFlags_Silent)) {
     return; // Xcb not available.
   }
 
