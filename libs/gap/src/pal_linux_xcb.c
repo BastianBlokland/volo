@@ -2477,6 +2477,7 @@ void gap_pal_modal_error(String message) {
 
   window = xcb.generate_id(xcb.con);
   pal_xcb_create_window(&xcb, window, windowSize, g_windowEventMask);
+  pal_xcb_set_window_min_size(&xcb, window, windowSize);
   pal_xcb_title_set(&xcb, window, string_lit("Error"));
   xcb.map_window(xcb.con, window);
 
