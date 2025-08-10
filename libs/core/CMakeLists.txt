@@ -67,6 +67,7 @@ add_library(lib_core STATIC
   src/tty_pal.c
   src/tty.c
   src/utf8.c
+  src/version.c
   src/winutils.c
   src/zlib.c
   )
