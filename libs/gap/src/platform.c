@@ -5,6 +5,7 @@
 #include "gap_register.h"
 #include "log_logger.h"
 
+#include "error_internal.h"
 #include "platform_internal.h"
 
 static const String g_gapIconAssets[GapIcon_Count] = {
@@ -85,11 +86,18 @@ ecs_system_define(GapPlatformUpdateSys) {
   if (!globalItr) {
     return; // Global dependencies not initialized yet.
   }
+  if (gap_error_check(world)) {
+    return; // An error has occurred; wait until its cleared.
+  }
   AssetManagerComp* assetManager = ecs_view_write_t(globalItr, AssetManagerComp);
   GapPlatformComp*  platform     = ecs_view_write_t(globalItr, GapPlatformComp);
   if (!platform) {
-    platform      = ecs_world_add_t(world, ecs_world_global(world), GapPlatformComp);
-    platform->pal = gap_pal_create(g_allocHeap);
+    GapPal* pal = gap_pal_create(g_allocHeap);
+    if (!pal) {
+      gap_error_report(world, GapErrorType_PlatformInitFailed);
+      return;
+    }
+    platform = ecs_world_add_t(world, ecs_world_global(world), GapPlatformComp, .pal = pal);
 
     for (GapIcon i = 0; i != GapIcon_Count; ++i) {
       gap_icon_load_begin(world, assetManager, &platform->icons[i], g_gapIconAssets[i]);
