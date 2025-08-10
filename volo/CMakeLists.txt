@@ -13,6 +13,7 @@ add_executable(volo
   )
 
 if(${VOLO_PLATFORM} STREQUAL "win32")
+  configure_file("res/app.rc.in" "${CMAKE_CURRENT_LIST_DIR}/res/app.rc")
   target_sources(volo PRIVATE "res/app.rc")
 endif()
 

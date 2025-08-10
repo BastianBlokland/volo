@@ -67,6 +67,7 @@ add_library(lib_core STATIC
   src/tty_pal.c
   src/tty.c
   src/utf8.c
+  src/version.c
   src/winutils.c
   src/zlib.c
   )
@@ -75,6 +76,8 @@ if(${VOLO_PLATFORM} STREQUAL "linux")
   target_link_libraries(lib_core PRIVATE dl) # DynamicLinking library.
   target_link_libraries(lib_core PRIVATE m) # Math library.
 endif()
+
+configure_file("src/version_internal.h.in" "${CMAKE_CURRENT_LIST_DIR}/src/version_internal.h")
 
 add_executable(test_lib_core
   test/config.c

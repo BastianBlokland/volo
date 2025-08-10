@@ -73,6 +73,9 @@ static void cli_help_write_usage(DynString* dynStr, const CliApp* app, const Cli
   usize       column      = startColumn;
 
   dynarray_for_t(&app->options, CliOption, opt) {
+    if (opt->flags & CliOptionFlags_Exclusive) {
+      continue;
+    }
     const String optStr = cli_help_option_usage(opt);
     if ((column + optStr.size + 1) > cli_help_max_width) {
       column = startColumn;

@@ -114,6 +114,7 @@ jobs:
     env:
       CC: ${{matrix.config.cc}}
       CMAKE_OPTS: >-
+        -DLABEL=${{github.sha}}
         -DFAST=${{matrix.config.fast}}
         -DSIMD=${{matrix.config.simd}}
         -DLTO=${{matrix.config.lto}}

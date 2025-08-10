@@ -6,13 +6,16 @@
 #include "core_alloc.h"
 #include "core_diag_except.h"
 #include "core_file.h"
+#include "core_format.h"
 #include "core_init.h"
 #include "core_symbol.h"
-#include "core_winutils.h"
+#include "core_version.h"
 #include "data_init.h"
 #include "log_init.h"
 
 #ifdef VOLO_WIN32
+
+#include "core_winutils.h"
 
 usize wcslen(const wchar_t*);
 
@@ -74,8 +77,11 @@ int SYS_DECL main(const int argc, const char** argv) {
     cli_register_exclusion(app, optConsole, optNoConsole);
   }
 
+  const CliId optVer = cli_register_flag(app, 'v', string_lit("version"), CliOptionFlags_Exclusive);
+  cli_register_desc(app, optVer, string_lit("Output the executable version."));
+
   const CliId optHelp = cli_register_flag(app, 'h', string_lit("help"), CliOptionFlags_Exclusive);
-  cli_register_desc(app, optHelp, string_lit("Display this help page."));
+  cli_register_desc(app, optHelp, string_lit("Output this help page."));
 
   CliInvocation* invoc = app_cli_parse(app, argc, argv);
   if (cli_parse_result(invoc) == CliParseResult_Fail) {
@@ -88,6 +94,11 @@ int SYS_DECL main(const int argc, const char** argv) {
       file_write_sync(g_fileStdErr, string_lit("No debug symbols found.\n"));
       exitCode = 1;
     }
+    goto exit;
+  }
+  if (cli_parse_provided(invoc, optVer)) {
+    const String exeVerStr = version_str_scratch(g_versionExecutable);
+    file_write_sync(g_fileStdOut, fmt_write_scratch("v{}\n", fmt_text(exeVerStr)));
     goto exit;
   }
   if (cli_parse_provided(invoc, optHelp)) {
