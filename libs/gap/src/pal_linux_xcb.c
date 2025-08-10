@@ -106,6 +106,16 @@ typedef struct {
 } XcbPropertyData;
 
 typedef struct {
+  u8  responseType, drawDirection;
+  u16 sequence;
+  u32 length;
+  i16 fontAscent, fontDescent;
+  i16 overallAscent, overallDescent;
+  i32 overallWidth;
+  i32 overallLeft, overallRight;
+} XcbTextExtentsData;
+
+typedef struct {
   u8  responseType, pad0;
   u16 sequence;
   u32 pad[7];
@@ -378,7 +388,9 @@ typedef struct {
   u32                     (SYS_DECL* generate_id)(XcbConnection*);
   u32                     (SYS_DECL* get_maximum_request_length)(XcbConnection*);
   void                    (SYS_DECL* disconnect)(XcbConnection*);
+  XcbCookie               (SYS_DECL* get_property)(XcbConnection*, u8 del, XcbWindow window, XcbAtom property, XcbAtom type, u32 longOffset, u32 longLength);
   void*                   (SYS_DECL* get_property_value)(const XcbPropertyData*);
+  XcbPropertyData*        (SYS_DECL* get_property_reply)(XcbConnection*, XcbCookie, XcbGenericError**);
   XcbAtomData*            (SYS_DECL* intern_atom_reply)(XcbConnection*, XcbCookie, XcbGenericError**);
   XcbConnection*          (SYS_DECL* connect)(const char* displayName, int* screenOut);
   XcbCookie               (SYS_DECL* change_property)(XcbConnection*, u8 mode, XcbWindow window, XcbAtom property, XcbAtom type, u8 format, u32 dataLen, const void* data);
@@ -393,23 +405,23 @@ typedef struct {
   XcbCookie               (SYS_DECL* free_cursor)(XcbConnection*, XcbCursor);
   XcbCookie               (SYS_DECL* free_gc)(XcbConnection*, XcbGcContext);
   XcbCookie               (SYS_DECL* free_pixmap)(XcbConnection*, XcbPixmap);
-  XcbCookie               (SYS_DECL* get_property)(XcbConnection*, u8 del, XcbWindow window, XcbAtom property, XcbAtom type, u32 longOffset, u32 longLength);
   XcbCookie               (SYS_DECL* grab_pointer)(XcbConnection*, u8 ownerEvents, XcbWindow grabWindow, u16 eventMask, u8 pointerMode, u8 keyboardMode, XcbWindow confineTo, XcbCursor cursor, XcbTimestamp);
   XcbCookie               (SYS_DECL* intern_atom)(XcbConnection*, u8 onlyIfExists, u16 nameLen, const char* name);
   XcbCookie               (SYS_DECL* map_window)(XcbConnection*, XcbWindow);
   XcbCookie               (SYS_DECL* put_image)(XcbConnection*, u8 format, XcbDrawable, XcbGcContext, u16 width, u16 height, i16 dstX, i16 dstY, u8 leftPad, u8 depth, u32 dataLen, const u8* data);
   XcbCookie               (SYS_DECL* query_pointer)(XcbConnection*, XcbWindow);
+  XcbPointerData*         (SYS_DECL* query_pointer_reply)(XcbConnection*, XcbCookie, XcbGenericError**);
   XcbCookie               (SYS_DECL* send_event)(XcbConnection*, u8 propagate, XcbWindow destination, u32 eventMask, const char* event);
   XcbCookie               (SYS_DECL* set_selection_owner)(XcbConnection*, XcbWindow owner, XcbAtom selection, XcbTimestamp);
   XcbCookie               (SYS_DECL* ungrab_pointer)(XcbConnection*, XcbTimestamp);
   XcbCookie               (SYS_DECL* warp_pointer)(XcbConnection*, XcbWindow srcWindow, XcbWindow dstWindow, i16 srcX, i16 srcY, u16 srcWidth, u16 srcHeight, i16 dstX, i16 dstY);
   XcbCookie               (SYS_DECL* open_font)(XcbConnection*, XcbFont, u16 nameLen, const char* nameData);
   XcbCookie               (SYS_DECL* close_font)(XcbConnection*, XcbFont);
+  XcbCookie               (SYS_DECL* query_text_extents)(XcbConnection*, XcbFont, u32 textLen, const u16* textData);
+  XcbTextExtentsData*     (SYS_DECL* query_text_extents_reply)(XcbConnection*, XcbCookie, XcbGenericError**);
   XcbCookie               (SYS_DECL* image_text_8)(XcbConnection*, u8 textLen, XcbDrawable, XcbGcContext, u16 x, u16 y, const char* textData);
   XcbGenericEvent*        (SYS_DECL* poll_for_event)(XcbConnection*);
   XcbGenericEvent*        (SYS_DECL* wait_for_event)(XcbConnection*);
-  XcbPointerData*         (SYS_DECL* query_pointer_reply)(XcbConnection*, XcbCookie, XcbGenericError**);
-  XcbPropertyData*        (SYS_DECL* get_property_reply)(XcbConnection*, XcbCookie, XcbGenericError**);
   XcbScreenItr            (SYS_DECL* setup_roots_iterator)(const XcbSetup*);
   // clang-format on
 } Xcb;
@@ -867,6 +879,36 @@ static void pal_xcb_set_window_min_size(Xcb* xcb, const XcbWindow window, const 
       &newHints);
 }
 
+static GapVector pal_xcb_measure_text(Xcb* xcb, const XcbFont font, const String msg) {
+  GapVector result  = gap_vector(0, 0);
+  const u32 msgSize = msg.size > u32_max ? u32_max : (u32)msg.size;
+  if (!msgSize) {
+    return result;
+  }
+  /**
+   * Measure text uses 16 bit character data, thus we widen to 16 bit.
+   * TODO: Investigate if this properly supports utf8.
+   */
+  u16* textData = alloc_array_t(g_allocScratch, u16, msgSize);
+  if (!textData) {
+    return result; // NOTE: Text too big to fit into scratch memory. TODO: Should we crash here?
+  }
+  for (u32 i = 0; i != msgSize; ++i) {
+    textData[i] = *string_at(msg, i);
+  }
+  XcbGenericError*    err = null;
+  XcbTextExtentsData* data =
+      xcb_call(xcb->con, xcb->query_text_extents, &err, font, msgSize, textData);
+
+  if (LIKELY(!err)) {
+    result.width  = data->overallWidth;
+    result.height = data->fontAscent + data->fontDescent;
+  }
+
+  free(data);
+  return result;
+}
+
 typedef enum {
   PalXcbInitFlags_None     = 0,
   PalXcbInitFlags_Optional = 1 << 0, // Do not crash if the xcb library is missing.
@@ -928,6 +970,8 @@ static bool pal_init_xcb(Allocator* alloc, Xcb* out, const PalXcbInitFlags flags
   XCB_LOAD_SYM(map_window);
   XCB_LOAD_SYM(open_font);
   XCB_LOAD_SYM(close_font);
+  XCB_LOAD_SYM(query_text_extents);
+  XCB_LOAD_SYM(query_text_extents_reply);
   XCB_LOAD_SYM(image_text_8);
   XCB_LOAD_SYM(poll_for_event);
   XCB_LOAD_SYM(wait_for_event);
@@ -2469,18 +2513,25 @@ void gap_pal_modal_error(String message) {
   const String fontName = string_lit("-misc-fixed-medium-*");
   xcb.open_font(xcb.con, font, (u16)fontName.size, fontName.ptr);
 
-  const GapVector windowSize = gap_vector(300, 200);
+  const GapVector textSize     = pal_xcb_measure_text(&xcb, font, message);
+  const GapVector textSizeHalf = gap_vector_div(textSize, 2);
+  if (textSize.x <= 0 || textSize.y <= 0) {
+    goto Close; // Unable to measure text (possibly due to an invalid / missing font).
+  }
+  GapVector windowSize     = gap_vector(math_max(textSize.x, 300), math_max(textSize.y, 200));
+  GapVector windowSizeHalf = gap_vector_div(windowSize, 2);
 
   // clang-format off
   const XcbEventMask g_windowEventMask =
-    2     /* XCB_EVENT_MASK_KEY_RELEASE */ |
-    32768 /* XCB_EVENT_MASK_EXPOSURE */;
+    2      /* XCB_EVENT_MASK_KEY_RELEASE */     |
+    32768  /* XCB_EVENT_MASK_EXPOSURE */        |
+    131072 /* XCB_EVENT_MASK_STRUCTURE_NOTIFY */;
   // clang-format on
 
   window = xcb.generate_id(xcb.con);
   pal_xcb_create_window(&xcb, window, windowSize, g_windowEventMask);
   pal_xcb_wm_state_update(&xcb, window, xcb.atomWmStateModal, true);
-  pal_xcb_set_window_min_size(&xcb, window, windowSize);
+  pal_xcb_set_window_min_size(&xcb, window, textSize);
   pal_xcb_title_set(&xcb, window, string_lit("Error"));
   xcb.map_window(xcb.con, window);
 
@@ -2521,9 +2572,17 @@ void gap_pal_modal_error(String message) {
       }
     } break;
 
+    case 22 /* XCB_CONFIGURE_NOTIFY */: {
+      const XcbConfigureNotifyEvent* configureMsg = (const void*)evt;
+      windowSize     = gap_vector(configureMsg->width, configureMsg->height);
+      windowSizeHalf = gap_vector_div(windowSize, 2);
+    } break;
+
     case 12 /* XCB_EXPOSE */: {
-      const u8 msgLen = (u8)math_min(message.size, u8_max);
-      xcb.image_text_8(xcb.con, msgLen, window, gc, 0, 25, message.ptr);
+      const u8  msgLen = (u8)math_min(message.size, u8_max);
+      const u16 x      = (u16)(windowSizeHalf.width - textSizeHalf.width);
+      const u16 y      = (u16)(windowSizeHalf.height + textSizeHalf.height);
+      xcb.image_text_8(xcb.con, msgLen, window, gc, x, y, message.ptr);
       xcb.flush(xcb.con);
     } break;
     }
