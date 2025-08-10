@@ -364,6 +364,7 @@ typedef struct {
   DynLib*        lib;
   XcbConnection* con;
   XcbScreen*     screen;
+  u32            screenNum;
   usize          maxRequestLen;
 
   // clang-format off
@@ -941,7 +942,6 @@ static void pal_xcb_draw_text(
 typedef enum {
   PalXcbInitFlags_None     = 0,
   PalXcbInitFlags_Optional = 1 << 0, // Do not crash if the xcb library is missing.
-  PalXcbInitFlags_Silent   = 1 << 1, // Disable logging.
 } PalXcbInitFlags;
 
 static bool pal_init_xcb(Allocator* alloc, Xcb* out, const PalXcbInitFlags flags) {
@@ -1018,6 +1018,7 @@ static bool pal_init_xcb(Allocator* alloc, Xcb* out, const PalXcbInitFlags flags
   // Establish a connection with the x-server.
   int screen         = 0;
   out->con           = out->connect(null, &screen);
+  out->screenNum     = (u32)screen;
   out->maxRequestLen = out->get_maximum_request_length(out->con) * 4;
 
   // Find the screen for our connection.
@@ -1048,18 +1049,6 @@ static bool pal_init_xcb(Allocator* alloc, Xcb* out, const PalXcbInitFlags flags
   out->atomTargets                 = pal_xcb_atom(out, string_lit("TARGETS"));
   out->atomUtf8String              = pal_xcb_atom(out, string_lit("UTF8_STRING"));
   out->atomPlainUtf8               = pal_xcb_atom(out, string_lit("text/plain;charset=utf-8"));
-
-  MAYBE_UNUSED const GapVector screenSize =
-      gap_vector(out->screen->widthInPixels, out->screen->heightInPixels);
-
-  if (!(PalXcbInitFlags_Silent)) {
-    log_i(
-        "Xcb connected",
-        log_param("fd", fmt_int(out->get_file_descriptor(out->con))),
-        log_param("max-req-length", fmt_size(out->maxRequestLen)),
-        log_param("screen-num", fmt_int(screen)),
-        log_param("screen-size", gap_vector_fmt(screenSize)));
-  }
 
   return true;
 }
@@ -1818,7 +1807,17 @@ GapPal* gap_pal_create(Allocator* alloc) {
       .displays = dynarray_create_t(alloc, GapPalDisplay, 4),
   };
 
-  pal_init_xcb(alloc, &pal->xcb, PalXcbInitFlags_None);
+  if (pal_init_xcb(alloc, &pal->xcb, PalXcbInitFlags_None)) {
+    MAYBE_UNUSED const GapVector screenSize =
+        gap_vector(pal->xcb.screen->widthInPixels, pal->xcb.screen->heightInPixels);
+
+    log_i(
+        "Xcb initialized",
+        log_param("fd", fmt_int(pal->xcb.get_file_descriptor(pal->xcb.con))),
+        log_param("max-req-length", fmt_size(pal->xcb.maxRequestLen)),
+        log_param("screen-num", fmt_int(pal->xcb.screenNum)),
+        log_param("screen-size", gap_vector_fmt(screenSize)));
+  }
   pal_init_extensions(pal);
 
   if (pal->extensions & GapPalXcbExtFlags_Xkb) {
@@ -2552,7 +2551,7 @@ void gap_pal_modal_error(String message) {
   XcbFont      font   = sentinel_u32;
 
   Xcb xcb = {0};
-  if (!pal_init_xcb(g_allocHeap, &xcb, PalXcbInitFlags_Optional | PalXcbInitFlags_Silent)) {
+  if (!pal_init_xcb(g_allocHeap, &xcb, PalXcbInitFlags_Optional)) {
     return; // Xcb not available.
   }
 
