@@ -12,6 +12,10 @@ add_executable(volo
   src/prefs.c
   )
 
+if(${VOLO_PLATFORM} STREQUAL "win32")
+  target_sources(volo PRIVATE "res/app.rc")
+endif()
+
 target_link_libraries(volo PRIVATE
   lib_app_ecs
   lib_asset
