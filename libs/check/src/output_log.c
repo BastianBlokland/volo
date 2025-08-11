@@ -1,6 +1,7 @@
 #include "core_alloc.h"
 #include "core_path.h"
 #include "core_thread.h"
+#include "core_version.h"
 #include "jobs_executor.h"
 #include "log_logger.h"
 
@@ -19,6 +20,7 @@ static void output_run_started(CheckOutput* out) {
       LogLevel_Info,
       "Starting test run",
       log_param("pid", fmt_int(g_threadPid)),
+      log_param("version", fmt_text(version_str_scratch(g_versionExecutable))),
       log_param("workers", fmt_int(g_jobsWorkerCount)),
       log_param("executable", fmt_path(g_pathExecutable)));
 }

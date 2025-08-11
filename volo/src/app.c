@@ -9,6 +9,7 @@
 #include "core_file.h"
 #include "core_float.h"
 #include "core_math.h"
+#include "core_version.h"
 #include "dev_log_viewer.h"
 #include "dev_menu.h"
 #include "dev_panel.h"
@@ -80,11 +81,12 @@ static EcsEntityId app_main_window_create(
   GapWindowFlags flags = GapWindowFlags_Default;
   flags |= fullscreen ? GapWindowFlags_CursorConfine : 0;
 
-  const GapVector     size   = {.width = (i32)width, .height = (i32)height};
-  const GapWindowMode mode   = fullscreen ? GapWindowMode_Fullscreen : GapWindowMode_Windowed;
-  const GapIcon       icon   = GapIcon_Main;
-  const String        title  = string_empty; // Use default title.
-  const EcsEntityId   window = gap_window_create(world, mode, flags, size, icon, title);
+  const GapVector     size = {.width = (i32)width, .height = (i32)height};
+  const GapWindowMode mode = fullscreen ? GapWindowMode_Fullscreen : GapWindowMode_Windowed;
+  const GapIcon       icon = GapIcon_Main;
+  const String        versionScratch = version_str_scratch(g_versionExecutable);
+  const String        titleScratch   = fmt_write_scratch("Volo v{}", fmt_text(versionScratch));
+  const EcsEntityId   window = gap_window_create(world, mode, flags, size, icon, titleScratch);
 
   const EcsEntityId uiCanvas = ui_canvas_create(world, window, UiCanvasCreateFlags_ToFront);
   const EcsEntityId logView  = dev_log_viewer_create(world, window, LogMask_None);
