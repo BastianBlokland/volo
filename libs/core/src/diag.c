@@ -48,9 +48,11 @@ NO_INLINE_HINT void diag_crash_report(const SymbolStack* stack, const String msg
 
   DynString str = dynstring_create_over(mem_stack(2048));
   dynstring_append(&str, string_slice(msg, 0, math_min(msg.size, 512)));
-  fmt_write(&str, "Version: ");
-  version_str(g_versionExecutable, &str);
-  dynstring_append_char(&str, '\n');
+  if (g_versionExecutable) {
+    fmt_write(&str, "Version: ");
+    version_str(g_versionExecutable, &str);
+    dynstring_append_char(&str, '\n');
+  }
   symbol_stack_write(stack, &str);
 
   if (g_fileStdErr) {
