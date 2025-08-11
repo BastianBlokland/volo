@@ -4,6 +4,7 @@
 #include "core_file.h"
 #include "core_format.h"
 #include "core_tty.h"
+#include "core_version.h"
 
 #include "app_internal.h"
 
@@ -142,6 +143,12 @@ static void cli_help_write_flags(DynString* dynStr, const CliApp* app, const Cli
   }
 }
 
+static void cli_help_write_version(DynString* dynStr, const CliHelpFlags flags) {
+  fmt_write(dynStr, "{}Version:{} ", arg_style_bold(flags), arg_style_reset(flags));
+  version_str(g_versionExecutable, dynStr);
+  fmt_write(dynStr, "\n");
+}
+
 void cli_help_write(DynString* dynStr, const CliApp* app, const CliHelpFlags flags) {
 
   cli_help_write_usage(dynStr, app, flags);
@@ -161,6 +168,9 @@ void cli_help_write(DynString* dynStr, const CliApp* app, const CliHelpFlags fla
     fmt_write(dynStr, "\n");
     cli_help_write_flags(dynStr, app, flags);
   }
+
+  fmt_write(dynStr, "\n");
+  cli_help_write_version(dynStr, flags);
 }
 
 void cli_help_write_file(const CliApp* app, File* out) {
