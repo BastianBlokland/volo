@@ -6,6 +6,7 @@
 #include "core_path.h"
 #include "core_thread.h"
 #include "core_time.h"
+#include "core_version.h"
 #include "log_logger.h"
 #include "trace_dump.h"
 #include "trace_sink_store.h"
@@ -26,7 +27,9 @@ typedef struct {
 } DumpEventTraceCtx;
 
 static void dump_eventtrace_init(DumpEventTraceCtx* ctx) {
-  dynstring_append(ctx->out, string_lit("{\"displayTimeUnit\":\"ns\",\"traceEvents\":["));
+  dynstring_append(ctx->out, string_lit("{\"otherData\":{\"version\":\""));
+  version_str(g_versionExecutable, ctx->out);
+  dynstring_append(ctx->out, string_lit("\"},\"displayTimeUnit\":\"ns\",\"traceEvents\":["));
 
   // Provide the process-name as a meta-data event.
   dynstring_append(ctx->out, string_lit("{\"name\":\"process_name\",\"ph\":\"M\",\"pid\":"));
