@@ -723,11 +723,11 @@ static void dev_stats_draw_interface(
   if (stats->show != DevStatShow_Full) {
     return;
   }
+  stats_draw_val_entry(c, string_lit("Version"), version_str_scratch(g_versionExecutable));
 
   // clang-format off
   if (stats_draw_section(c, string_lit("Window"))) {
     const GapVector windowSize = gap_window_param(window, GapParam_WindowSize);
-    stats_draw_val_entry(c, string_lit("Version"), version_str_scratch(g_versionExecutable));
     stats_draw_val_entry(c, string_lit("Size"), fmt_write_scratch("{}", gap_vector_fmt(windowSize)));
     stats_draw_val_entry(c, string_lit("Display"), gap_window_display_name(window));
     stats_draw_val_entry(c, string_lit("Refresh rate"), fmt_write_scratch("{}hz", fmt_float(gap_window_refresh_rate(window))));
