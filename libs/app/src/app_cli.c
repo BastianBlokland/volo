@@ -102,7 +102,7 @@ int SYS_DECL main(const int argc, const char** argv) {
     goto exit;
   }
   if (cli_parse_provided(invoc, optHelp)) {
-    cli_help_write_file(app, g_fileStdOut);
+    cli_help_write_file(app, CliHelpFlags_IncludeVersion, g_fileStdOut);
     goto exit;
   }
   if (appType == AppType_Gui) {
