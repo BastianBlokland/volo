@@ -161,6 +161,7 @@ jobs:
         repository: corsix/polyfill-glibc
         ref: main
         path: polyfill-glibc
+        sparse-checkout: src
 
     - name: polyfill-glibc
       if: matrix.config.toolchain == 'unix'
