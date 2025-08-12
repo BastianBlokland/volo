@@ -169,6 +169,7 @@ jobs:
       run: |
         ninja -C polyfill-glibc
         for file in $(find bin -type f ! -name "*.*"); do
+            echo "Polyfill '$file' for GLIBC version: $GLIBC_MIN_VER"
             ./polyfill-glibc/polyfill-glibc --target-glibc=$GLIBC_MIN_VER "$file"
         done
 
@@ -182,6 +183,7 @@ jobs:
       shell: bash
       run: |
         for file in $(find bin -type f ! -name "*.*"); do
+            echo "Stripping '$file'"
             objcopy --only-keep-debug "$file" "$file.dbg"
             strip --strip-all "$file"
             objcopy --add-gnu-debuglink="$file.dbg" "$file"
