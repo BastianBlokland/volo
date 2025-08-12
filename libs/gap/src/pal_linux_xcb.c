@@ -2630,7 +2630,7 @@ void gap_pal_modal_error(String message) {
     case 3: /* XCB_KEY_RELEASE */ {
       const XcbKeyEvent* releaseMsg = (const void*)evt;
       const GapKey       key        = pal_xcb_translate_key(releaseMsg->detail);
-      if (key == GapKey_Escape || key == GapKey_Return) {
+      if (key == GapKey_Escape) {
         goto Close;
       }
     } break;
