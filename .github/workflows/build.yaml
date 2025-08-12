@@ -120,6 +120,7 @@ jobs:
         -DLTO=${{matrix.config.lto}}
         -DTRACE=${{matrix.config.trace}}
         -DSANITIZE=${{matrix.config.sanitize}}
+      GLIBC_MIN_VER: 2.31
     steps:
     - name: checkout
       uses: actions/checkout@v5
@@ -152,6 +153,23 @@ jobs:
       run: |
         cmake -B build -G 'MinGW Makefiles' $($env:CMAKE_OPTS -split ' ')
         mingw32-make -sk -C build all test install
+
+    - name: checkout-polyfill-glibc
+      if: matrix.config.toolchain == 'unix'
+      uses: actions/checkout@v5
+      with:
+        repository: corsix/polyfill-glibc
+        ref: main
+        path: polyfill-glibc
+
+    - name: polyfill-glibc
+      if: matrix.config.toolchain == 'unix'
+      shell: bash
+      run: |
+        ninja -C polyfill-glibc
+        for file in $(find bin -type f ! -name "*.*"); do
+            ./polyfill-glibc/polyfill-glibc --target-glibc=$GLIBC_MIN_VER "$file"
+        done
 
     - name: build-symbols
       if: matrix.config.toolchain != 'mingw'
