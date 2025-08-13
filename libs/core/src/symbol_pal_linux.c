@@ -134,7 +134,8 @@ static bool sym_dbg_query(SymDbg* dbg, const SymbolAddr addrBase, SymbolReg* reg
    * Find all the (non-inlined) function symbols in all the compilation units.
    * NOTE: Doesn't depend on 'aranges' dwarf info as that is optional and clang does not emit it.
    */
-  u64   cuOffset = 0;
+  u32   foundSymbols = 0;
+  u64   cuOffset     = 0;
   u64   cuOffsetNext;
   usize cuSize;
   // Iterate over all compilation units.
@@ -168,12 +169,12 @@ static bool sym_dbg_query(SymDbg* dbg, const SymbolAddr addrBase, SymbolReg* reg
         const SymbolAddrRel addrBeginRel = (SymbolAddrRel)(addrLow - addrBase);
         const SymbolAddrRel addrEndRel   = (SymbolAddrRel)(addrHigh - addrBase + 1);
         symbol_reg_add(reg, addrBeginRel, addrEndRel, string_from_null_term(funcName));
-
+        ++foundSymbols;
       } while (dbg->dwarf_siblingof(&child, &child) == 0);
     }
     cuOffset = cuOffsetNext; // Iterate to the next compilation unit offset.
   }
-  return true;
+  return foundSymbols != 0;
 }
 
 static bool sym_dbg_file_load(SymDbg* dbg, File* file, SymbolReg* reg) {
