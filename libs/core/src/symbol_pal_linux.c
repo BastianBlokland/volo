@@ -43,7 +43,6 @@ typedef struct {
 } DwarfDie;
 
 typedef struct {
-  File*   exec; // Handle to our own executable.
   DynLib* dwLib;
   Dwarf*  dwSession;
 
@@ -97,12 +96,15 @@ static bool sym_dbg_dw_load(SymDbg* dbg, Allocator* alloc) {
   return true;
 }
 
-static bool sym_dbg_dw_begin(SymDbg* dbg) {
-  dbg->dwSession = dbg->dwarf_begin(dbg->exec->handle, dwarf_cmd_read);
+static bool sym_dbg_dw_begin(SymDbg* dbg, File* file) {
+  dbg->dwSession = dbg->dwarf_begin(file->handle, dwarf_cmd_read);
   return dbg->dwSession != null;
 }
 
-static void sym_dbg_dw_end(SymDbg* dbg) { dbg->dwarf_end(dbg->dwSession); }
+static void sym_dbg_dw_end(SymDbg* dbg) {
+  dbg->dwarf_end(dbg->dwSession);
+  dbg->dwSession = null;
+}
 
 /**
  * Find the virtual base address of the elf executable (lowest mapped segment of the executable).
@@ -174,6 +176,28 @@ static bool sym_dbg_query(SymDbg* dbg, const SymbolAddr addrBase, SymbolReg* reg
   return true;
 }
 
+static bool sym_dbg_file_load(SymDbg* dbg, File* file, SymbolReg* reg) {
+  bool result = false;
+  if (!sym_dbg_dw_begin(dbg, file)) {
+    goto Done;
+  }
+  SymbolAddr addrBase;
+  if (!sym_dbg_addr_base(dbg, &addrBase)) {
+    goto Done;
+  }
+  symbol_reg_set_offset(reg, addrBase);
+  if (!sym_dbg_query(dbg, addrBase, reg)) {
+    goto Done;
+  }
+  result = true;
+
+Done:
+  if (dbg->dwSession) {
+    sym_dbg_dw_end(dbg);
+  }
+  return result;
+}
+
 SymbolAddr symbol_pal_prog_begin(void) {
   extern const u8 __executable_start[]; // Provided by the linker script.
   return (SymbolAddr)&__executable_start;
@@ -187,31 +211,22 @@ SymbolAddr symbol_pal_prog_end(void) {
 void symbol_pal_dbg_init(SymbolReg* reg) {
   Allocator* bumpAlloc = alloc_bump_create_stack(4 * usize_kibibyte);
 
-  SymDbg dbg = {0};
+  SymDbg dbg      = {0};
+  File*  fileExec = null;
+
   if (!sym_dbg_dw_load(&dbg, bumpAlloc)) {
     goto Done;
   }
-  if (file_create(bumpAlloc, g_pathExecutable, FileMode_Open, FileAccess_Read, &dbg.exec)) {
+  if (file_create(bumpAlloc, g_pathExecutable, FileMode_Open, FileAccess_Read, &fileExec)) {
     goto Done;
   }
-  if (!sym_dbg_dw_begin(&dbg)) {
-    goto Done;
-  }
-  SymbolAddr addrBase;
-  if (!sym_dbg_addr_base(&dbg, &addrBase)) {
-    goto Done;
-  }
-  symbol_reg_set_offset(reg, addrBase);
-  if (!sym_dbg_query(&dbg, addrBase, reg)) {
+  if (!sym_dbg_file_load(&dbg, fileExec, reg)) {
     goto Done;
   }
 
 Done:
-  if (dbg.dwSession) {
-    sym_dbg_dw_end(&dbg);
-  }
-  if (dbg.exec) {
-    file_destroy(dbg.exec);
+  if (fileExec) {
+    file_destroy(fileExec);
   }
   if (dbg.dwLib) {
     dynlib_destroy(dbg.dwLib);
