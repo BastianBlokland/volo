@@ -129,6 +129,23 @@ static void sym_dbg_dw_end(SymDbg* dbg) {
   dbg->dwSession = null;
 }
 
+static bool sym_dbg_find_section(SymDbg* dbg, const String name, ElfSHeader* out) {
+  Elf*  elf = dbg->dwarf_getelf(dbg->dwSession);
+  usize stringTableIndex;
+  if (dbg->elf_getshdrstrndx(elf, &stringTableIndex)) {
+    return false;
+  }
+  for (ElfScn* scn = null; (scn = dbg->elf_nextscn(elf, scn));) {
+    if (dbg->gelf_getshdr(scn, out) == out) {
+      const char* sectionName = dbg->elf_strptr(elf, stringTableIndex, out->name);
+      if (sectionName && string_eq(string_from_null_term(sectionName), name)) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 /**
  * Find the virtual base address of the elf executable (lowest mapped segment of the executable).
  * NOTE: This does not necessarily match the actual '__executable_start' if address layout
