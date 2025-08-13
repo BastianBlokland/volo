@@ -188,10 +188,10 @@ void symbol_pal_dbg_init(SymbolReg* reg) {
   Allocator* bumpAlloc = alloc_bump_create_stack(4 * usize_kibibyte);
 
   SymDbg dbg = {0};
-  if (file_create(bumpAlloc, g_pathExecutable, FileMode_Open, FileAccess_Read, &dbg.exec)) {
+  if (!sym_dbg_dw_load(&dbg, bumpAlloc)) {
     goto Done;
   }
-  if (!sym_dbg_dw_load(&dbg, bumpAlloc)) {
+  if (file_create(bumpAlloc, g_pathExecutable, FileMode_Open, FileAccess_Read, &dbg.exec)) {
     goto Done;
   }
   if (!sym_dbg_dw_begin(&dbg)) {
