@@ -31,6 +31,21 @@ typedef struct {
   u64  align;
 } ElfPHeader;
 
+typedef struct {
+  u32  name;
+  u32  type;
+  u64  flags;
+  uptr addr;
+  uptr offset;
+  u64  size;
+  u32  link;
+  u32  info;
+  u64  addralign;
+  u64  entsize;
+} ElfSHeader;
+
+typedef struct sElfScn ElfScn;
+
 typedef struct sDwarf       Dwarf;
 typedef struct sDwarfCu     DwarfCu;
 typedef struct sDwarfAbbrev DwarfAbbrev;
@@ -60,6 +75,10 @@ typedef struct {
   const char* (SYS_DECL* dwarf_diename)(DwarfDie*);
   int         (SYS_DECL* elf_getphdrnum)(Elf*, usize* result);
   ElfPHeader* (SYS_DECL* gelf_getphdr)(Elf*, int index, ElfPHeader* result);
+  ElfScn*     (SYS_DECL* elf_nextscn)(Elf*, ElfScn* curent);
+  ElfSHeader* (SYS_DECL* gelf_getshdr)(ElfScn*, ElfSHeader* result);
+  int         (SYS_DECL* elf_getshdrstrndx)(Elf*, usize* result);
+  const char* (SYS_DECL* elf_strptr)(Elf*, usize index, usize offset);
   // clang-format on
 } SymDbg;
 
@@ -90,6 +109,10 @@ static bool sym_dbg_dw_load(SymDbg* dbg, Allocator* alloc) {
   DW_LOAD_SYM(dwarf_diename);
   DW_LOAD_SYM(elf_getphdrnum);
   DW_LOAD_SYM(gelf_getphdr);
+  DW_LOAD_SYM(elf_nextscn);
+  DW_LOAD_SYM(gelf_getshdr);
+  DW_LOAD_SYM(elf_getshdrstrndx);
+  DW_LOAD_SYM(elf_strptr);
 
 #undef DW_LOAD_SYM
 
