@@ -44,6 +44,15 @@ typedef struct {
   u64  entsize;
 } ElfSHeader;
 
+typedef struct {
+  void* buf;
+  i32   type;
+  u32   version;
+  usize size;
+  i64   off;
+  usize align;
+} ElfData;
+
 typedef struct sElfScn ElfScn;
 
 typedef struct sDwarf       Dwarf;
@@ -79,6 +88,7 @@ typedef struct {
   ElfSHeader* (SYS_DECL* gelf_getshdr)(ElfScn*, ElfSHeader* result);
   int         (SYS_DECL* elf_getshdrstrndx)(Elf*, usize* result);
   const char* (SYS_DECL* elf_strptr)(Elf*, usize index, usize offset);
+  ElfData*    (SYS_DECL* elf_getdata)(ElfScn*, ElfData* result);
   // clang-format on
 } SymDbg;
 
@@ -113,6 +123,7 @@ static bool sym_dbg_dw_load(SymDbg* dbg, Allocator* alloc) {
   DW_LOAD_SYM(gelf_getshdr);
   DW_LOAD_SYM(elf_getshdrstrndx);
   DW_LOAD_SYM(elf_strptr);
+  DW_LOAD_SYM(elf_getdata);
 
 #undef DW_LOAD_SYM
 
@@ -127,23 +138,6 @@ static bool sym_dbg_dw_begin(SymDbg* dbg, File* file) {
 static void sym_dbg_dw_end(SymDbg* dbg) {
   dbg->dwarf_end(dbg->dwSession);
   dbg->dwSession = null;
-}
-
-static bool sym_dbg_find_section(SymDbg* dbg, const String name, ElfSHeader* out) {
-  Elf*  elf = dbg->dwarf_getelf(dbg->dwSession);
-  usize stringTableIndex;
-  if (dbg->elf_getshdrstrndx(elf, &stringTableIndex)) {
-    return false;
-  }
-  for (ElfScn* scn = null; (scn = dbg->elf_nextscn(elf, scn));) {
-    if (dbg->gelf_getshdr(scn, out) == out) {
-      const char* sectionName = dbg->elf_strptr(elf, stringTableIndex, out->name);
-      if (sectionName && string_eq(string_from_null_term(sectionName), name)) {
-        return true;
-      }
-    }
-  }
-  return false;
 }
 
 /**
