@@ -1,5 +1,6 @@
 #include "core.h"
 #include "core_alloc.h"
+#include "core_diag.h"
 #include "core_dynlib.h"
 #include "core_file.h"
 #include "core_path.h"
@@ -14,6 +15,8 @@
  */
 
 #define elf_ptype_load 1
+#define elf_cmd_read 1
+#define elf_ev_version 1
 #define dwarf_cmd_read 0
 #define dwarf_tag_entrypoint 0x03
 #define dwarf_tag_subprogram 0x2e
@@ -67,48 +70,63 @@ typedef struct {
 } DwarfDie;
 
 typedef struct {
-  DynLib* dwLib;
-  Dwarf*  dwSession;
+  DynLib* lib;
+  Elf*    sessionElf;
+  Dwarf*  sessionDwarf;
 
   // clang-format off
-  Dwarf*      (SYS_DECL* dwarf_begin)(int fildes, int cmd);
-  int         (SYS_DECL* dwarf_end)(Dwarf*);
-  Elf*        (SYS_DECL* dwarf_getelf)(Dwarf*);
-  int         (SYS_DECL* dwarf_nextcu)(Dwarf*, u64 off, u64* nextOff, usize* headerSize, u64* abbrevOffset, u8* addressSize, u8* offsetSize);
-  DwarfDie*   (SYS_DECL* dwarf_offdie)(Dwarf*, u64 off, DwarfDie* result);
-  int         (SYS_DECL* dwarf_child)(DwarfDie*, DwarfDie* result);
-  int         (SYS_DECL* dwarf_lowpc)(DwarfDie*, uptr* result);
-  int         (SYS_DECL* dwarf_highpc)(DwarfDie*, uptr* result);
-  int         (SYS_DECL* dwarf_siblingof)(DwarfDie*, DwarfDie* result);
-  int         (SYS_DECL* dwarf_tag)(DwarfDie*);
-  const char* (SYS_DECL* dwarf_diename)(DwarfDie*);
-  int         (SYS_DECL* elf_getphdrnum)(Elf*, usize* result);
-  ElfPHeader* (SYS_DECL* gelf_getphdr)(Elf*, int index, ElfPHeader* result);
-  ElfScn*     (SYS_DECL* elf_nextscn)(Elf*, ElfScn* curent);
-  ElfSHeader* (SYS_DECL* gelf_getshdr)(ElfScn*, ElfSHeader* result);
-  int         (SYS_DECL* elf_getshdrstrndx)(Elf*, usize* result);
-  const char* (SYS_DECL* elf_strptr)(Elf*, usize index, usize offset);
-  ElfData*    (SYS_DECL* elf_getdata)(ElfScn*, ElfData* result);
+  unsigned int (SYS_DECL* elf_version)(unsigned int);
+  Elf*         (SYS_DECL* elf_begin)(int filedes, int elfCmd, Elf* ref /* optional */);
+  int          (SYS_DECL* elf_end)(Elf*);
+  int          (SYS_DECL* elf_getphdrnum)(Elf*, usize* result);
+  ElfScn*      (SYS_DECL* elf_nextscn)(Elf*, ElfScn* curent);
+  int          (SYS_DECL* elf_getshdrstrndx)(Elf*, usize* result);
+  const char*  (SYS_DECL* elf_strptr)(Elf*, usize index, usize offset);
+  ElfData*     (SYS_DECL* elf_getdata)(ElfScn*, ElfData* result);
+
+  ElfPHeader*  (SYS_DECL* gelf_getphdr)(Elf*, int index, ElfPHeader* result);
+  ElfSHeader*  (SYS_DECL* gelf_getshdr)(ElfScn*, ElfSHeader* result);
+
+  Dwarf*       (SYS_DECL* dwarf_begin_elf)(Elf*, int cmd, ElfScn* group /* optional */);
+  int          (SYS_DECL* dwarf_end)(Dwarf*);
+  int          (SYS_DECL* dwarf_nextcu)(Dwarf*, u64 off, u64* nextOff, usize* headerSize, u64* abbrevOffset, u8* addressSize, u8* offsetSize);
+  DwarfDie*    (SYS_DECL* dwarf_offdie)(Dwarf*, u64 off, DwarfDie* result);
+  int          (SYS_DECL* dwarf_child)(DwarfDie*, DwarfDie* result);
+  int          (SYS_DECL* dwarf_lowpc)(DwarfDie*, uptr* result);
+  int          (SYS_DECL* dwarf_highpc)(DwarfDie*, uptr* result);
+  int          (SYS_DECL* dwarf_siblingof)(DwarfDie*, DwarfDie* result);
+  int          (SYS_DECL* dwarf_tag)(DwarfDie*);
+  const char*  (SYS_DECL* dwarf_diename)(DwarfDie*);
   // clang-format on
 } SymDbg;
 
-static bool sym_dbg_dw_load(SymDbg* dbg, Allocator* alloc) {
-  DynLibResult loadRes = dynlib_load(alloc, string_lit("libdw.so.1"), &dbg->dwLib);
+static bool sym_dbg_lib_load(SymDbg* dbg, Allocator* alloc) {
+  DynLibResult loadRes = dynlib_load(alloc, string_lit("libdw.so.1"), &dbg->lib);
   if (loadRes != DynLibResult_Success) {
     return false;
   }
 
 #define DW_LOAD_SYM(_NAME_)                                                                        \
   do {                                                                                             \
-    dbg->_NAME_ = dynlib_symbol(dbg->dwLib, string_lit(#_NAME_));                                  \
+    dbg->_NAME_ = dynlib_symbol(dbg->lib, string_lit(#_NAME_));                                    \
     if (!dbg->_NAME_) {                                                                            \
       return false;                                                                                \
     }                                                                                              \
   } while (false)
 
-  DW_LOAD_SYM(dwarf_begin);
+  DW_LOAD_SYM(elf_version);
+  DW_LOAD_SYM(elf_begin);
+  DW_LOAD_SYM(elf_end);
+  DW_LOAD_SYM(elf_getphdrnum);
+  DW_LOAD_SYM(elf_nextscn);
+  DW_LOAD_SYM(elf_getshdrstrndx);
+  DW_LOAD_SYM(elf_strptr);
+
+  DW_LOAD_SYM(gelf_getphdr);
+  DW_LOAD_SYM(gelf_getshdr);
+
+  DW_LOAD_SYM(dwarf_begin_elf);
   DW_LOAD_SYM(dwarf_end);
-  DW_LOAD_SYM(dwarf_getelf);
   DW_LOAD_SYM(dwarf_nextcu);
   DW_LOAD_SYM(dwarf_offdie);
   DW_LOAD_SYM(dwarf_child);
@@ -117,27 +135,26 @@ static bool sym_dbg_dw_load(SymDbg* dbg, Allocator* alloc) {
   DW_LOAD_SYM(dwarf_siblingof);
   DW_LOAD_SYM(dwarf_tag);
   DW_LOAD_SYM(dwarf_diename);
-  DW_LOAD_SYM(elf_getphdrnum);
-  DW_LOAD_SYM(gelf_getphdr);
-  DW_LOAD_SYM(elf_nextscn);
-  DW_LOAD_SYM(gelf_getshdr);
-  DW_LOAD_SYM(elf_getshdrstrndx);
-  DW_LOAD_SYM(elf_strptr);
-  DW_LOAD_SYM(elf_getdata);
 
 #undef DW_LOAD_SYM
+
+  if (dbg->elf_version(elf_ev_version) != elf_ev_version) {
+    return false; // Unsupported libelf version.
+  }
 
   return true;
 }
 
-static bool sym_dbg_dw_begin(SymDbg* dbg, File* file) {
-  dbg->dwSession = dbg->dwarf_begin(file->handle, dwarf_cmd_read);
-  return dbg->dwSession != null;
+static bool sym_dbg_elf_begin(SymDbg* dbg, File* file) {
+  diag_assert(!dbg->sessionElf);
+  dbg->sessionElf = dbg->elf_begin(file->handle, elf_cmd_read, null);
+  return dbg->sessionElf != null;
 }
 
-static void sym_dbg_dw_end(SymDbg* dbg) {
-  dbg->dwarf_end(dbg->dwSession);
-  dbg->dwSession = null;
+static void sym_dbg_elf_end(SymDbg* dbg) {
+  diag_assert(dbg->sessionElf);
+  dbg->elf_end(dbg->sessionElf);
+  dbg->sessionElf = null;
 }
 
 /**
@@ -145,15 +162,15 @@ static void sym_dbg_dw_end(SymDbg* dbg) {
  * NOTE: This does not necessarily match the actual '__executable_start' if address layout
  * randomization is used, when using randomization the ELF base address is usually zero.
  */
-static bool sym_dbg_addr_base(SymDbg* dbg, SymbolAddr* out) {
-  Elf*  elf = dbg->dwarf_getelf(dbg->dwSession);
+static bool sym_dbg_elf_addr_base(SymDbg* dbg, SymbolAddr* out) {
+  diag_assert(dbg->sessionElf);
   usize pHeaderCount;
-  if (dbg->elf_getphdrnum(elf, &pHeaderCount)) {
+  if (dbg->elf_getphdrnum(dbg->sessionElf, &pHeaderCount)) {
     return false;
   }
   for (usize i = 0; i != pHeaderCount; ++i) {
     ElfPHeader header;
-    if (dbg->gelf_getphdr(elf, (int)i, &header)) {
+    if (dbg->gelf_getphdr(dbg->sessionElf, (int)i, &header)) {
       if (header.type == elf_ptype_load) {
         *out = header.vaddr; // Use the first loaded segment as the base.
         return true;
@@ -163,7 +180,19 @@ static bool sym_dbg_addr_base(SymDbg* dbg, SymbolAddr* out) {
   return false;
 }
 
-static bool sym_dbg_query(SymDbg* dbg, const SymbolAddr addrBase, SymbolReg* reg) {
+static bool sym_dbg_dwarf_begin(SymDbg* dbg) {
+  diag_assert(dbg->sessionElf && !dbg->sessionDwarf);
+  dbg->sessionDwarf = dbg->dwarf_begin_elf(dbg->sessionElf, dwarf_cmd_read, null);
+  return dbg->sessionDwarf != null;
+}
+
+static void sym_dbg_dwarf_end(SymDbg* dbg) {
+  dbg->dwarf_end(dbg->sessionDwarf);
+  dbg->sessionDwarf = null;
+}
+
+static bool sym_dbg_dwarf_query(SymDbg* dbg, const SymbolAddr addrBase, SymbolReg* reg) {
+  diag_assert(dbg->sessionDwarf);
   /**
    * Find all the (non-inlined) function symbols in all the compilation units.
    * NOTE: Doesn't depend on 'aranges' dwarf info as that is optional and clang does not emit it.
@@ -173,9 +202,9 @@ static bool sym_dbg_query(SymDbg* dbg, const SymbolAddr addrBase, SymbolReg* reg
   u64   cuOffsetNext;
   usize cuSize;
   // Iterate over all compilation units.
-  while (!dbg->dwarf_nextcu(dbg->dwSession, cuOffset, &cuOffsetNext, &cuSize, 0, 0, 0)) {
+  while (!dbg->dwarf_nextcu(dbg->sessionDwarf, cuOffset, &cuOffsetNext, &cuSize, 0, 0, 0)) {
     DwarfDie cu;
-    if (!dbg->dwarf_offdie(dbg->dwSession, cuOffset + cuSize, &cu)) {
+    if (!dbg->dwarf_offdie(dbg->sessionDwarf, cuOffset + cuSize, &cu)) {
       continue;
     }
     // Walk over all the children (functions) in the compilation unit.
@@ -213,22 +242,28 @@ static bool sym_dbg_query(SymDbg* dbg, const SymbolAddr addrBase, SymbolReg* reg
 
 static bool sym_dbg_file_load(SymDbg* dbg, File* file, SymbolReg* reg) {
   bool result = false;
-  if (!sym_dbg_dw_begin(dbg, file)) {
+  if (!sym_dbg_elf_begin(dbg, file)) {
     goto Done;
   }
   SymbolAddr addrBase;
-  if (!sym_dbg_addr_base(dbg, &addrBase)) {
+  if (!sym_dbg_elf_addr_base(dbg, &addrBase)) {
     goto Done;
   }
   symbol_reg_set_offset(reg, addrBase);
-  if (!sym_dbg_query(dbg, addrBase, reg)) {
+  if (!sym_dbg_dwarf_begin(dbg)) {
+    goto Done;
+  }
+  if (!sym_dbg_dwarf_query(dbg, addrBase, reg)) {
     goto Done;
   }
   result = true;
 
 Done:
-  if (dbg->dwSession) {
-    sym_dbg_dw_end(dbg);
+  if (dbg->sessionDwarf) {
+    sym_dbg_dwarf_end(dbg);
+  }
+  if (dbg->sessionElf) {
+    sym_dbg_elf_end(dbg);
   }
   return result;
 }
@@ -249,7 +284,7 @@ void symbol_pal_dbg_init(SymbolReg* reg) {
   SymDbg dbg      = {0};
   File*  fileExec = null;
 
-  if (!sym_dbg_dw_load(&dbg, bumpAlloc)) {
+  if (!sym_dbg_lib_load(&dbg, bumpAlloc)) {
     goto Done;
   }
   if (file_create(bumpAlloc, g_pathExecutable, FileMode_Open, FileAccess_Read, &fileExec)) {
@@ -263,7 +298,7 @@ Done:
   if (fileExec) {
     file_destroy(fileExec);
   }
-  if (dbg.dwLib) {
-    dynlib_destroy(dbg.dwLib);
+  if (dbg.lib) {
+    dynlib_destroy(dbg.lib);
   }
 }
