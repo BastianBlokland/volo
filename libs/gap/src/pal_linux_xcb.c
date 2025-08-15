@@ -2580,7 +2580,7 @@ void gap_pal_modal_error(String message) {
   textSize.height       = lineCount * lineHeight + (lineCount - 1) * lineSpacing;
 
   const GapVector textSizeHalf   = gap_vector_div(textSize, 2);
-  GapVector       windowSize     = gap_vector(math_max(textSize.x, 300), math_max(textSize.y, 200));
+  GapVector       windowSize     = gap_vector(math_max(textSize.x, 480), math_max(textSize.y, 320));
   GapVector       windowSizeHalf = gap_vector_div(windowSize, 2);
 
   // clang-format off
