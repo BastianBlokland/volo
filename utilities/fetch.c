@@ -12,6 +12,7 @@
 #include "core_signal.h"
 #include "core_thread.h"
 #include "core_time.h"
+#include "core_version.h"
 #include "data_read.h"
 #include "data_utils.h"
 #include "data_write.h"
@@ -408,6 +409,8 @@ static FetchResult fetch_run(
 
   log_i(
       "Fetching assets",
+      log_param("version", fmt_text(version_str_scratch(g_versionExecutable))),
+      log_param("executable", fmt_path(g_pathExecutable)),
       log_param("origins", fmt_int(cfg->origins.count)),
       log_param("output-path", fmt_path(outPath)));
 
