@@ -138,6 +138,12 @@ jobs:
         cmake -B build -G Ninja $CMAKE_OPTS
         ninja -k 0 -C build all test install
 
+        for file in $(find bin -type f ! -name "*.*"); do
+            objcopy --only-keep-debug "$file" "$file.dbg"
+            strip --strip-all "$file"
+            objcopy --add-gnu-debuglink="$file.dbg" "$file"
+        done
+
     - name: build-windows
       if: matrix.config.os == 'windows'
       shell: pwsh
@@ -150,16 +156,6 @@ jobs:
       if: matrix.config.toolchain != 'mingw'
       shell: bash
       run: ./bin/volo --debug-symbols > ./bin/volo.syms
-
-    - name: strip-unix
-      if: matrix.config.toolchain == 'unix'
-      shell: bash
-      run: |
-        for file in $(find bin -type f ! -name "*.*"); do
-            objcopy --only-keep-debug "$file" "$file.dbg"
-            strip --strip-all "$file"
-            objcopy --add-gnu-debuglink="$file.dbg" "$file"
-        done
 
     - name: archive
       uses: actions/upload-artifact@v4
