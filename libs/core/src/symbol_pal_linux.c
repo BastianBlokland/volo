@@ -1,5 +1,6 @@
 #include "core.h"
 #include "core_alloc.h"
+#include "core_bits.h"
 #include "core_diag.h"
 #include "core_dynlib.h"
 #include "core_file.h"
@@ -82,7 +83,7 @@ typedef struct {
   ElfScn*      (SYS_DECL* elf_nextscn)(Elf*, ElfScn* curent);
   int          (SYS_DECL* elf_getshdrstrndx)(Elf*, usize* result);
   const char*  (SYS_DECL* elf_strptr)(Elf*, usize index, usize offset);
-  ElfData*     (SYS_DECL* elf_getdata)(ElfScn*, ElfData* result);
+  ElfData*     (SYS_DECL* elf_getdata)(ElfScn*, ElfData* current);
 
   ElfPHeader*  (SYS_DECL* gelf_getphdr)(Elf*, int index, ElfPHeader* result);
   ElfSHeader*  (SYS_DECL* gelf_getshdr)(ElfScn*, ElfSHeader* result);
@@ -121,6 +122,7 @@ static bool sym_dbg_lib_load(SymDbg* dbg, Allocator* alloc) {
   DW_LOAD_SYM(elf_nextscn);
   DW_LOAD_SYM(elf_getshdrstrndx);
   DW_LOAD_SYM(elf_strptr);
+  DW_LOAD_SYM(elf_getdata);
 
   DW_LOAD_SYM(gelf_getphdr);
   DW_LOAD_SYM(gelf_getshdr);
@@ -155,6 +157,41 @@ static void sym_dbg_elf_end(SymDbg* dbg) {
   diag_assert(dbg->sessionElf);
   dbg->elf_end(dbg->sessionElf);
   dbg->sessionElf = null;
+}
+
+static const ElfData* sym_dbg_elf_find_section(SymDbg* dbg, const String name) {
+  diag_assert(dbg->sessionElf);
+  usize stringTableIndex;
+  if (dbg->elf_getshdrstrndx(dbg->sessionElf, &stringTableIndex)) {
+    return null;
+  }
+  for (ElfScn* scn = null; (scn = dbg->elf_nextscn(dbg->sessionElf, scn));) {
+    ElfSHeader sectionHeader;
+    if (dbg->gelf_getshdr(scn, &sectionHeader) == &sectionHeader) {
+      const char* sectionName =
+          dbg->elf_strptr(dbg->sessionElf, stringTableIndex, sectionHeader.name);
+      if (sectionName && string_eq(string_from_null_term(sectionName), name)) {
+        return dbg->elf_getdata(scn, null);
+      }
+    }
+  }
+  return null;
+}
+
+typedef struct {
+  String id;
+  u32    checksum; // crc32 (ISO 3309).
+} DbgElfDebugLink;
+
+static bool sym_dbg_elf_debuglink(SymDbg* dbg, DbgElfDebugLink* out) {
+  diag_assert(dbg->sessionElf);
+  const ElfData* section = sym_dbg_elf_find_section(dbg, string_lit(".gnu_debuglink"));
+  if (!section || !section->buf) {
+    return false; // No debug-link data.
+  }
+  out->id       = string_from_null_term(section->buf);
+  out->checksum = *(u32*)bits_align_ptr(bits_ptr_offset(section->buf, out->id.size + 1), 4);
+  return true;
 }
 
 /**
@@ -254,6 +291,32 @@ static bool sym_dbg_file_load(SymDbg* dbg, Allocator* allocTmp, const String pat
     goto Done;
   }
   symbol_reg_set_offset(reg, addrBase);
+
+  DbgElfDebugLink debugLink;
+  if (sym_dbg_elf_debuglink(dbg, &debugLink)) {
+    /**
+     * Debug-link found; debug links are separate elf files that contain the debug symbols (similar
+     * to the win32 pdb files).
+     * Verify if the debug-link file is present (and matches the checksum); if so use that file
+     * instead of the original one.
+     */
+    const String linkPath = path_build_scratch(path_parent(path), debugLink.id);
+    u32          crc;
+    if (file_crc_32_path_sync(linkPath, &crc) == FileResult_Success && crc == debugLink.checksum) {
+      sym_dbg_elf_end(dbg);
+
+      file_destroy(file);
+      file = null;
+
+      if (file_create(allocTmp, linkPath, FileMode_Open, FileAccess_Read, &file)) {
+        goto Done;
+      }
+      if (!sym_dbg_elf_begin(dbg, file)) {
+        goto Done;
+      }
+    }
+  }
+
   if (!sym_dbg_dwarf_begin(dbg)) {
     goto Done;
   }
