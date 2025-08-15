@@ -240,8 +240,12 @@ static bool sym_dbg_dwarf_query(SymDbg* dbg, const SymbolAddr addrBase, SymbolRe
   return foundSymbols != 0;
 }
 
-static bool sym_dbg_file_load(SymDbg* dbg, File* file, SymbolReg* reg) {
-  bool result = false;
+static bool sym_dbg_file_load(SymDbg* dbg, Allocator* allocTmp, const String path, SymbolReg* reg) {
+  bool  result = false;
+  File* file   = null;
+  if (file_create(allocTmp, path, FileMode_Open, FileAccess_Read, &file)) {
+    goto Done;
+  }
   if (!sym_dbg_elf_begin(dbg, file)) {
     goto Done;
   }
@@ -265,6 +269,9 @@ Done:
   if (dbg->sessionElf) {
     sym_dbg_elf_end(dbg);
   }
+  if (file) {
+    file_destroy(file);
+  }
   return result;
 }
 
@@ -281,23 +288,14 @@ SymbolAddr symbol_pal_prog_end(void) {
 void symbol_pal_dbg_init(SymbolReg* reg) {
   Allocator* bumpAlloc = alloc_bump_create_stack(4 * usize_kibibyte);
 
-  SymDbg dbg      = {0};
-  File*  fileExec = null;
-
+  SymDbg dbg = {0};
   if (!sym_dbg_lib_load(&dbg, bumpAlloc)) {
     goto Done;
   }
-  if (file_create(bumpAlloc, g_pathExecutable, FileMode_Open, FileAccess_Read, &fileExec)) {
+  if (!sym_dbg_file_load(&dbg, bumpAlloc, g_pathExecutable, reg)) {
     goto Done;
   }
-  if (!sym_dbg_file_load(&dbg, fileExec, reg)) {
-    goto Done;
-  }
-
 Done:
-  if (fileExec) {
-    file_destroy(fileExec);
-  }
   if (dbg.lib) {
     dynlib_destroy(dbg.lib);
   }
