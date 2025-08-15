@@ -8,8 +8,6 @@
 
 #include "pal_internal.h"
 
-void SYS_DECL free(void*); // free from stdlib, xcb allocates various structures for us to free.
-
 /**
  * X11 client implementation using the xcb library.
  * Optionally uses the xkbcommon, xfixes, randr and render extensions.
@@ -427,6 +425,7 @@ typedef struct {
   XcbGenericEvent*        (SYS_DECL* poll_for_event)(XcbConnection*);
   XcbGenericEvent*        (SYS_DECL* wait_for_event)(XcbConnection*);
   XcbScreenItr            (SYS_DECL* setup_roots_iterator)(const XcbSetup*);
+  void                    (SYS_DECL* free)(void*);
   // clang-format on
 } Xcb;
 
@@ -800,7 +799,7 @@ static XcbAtom pal_xcb_atom(Xcb* xcb, const String name) {
         "Failed to retrieve Xcb atom: {}, err: {}", fmt_text(name), fmt_int(err->errorCode));
   }
   const XcbAtom result = data->atom;
-  free(data);
+  xcb->free(data);
   return result;
 }
 
@@ -913,7 +912,7 @@ static GapVector pal_xcb_measure_text(Xcb* xcb, const XcbFont font, String text)
     result.height = data->fontAscent + data->fontDescent;
   }
 
-  free(data);
+  xcb->free(data);
   return result;
 }
 
@@ -960,7 +959,7 @@ static bool pal_init_xcb(Allocator* alloc, Xcb* out, const PalXcbInitFlags flags
     out->_NAME_          = dynlib_symbol(out->lib, symName);                                       \
     if (!out->_NAME_) {                                                                            \
       if (!(flags & PalXcbInitFlags_Silent)) {                                                     \
-        log_e("Xcb symbol '{}' missing", log_param("error", fmt_text(symName)));                   \
+        log_e("Xcb symbol '{}' missing", log_param("sym", fmt_text(symName)));                     \
       }                                                                                            \
       dynlib_destroy(out->lib);                                                                    \
       return false;                                                                                \
@@ -1014,6 +1013,13 @@ static bool pal_init_xcb(Allocator* alloc, Xcb* out, const PalXcbInitFlags flags
   XCB_LOAD_SYM(warp_pointer);
 
 #undef XCB_LOAD_SYM
+
+  out->free = dynlib_symbol(out->lib, string_lit("free"));
+  if (!out->free) {
+    log_e("Xcb 'free' missing");
+    dynlib_destroy(out->lib);
+    return false;
+  }
 
   // Establish a connection with the x-server.
   int screen         = 0;
@@ -1163,7 +1169,7 @@ static bool pal_init_xkb(Xcb* xcb, Allocator* alloc, XkbCommon* out) {
 
   if (UNLIKELY(!setupRes)) {
     log_w("Failed to initialize Xkb", log_param("error", fmt_int(err->errorCode)));
-    free(err);
+    xcb->free(err);
     return false;
   }
 
@@ -1174,7 +1180,7 @@ static bool pal_init_xkb(Xcb* xcb, Allocator* alloc, XkbCommon* out) {
   err = xcb->request_check(xcb->con, selectEventsCookie);
   if (UNLIKELY(err)) {
     log_w("Failed to select Xkb events", log_param("error", fmt_int(err->errorCode)));
-    free(err);
+    xcb->free(err);
     return false;
   }
 
@@ -1243,7 +1249,7 @@ static bool pal_init_xfixes(Xcb* xcb, Allocator* alloc, XFixes* out) {
 
   XcbGenericError* err   = null;
   void*            reply = xcb_call(xcb->con, out->query_version, &err, 5, 0);
-  free(reply);
+  xcb->free(reply);
 
   if (UNLIKELY(err)) {
     log_w("Failed to initialize XFixes", log_param("error", fmt_int(err->errorCode)));
@@ -1302,7 +1308,7 @@ static bool pal_init_randr(Xcb* xcb, Allocator* alloc, XRandr* out) {
   }
   XcbGenericError* err     = null;
   void*            version = xcb_call(xcb->con, out->query_version, &err, 1, 6);
-  free(version);
+  xcb->free(version);
 
   if (UNLIKELY(err)) {
     log_w("Failed to initialize XRandR", log_param("err", fmt_int(err->errorCode)));
@@ -1346,7 +1352,7 @@ static bool pal_xrender_find_formats(Xcb* xcb, XRender* xrender) {
     return true;
   }
 
-  free(formats);
+  xcb->free(formats);
   return false; // Argb32 not found.
 }
 
@@ -1388,7 +1394,7 @@ static bool pal_init_xrender(Xcb* xcb, Allocator* alloc, XRender* out) {
   }
   XcbGenericError* err     = null;
   void*            version = xcb_call(xcb->con, out->query_version, &err, 0, 11);
-  free(version);
+  xcb->free(version);
 
   if (UNLIKELY(err)) {
     log_w("Failed to initialize XRender", log_param("err", fmt_int(err->errorCode)));
@@ -1499,11 +1505,11 @@ static void pal_query_displays(GapPal* pal) {
           .refreshRate = refreshRate,
           .dpi         = dpi,
       };
-      free(crtc);
+      pal->xcb.free(crtc);
     }
-    free(output);
+    pal->xcb.free(output);
   }
-  free(screen);
+  pal->xcb.free(screen);
 }
 
 static GapVector pal_query_cursor_pos(GapPal* pal, const GapWindowId winId) {
@@ -1531,7 +1537,7 @@ static GapVector pal_query_cursor_pos(GapPal* pal, const GapWindowId winId) {
   };
 
 Return:
-  free(data);
+  pal->xcb.free(data);
   return result;
 }
 
@@ -1793,8 +1799,7 @@ static void pal_event_clip_paste_notify(GapPal* pal, const GapWindowId windowId)
   } else {
     window->clipPaste = string_empty;
   }
-  free(reply);
-
+  pal->xcb.free(reply);
   pal->xcb.delete_property(pal->xcb.con, (XcbWindow)windowId, pal->xcb.atomVoloClipboard);
 }
 
@@ -1890,7 +1895,7 @@ void gap_pal_update(GapPal* pal) {
   pal_clear_volatile(pal);
 
   // Handle all xcb events in the buffer.
-  for (XcbGenericEvent* evt; (evt = pal->xcb.poll_for_event(pal->xcb.con)); free(evt)) {
+  for (XcbGenericEvent* evt; (evt = pal->xcb.poll_for_event(pal->xcb.con)); pal->xcb.free(evt)) {
     const u32 eventId = evt->responseType & ~0x80;
     switch (eventId) {
 
@@ -2618,7 +2623,7 @@ void gap_pal_modal_error(String message) {
     goto Close; // Failed to initialize.
   }
 
-  for (XcbGenericEvent* evt; (evt = xcb.wait_for_event(xcb.con)); free(evt)) {
+  for (XcbGenericEvent* evt; (evt = xcb.wait_for_event(xcb.con)); xcb.free(evt)) {
     const u32 eventId = evt->responseType & ~0x80;
     switch (eventId) {
     case 0: {
