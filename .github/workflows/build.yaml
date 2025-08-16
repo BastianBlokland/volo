@@ -139,6 +139,9 @@ jobs:
         ninja -k 0 -C build all test install
 
         for file in $(find bin -type f ! -name "*.*"); do
+            patchelf --add-needed libdl.so.2 "$file" # Needed for older GLIBC versions.
+            patchelf --add-needed libpthread.so.0 "$file" # Needed for older GLIBC versions.
+
             objcopy --only-keep-debug "$file" "$file.dbg"
             strip --strip-all "$file"
             objcopy --add-gnu-debuglink="$file.dbg" "$file"
