@@ -204,3 +204,15 @@ Symbol dynlib_pal_symbol(const DynLib* lib, const String name) {
   thread_mutex_unlock(g_dynlibLoadMutex);
   return res;
 }
+
+Symbol dynlib_pal_symbol_global(const String name) {
+  // Copy the name on the stack and null-terminate it.
+  if (name.size >= dynlib_max_symbol_name) {
+    diag_crash_msg("Symbol name too long");
+  }
+  Mem nameBuffer = mem_stack(dynlib_max_symbol_name);
+  mem_cpy(nameBuffer, name);
+  *mem_at_u8(nameBuffer, name.size) = '\0';
+
+  return (Symbol)GetProcAddress(GetModuleHandle(NULL), nameBuffer.ptr);
+}

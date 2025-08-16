@@ -2,8 +2,6 @@
 #include "core_alloc.h"
 #include "core_dynlib.h"
 
-double SYS_DECL sin(double); // Libc sin function.
-
 spec(dynlib) {
 
   it("fails when opening an non-existent library") {
@@ -18,8 +16,12 @@ spec(dynlib) {
     check(dynlib_symbol_global(string_lit("hello_world")) == null);
   }
 
+#ifndef VOLO_WIN32 // NOTE: On Windows we statically link libc making this hard to test.
+
   it("can lookup global symbols") {
-    // Check if we can lookup the libc sin function.
-    check(dynlib_symbol_global(string_lit("sin")) == &sin);
+    double SYS_DECL sin(double); // Libc sin function.
+    check_eq_int(dynlib_symbol_global(string_lit("sin")), &sin);
   }
+
+#endif
 }
