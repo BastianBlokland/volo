@@ -92,6 +92,8 @@ macro(set_gcc_compile_options)
                       -Wno-clobbered -Wno-missing-braces -Wno-type-limits -Wno-maybe-uninitialized
                       -Wno-override-init-side-effects -Wno-enum-conversion)
 
+  add_link_options(-no-pie) # Disable 'Position Independent Executables'.
+
   # Optimization settings.
   add_compile_options(-O2) # Optimization level 2.
   # add_compile_options(-march=native) # Optimize for the native cpu architecture (non portable).
@@ -137,8 +139,8 @@ macro(set_clang_compile_options)
                       -Wno-implicit-int-conversion -Wno-missing-field-initializers
                       -Wno-enum-enum-conversion)
 
-  # Use the LLD linker (https://lld.llvm.org/).
-  add_link_options(-fuse-ld=lld)
+  add_link_options(-fuse-ld=lld) # Use the LLD linker (https://lld.llvm.org/).
+  add_link_options(-no-pie) # Disable 'Position Independent Executables'.
 
   # Optimization settings.
   add_compile_options(-O2) # Optimization level 2.

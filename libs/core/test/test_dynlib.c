@@ -11,4 +11,17 @@ spec(dynlib) {
     DynLib* lib;
     check(dynlib_load(alloc, libName, &lib) == DynLibResult_LibraryNotFound);
   }
+
+  it("returns null if a global symbol cannot be found") {
+    check(dynlib_symbol_global(string_lit("hello_world")) == null);
+  }
+
+#ifndef VOLO_WIN32 // NOTE: On Windows we statically link libc making this hard to test.
+
+  it("can lookup global symbols") {
+    double SYS_DECL sin(double); // Libc sin function.
+    check_eq_int(dynlib_symbol_global(string_lit("sin")), &sin);
+  }
+
+#endif
 }

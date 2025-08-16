@@ -90,3 +90,21 @@ Symbol dynlib_pal_symbol(const DynLib* lib, const String name) {
 #endif
   return sym;
 }
+
+Symbol dynlib_pal_symbol_global(const String name) {
+  // Copy the name on the stack and null-terminate it.
+  if (name.size >= dynlib_max_symbol_name) {
+    diag_crash_msg("Symbol name too long");
+  }
+  Mem nameBuffer = mem_stack(dynlib_max_symbol_name);
+  mem_cpy(nameBuffer, name);
+  *mem_at_u8(nameBuffer, name.size) = '\0';
+
+  Symbol sym = (Symbol)dlsym(RTLD_DEFAULT, nameBuffer.ptr);
+#if dynlib_crash_on_error
+  if (UNLIKELY(!sym)) {
+    diag_crash_msg("dynlib_symbol_global('{}'): {}", fmt_text(name), fmt_text(dynlib_err_msg()));
+  }
+#endif
+  return sym;
+}

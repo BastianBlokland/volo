@@ -88,7 +88,7 @@ void dynlib_destroy(DynLib* lib) {
 }
 
 String dynlib_path(const DynLib* lib) { return dynlib_pal_path(lib); }
-
 Symbol dynlib_symbol(const DynLib* lib, const String name) { return dynlib_pal_symbol(lib, name); }
+Symbol dynlib_symbol_global(const String name) { return dynlib_pal_symbol_global(name); }
 
 u32 dynlib_count(void) { return (u32)thread_atomic_load_i64(&g_dynlibCount); }

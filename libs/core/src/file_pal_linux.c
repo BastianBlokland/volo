@@ -17,6 +17,13 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+/**
+ * For compatiblity with older GLIBC versions we use the older '__xstat' and '__fxstat'.
+ * TODO: It might be better to use the syscalls directly.
+ */
+int SYS_DECL __xstat(int ver, const char* fileName, struct stat* statBuf);
+int SYS_DECL __fxstat(int ver, int fileDes, struct stat* statBuf);
+
 File* g_fileStdIn  = &(File){.handle = 0, .access = FileAccess_Read};
 File* g_fileStdOut = &(File){.handle = 1, .access = FileAccess_Write};
 File* g_fileStdErr = &(File){.handle = 2, .access = FileAccess_Write};
@@ -328,7 +335,8 @@ FileInfo file_stat_sync(File* file) {
   diag_assert(file);
 
   struct stat statOutput;
-  const int   res = fstat(file->handle, &statOutput);
+  // NOTE: Use '__fxstat' instead of 'fstat' for compatiblity with older GLIBC versions.
+  const int res = __fxstat(1 /* _STAT_VER */, file->handle, &statOutput);
   if (UNLIKELY(res != 0)) {
     diag_crash_msg("fstat() failed: {}", fmt_int(res));
   }
@@ -345,7 +353,8 @@ FileInfo file_stat_path_sync(const String path) {
   *mem_at_u8(pathBuffer, path.size) = '\0';
 
   struct stat statOutput;
-  const int   res = stat(pathBuffer.ptr, &statOutput);
+  // NOTE: Use '__xstat' instead of 'stat' for compatiblity with older GLIBC versions.
+  const int res = __xstat(1 /* _STAT_VER */, pathBuffer.ptr, &statOutput);
   if (res != 0) {
     switch (errno) {
     case EACCES:
