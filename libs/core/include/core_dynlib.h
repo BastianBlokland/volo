@@ -49,6 +49,12 @@ String dynlib_path(const DynLib*);
 Symbol dynlib_symbol(const DynLib*, String name);
 
 /**
+ * Lookup a global (not scoped to a specific library) symbol.
+ * NOTE: Returns null if the symbol could not be found.
+ */
+Symbol dynlib_symbol_global(String name);
+
+/**
  * Returns the amount of currently loaded libraries.
  */
 u32 dynlib_count(void);
