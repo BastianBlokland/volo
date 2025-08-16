@@ -78,7 +78,7 @@ if(${VOLO_PLATFORM} STREQUAL "linux")
 
   # Include our GLIBC compatibility header (which specifies glibc symbol versions).
   # NOTE: Other libc's (for example MUSL) are not supported at this time.
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -include ${CMAKE_CURRENT_LIST_DIR}/glibc_symver.h")
+  add_compile_options(-include "${CMAKE_CURRENT_LIST_DIR}/glibc_symver.h")
 endif()
 
 configure_file("src/version_internal.h.in" "${CMAKE_CURRENT_LIST_DIR}/src/version_internal.h")
