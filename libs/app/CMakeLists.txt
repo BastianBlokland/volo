@@ -33,8 +33,4 @@ if(${VOLO_PLATFORM} STREQUAL "linux")
   target_sources(lib_app_cli PRIVATE "src/glibc_compat.c")
   target_sources(lib_app_check PRIVATE "src/glibc_compat.c")
   target_sources(lib_app_ecs PRIVATE "src/glibc_compat.c")
-
-  # Wrap '__libc_start_main' for compatibility with old GLIBC versions.
-  # See 'src/glibc_compat.c'
-  add_link_options(-Wl,--wrap=__libc_start_main)
 endif()
