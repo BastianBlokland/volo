@@ -1014,12 +1014,23 @@ static bool pal_init_xcb(Allocator* alloc, Xcb* out, const PalXcbInitFlags flags
 
 #undef XCB_LOAD_SYM
 
+#ifndef VOLO_ASAN
+  /**
+   * Xcb allocates data that the caller needs to free using the libc 'free'.
+   */
   out->free = dynlib_symbol(out->lib, string_lit("free"));
   if (!out->free) {
     log_e("Xcb 'free' missing");
     dynlib_destroy(out->lib);
     return false;
   }
+#else // VOLO_ASAN
+  /**
+   * With AddressSanitizer enabled its important we use the injected version of 'free'.
+   */
+  void SYS_DECL free(void*);
+  out->free = &free;
+#endif
 
   // Establish a connection with the x-server.
   int screen         = 0;
