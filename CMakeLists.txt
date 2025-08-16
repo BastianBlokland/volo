@@ -11,12 +11,12 @@ endif()
 project(Volo VERSION 0.1.0 LANGUAGES C)
 
 # Custom options.
-set(FAST     "Off" CACHE BOOL   "Fast mode, disables various runtime validations")
-set(SIMD     "On"  CACHE BOOL   "SIMD support, enables usage of SIMD instructions")
-set(TRACE    "On"  CACHE BOOL   "Trace mode, enables runtime performance tracing")
-set(LTO      "Off" CACHE BOOL   "Link time optimization")
-set(SANITIZE "Off" CACHE BOOL   "Should sanitizer instrumentation be enabled")
-set(LABEL    ""    CACHE STRING "Label to be associated with the build")
+option(FAST     "Fast mode, disables various runtime validations"   Off)
+option(SIMD     "SIMD support, enables usage of SIMD instructions"  On)
+option(TRACE    "Trace mode, enables runtime performance tracing"   On)
+option(LTO      "Link time optimization"                            Off)
+option(SANITIZE "Should sanitizer instrumentation be enabled"       Off)
+option(LABEL    "Label to be associated with the build"             "")
 
 # Diagnostic information.
 message(STATUS "Configuring Volo")
