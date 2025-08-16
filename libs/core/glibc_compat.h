@@ -15,8 +15,10 @@
  */
 __asm__(".symver __cxa_finalize,__cxa_finalize@GLIBC_2.2.5");
 __asm__(".symver __errno_location,__errno_location@GLIBC_2.2.5");
+__asm__(".symver __fxstat,__fxstat@GLIBC_2.2.5");
 __asm__(".symver __libc_start_main,__libc_start_main@GLIBC_2.2.5");
 __asm__(".symver __sched_cpucount,__sched_cpucount@GLIBC_2.6");
+__asm__(".symver __xstat,__xstat@GLIBC_2.2.5");
 __asm__(".symver _setjmp,_setjmp@GLIBC_2.2.5");
 __asm__(".symver acosf,acosf@GLIBC_2.2.5");
 __asm__(".symver asinf,asinf@GLIBC_2.2.5");
@@ -38,7 +40,6 @@ __asm__(".symver execvp,execvp@GLIBC_2.2.5");
 __asm__(".symver fmod,fmod@GLIBC_2.2.5");
 __asm__(".symver fmodf,fmodf@GLIBC_2.2.5");
 __asm__(".symver fork,fork@GLIBC_2.2.5");
-__asm__(".symver fstat,fstat@GLIBC_2.2.5");
 __asm__(".symver ftruncate,ftruncate@GLIBC_2.2.5");
 __asm__(".symver getcwd,getcwd@GLIBC_2.2.5");
 __asm__(".symver getenv,getenv@GLIBC_2.2.5");
@@ -104,7 +105,6 @@ __asm__(".symver sigprocmask,sigprocmask@GLIBC_2.2.5");
 __asm__(".symver sin,sin@GLIBC_2.2.5");
 __asm__(".symver sincos,sincos@GLIBC_2.2.5");
 __asm__(".symver sincosf,sincosf@GLIBC_2.2.5");
-__asm__(".symver stat,stat@GLIBC_2.2.5");
 __asm__(".symver syscall,syscall@GLIBC_2.2.5");
 __asm__(".symver tanf,tanf@GLIBC_2.2.5");
 __asm__(".symver time,time@GLIBC_2.2.5");
