@@ -323,7 +323,7 @@ void thread_pal_sleep(const TimeDuration duration) {
 bool thread_pal_exists(const ThreadId tid) {
   const pid_t pid = (pid_t)syscall(SYS_getpid);
   do {
-    if (tgkill(pid, (pid_t)tid, 0) == 0) {
+    if (syscall(SYS_tgkill, pid, (pid_t)tid, 0) == 0) {
       return true; // Signal could be delivered.
     }
   } while (errno == EAGAIN);
