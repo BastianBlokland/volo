@@ -4,6 +4,7 @@
 
 #include "thread_internal.h"
 
+#include <dlfcn.h>
 #include <errno.h>
 #include <pthread.h>
 #include <sched.h>
@@ -53,7 +54,86 @@ static NORETURN void thread_crash_early_init(const String msg) {
   UNREACHABLE
 }
 
-void thread_pal_init(void) {}
+/**
+ * Pthread is the Posix threading api.
+ * Documentation: https://www.man7.org/linux/man-pages/man7/pthreads.7.html
+ * It used to live in its own library but (most?) functions have been merged into other libc
+ * libraries (at least on GLIBC) recently, to be compatible with both new and old GLIBC versions we
+ * dynamically load the pthread symbols we need.
+ */
+typedef struct {
+  // clang-format off
+  pthread_t (SYS_DECL* self)(void);
+  int       (SYS_DECL* attr_init)(pthread_attr_t*);
+  int       (SYS_DECL* attr_destroy)(pthread_attr_t*);
+  int       (SYS_DECL* attr_getstackaddr)(const pthread_attr_t*, void** result);
+  int       (SYS_DECL* attr_getstack)(const pthread_attr_t*, void** outAddr, size_t* outSize);
+  int       (SYS_DECL* attr_setstacksize)(pthread_attr_t*, size_t stackSize);
+  int       (SYS_DECL* create)(pthread_t*, pthread_attr_t*, thread_pal_rettype(SYS_DECL* routine)(void*), void* data);
+  int       (SYS_DECL* getattr_np)(pthread_t, pthread_attr_t*);
+  int       (SYS_DECL* join)(pthread_t, void** threadReturn);
+  int       (SYS_DECL* mutexattr_init)(pthread_mutexattr_t*);
+  int       (SYS_DECL* mutexattr_destroy)(pthread_mutexattr_t*);
+  int       (SYS_DECL* mutexattr_setrobust)(pthread_mutexattr_t*, int robustness);
+  int       (SYS_DECL* mutexattr_settype)(pthread_mutexattr_t*, int kind);
+  int       (SYS_DECL* mutex_init)(pthread_mutex_t*, const pthread_mutexattr_t*);
+  int       (SYS_DECL* mutex_destroy)(pthread_mutex_t*);
+  int       (SYS_DECL* mutex_lock)(pthread_mutex_t*);
+  int       (SYS_DECL* mutex_trylock)(pthread_mutex_t*);
+  int       (SYS_DECL* mutex_unlock)(pthread_mutex_t*);
+  int       (SYS_DECL* cond_init)(pthread_cond_t*, const pthread_condattr_t*);
+  int       (SYS_DECL* cond_destroy)(pthread_cond_t*);
+  int       (SYS_DECL* cond_broadcast)(pthread_cond_t*);
+  int       (SYS_DECL* cond_signal)(pthread_cond_t*);
+  int       (SYS_DECL* cond_wait)(pthread_cond_t*, pthread_mutex_t*);
+  int       (SYS_DECL* cond_clockwait)(pthread_cond_t*, pthread_mutex_t*, __clockid_t clockId, const struct timespec* time);
+  // clang-format on
+} PalPthread;
+
+static bool pal_pthread_init(PalPthread* out) {
+#define PAL_PTHREAD_LOAD_SYM(_NAME_)                                                               \
+  do {                                                                                             \
+    out->_NAME_ = dlsym(RTLD_DEFAULT, "pthread_" #_NAME_);                                         \
+    if (!out->_NAME_) {                                                                            \
+      return false;                                                                                \
+    }                                                                                              \
+  } while (false)
+
+  PAL_PTHREAD_LOAD_SYM(self);
+  PAL_PTHREAD_LOAD_SYM(attr_init);
+  PAL_PTHREAD_LOAD_SYM(attr_destroy);
+  PAL_PTHREAD_LOAD_SYM(attr_getstackaddr);
+  PAL_PTHREAD_LOAD_SYM(attr_getstack);
+  PAL_PTHREAD_LOAD_SYM(attr_setstacksize);
+  PAL_PTHREAD_LOAD_SYM(create);
+  PAL_PTHREAD_LOAD_SYM(getattr_np);
+  PAL_PTHREAD_LOAD_SYM(join);
+  PAL_PTHREAD_LOAD_SYM(mutexattr_init);
+  PAL_PTHREAD_LOAD_SYM(mutexattr_destroy);
+  PAL_PTHREAD_LOAD_SYM(mutexattr_setrobust);
+  PAL_PTHREAD_LOAD_SYM(mutexattr_settype);
+  PAL_PTHREAD_LOAD_SYM(mutex_init);
+  PAL_PTHREAD_LOAD_SYM(mutex_destroy);
+  PAL_PTHREAD_LOAD_SYM(mutex_lock);
+  PAL_PTHREAD_LOAD_SYM(mutex_trylock);
+  PAL_PTHREAD_LOAD_SYM(mutex_unlock);
+  PAL_PTHREAD_LOAD_SYM(cond_init);
+  PAL_PTHREAD_LOAD_SYM(cond_destroy);
+  PAL_PTHREAD_LOAD_SYM(cond_broadcast);
+  PAL_PTHREAD_LOAD_SYM(cond_signal);
+  PAL_PTHREAD_LOAD_SYM(cond_wait);
+  PAL_PTHREAD_LOAD_SYM(cond_clockwait);
+
+  return true;
+}
+
+static PalPthread g_palPthread;
+
+void thread_pal_init(void) {
+  if (UNLIKELY(!pal_pthread_init(&g_palPthread))) {
+    thread_crash_early_init(string_lit("Failed to load (compatible) pthread functions"));
+  }
+}
 void thread_pal_init_late(void) {}
 void thread_pal_teardown(void) {}
 
@@ -77,15 +157,15 @@ u16 thread_pal_core_count(void) {
 
 uptr thread_pal_stack_top(void) {
   pthread_attr_t attr;
-  if (pthread_getattr_np(pthread_self(), &attr)) {
+  if (g_palPthread.getattr_np(g_palPthread.self(), &attr)) {
     diag_crash_msg("pthread_getattr_np() failed");
   }
   void*  stackPtr;
   size_t stackSize;
-  if (pthread_attr_getstack(&attr, &stackPtr, &stackSize)) {
+  if (g_palPthread.attr_getstack(&attr, &stackPtr, &stackSize)) {
     diag_crash_msg("pthread_attr_getstack() failed");
   }
-  if (pthread_attr_destroy(&attr)) {
+  if (g_palPthread.attr_destroy(&attr)) {
     diag_crash_msg("pthread_attr_destroy() failed");
   }
   return (uptr)stackPtr + (uptr)stackSize;
@@ -182,22 +262,22 @@ ThreadHandle thread_pal_start(thread_pal_rettype(SYS_DECL* routine)(void*), void
   pthread_attr_t attr;
   pthread_t      handle;
 
-  int res = pthread_attr_init(&attr);
+  int res = g_palPthread.attr_init(&attr);
   if (UNLIKELY(res != 0)) {
     diag_crash_msg("pthread_attr_init() failed: {}", fmt_int(res));
   }
 
-  res = pthread_attr_setstacksize(&attr, thread_pal_stacksize);
+  res = g_palPthread.attr_setstacksize(&attr, thread_pal_stacksize);
   if (UNLIKELY(res != 0)) {
     diag_crash_msg("pthread_attr_setstacksize() failed: {}", fmt_int(res));
   }
 
-  res = pthread_create(&handle, &attr, routine, data);
+  res = g_palPthread.create(&handle, &attr, routine, data);
   if (UNLIKELY(res != 0)) {
     diag_crash_msg("pthread_create() failed: {}", fmt_int(res));
   }
 
-  res = pthread_attr_destroy(&attr);
+  res = g_palPthread.attr_destroy(&attr);
   if (UNLIKELY(res != 0)) {
     diag_crash_msg("pthread_attr_destroy() failed: {}", fmt_int(res));
   }
@@ -208,7 +288,7 @@ ThreadHandle thread_pal_start(thread_pal_rettype(SYS_DECL* routine)(void*), void
 
 void thread_pal_join(const ThreadHandle thread) {
   void*     retData;
-  const int res = pthread_join((pthread_t)thread, &retData);
+  const int res = g_palPthread.join((pthread_t)thread, &retData);
   if (UNLIKELY(res != 0)) {
     diag_crash_msg("pthread_join() failed: {}", fmt_int(res));
   }
@@ -257,17 +337,17 @@ typedef struct {
 
 ThreadMutex thread_mutex_create(Allocator* alloc) {
   pthread_mutexattr_t attr;
-  int                 res = pthread_mutexattr_init(&attr);
+  int                 res = g_palPthread.mutexattr_init(&attr);
   if (UNLIKELY(res != 0)) {
     diag_crash_msg("pthread_mutexattr_init() failed: {}", fmt_int(res));
   }
 
-  res = pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_NORMAL);
+  res = g_palPthread.mutexattr_settype(&attr, PTHREAD_MUTEX_NORMAL);
   if (UNLIKELY(res != 0)) {
     diag_crash_msg("pthread_mutexattr_settype() failed: {}", fmt_int(res));
   }
 
-  res = pthread_mutexattr_setrobust(&attr, PTHREAD_MUTEX_STALLED);
+  res = g_palPthread.mutexattr_setrobust(&attr, PTHREAD_MUTEX_STALLED);
   if (UNLIKELY(res != 0)) {
     diag_crash_msg("pthread_mutexattr_setrobust() failed: {}", fmt_int(res));
   }
@@ -275,12 +355,12 @@ ThreadMutex thread_mutex_create(Allocator* alloc) {
   ThreadMutexData* data = alloc_alloc_t(alloc, ThreadMutexData);
   data->alloc           = alloc;
 
-  res = pthread_mutex_init(&data->impl, &attr);
+  res = g_palPthread.mutex_init(&data->impl, &attr);
   if (UNLIKELY(res != 0)) {
     diag_crash_msg("pthread_mutex_init() failed: {}", fmt_int(res));
   }
 
-  res = pthread_mutexattr_destroy(&attr);
+  res = g_palPthread.mutexattr_destroy(&attr);
   if (UNLIKELY(res != 0)) {
     diag_crash_msg("pthread_mutexattr_destroy() failed: {}", fmt_int(res));
   }
@@ -291,7 +371,7 @@ ThreadMutex thread_mutex_create(Allocator* alloc) {
 void thread_mutex_destroy(const ThreadMutex handle) {
   ThreadMutexData* data = (ThreadMutexData*)handle;
 
-  const int res = pthread_mutex_destroy(&data->impl);
+  const int res = g_palPthread.mutex_destroy(&data->impl);
   if (UNLIKELY(res != 0)) {
     diag_crash_msg("pthread_mutex_destroy() failed: {}", fmt_int(res));
   }
@@ -301,7 +381,7 @@ void thread_mutex_destroy(const ThreadMutex handle) {
 void thread_mutex_lock(const ThreadMutex handle) {
   ThreadMutexData* data = (ThreadMutexData*)handle;
 
-  const int res = pthread_mutex_lock(&data->impl);
+  const int res = g_palPthread.mutex_lock(&data->impl);
   if (UNLIKELY(res != 0)) {
     diag_crash_msg("pthread_mutex_lock() failed: {}", fmt_int(res));
   }
@@ -310,7 +390,7 @@ void thread_mutex_lock(const ThreadMutex handle) {
 bool thread_mutex_trylock(const ThreadMutex handle) {
   ThreadMutexData* data = (ThreadMutexData*)handle;
 
-  const int res = pthread_mutex_trylock(&data->impl);
+  const int res = g_palPthread.mutex_trylock(&data->impl);
   if (res != 0 && res != EBUSY) {
     diag_crash_msg("pthread_mutex_trylock() failed: {}", fmt_int(res));
   }
@@ -320,7 +400,7 @@ bool thread_mutex_trylock(const ThreadMutex handle) {
 void thread_mutex_unlock(const ThreadMutex handle) {
   ThreadMutexData* data = (ThreadMutexData*)handle;
 
-  const int res = pthread_mutex_unlock(&data->impl);
+  const int res = g_palPthread.mutex_unlock(&data->impl);
   if (UNLIKELY(res != 0)) {
     diag_crash_msg("pthread_mutex_unlock() failed: {}", fmt_int(res));
   }
@@ -335,7 +415,7 @@ ThreadCondition thread_cond_create(Allocator* alloc) {
   ThreadConditionData* data = alloc_alloc_t(alloc, ThreadConditionData);
   data->alloc               = alloc;
 
-  int res = pthread_cond_init(&data->impl, null);
+  int res = g_palPthread.cond_init(&data->impl, null);
   if (UNLIKELY(res != 0)) {
     diag_crash_msg("pthread_cond_init() failed: {}", fmt_int(res));
   }
@@ -345,7 +425,7 @@ ThreadCondition thread_cond_create(Allocator* alloc) {
 void thread_cond_destroy(const ThreadCondition handle) {
   ThreadConditionData* data = (ThreadConditionData*)handle;
 
-  const int res = pthread_cond_destroy(&data->impl);
+  const int res = g_palPthread.cond_destroy(&data->impl);
   if (UNLIKELY(res != 0)) {
     diag_crash_msg("pthread_cond_destroy() failed: {}", fmt_int(res));
   }
@@ -356,7 +436,7 @@ void thread_cond_wait(const ThreadCondition condHandle, const ThreadMutex mutexH
   ThreadConditionData* condData  = (ThreadConditionData*)condHandle;
   ThreadMutexData*     mutexData = (ThreadMutexData*)mutexHandle;
 
-  const int res = pthread_cond_wait(&condData->impl, &mutexData->impl);
+  const int res = g_palPthread.cond_wait(&condData->impl, &mutexData->impl);
   if (UNLIKELY(res != 0)) {
     diag_crash_msg("pthread_cond_wait() failed: {}", fmt_int(res));
   }
@@ -386,7 +466,7 @@ void thread_cond_wait_timeout(
     ++ts.tv_sec;
   }
 
-  res = pthread_cond_clockwait(&condData->impl, &mutexData->impl, CLOCK_MONOTONIC, &ts);
+  res = g_palPthread.cond_clockwait(&condData->impl, &mutexData->impl, CLOCK_MONOTONIC, &ts);
   if (UNLIKELY(res != 0 && res != ETIMEDOUT)) {
     diag_crash_msg("pthread_cond_clockwait() failed: {}", fmt_int(res));
   }
@@ -395,7 +475,7 @@ void thread_cond_wait_timeout(
 void thread_cond_signal(const ThreadCondition handle) {
   ThreadConditionData* data = (ThreadConditionData*)handle;
 
-  const int res = pthread_cond_signal(&data->impl);
+  const int res = g_palPthread.cond_signal(&data->impl);
   if (UNLIKELY(res != 0)) {
     diag_crash_msg("pthread_cond_signal() failed: {}", fmt_int(res));
   }
@@ -404,7 +484,7 @@ void thread_cond_signal(const ThreadCondition handle) {
 void thread_cond_broadcast(const ThreadCondition handle) {
   ThreadConditionData* data = (ThreadConditionData*)handle;
 
-  const int res = pthread_cond_broadcast(&data->impl);
+  const int res = g_palPthread.cond_broadcast(&data->impl);
   if (UNLIKELY(res != 0)) {
     diag_crash_msg("pthread_cond_broadcast() failed: {}", fmt_int(res));
   }
