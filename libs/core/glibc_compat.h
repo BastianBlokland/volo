@@ -16,7 +16,6 @@
 __asm__(".symver __cxa_finalize,__cxa_finalize@GLIBC_2.2.5");
 __asm__(".symver __errno_location,__errno_location@GLIBC_2.2.5");
 __asm__(".symver __fxstat,__fxstat@GLIBC_2.2.5");
-__asm__(".symver __libc_start_main,__libc_start_main@GLIBC_2.2.5");
 __asm__(".symver __sched_cpucount,__sched_cpucount@GLIBC_2.6");
 __asm__(".symver __xstat,__xstat@GLIBC_2.2.5");
 __asm__(".symver _setjmp,_setjmp@GLIBC_2.2.5");

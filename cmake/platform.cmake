@@ -58,6 +58,10 @@ macro(set_platform_defines)
     add_compile_options(-pthread)
     add_link_options(-pthread)
 
+    # Wrap '__libc_start_main' for compatibility with old GLIBC versions.
+    # See 'libs/app/src/glibc_compat.c'
+    add_link_options(-Wl,--wrap=__libc_start_main)
+
   elseif(${VOLO_PLATFORM} STREQUAL "win32")
 
     set_win32_defines()
