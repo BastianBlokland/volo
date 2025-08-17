@@ -4,6 +4,27 @@
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON) # Generate a 'compile_commands.json' for intellisense
 
+# Clear default compiler flags.
+set(CMAKE_C_FLAGS "" CACHE STRING "Compiler flags" FORCE)
+set(CMAKE_C_FLAGS_DEBUG "" CACHE STRING  "Compiler flags" FORCE)
+set(CMAKE_C_FLAGS_RELEASE "" CACHE STRING "Compiler flags" FORCE)
+set(CMAKE_C_FLAGS_RELWITHDEBINFO "" CACHE STRING "Compiler flags" FORCE)
+set(CMAKE_C_FLAGS_MINSIZEREL "" CACHE STRING "Compiler flags" FORCE)
+
+# Clear default executable linker flags.
+set(CMAKE_EXE_LINKER_FLAGS "" CACHE STRING "Linker flags" FORCE)
+set(CMAKE_EXE_LINKER_FLAGS_DEBUG "" CACHE STRING "Linker flags" FORCE)
+set(CMAKE_EXE_LINKER_FLAGS_MINSIZEREL "" CACHE STRING "Linker flags" FORCE)
+set(CMAKE_EXE_LINKER_FLAGS_RELEASE "" CACHE STRING "Linker flags" FORCE)
+set(CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO "" CACHE STRING "Linker flags" FORCE)
+
+# Clear default library linker flags.
+set(CMAKE_STATIC_LINKER_FLAGS "" CACHE STRING "Linker flags" FORCE)
+set(CMAKE_STATIC_LINKER_FLAGS_DEBUG "" CACHE STRING "Linker flags" FORCE)
+set(CMAKE_STATIC_LINKER_FLAGS_MINSIZEREL "" CACHE STRING "Linker flags" FORCE)
+set(CMAKE_STATIC_LINKER_FLAGS_RELEASE "" CACHE STRING "Linker flags" FORCE)
+set(CMAKE_STATIC_LINKER_FLAGS_RELWITHDEBINFO "" CACHE STRING "Linker flags" FORCE)
+
 # --------------------------------------------------------------------------------------------------
 # Options setup.
 # --------------------------------------------------------------------------------------------------
@@ -162,6 +183,7 @@ elseif("${CMAKE_C_COMPILER_ID}" STREQUAL "MSVC")
     $<$<BOOL:${VOLO_LTO}>:/GL> # Link time optimization.
   )
   add_link_options(
+    /machine:x64
     /ENTRY:wmainCRTStartup # Entry point with unicode support.
     /INCREMENTAL:NO # No incremental linking.
     /OPT:REF,ICF=2 # Remove functions and data that are never referenced.
