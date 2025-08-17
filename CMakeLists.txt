@@ -44,12 +44,34 @@ include(cmake/debug.cmake)
 include(cmake/test.cmake)
 
 # --------------------------------------------------------------------------------------------------
-# Register targets.
+# Setup targets.
 # --------------------------------------------------------------------------------------------------
 
-add_subdirectory(libs)
 add_subdirectory(volo)
 add_subdirectory(utilities)
+add_subdirectory(libs/app)
+add_subdirectory(libs/asset)
+add_subdirectory(libs/check)
+add_subdirectory(libs/cli)
+add_subdirectory(libs/core)
+add_subdirectory(libs/data)
+add_subdirectory(libs/dev)
+add_subdirectory(libs/ecs)
+add_subdirectory(libs/gap)
+add_subdirectory(libs/geo)
+add_subdirectory(libs/input)
+add_subdirectory(libs/jobs)
+add_subdirectory(libs/json)
+add_subdirectory(libs/log)
+add_subdirectory(libs/net)
+add_subdirectory(libs/rend)
+add_subdirectory(libs/scene)
+add_subdirectory(libs/script)
+add_subdirectory(libs/snd)
+add_subdirectory(libs/trace)
+add_subdirectory(libs/ui)
+add_subdirectory(libs/vfx)
+add_subdirectory(libs/xml)
 
 configure_test_target()
 configure_dbgsetup_target()

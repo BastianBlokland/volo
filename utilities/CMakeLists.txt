@@ -20,8 +20,6 @@ add_executable(pack pack.c)
 target_link_libraries(pack PRIVATE lib_app_ecs lib_log lib_asset)
 configure_debuggable(pack)
 
-
-
 message(STATUS "> application: dbgsetup")
 
 add_executable(dbgsetup dbgsetup.c)
