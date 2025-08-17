@@ -168,7 +168,7 @@ elseif("${CMAKE_C_COMPILER_ID}" STREQUAL "MSVC")
     /W4 /WX /wd4127 /wd5105 /wd4200 /wd4244 /wd4201 /wd4210 /wd4701 /wd4706 /wd4324 /wd4100 /wd4703
     /wd4152 /wd5286 /wd5287 /wd4189
 
-    $<$<CONFIG:Debug>:/O1> # Optimization level 1 in Debug.
+    $<$<CONFIG:Debug>:/Od> # No Optimizations in Debug.
     $<$<CONFIG:Release>:/O2> # Optimization level 2 in Release.
     /Zi # Debug symbols in separate pdb files.
     /Oi # Enable intrinsic functions.
