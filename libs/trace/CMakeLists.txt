@@ -20,5 +20,3 @@ add_executable(trace_test
   test/test_tracer.c
   )
 target_link_libraries(trace_test PRIVATE app_check trace json)
-
-configure_debuggable(trace_test)

@@ -44,5 +44,3 @@ add_executable(script_test
   test/utils.c
   )
 target_link_libraries(script_test PRIVATE app_check script)
-
-configure_debuggable(script_test)

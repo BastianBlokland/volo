@@ -82,5 +82,3 @@ add_executable(asset_test
   test/utils.c
   )
 target_link_libraries(asset_test PRIVATE app_check asset)
-
-configure_debuggable(asset_test)

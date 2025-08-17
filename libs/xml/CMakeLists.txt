@@ -20,5 +20,3 @@ add_executable(xml_test
   test/test_write.c
   )
 target_link_libraries(xml_test PRIVATE app_check xml)
-
-configure_debuggable(xml_test)

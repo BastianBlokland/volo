@@ -39,7 +39,6 @@ message(STATUS "Sanitize: ${VOLO_SANITIZE}")
 # --------------------------------------------------------------------------------------------------
 
 include(cmake/compiler.cmake)
-include(cmake/debug.cmake)
 
 # --------------------------------------------------------------------------------------------------
 # Setup targets.
@@ -70,8 +69,6 @@ add_subdirectory(libs/trace)
 add_subdirectory(libs/ui)
 add_subdirectory(libs/vfx)
 add_subdirectory(libs/xml)
-
-configure_dbgsetup_target()
 
 # --------------------------------------------------------------------------------------------------
 # Testing.
@@ -162,3 +159,36 @@ add_custom_target(run.repl
 
 add_custom_target(run.vkgen
   COMMAND vkgen "${CMAKE_SOURCE_DIR}/libs/rend/src/rvk/vulkan_api" VERBATIM USES_TERMINAL)
+
+add_custom_target(run.dbgsetup
+  COMMAND dbgsetup
+    "--debugger" "$<IF:$<STREQUAL:${VOLO_COMPILER},msvc>,cppvsdbg,lldb>"
+    "--workspace" "${PROJECT_SOURCE_DIR}"
+    "--targets" "$<TARGET_FILE:volo>"
+                "$<TARGET_FILE:schemasetup>"
+                "$<TARGET_FILE:fetch>"
+                "$<TARGET_FILE:pack>"
+                "$<TARGET_FILE:repl>"
+                "$<TARGET_FILE:lsp>"
+                "$<TARGET_FILE:bcu>"
+                "$<TARGET_FILE:blob2j>"
+                "$<TARGET_FILE:zipu>"
+                "$<TARGET_FILE:httpu>"
+                "$<TARGET_FILE:vkgen>"
+                "$<TARGET_FILE:asset_test>"
+                "$<TARGET_FILE:check_test>"
+                "$<TARGET_FILE:cli_test>"
+                "$<TARGET_FILE:core_test>"
+                "$<TARGET_FILE:data_test>"
+                "$<TARGET_FILE:ecs_test>"
+                "$<TARGET_FILE:geo_test>"
+                "$<TARGET_FILE:jobs_test>"
+                "$<TARGET_FILE:json_test>"
+                "$<TARGET_FILE:log_test>"
+                "$<TARGET_FILE:net_test>"
+                "$<TARGET_FILE:scene_test>"
+                "$<TARGET_FILE:script_test>"
+                "$<TARGET_FILE:trace_test>"
+                "$<TARGET_FILE:vfx_test>"
+                "$<TARGET_FILE:xml_test>"
+    VERBATIM USES_TERMINAL)

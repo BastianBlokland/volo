@@ -23,5 +23,3 @@ add_executable(cli_test
   test/test_validate.c
   )
 target_link_libraries(cli_test PRIVATE app_check cli)
-
-configure_debuggable(cli_test)

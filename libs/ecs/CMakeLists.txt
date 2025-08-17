@@ -37,5 +37,3 @@ add_executable(ecs_test
   test/test_world.c
   )
 target_link_libraries(ecs_test PRIVATE app_check ecs)
-
-configure_debuggable(ecs_test)

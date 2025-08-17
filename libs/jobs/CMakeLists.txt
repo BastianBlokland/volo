@@ -24,5 +24,3 @@ add_executable(jobs_test
   test/test_scheduler.c
   )
 target_link_libraries(jobs_test PRIVATE app_check jobs)
-
-configure_debuggable(jobs_test)

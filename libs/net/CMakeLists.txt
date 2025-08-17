@@ -24,5 +24,3 @@ add_executable(net_test
   test/test_socket.c
   )
 target_link_libraries(net_test PRIVATE app_check net)
-
-configure_debuggable(net_test)

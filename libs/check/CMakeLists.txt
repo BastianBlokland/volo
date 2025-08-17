@@ -22,5 +22,3 @@ add_executable(check_test
   test/test_fizzbuzz.c
   )
 target_link_libraries(check_test PRIVATE app_check check)
-
-configure_debuggable(check_test)

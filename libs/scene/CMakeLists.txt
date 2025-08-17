@@ -53,5 +53,3 @@ add_executable(scene_test
   test/test_set.c
   )
 target_link_libraries(scene_test PRIVATE app_check scene)
-
-configure_debuggable(scene_test)

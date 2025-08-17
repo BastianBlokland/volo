@@ -22,5 +22,3 @@ add_executable(vfx_test
   test/test_warp.c
   )
 target_link_libraries(vfx_test PRIVATE app_check vfx)
-
-configure_debuggable(vfx_test)

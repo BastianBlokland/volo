@@ -37,5 +37,3 @@ add_executable(geo_test
   test/utils.c
   )
 target_link_libraries(geo_test PRIVATE app_check geo)
-
-configure_debuggable(geo_test)

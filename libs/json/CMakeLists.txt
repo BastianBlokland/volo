@@ -20,5 +20,3 @@ add_executable(json_test
   test/test_write.c
   )
 target_link_libraries(json_test PRIVATE app_check json)
-
-configure_debuggable(json_test)

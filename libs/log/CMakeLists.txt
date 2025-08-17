@@ -19,5 +19,3 @@ add_executable(log_test
   test/test_sink_pretty.c
   )
 target_link_libraries(log_test PRIVATE app_check json log)
-
-configure_debuggable(log_test)

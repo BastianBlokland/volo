@@ -16,4 +16,3 @@ if(${VOLO_PLATFORM} STREQUAL "win32")
 endif()
 
 target_link_libraries(volo PRIVATE app_ecs asset data dev gap input rend scene snd trace ui vfx)
-configure_debuggable(volo)
