@@ -2,8 +2,6 @@
 # Jobs library cmake file.
 # --------------------------------------------------------------------------------------------------
 
-message(STATUS "> library: jobs")
-
 add_library(lib_jobs STATIC
   src/affinity_queue.c
   src/dot.c

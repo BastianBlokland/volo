@@ -2,8 +2,6 @@
 # Cli library cmake file.
 # --------------------------------------------------------------------------------------------------
 
-message(STATUS "> library: cli")
-
 add_library(lib_cli STATIC
   src/app.c
   src/failure.c

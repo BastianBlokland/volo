@@ -2,8 +2,6 @@
 # Sound library cmake file.
 # --------------------------------------------------------------------------------------------------
 
-message(STATUS "> library: snd")
-
 add_library(lib_snd STATIC
   src/buffer.c
   src/channel.c

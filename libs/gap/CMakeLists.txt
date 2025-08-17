@@ -2,8 +2,6 @@
 # Gui Application Protocol library cmake file.
 # --------------------------------------------------------------------------------------------------
 
-message(STATUS "> library: gap")
-
 add_library(lib_gap STATIC
   src/error.c
   src/input.c

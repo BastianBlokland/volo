@@ -3,8 +3,6 @@
 # Provides entry point implementations for the various kinds of applications.
 # --------------------------------------------------------------------------------------------------
 
-message(STATUS "> library: app")
-
 #
 # Cli applications entry point.
 #

@@ -2,8 +2,6 @@
 # Ecs library cmake file.
 # --------------------------------------------------------------------------------------------------
 
-message(STATUS "> library: ecs")
-
 add_library(lib_ecs STATIC
   src/archetype.c
   src/buffer.c

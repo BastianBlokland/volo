@@ -2,8 +2,6 @@
 # Volo application cmake file.
 # --------------------------------------------------------------------------------------------------
 
-message(STATUS "> application: volo")
-
 add_executable(volo
   src/app.c
   src/cmd.c

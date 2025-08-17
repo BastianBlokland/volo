@@ -2,8 +2,6 @@
 # Xml library cmake file.
 # --------------------------------------------------------------------------------------------------
 
-message(STATUS "> library: xml")
-
 add_library(lib_xml STATIC
   src/doc.c
   src/eq.c

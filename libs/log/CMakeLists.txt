@@ -2,8 +2,6 @@
 # Log library cmake file.
 # --------------------------------------------------------------------------------------------------
 
-message(STATUS "> library: log")
-
 add_library(lib_log STATIC
   src/init.c
   src/logger.c

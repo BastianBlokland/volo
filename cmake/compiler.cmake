@@ -20,7 +20,6 @@ add_compile_definitions(
 
 if(UNIX AND NOT APPLE)
   set(VOLO_PLATFORM "linux")
-  message(STATUS "Detected linux platform")
   add_compile_definitions(
     -DVOLO_LINUX
     -D_GNU_SOURCE # Enable GNU extensions.
@@ -35,7 +34,6 @@ if(UNIX AND NOT APPLE)
     )
 elseif(WIN32)
   set(VOLO_PLATFORM "win32")
-  message(STATUS "Detected win32 platform")
   set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded") # Statically link the runtime library.
   add_compile_definitions(
     -DVOLO_WIN32
@@ -54,9 +52,7 @@ endif()
 # --------------------------------------------------------------------------------------------------
 
 if("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
-  message(STATUS "Detected gcc compiler")
   set(VOLO_COMPILER "gcc")
-
   add_compile_definitions(-DVOLO_GCC)
   add_compile_options(
     -Wall -Wextra -Werror -Wshadow
@@ -89,9 +85,7 @@ if("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
     $<$<BOOL:${VOLO_LTO}>:-mf16c> # Enable output of f16c (f32 <-> f16 conversions)
     )
 elseif("${CMAKE_C_COMPILER_ID}" STREQUAL "Clang")
-  message(STATUS "Detected clang compiler")
   set(VOLO_COMPILER "clang")
-
   set(SANITIZERS "address,alignment,builtin,bounds,integer-divide-by-zero,float-divide-by-zero,undefined,unreachable")
   set(SANITIZERS_DISABLED "pointer-overflow,shift-base,shift-exponent,function")
 
@@ -147,8 +141,6 @@ elseif("${CMAKE_C_COMPILER_ID}" STREQUAL "Clang")
     )
 elseif("${CMAKE_C_COMPILER_ID}" STREQUAL "MSVC")
   set(VOLO_COMPILER "msvc")
-  message(STATUS "Detected msvc compiler")
-
   add_compile_definitions(-DVOLO_MSVC)
   add_compile_options(
     /TC /std:c11 # Use the c11 standard.

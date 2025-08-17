@@ -8,8 +8,6 @@
 # This allows running all tests by invoking the 'test' target.
 #
 function(configure_test_target)
-  message(STATUS "> target: test")
-
   if(TARGET test)
     message(FATAL_ERROR "test target already configured")
   endif()
@@ -28,8 +26,6 @@ endfunction(configure_test_target)
 #
 function(configure_test target)
   cmake_parse_arguments(PARSE_ARGV 1 ARG "" "SHORT_NAME" "")
-
-  message(STATUS "> test: ${target}")
 
   if(NOT TARGET ${target})
     message(FATAL_ERROR "Unknown target")

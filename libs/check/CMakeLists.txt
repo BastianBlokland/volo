@@ -2,8 +2,6 @@
 # Check library cmake file.
 # --------------------------------------------------------------------------------------------------
 
-message(STATUS "> library: check")
-
 add_library(lib_check STATIC
   src/def.c
   src/output_log.c

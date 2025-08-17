@@ -2,8 +2,6 @@
 # Renderer library cmake file.
 # --------------------------------------------------------------------------------------------------
 
-message(STATUS "> library: rend")
-
 add_library(lib_rend STATIC
   src/builder.c
   src/error.c

@@ -2,8 +2,6 @@
 # Development library cmake file.
 # --------------------------------------------------------------------------------------------------
 
-message(STATUS "> library: dev")
-
 add_library(lib_dev STATIC
   src/asset.c
   src/camera.c

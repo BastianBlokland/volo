@@ -2,8 +2,6 @@
 # Json library cmake file.
 # --------------------------------------------------------------------------------------------------
 
-message(STATUS "> library: json")
-
 add_library(lib_json STATIC
   src/doc.c
   src/eq.c

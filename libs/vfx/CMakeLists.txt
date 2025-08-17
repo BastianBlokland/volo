@@ -2,8 +2,6 @@
 # Vfx library cmake file.
 # --------------------------------------------------------------------------------------------------
 
-message(STATUS "> library: vfx")
-
 add_library(lib_vfx STATIC
   src/atlas.c
   src/decal.c
