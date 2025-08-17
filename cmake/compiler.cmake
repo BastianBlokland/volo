@@ -24,7 +24,7 @@ set(CMAKE_STATIC_LINKER_FLAGS_RELEASE "" CACHE STRING "Library linker flags" FOR
 # --------------------------------------------------------------------------------------------------
 
 add_compile_definitions(
-  $<$<CONFIG:Release>:-DVOLO_FAST>
+  $<$<CONFIG:Release>:-DVOLO_RELEASE>
   $<$<BOOL:${VOLO_SIMD}>:-DVOLO_SIMD>
   $<$<BOOL:${VOLO_TRACE}>:-DVOLO_TRACE>
   )

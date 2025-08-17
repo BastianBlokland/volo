@@ -110,7 +110,7 @@ static String json_read_object(JsonReadState* state, String input, JsonResult* r
     JsonVal fieldName;
     if (state->flags & JsonReadFlags_HashOnlyFieldNames) {
       StringHash fieldNameHash;
-#ifndef VOLO_FAST
+#ifndef VOLO_RELEASE
       fieldNameHash = stringtable_add(g_stringtable, token.val_string);
 #else
       fieldNameHash = string_hash(token.val_string);

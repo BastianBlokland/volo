@@ -111,7 +111,7 @@ static u32 rvk_pass_attach_color_count(const RvkPassConfig* config) {
   return result;
 }
 
-#ifndef VOLO_FAST
+#ifndef VOLO_RELEASE
 static void rvk_pass_attach_assert_color(const RvkPass* pass, const u32 idx, const RvkImage* img) {
   const RvkAttachSpec spec = rvk_pass_spec_attach_color(pass, idx);
   diag_assert_msg(
@@ -171,7 +171,7 @@ static void rvk_pass_assert_image_contents(const RvkPass* pass, const RvkPassSet
     }
   }
 }
-#endif // !VOLO_FAST
+#endif // !VOLO_RELEASE
 
 static VkAttachmentLoadOp rvk_pass_attach_color_load_op(const RvkPass* pass, const u32 idx) {
   switch (pass->config->attachColorLoad[idx]) {
@@ -293,7 +293,7 @@ rvk_framebuffer_create(RvkPass* pass, const RvkPassSetup* setup, const RvkSize s
         "Pass {} is missing color attachment {}",
         fmt_text(pass->config->name),
         fmt_int(i));
-#ifndef VOLO_FAST
+#ifndef VOLO_RELEASE
     rvk_pass_attach_assert_color(pass, i, setup->attachColors[i]);
 #endif
     attachments[attachCount++] = setup->attachColors[i]->vkImageView;
@@ -301,7 +301,7 @@ rvk_framebuffer_create(RvkPass* pass, const RvkPassSetup* setup, const RvkSize s
   if (pass->config->attachDepth) {
     diag_assert_msg(
         setup->attachDepth, "Pass {} is missing a depth attachment", fmt_text(pass->config->name));
-#ifndef VOLO_FAST
+#ifndef VOLO_RELEASE
     rvk_pass_attach_assert_depth(pass, setup->attachDepth);
 #endif
     attachments[attachCount++] = setup->attachDepth->vkImageView;
@@ -790,7 +790,7 @@ void rvk_pass_begin(RvkPass* pass, const RvkPassSetup* setup) {
   invoc->size          = rvk_pass_size(pass, setup);
   invoc->vkFrameBuffer = rvk_framebuffer_create(pass, setup, invoc->size);
 
-#ifndef VOLO_FAST
+#ifndef VOLO_RELEASE
   // Validate that all images we load have content loaded in them.
   rvk_pass_assert_image_contents(pass, setup);
 #endif
@@ -918,7 +918,7 @@ void rvk_pass_draw(
       const u32 instCount = math_min(remInstCount, instBatchSize);
 
       if (instReqData) {
-#ifndef VOLO_FAST
+#ifndef VOLO_RELEASE
         {
           const u32 dataSizeActual   = rvk_uniform_size(frame->uniformPool, instBatchData);
           const u32 dataSizeExpected = instCount * draw->instDataStride;

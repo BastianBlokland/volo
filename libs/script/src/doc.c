@@ -50,7 +50,7 @@ static void doc_validate_subrange(
     MAYBE_UNUSED const ScriptDoc*  doc,
     MAYBE_UNUSED const ScriptRange range,
     MAYBE_UNUSED const ScriptExpr  expr) {
-#ifndef VOLO_FAST
+#ifndef VOLO_RELEASE
   const ScriptRange exprRange = script_expr_range(doc, expr);
   if (script_range_valid(exprRange)) {
     diag_assert_msg(
@@ -65,7 +65,7 @@ static void doc_validate_subrange_set(
     MAYBE_UNUSED const ScriptRange   range,
     MAYBE_UNUSED const ScriptExprSet set,
     MAYBE_UNUSED const u32           count) {
-#ifndef VOLO_FAST
+#ifndef VOLO_RELEASE
   diag_assert_msg(!count || set < doc->exprSets.size, "Out of bounds ScriptExprSet");
   const ScriptExpr* exprs = expr_set_data(doc, set);
   for (u32 i = 0; i != count; ++i) {

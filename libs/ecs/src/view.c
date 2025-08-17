@@ -36,7 +36,7 @@ MAYBE_UNUSED static void ecs_view_validate_random_write(const EcsView* view, con
       fmt_text(view->viewDef->name));
 }
 
-#ifndef VOLO_FAST
+#ifndef VOLO_RELEASE
 static void ecs_view_exclusive_entity_track(EcsView* v, const EcsEntityId e) {
   // NOTE: Exclusive views always conflict with themselves so mutating the view is safe here.
   *(EcsEntityId*)dynarray_find_or_insert_sorted(&v->exclusiveEntities, ecs_compare_entity, &e) = e;
@@ -63,7 +63,7 @@ EcsIterator* ecs_view_itr_create(Mem mem, EcsView* view) {
   EcsIterator* itr  = ecs_iterator_create_with_count(mem, mask, view->compCount);
   itr->context      = view;
 
-#ifndef VOLO_FAST
+#ifndef VOLO_RELEASE
   if (g_ecsRunningSystem && bitset_any(ecs_view_mask(view, EcsViewMask_AccessWrite))) {
     ecs_view_validate_random_write(view, g_ecsRunningSystemId);
   }
@@ -118,7 +118,7 @@ Next:
   const u16            archIdx = itr->archetypeIdx;
   const EcsArchetypeId id      = *(dynarray_begin_t(&view->archetypes, EcsArchetypeId) + archIdx);
   if (LIKELY(ecs_storage_itr_walk(view->storage, itr, id))) {
-#ifndef VOLO_FAST
+#ifndef VOLO_RELEASE
     if (UNLIKELY(view->flags & EcsViewFlags_Exclusive)) {
       ecs_view_exclusive_entity_track(view, *itr->entity);
     }
@@ -138,7 +138,7 @@ FLATTEN_HINT EcsIterator* ecs_view_jump(EcsIterator* itr, const EcsEntityId enti
   diag_assert_msg(!ecs_iterator_is_stepped(itr), "Stepped iterators cannot be jumped");
 
   EcsView* view = itr->context;
-#ifndef VOLO_FAST
+#ifndef VOLO_RELEASE
   if (view->flags & EcsViewFlags_Exclusive) {
     ecs_view_exclusive_entity_track(view, entity);
   }
@@ -158,7 +158,7 @@ FLATTEN_HINT EcsIterator* ecs_view_maybe_jump(EcsIterator* itr, const EcsEntityI
   diag_assert_msg(!ecs_iterator_is_stepped(itr), "Stepped iterators cannot be jumped");
 
   EcsView* view = itr->context;
-#ifndef VOLO_FAST
+#ifndef VOLO_RELEASE
   if (view->flags & EcsViewFlags_Exclusive) {
     ecs_view_exclusive_entity_track(view, entity);
   }
@@ -233,7 +233,7 @@ EcsView ecs_view_create(
       .storage    = storage,
       .masks      = masksMem,
       .archetypes = dynarray_create_t(alloc, EcsArchetypeId, 32),
-#ifndef VOLO_FAST
+#ifndef VOLO_RELEASE
       .exclusiveEntities = dynarray_create_t(alloc, EcsEntityId, 0),
 #endif
   };
@@ -256,7 +256,7 @@ EcsView ecs_view_create(
 void ecs_view_destroy(Allocator* alloc, const EcsDef* def, EcsView* view) {
   alloc_free(alloc, mem_create(view->masks.ptr, ecs_comp_mask_size(def) * 4));
   dynarray_destroy(&view->archetypes);
-#ifndef VOLO_FAST
+#ifndef VOLO_RELEASE
   dynarray_destroy(&view->exclusiveEntities);
 #endif
 }

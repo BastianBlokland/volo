@@ -5,7 +5,7 @@
 
 #include "diag_internal.h"
 
-#ifndef VOLO_FAST
+#ifndef VOLO_RELEASE
 #define VOLO_MEMORY_TRACKING
 #endif
 

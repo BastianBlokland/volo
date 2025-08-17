@@ -28,7 +28,7 @@ static Mem alloc_page_alloc(Allocator* allocator, const usize size, const usize 
   AllocatorPage* allocPage = (AllocatorPage*)allocator;
   (void)align;
 
-#ifndef VOLO_FAST
+#ifndef VOLO_RELEASE
   if (UNLIKELY(!bits_aligned(allocPage->pageSize, align))) {
     alloc_crash_with_msg(
         "alloc_page_alloc: Alignment '{}' invalid (stronger then pageSize)", fmt_int(align));
@@ -49,7 +49,7 @@ static Mem alloc_page_alloc(Allocator* allocator, const usize size, const usize 
 }
 
 static void alloc_page_free(Allocator* allocator, const Mem mem) {
-#ifndef VOLO_FAST
+#ifndef VOLO_RELEASE
   if (UNLIKELY(!mem_valid(mem))) {
     alloc_crash_with_msg("alloc_page_free: Invalid allocation");
   }

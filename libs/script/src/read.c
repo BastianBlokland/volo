@@ -2166,7 +2166,7 @@ ScriptExpr script_read(
   read_emit_unused_vars(&ctx, &scopeRoot);
 
   const bool fail = sentinel_check(expr) || (ctx.flags & ScriptReadFlags_ProgramInvalid) != 0;
-#ifndef VOLO_FAST
+#ifndef VOLO_RELEASE
   if (diags) {
     const bool hasErrDiag = script_diag_count(diags, ScriptDiagFilter_Error);
     diag_assert_msg(!fail || hasErrDiag, "No error diagnostic was produced for a failed read");

@@ -56,7 +56,7 @@ INLINE_HINT static void* stdlib_alloc(usize size, usize align) {
   if (!size) {
     return null;
   }
-#ifndef VOLO_FAST
+#ifndef VOLO_RELEASE
   stdlib_verify_size(size, align);
 #endif
 
@@ -77,7 +77,7 @@ INLINE_HINT static void* stdlib_alloc(usize size, usize align) {
 
   void* res = bits_ptr_offset(hdr, sizeof(AllocStdHeader));
 
-#ifndef VOLO_FAST
+#ifndef VOLO_RELEASE
   alloc_tag_new(mem_create(res, size));
 #endif
 

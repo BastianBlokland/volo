@@ -9,7 +9,7 @@ typedef void (*CrashHandler)(String msg, void* context);
 /**
  * Assert the given condition evaluates to true.
  */
-#ifndef VOLO_FAST
+#ifndef VOLO_RELEASE
 #define diag_assert_msg(_CONDITION_, _MSG_FORMAT_LIT_, ...)                                        \
   do {                                                                                             \
     if (UNLIKELY(!(_CONDITION_))) {                                                                \
@@ -40,7 +40,7 @@ typedef void (*CrashHandler)(String msg, void* context);
 /**
  * Report that an assertion has failed.
  */
-#ifndef VOLO_FAST
+#ifndef VOLO_RELEASE
 #define diag_assert_fail(_MSG_FORMAT_LIT_, ...)                                                    \
   diag_assert_report_fail(fmt_write_scratch(_MSG_FORMAT_LIT_, __VA_ARGS__), source_location())
 #else

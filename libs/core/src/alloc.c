@@ -81,7 +81,7 @@ Mem alloc_alloc(Allocator* allocator, const usize size, const usize align) {
       fmt_size(alloc_max_alloc_size));
 
   const Mem res = allocator->alloc(allocator, size, align);
-#ifndef VOLO_FAST
+#ifndef VOLO_RELEASE
   if (mem_valid(res)) {
     alloc_tag_new(res);
   }
@@ -145,7 +145,7 @@ AllocStats alloc_stats_query(void) {
 
 void alloc_tag_new(const Mem mem) {
   (void)mem;
-#ifndef VOLO_FAST
+#ifndef VOLO_RELEASE
   mem_set(mem, 0xCD);
 #endif
 }
@@ -153,7 +153,7 @@ void alloc_tag_new(const Mem mem) {
 void alloc_tag_free(const Mem mem, const AllocMemType type) {
   (void)mem;
   (void)type;
-#ifndef VOLO_FAST
+#ifndef VOLO_RELEASE
   static const u8 g_tags[AllocMemType_Count] = {0xAA, 0xAB};
   mem_set(mem, g_tags[type]);
 #endif
@@ -162,7 +162,7 @@ void alloc_tag_free(const Mem mem, const AllocMemType type) {
 void alloc_tag_guard(const Mem mem, const AllocMemType type) {
   (void)mem;
   (void)type;
-#ifndef VOLO_FAST
+#ifndef VOLO_RELEASE
   static const u8 g_tags[AllocMemType_Count] = {0xBA, 0xBB};
   mem_set(mem, g_tags[type]);
 #endif

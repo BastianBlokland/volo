@@ -62,7 +62,7 @@ static u32 pagecache_num_pages(AllocatorPageCache* cache, const usize size) {
 static Mem pagecache_alloc(Allocator* allocator, const usize size, const usize align) {
   AllocatorPageCache* cache = (AllocatorPageCache*)allocator;
 
-#ifndef VOLO_FAST
+#ifndef VOLO_RELEASE
   if (UNLIKELY(!bits_aligned(cache->pageSize, align))) {
     alloc_crash_with_msg(
         "pagecache_alloc: Alignment '{}' invalid (stronger then pageSize)", fmt_int(align));
@@ -104,7 +104,7 @@ NewAllocation:;
 }
 
 static void pagecache_free(Allocator* allocator, const Mem mem) {
-#ifndef VOLO_FAST
+#ifndef VOLO_RELEASE
   if (UNLIKELY(!mem_valid(mem))) {
     alloc_crash_with_msg("pagecache_free: Invalid allocation");
   }
