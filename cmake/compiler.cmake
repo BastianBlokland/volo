@@ -45,7 +45,6 @@ if(UNIX AND NOT APPLE)
     )
   add_link_options(
     -pthread # Enable pthread threading.
-    -Wl,--wrap=__libc_start_main # For compat with old GLIBC versions, see: libs/app/src/glibc_compat.c
     )
 elseif(WIN32)
   set(VOLO_PLATFORM "win32")
