@@ -8,20 +8,11 @@ add_executable(schemasetup schemasetup.c)
 target_link_libraries(schemasetup PRIVATE lib_app_cli lib_asset lib_log)
 configure_debuggable(schemasetup)
 
-add_custom_target(run.schemasetup COMMAND
-  schemasetup "${CMAKE_SOURCE_DIR}/assets/schemas/" VERBATIM USES_TERMINAL)
-
 message(STATUS "> application: fetch")
 
 add_executable(fetch fetch.c)
 target_link_libraries(fetch PRIVATE lib_app_cli lib_net lib_log lib_data)
 configure_debuggable(fetch)
-
-add_custom_target(run.fetch COMMAND fetch
-  "${CMAKE_SOURCE_DIR}/assets/fetch.json" VERBATIM USES_TERMINAL)
-
-add_custom_target(run.fetch.force COMMAND fetch --force
-  "${CMAKE_SOURCE_DIR}/assets/fetch.json" VERBATIM USES_TERMINAL)
 
 message(STATUS "> application: pack")
 
@@ -29,13 +20,7 @@ add_executable(pack pack.c)
 target_link_libraries(pack PRIVATE lib_app_ecs lib_log lib_asset)
 configure_debuggable(pack)
 
-add_custom_target(run.pack
-  COMMAND fetch "${CMAKE_SOURCE_DIR}/assets/fetch.json" VERBATIM USES_TERMINAL
-  COMMAND pack
-    "--assets" "${CMAKE_SOURCE_DIR}/assets"
-    "--output" "${CMAKE_BINARY_DIR}/assets.blob"
-    "${CMAKE_SOURCE_DIR}/assets/pack.json"
-    VERBATIM USES_TERMINAL)
+
 
 message(STATUS "> application: dbgsetup")
 
@@ -47,8 +32,6 @@ message(STATUS "> application: repl")
 add_executable(repl repl.c)
 target_link_libraries(repl PRIVATE lib_app_cli lib_script)
 configure_debuggable(repl)
-
-add_custom_target(run.repl COMMAND repl VERBATIM USES_TERMINAL)
 
 message(STATUS "> application: lsp")
 
@@ -86,5 +69,3 @@ add_executable(vkgen vkgen.c)
 target_link_libraries(vkgen PRIVATE lib_app_cli lib_net lib_xml lib_log)
 configure_debuggable(vkgen)
 
-add_custom_target(run.vkgen COMMAND
-  vkgen "${CMAKE_SOURCE_DIR}/libs/rend/src/rvk/vulkan_api" VERBATIM USES_TERMINAL)

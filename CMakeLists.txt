@@ -77,3 +77,34 @@ if(${VOLO_PLATFORM} STREQUAL "win32" AND NOT ${VOLO_COMPILER} STREQUAL "gcc")
     $<TARGET_PDB_FILE:blob2j>
     DESTINATION bin)
 endif()
+
+# --------------------------------------------------------------------------------------------------
+# Helpers.
+# --------------------------------------------------------------------------------------------------
+
+add_custom_target(run.volo
+  COMMAND fetch "${CMAKE_SOURCE_DIR}/assets/fetch.json" VERBATIM USES_TERMINAL
+  COMMAND volo "-w" "--assets" "${CMAKE_SOURCE_DIR}/assets" VERBATIM USES_TERMINAL)
+
+add_custom_target(run.schemasetup
+  COMMAND schemasetup "${CMAKE_SOURCE_DIR}/assets/schemas/" VERBATIM USES_TERMINAL)
+
+add_custom_target(run.fetch
+  COMMAND fetch "${CMAKE_SOURCE_DIR}/assets/fetch.json" VERBATIM USES_TERMINAL)
+
+add_custom_target(run.fetch.force
+  COMMAND fetch --force "${CMAKE_SOURCE_DIR}/assets/fetch.json" VERBATIM USES_TERMINAL)
+
+add_custom_target(run.pack
+  COMMAND fetch "${CMAKE_SOURCE_DIR}/assets/fetch.json" VERBATIM USES_TERMINAL
+  COMMAND pack
+    "--assets" "${CMAKE_SOURCE_DIR}/assets"
+    "--output" "${CMAKE_BINARY_DIR}/assets.blob"
+    "${CMAKE_SOURCE_DIR}/assets/pack.json"
+    VERBATIM USES_TERMINAL)
+
+add_custom_target(run.repl
+  COMMAND repl VERBATIM USES_TERMINAL)
+
+add_custom_target(run.vkgen
+  COMMAND vkgen "${CMAKE_SOURCE_DIR}/libs/rend/src/rvk/vulkan_api" VERBATIM USES_TERMINAL)

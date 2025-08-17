@@ -32,8 +32,3 @@ target_link_libraries(volo PRIVATE
   lib_vfx
   )
 configure_debuggable(volo)
-
-add_custom_target(run.volo
-  COMMAND fetch "${CMAKE_SOURCE_DIR}/assets/fetch.json" VERBATIM USES_TERMINAL
-  COMMAND volo "-w" "--assets" "${CMAKE_SOURCE_DIR}/assets" VERBATIM USES_TERMINAL
-)
