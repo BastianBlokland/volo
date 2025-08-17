@@ -8,7 +8,12 @@ if(${CMAKE_VERSION} VERSION_GREATER "3.20")
   cmake_policy(SET CMP0116 NEW) # Support Ninja dep-files in subdirectories.
 endif()
 
-project(Volo VERSION 0.1.0 LANGUAGES C)
+project(Volo
+  VERSION 0.1.0
+  DESCRIPTION "Volo Game"
+  HOMEPAGE_URL "https://github.com/bastianblokland/volo"
+  LANGUAGES C
+  )
 
 # Custom options.
 option(VOLO_FAST                  "Fast mode, disables various runtime validations"   Off)
