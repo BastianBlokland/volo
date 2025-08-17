@@ -186,6 +186,7 @@ elseif("${CMAKE_C_COMPILER_ID}" STREQUAL "MSVC")
     /machine:x64
     /ENTRY:wmainCRTStartup # Entry point with unicode support.
     /INCREMENTAL:NO # No incremental linking.
+    /DEBUG # Generate a 'Program Database' file with debug symbols.
     /OPT:REF,ICF=2 # Remove functions and data that are never referenced.
     /GUARD:NO # Disable 'Control Flow Guard' (CFG).
     $<$<BOOL:${VOLO_LTO}>:/LTCG> # Link time optimization.
