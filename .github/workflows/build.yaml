@@ -236,3 +236,25 @@ jobs:
         path: |
           assets.blob
           bin/**/logs/*
+
+  build-ide:
+    runs-on: ubuntu-24.04
+    steps:
+    - name: checkout
+      uses: actions/checkout@v5
+      with:
+        sparse-checkout: ide
+
+    - name: build-vscode
+      shell: bash
+      working-directory: ide/vscode/volo
+      run: |
+        npm install
+        npm run package
+
+    - name: archive
+      uses: actions/upload-artifact@v4
+      with:
+        name: ide
+        path: ide/vscode/volo/volo-*.vsix
+        if-no-files-found: error
