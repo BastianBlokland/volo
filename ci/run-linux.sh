@@ -86,10 +86,10 @@ build() {
   # Configure.
   ( cd "$sourceDir"; cmake -B "${buildDir}" \
     -G "$(getGeneratorName "${buildSystem}")" \
-    -DFAST="${fastMode}" \
-    -DTRACE="${traceMode}" \
-    -DLTO="${ltoMode}" \
-    -DSANITIZE="${sanitizeMode}" )
+    -DVOLO_FAST="${fastMode}" \
+    -DVOLO_TRACE="${traceMode}" \
+    -DVOLO_LTO="${ltoMode}" \
+    -DVOLO_SANITIZE="${sanitizeMode}" )
 
   info "Building target '${buildTarget}' using '${buildSystem}'"
 

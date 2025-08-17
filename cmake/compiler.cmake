@@ -28,15 +28,15 @@ endmacro(detect_compiler)
 # Set generic defines
 #
 macro(set_generic_defines)
-  if(${FAST})
+  if(${VOLO_FAST})
     message(STATUS "Enabling fast mode")
     add_definitions(-DVOLO_FAST)
   endif()
-  if(${SIMD})
+  if(${VOLO_SIMD})
     message(STATUS "Enabling simd mode")
     add_definitions(-DVOLO_SIMD)
   endif()
-  if(${TRACE})
+  if(${VOLO_TRACE})
     message(STATUS "Enabling trace mode")
     add_definitions(-DVOLO_TRACE)
   endif()
@@ -108,7 +108,7 @@ macro(set_gcc_compile_options)
     add_link_options(-municode) # Entry point with unicode support.
   endif()
 
-  if(NOT ${SIMD})
+  if(NOT ${VOLO_SIMD})
     message(STATUS "Disabling auto-vectorization")
     add_compile_options(-fno-tree-vectorize)
   endif()
@@ -118,7 +118,7 @@ macro(set_gcc_compile_options)
   add_compile_options(-fno-omit-frame-pointer) # Include frame-pointers for fast stack-traces.
 
   # Link time optimization.
-  if(${LTO})
+  if(${VOLO_LTO})
     message(STATUS "Enabling link-time-optimization")
     add_compile_options(-flto -fno-fat-lto-objects)
     add_link_options(-flto -fwhole-program -O2 -mf16c)
@@ -154,7 +154,7 @@ macro(set_clang_compile_options)
   add_compile_options(-fcf-protection=none) # Disable 'Control Flow Guard' (CFG).
   add_compile_options(-U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=0) # Disable fortification.
 
-  if(NOT ${SIMD})
+  if(NOT ${VOLO_SIMD})
     message(STATUS "Disabling auto-vectorization")
     add_compile_options(-fno-vectorize -fno-slp-vectorize -ffp-exception-behavior=maytrap)
   endif()
@@ -175,7 +175,7 @@ macro(set_clang_compile_options)
   endif()
 
   # Enable various clang sanitizers on supported platforms.
-  if(${SANITIZE} AND ${VOLO_PLATFORM} STREQUAL "linux")
+  if(${VOLO_SANITIZE} AND ${VOLO_PLATFORM} STREQUAL "linux")
     set(SANITIZERS "address,alignment,builtin,bounds,integer-divide-by-zero,float-divide-by-zero,undefined,unreachable")
     set(SANITIZERS_DISABLED "pointer-overflow,shift-base,shift-exponent,function")
 
@@ -186,7 +186,7 @@ macro(set_clang_compile_options)
   endif()
 
   # Link time optimization.
-  if(${LTO})
+  if(${VOLO_LTO})
     message(STATUS "Enabling link-time-optimization")
     add_compile_options(-flto=full)
     add_link_options(-flto=full -O2 -mf16c)
@@ -229,7 +229,7 @@ macro(set_msvc_compile_options)
   add_compile_options(/GS-) # Disable 'Buffer Security Check'.
   add_compile_options(/guard:cf-) # Disable 'Control Flow Guard' (CFG).
 
-  if(NOT ${SIMD})
+  if(NOT ${VOLO_SIMD})
     message(STATUS "Disabling auto-vectorization")
     add_compile_options(/d2Qvec-)
   endif()
@@ -247,7 +247,7 @@ macro(set_msvc_compile_options)
   add_link_options(/GUARD:NO) # Disable 'Control Flow Guard' (CFG).
 
   # Link time optimization.
-  if(${LTO})
+  if(${VOLO_LTO})
     message(STATUS "Enabling link-time-optimization")
     add_compile_options(/GL)
     add_link_options(/LTCG)
