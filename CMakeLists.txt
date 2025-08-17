@@ -58,3 +58,22 @@ add_subdirectory(utilities)
 
 configure_test_target()
 configure_dbgsetup_target()
+
+# --------------------------------------------------------------------------------------------------
+# Install.
+# --------------------------------------------------------------------------------------------------
+
+set(CMAKE_INSTALL_PREFIX "${CMAKE_SOURCE_DIR}") # Install to project directory itself.
+
+install(TARGETS volo fetch pack repl lsp blob2j DESTINATION bin)
+
+if(${VOLO_PLATFORM} STREQUAL "win32" AND NOT ${VOLO_COMPILER} STREQUAL "gcc")
+  install(FILES
+    $<TARGET_PDB_FILE:volo>
+    $<TARGET_PDB_FILE:fetch>
+    $<TARGET_PDB_FILE:pack>
+    $<TARGET_PDB_FILE:repl>
+    $<TARGET_PDB_FILE:lsp>
+    $<TARGET_PDB_FILE:blob2j>
+    DESTINATION bin)
+endif()

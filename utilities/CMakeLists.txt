@@ -17,11 +17,6 @@ add_executable(fetch fetch.c)
 target_link_libraries(fetch PRIVATE lib_app_cli lib_net lib_log lib_data)
 configure_debuggable(fetch)
 
-install(TARGETS fetch DESTINATION "${CMAKE_SOURCE_DIR}/bin")
-if(${VOLO_PLATFORM} STREQUAL "win32" AND NOT ${VOLO_COMPILER} STREQUAL "gcc")
-  install(FILES $<TARGET_PDB_FILE:fetch> DESTINATION "${CMAKE_SOURCE_DIR}/bin")
-endif()
-
 add_custom_target(run.fetch COMMAND fetch
   "${CMAKE_SOURCE_DIR}/assets/fetch.json" VERBATIM USES_TERMINAL)
 
@@ -33,11 +28,6 @@ message(STATUS "> application: pack")
 add_executable(pack pack.c)
 target_link_libraries(pack PRIVATE lib_app_ecs lib_log lib_asset)
 configure_debuggable(pack)
-
-install(TARGETS pack DESTINATION "${CMAKE_SOURCE_DIR}/bin")
-if(${VOLO_PLATFORM} STREQUAL "win32" AND NOT ${VOLO_COMPILER} STREQUAL "gcc")
-  install(FILES $<TARGET_PDB_FILE:pack> DESTINATION "${CMAKE_SOURCE_DIR}/bin")
-endif()
 
 add_custom_target(run.pack
   COMMAND fetch "${CMAKE_SOURCE_DIR}/assets/fetch.json" VERBATIM USES_TERMINAL
@@ -58,11 +48,6 @@ add_executable(repl repl.c)
 target_link_libraries(repl PRIVATE lib_app_cli lib_script)
 configure_debuggable(repl)
 
-install(TARGETS repl DESTINATION "${CMAKE_SOURCE_DIR}/bin")
-if(${VOLO_PLATFORM} STREQUAL "win32" AND NOT ${VOLO_COMPILER} STREQUAL "gcc")
-  install(FILES $<TARGET_PDB_FILE:repl> DESTINATION "${CMAKE_SOURCE_DIR}/bin")
-endif()
-
 add_custom_target(run.repl COMMAND repl VERBATIM USES_TERMINAL)
 
 message(STATUS "> application: lsp")
@@ -70,11 +55,6 @@ message(STATUS "> application: lsp")
 add_executable(lsp lsp.c)
 target_link_libraries(lsp PRIVATE lib_app_cli lib_script lib_json)
 configure_debuggable(lsp)
-
-install(TARGETS lsp DESTINATION "${CMAKE_SOURCE_DIR}/bin")
-if(${VOLO_PLATFORM} STREQUAL "win32" AND NOT ${VOLO_COMPILER} STREQUAL "gcc")
-  install(FILES $<TARGET_PDB_FILE:lsp> DESTINATION "${CMAKE_SOURCE_DIR}/bin")
-endif()
 
 message(STATUS "> application: bcu")
 
@@ -87,11 +67,6 @@ message(STATUS "> application: blob2j")
 add_executable(blob2j blob2j.c)
 target_link_libraries(blob2j PRIVATE lib_app_cli lib_asset)
 configure_debuggable(blob2j)
-
-install(TARGETS blob2j DESTINATION "${CMAKE_SOURCE_DIR}/bin")
-if(${VOLO_PLATFORM} STREQUAL "win32" AND NOT ${VOLO_COMPILER} STREQUAL "gcc")
-  install(FILES $<TARGET_PDB_FILE:blob2j> DESTINATION "${CMAKE_SOURCE_DIR}/bin")
-endif()
 
 message(STATUS "> application: zipu")
 

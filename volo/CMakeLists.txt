@@ -33,11 +33,6 @@ target_link_libraries(volo PRIVATE
   )
 configure_debuggable(volo)
 
-install(TARGETS volo DESTINATION "${CMAKE_SOURCE_DIR}/bin")
-if(${VOLO_PLATFORM} STREQUAL "win32" AND NOT ${VOLO_COMPILER} STREQUAL "gcc")
-  install(FILES $<TARGET_PDB_FILE:volo> DESTINATION "${CMAKE_SOURCE_DIR}/bin")
-endif()
-
 add_custom_target(run.volo
   COMMAND fetch "${CMAKE_SOURCE_DIR}/assets/fetch.json" VERBATIM USES_TERMINAL
   COMMAND volo "-w" "--assets" "${CMAKE_SOURCE_DIR}/assets" VERBATIM USES_TERMINAL
