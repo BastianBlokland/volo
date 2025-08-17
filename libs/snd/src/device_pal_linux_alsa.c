@@ -64,7 +64,7 @@ typedef struct {
   AlsaPcmType (SYS_DECL* pcm_type)(AlsaPcm*);
   const char* (SYS_DECL* pcm_type_name)(AlsaPcmType);
   int         (SYS_DECL* pcm_prepare)(AlsaPcm*);
-  AlsaSFrames (SYS_DECL* pcm_avail_update)(AlsaPcm*);
+  AlsaSFrames (SYS_DECL* pcm_avail)(AlsaPcm*);
   AlsaSFrames (SYS_DECL* pcm_writei)(AlsaPcm*, const void* buffer, AlsaUFrames size);
   size_t      (SYS_DECL* pcm_info_sizeof)(void);
   int         (SYS_DECL* pcm_info)(AlsaPcm*, AlsaPcmInfo*);
@@ -146,7 +146,7 @@ static bool alsa_lib_init(AlsaLib* lib, Allocator* alloc) {
   ALSA_LOAD_SYM(pcm_type);
   ALSA_LOAD_SYM(pcm_type_name);
   ALSA_LOAD_SYM(pcm_prepare);
-  ALSA_LOAD_SYM(pcm_avail_update);
+  ALSA_LOAD_SYM(pcm_avail);
   ALSA_LOAD_SYM(pcm_writei);
   ALSA_LOAD_SYM(pcm_info_sizeof);
   ALSA_LOAD_SYM(pcm_info);
@@ -341,7 +341,7 @@ static bool alsa_pcm_prepare(SndDevice* dev) {
 }
 
 static AlsaPcmStatus alsa_pcm_query(SndDevice* dev) {
-  const AlsaSFrames avail = dev->alsa.pcm_avail_update(dev->pcm);
+  const AlsaSFrames avail = dev->alsa.pcm_avail(dev->pcm);
   if (UNLIKELY(avail < 0)) {
     const i32 err = (i32)avail;
     if (err == -EPIPE) {
