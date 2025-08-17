@@ -28,7 +28,15 @@ target_link_libraries(app_ecs PUBLIC core cli ecs)
 target_link_libraries(app_ecs PRIVATE log data trace)
 
 if(${VOLO_PLATFORM} STREQUAL "linux")
+  # For compat with older GLIBC versions, see: 'src/glibc_compat.c'.
   target_sources(app_cli PRIVATE "src/glibc_compat.c")
+  target_link_options(app_cli PUBLIC -Wl,--wrap=__libc_start_main)
+
+  # For compat with older GLIBC versions, see: 'src/glibc_compat.c'.
   target_sources(app_check PRIVATE "src/glibc_compat.c")
+  target_link_options(app_check PUBLIC -Wl,--wrap=__libc_start_main)
+
+  # For compat with older GLIBC versions, see: 'src/glibc_compat.c'.
   target_sources(app_ecs PRIVATE "src/glibc_compat.c")
+  target_link_options(app_ecs PUBLIC -Wl,--wrap=__libc_start_main)
 endif()

@@ -2,7 +2,7 @@
 # CMake compiler utilities.
 # --------------------------------------------------------------------------------------------------
 
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON) # Generate a 'compile_commands.json' for intellisense
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON) # Generate a 'compile_commands.json' for intellisense.
 
 # Clear default compiler flags.
 set(CMAKE_C_FLAGS "" CACHE STRING "Compiler flags" FORCE)
@@ -45,14 +45,13 @@ if(UNIX AND NOT APPLE)
     )
   add_link_options(
     -pthread # Enable pthread threading.
-    -Wl,--wrap=__libc_start_main # For compat with old GLIBC versions, see: libs/app/src/glibc_compat.c
     )
 elseif(WIN32)
   set(VOLO_PLATFORM "win32")
   set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded") # Statically link the runtime library.
   add_compile_definitions(
     VOLO_WIN32
-    WINVER=0x0603 _WIN32_WINNT=0x0603 # Target windows '8.1'
+    WINVER=0x0603 _WIN32_WINNT=0x0603 # Target windows '8.1'.
     WIN32_LEAN_AND_MEAN # Use a subset of the windows header.
     NOMINMAX # Avoid the windows header defining the min / max macros.
     UNICODE # Enable unicode support.
@@ -83,7 +82,7 @@ if("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
     -fno-strict-aliasing # Allow aliasing types; use 'restrict' when needed.
     -fno-stack-protector
     -fno-math-errno # Disable errno setting behavior for math functions.
-    -mf16c # Enable output of f16c (f32 <-> f16 conversions)
+    -mf16c # Enable output of f16c (f32 <-> f16 conversions).
     -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=0 # Disable fortification.
     $<$<NOT:$<BOOL:${VOLO_SIMD}>>:-fno-tree-vectorize> # No vectorization when SIMD is disabled.
     $<$<BOOL:${VOLO_LTO}>:-flto> # Link time optimization.
@@ -92,13 +91,12 @@ if("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
   add_link_options(
     -g # Enable debug symbols.
     $<$<NOT:$<BOOL:${WIN32}>>:-no-pie> # Disable 'Position Independent Executables'.
-
     $<$<BOOL:${WIN32}>:-municode> # Entry point with unicode support on windows.
 
     $<$<BOOL:${VOLO_LTO}>:-flto> # Link time optimization.
     $<$<BOOL:${VOLO_LTO}>:-fwhole-program> # Link time optimization.
     $<$<BOOL:${VOLO_LTO}>:-O2> # Optimization level 2.
-    $<$<BOOL:${VOLO_LTO}>:-mf16c> # Enable output of f16c (f32 <-> f16 conversions)
+    $<$<BOOL:${VOLO_LTO}>:-mf16c> # Enable output of f16c (f32 <-> f16 conversions).
     )
 elseif("${CMAKE_C_COMPILER_ID}" STREQUAL "Clang")
   set(VOLO_COMPILER "clang")
@@ -123,7 +121,7 @@ elseif("${CMAKE_C_COMPILER_ID}" STREQUAL "Clang")
     -fno-strict-aliasing # Allow aliasing types; use 'restrict' when needed.
     -fno-stack-protector
     -fno-math-errno # Disable errno setting behavior for math functions.
-    -mf16c # Enable output of f16c (f32 <-> f16 conversions)
+    -mf16c # Enable output of f16c (f32 <-> f16 conversions).
     -fmerge-all-constants
     -fcf-protection=none # Disable 'Control Flow Guard' (CFG).
     -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=0 # Disable fortification.
@@ -148,7 +146,7 @@ elseif("${CMAKE_C_COMPILER_ID}" STREQUAL "Clang")
 
     $<$<BOOL:${VOLO_LTO}>:-flto=full> # Link time optimization.
     $<$<BOOL:${VOLO_LTO}>:-O2> # Optimization level 2.
-    $<$<BOOL:${VOLO_LTO}>:-mf16c> # Enable output of f16c (f32 <-> f16 conversions)
+    $<$<BOOL:${VOLO_LTO}>:-mf16c> # Enable output of f16c (f32 <-> f16 conversions).
 
     $<$<BOOL:${VOLO_SANITIZE}>:-fsanitize=${SANITIZERS}> # Enable supported sanitizers.
 

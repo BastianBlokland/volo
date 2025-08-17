@@ -70,6 +70,7 @@ add_library(core STATIC
   src/zlib.c
   )
 target_include_directories(core PUBLIC include)
+
 if(${VOLO_PLATFORM} STREQUAL "linux")
   target_link_libraries(core PRIVATE dl) # DynamicLinking library.
   target_link_libraries(core PRIVATE m)  # Math library.
