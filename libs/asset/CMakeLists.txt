@@ -2,7 +2,7 @@
 # Asset library cmake file.
 # --------------------------------------------------------------------------------------------------
 
-add_library(lib_asset STATIC
+add_library(asset STATIC
   src/cache.c
   src/data.c
   src/format.c
@@ -54,11 +54,11 @@ add_library(lib_asset STATIC
   src/repo_pack.c
   src/repo.c
   )
-target_include_directories(lib_asset PUBLIC include)
-target_link_libraries(lib_asset PUBLIC lib_core lib_data lib_ecs lib_geo lib_script)
-target_link_libraries(lib_asset PRIVATE lib_json lib_log lib_trace)
+target_include_directories(asset PUBLIC include)
+target_link_libraries(asset PUBLIC core data ecs geo script)
+target_link_libraries(asset PRIVATE json log trace)
 
-add_executable(test_lib_asset
+add_executable(test_asset
   test/config.c
   test/test_loader_font_ttf.c
   test/test_loader_graphic.c
@@ -81,7 +81,7 @@ add_executable(test_lib_asset
   test/test_manager.c
   test/utils.c
   )
-target_link_libraries(test_lib_asset PRIVATE lib_app_check lib_asset)
+target_link_libraries(test_asset PRIVATE app_check asset)
 
-configure_test(test_lib_asset SHORT_NAME asset)
-configure_debuggable(test_lib_asset)
+configure_test(test_asset SHORT_NAME asset)
+configure_debuggable(test_asset)

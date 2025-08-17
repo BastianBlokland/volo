@@ -2,7 +2,7 @@
 # Vfx library cmake file.
 # --------------------------------------------------------------------------------------------------
 
-add_library(lib_vfx STATIC
+add_library(vfx STATIC
   src/atlas.c
   src/decal.c
   src/register.c
@@ -13,15 +13,15 @@ add_library(lib_vfx STATIC
   src/system.c
   src/warp.c
   )
-target_include_directories(lib_vfx PUBLIC include)
-target_link_libraries(lib_vfx PUBLIC lib_asset lib_scene lib_core lib_ecs)
-target_link_libraries(lib_vfx PRIVATE lib_rend lib_log)
+target_include_directories(vfx PUBLIC include)
+target_link_libraries(vfx PUBLIC asset scene core ecs)
+target_link_libraries(vfx PRIVATE rend log)
 
-add_executable(test_lib_vfx
+add_executable(test_vfx
   test/config.c
   test/test_warp.c
   )
-target_link_libraries(test_lib_vfx PRIVATE lib_app_check lib_vfx)
+target_link_libraries(test_vfx PRIVATE app_check vfx)
 
-configure_test(test_lib_vfx SHORT_NAME vfx)
-configure_debuggable(test_lib_vfx)
+configure_test(test_vfx SHORT_NAME vfx)
+configure_debuggable(test_vfx)

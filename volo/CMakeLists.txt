@@ -16,17 +16,17 @@ if(${VOLO_PLATFORM} STREQUAL "win32")
 endif()
 
 target_link_libraries(volo PRIVATE
-  lib_app_ecs
-  lib_asset
-  lib_data
-  lib_dev
-  lib_gap
-  lib_input
-  lib_rend
-  lib_scene
-  lib_snd
-  lib_trace
-  lib_ui
-  lib_vfx
+  app_ecs
+  asset
+  data
+  dev
+  gap
+  input
+  rend
+  scene
+  snd
+  trace
+  ui
+  vfx
   )
 configure_debuggable(volo)

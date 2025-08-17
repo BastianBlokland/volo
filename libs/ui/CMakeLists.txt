@@ -2,7 +2,7 @@
 # Ui library cmake file.
 # --------------------------------------------------------------------------------------------------
 
-add_library(lib_ui STATIC
+add_library(ui STATIC
   src/builder.c
   src/canvas.c
   src/cmd.c
@@ -22,6 +22,6 @@ add_library(lib_ui STATIC
   src/text.c
   src/widget.c
   )
-target_include_directories(lib_ui PUBLIC include)
-target_link_libraries(lib_ui PUBLIC lib_asset lib_core lib_ecs)
-target_link_libraries(lib_ui PRIVATE lib_gap lib_log lib_rend lib_input lib_snd)
+target_include_directories(ui PUBLIC include)
+target_link_libraries(ui PUBLIC asset core ecs)
+target_link_libraries(ui PRIVATE gap log rend input snd)

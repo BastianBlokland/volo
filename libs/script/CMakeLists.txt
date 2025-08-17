@@ -2,7 +2,7 @@
 # Script library cmake file.
 # --------------------------------------------------------------------------------------------------
 
-add_library(lib_script STATIC
+add_library(script STATIC
   src/args.c
   src/binder.c
   src/compile.c
@@ -23,11 +23,11 @@ add_library(lib_script STATIC
   src/sym.c
   src/val.c
   )
-target_include_directories(lib_script PUBLIC include)
-target_link_libraries(lib_script PUBLIC lib_core lib_geo lib_ecs)
-target_link_libraries(lib_script PRIVATE lib_json)
+target_include_directories(script PUBLIC include)
+target_link_libraries(script PUBLIC core geo ecs)
+target_link_libraries(script PRIVATE json)
 
-add_executable(test_lib_script
+add_executable(test_script
   test/config.c
   test/test_binder.c
   test/test_doc.c
@@ -43,7 +43,7 @@ add_executable(test_lib_script
   test/test_val.c
   test/utils.c
   )
-target_link_libraries(test_lib_script PRIVATE lib_app_check lib_script)
+target_link_libraries(test_script PRIVATE app_check script)
 
-configure_test(test_lib_script SHORT_NAME script)
-configure_debuggable(test_lib_script)
+configure_test(test_script SHORT_NAME script)
+configure_debuggable(test_script)

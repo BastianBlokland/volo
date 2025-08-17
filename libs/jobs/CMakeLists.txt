@@ -2,7 +2,7 @@
 # Jobs library cmake file.
 # --------------------------------------------------------------------------------------------------
 
-add_library(lib_jobs STATIC
+add_library(jobs STATIC
   src/affinity_queue.c
   src/dot.c
   src/executor.c
@@ -12,18 +12,18 @@ add_library(lib_jobs STATIC
   src/scheduler.c
   src/work_queue.c
   )
-target_include_directories(lib_jobs PUBLIC include)
-target_link_libraries(lib_jobs PUBLIC lib_core)
-target_link_libraries(lib_jobs PRIVATE lib_trace)
+target_include_directories(jobs PUBLIC include)
+target_link_libraries(jobs PUBLIC core)
+target_link_libraries(jobs PRIVATE trace)
 
-add_executable(test_lib_jobs
+add_executable(test_jobs
   test/config.c
   test/test_dot.c
   test/test_executor.c
   test/test_graph.c
   test/test_scheduler.c
   )
-target_link_libraries(test_lib_jobs PRIVATE lib_app_check lib_jobs)
+target_link_libraries(test_jobs PRIVATE app_check jobs)
 
-configure_test(test_lib_jobs SHORT_NAME jobs)
-configure_debuggable(test_lib_jobs)
+configure_test(test_jobs SHORT_NAME jobs)
+configure_debuggable(test_jobs)

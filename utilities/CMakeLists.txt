@@ -3,44 +3,44 @@
 # --------------------------------------------------------------------------------------------------
 
 add_executable(schemasetup schemasetup.c)
-target_link_libraries(schemasetup PRIVATE lib_app_cli lib_asset lib_log)
+target_link_libraries(schemasetup PRIVATE app_cli asset log)
 configure_debuggable(schemasetup)
 
 add_executable(fetch fetch.c)
-target_link_libraries(fetch PRIVATE lib_app_cli lib_net lib_log lib_data)
+target_link_libraries(fetch PRIVATE app_cli net log data)
 configure_debuggable(fetch)
 
 add_executable(pack pack.c)
-target_link_libraries(pack PRIVATE lib_app_ecs lib_log lib_asset)
+target_link_libraries(pack PRIVATE app_ecs log asset)
 configure_debuggable(pack)
 
 add_executable(dbgsetup dbgsetup.c)
-target_link_libraries(dbgsetup PRIVATE lib_app_cli lib_json lib_log)
+target_link_libraries(dbgsetup PRIVATE app_cli json log)
 
 add_executable(repl repl.c)
-target_link_libraries(repl PRIVATE lib_app_cli lib_script)
+target_link_libraries(repl PRIVATE app_cli script)
 configure_debuggable(repl)
 
 add_executable(lsp lsp.c)
-target_link_libraries(lsp PRIVATE lib_app_cli lib_script lib_json)
+target_link_libraries(lsp PRIVATE app_cli script json)
 configure_debuggable(lsp)
 
 add_executable(bcu bcu.c)
-target_link_libraries(bcu PRIVATE lib_app_cli lib_log)
+target_link_libraries(bcu PRIVATE app_cli log)
 configure_debuggable(bcu)
 
 add_executable(blob2j blob2j.c)
-target_link_libraries(blob2j PRIVATE lib_app_cli lib_asset)
+target_link_libraries(blob2j PRIVATE app_cli asset)
 configure_debuggable(blob2j)
 
 add_executable(zipu zipu.c)
-target_link_libraries(zipu PRIVATE lib_app_cli lib_log)
+target_link_libraries(zipu PRIVATE app_cli log)
 configure_debuggable(zipu)
 
 add_executable(httpu httpu.c)
-target_link_libraries(httpu PRIVATE lib_app_cli lib_net lib_log)
+target_link_libraries(httpu PRIVATE app_cli net log)
 configure_debuggable(httpu)
 
 add_executable(vkgen vkgen.c)
-target_link_libraries(vkgen PRIVATE lib_app_cli lib_net lib_xml lib_log)
+target_link_libraries(vkgen PRIVATE app_cli net xml log)
 configure_debuggable(vkgen)

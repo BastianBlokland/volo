@@ -2,7 +2,7 @@
 # Scene library cmake file.
 # --------------------------------------------------------------------------------------------------
 
-add_library(lib_scene STATIC
+add_library(scene STATIC
   src/action.c
   src/attachment.c
   src/attack.c
@@ -42,17 +42,17 @@ add_library(lib_scene STATIC
   src/visibility.c
   src/weapon.c
   )
-target_include_directories(lib_scene PUBLIC include)
-target_link_libraries(lib_scene PUBLIC lib_asset lib_core lib_ecs lib_geo)
-target_link_libraries(lib_scene PRIVATE lib_log lib_trace)
+target_include_directories(scene PUBLIC include)
+target_link_libraries(scene PUBLIC asset core ecs geo)
+target_link_libraries(scene PRIVATE log trace)
 
-add_executable(test_lib_scene
+add_executable(test_scene
   test/config.c
   test/test_nav.c
   test/test_script.c
   test/test_set.c
   )
-target_link_libraries(test_lib_scene PRIVATE lib_app_check lib_scene)
+target_link_libraries(test_scene PRIVATE app_check scene)
 
-configure_test(test_lib_scene SHORT_NAME scene)
-configure_debuggable(test_lib_scene)
+configure_test(test_scene SHORT_NAME scene)
+configure_debuggable(test_scene)

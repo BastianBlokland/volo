@@ -2,7 +2,7 @@
 # Core library cmake file.
 # --------------------------------------------------------------------------------------------------
 
-add_library(lib_core STATIC
+add_library(core STATIC
   src/alloc_block.c
   src/alloc_bump.c
   src/alloc_chunked.c
@@ -69,19 +69,19 @@ add_library(lib_core STATIC
   src/winutils.c
   src/zlib.c
   )
-target_include_directories(lib_core PUBLIC include)
+target_include_directories(core PUBLIC include)
 if(${VOLO_PLATFORM} STREQUAL "linux")
-  target_link_libraries(lib_core PRIVATE dl) # DynamicLinking library.
-  target_link_libraries(lib_core PRIVATE m)  # Math library.
+  target_link_libraries(core PRIVATE dl) # DynamicLinking library.
+  target_link_libraries(core PRIVATE m)  # Math library.
 
   # Include our GLIBC compatibility header (which specifies glibc symbol versions).
   # NOTE: Other libc's (for example MUSL) are not supported at this time.
-  target_compile_options(lib_core BEFORE PUBLIC -include "${CMAKE_CURRENT_LIST_DIR}/glibc_symver.h")
+  target_compile_options(core BEFORE PUBLIC -include "${CMAKE_CURRENT_LIST_DIR}/glibc_symver.h")
 endif()
 
 configure_file("src/version_internal.h.in" "${CMAKE_CURRENT_LIST_DIR}/src/version_internal.h")
 
-add_executable(test_lib_core
+add_executable(test_core
   test/config.c
   test/test_alloc_block.c
   test/test_alloc_bump.c
@@ -129,12 +129,12 @@ add_executable(test_lib_core
   test/test_winutils.c
   test/test_zlib.c
   )
-target_link_libraries(test_lib_core PRIVATE lib_app_check lib_core)
+target_link_libraries(test_core PRIVATE app_check core)
 
-configure_test(test_lib_core SHORT_NAME core)
-configure_debuggable(test_lib_core)
+configure_test(test_core SHORT_NAME core)
+configure_debuggable(test_core)
 
 # Helper executable that is used as part of the process tests.
-add_executable(test_lib_core_helper test/exec_helper.c)
-target_link_libraries(test_lib_core_helper PRIVATE lib_app_cli)
-add_dependencies(test_lib_core test_lib_core_helper)
+add_executable(test_core_helper test/exec_helper.c)
+target_link_libraries(test_core_helper PRIVATE app_cli)
+add_dependencies(test_core test_core_helper)

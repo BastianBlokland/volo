@@ -2,7 +2,7 @@
 # Geometry library cmake file.
 # --------------------------------------------------------------------------------------------------
 
-add_library(lib_geo STATIC
+add_library(geo STATIC
   src/box_rotated.c
   src/box.c
   src/capsule.c
@@ -17,11 +17,11 @@ add_library(lib_geo STATIC
   src/sphere.c
   src/vector.c
   )
-target_include_directories(lib_geo PUBLIC include)
-target_link_libraries(lib_geo PUBLIC lib_core)
-target_link_libraries(lib_geo PRIVATE lib_jobs lib_log)
+target_include_directories(geo PUBLIC include)
+target_link_libraries(geo PUBLIC core)
+target_link_libraries(geo PRIVATE jobs log)
 
-add_executable(test_lib_geo
+add_executable(test_geo
   test/config.c
   test/test_box_rotated.c
   test/test_box.c
@@ -36,7 +36,7 @@ add_executable(test_lib_geo
   test/test_vector.c
   test/utils.c
   )
-target_link_libraries(test_lib_geo PRIVATE lib_app_check lib_geo)
+target_link_libraries(test_geo PRIVATE app_check geo)
 
-configure_test(test_lib_geo SHORT_NAME geo)
-configure_debuggable(test_lib_geo)
+configure_test(test_geo SHORT_NAME geo)
+configure_debuggable(test_geo)

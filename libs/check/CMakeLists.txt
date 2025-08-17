@@ -2,7 +2,7 @@
 # Check library cmake file.
 # --------------------------------------------------------------------------------------------------
 
-add_library(lib_check STATIC
+add_library(check STATIC
   src/def.c
   src/output_log.c
   src/output_mocha.c
@@ -12,16 +12,16 @@ add_library(lib_check STATIC
   src/runner.c
   src/spec.c
   )
-target_include_directories(lib_check PUBLIC include)
-target_link_libraries(lib_check PUBLIC lib_core)
-target_link_libraries(lib_check PRIVATE lib_jobs lib_json lib_log lib_trace)
+target_include_directories(check PUBLIC include)
+target_link_libraries(check PUBLIC core)
+target_link_libraries(check PRIVATE jobs json log trace)
 
-add_executable(test_lib_check
+add_executable(test_check
   test/config.c
   test/test_dynarray.c
   test/test_fizzbuzz.c
   )
-target_link_libraries(test_lib_check PRIVATE lib_app_check lib_check)
+target_link_libraries(test_check PRIVATE app_check check)
 
-configure_test(test_lib_check SHORT_NAME check)
-configure_debuggable(test_lib_check)
+configure_test(test_check SHORT_NAME check)
+configure_debuggable(test_check)
