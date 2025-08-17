@@ -20,7 +20,7 @@ struct sEcsView {
   EcsStorage*       storage;
   Mem               masks;
   DynArray          archetypes; // EcsArchetypeId[] (NOTE: kept sorted)
-#ifndef VOLO_FAST
+#ifndef VOLO_RELEASE
   DynArray exclusiveEntities; // EcsEntityId[] (NOTE: kept sorted).
 #endif
 };

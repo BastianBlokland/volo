@@ -63,7 +63,7 @@ static bool httpu_validate_method(const String input) {
 }
 
 static void httpu_log_interfaces(void) {
-#ifndef VOLO_FAST
+#ifndef VOLO_RELEASE
   NetAddr addrs[32];
   u32     addrCount = array_elems(addrs);
   if (UNLIKELY(net_interfaces(addrs, &addrCount, NetInterfaceQueryFlags_None))) {

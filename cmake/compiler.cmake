@@ -8,31 +8,25 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON) # Generate a 'compile_commands.json' for i
 set(CMAKE_C_FLAGS "" CACHE STRING "Compiler flags" FORCE)
 set(CMAKE_C_FLAGS_DEBUG "" CACHE STRING  "Compiler flags" FORCE)
 set(CMAKE_C_FLAGS_RELEASE "" CACHE STRING "Compiler flags" FORCE)
-set(CMAKE_C_FLAGS_RELWITHDEBINFO "" CACHE STRING "Compiler flags" FORCE)
-set(CMAKE_C_FLAGS_MINSIZEREL "" CACHE STRING "Compiler flags" FORCE)
 
 # Clear default executable linker flags.
 set(CMAKE_EXE_LINKER_FLAGS "" CACHE STRING "Executable linker flags" FORCE)
 set(CMAKE_EXE_LINKER_FLAGS_DEBUG "" CACHE STRING "Executable linker flags" FORCE)
-set(CMAKE_EXE_LINKER_FLAGS_MINSIZEREL "" CACHE STRING "Executable linker flags" FORCE)
 set(CMAKE_EXE_LINKER_FLAGS_RELEASE "" CACHE STRING "Executable linker flags" FORCE)
-set(CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO "" CACHE STRING "Executable linker flags" FORCE)
 
 # Clear default library linker flags.
 set(CMAKE_STATIC_LINKER_FLAGS "" CACHE STRING "Library linker flags" FORCE)
 set(CMAKE_STATIC_LINKER_FLAGS_DEBUG "" CACHE STRING "Library linker flags" FORCE)
-set(CMAKE_STATIC_LINKER_FLAGS_MINSIZEREL "" CACHE STRING "Library linker flags" FORCE)
 set(CMAKE_STATIC_LINKER_FLAGS_RELEASE "" CACHE STRING "Library linker flags" FORCE)
-set(CMAKE_STATIC_LINKER_FLAGS_RELWITHDEBINFO "" CACHE STRING "Library linker flags" FORCE)
 
 # --------------------------------------------------------------------------------------------------
 # Options setup.
 # --------------------------------------------------------------------------------------------------
 
 add_compile_definitions(
-  $<$<BOOL:${VOLO_FAST}>:-DVOLO_FAST>
-  $<$<BOOL:${VOLO_SIMD}>:-DVOLO_SIMD>
-  $<$<BOOL:${VOLO_TRACE}>:-DVOLO_TRACE>
+  $<$<CONFIG:Release>:VOLO_RELEASE>
+  $<$<BOOL:${VOLO_SIMD}>:VOLO_SIMD>
+  $<$<BOOL:${VOLO_TRACE}>:VOLO_TRACE>
   )
 
 # --------------------------------------------------------------------------------------------------
@@ -42,9 +36,9 @@ add_compile_definitions(
 if(UNIX AND NOT APPLE)
   set(VOLO_PLATFORM "linux")
   add_compile_definitions(
-    -DVOLO_LINUX
-    -D_GNU_SOURCE # Enable GNU extensions.
-    -DNDEBUG # Disable lib-c assertions (our own assertions are independent of this).
+    VOLO_LINUX
+    _GNU_SOURCE # Enable GNU extensions.
+    NDEBUG # Disable lib-c assertions (our own assertions are independent of this).
     )
   add_compile_options(
     -pthread # Enable pthread threading.
@@ -57,12 +51,12 @@ elseif(WIN32)
   set(VOLO_PLATFORM "win32")
   set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded") # Statically link the runtime library.
   add_compile_definitions(
-    -DVOLO_WIN32
-    -DWINVER=0x0603 -D_WIN32_WINNT=0x0603 # Target windows '8.1'
-    -DWIN32_LEAN_AND_MEAN # Use a subset of the windows header.
-    -DNOMINMAX # Avoid the windows header defining the min / max macros.
-    -DUNICODE # Enable unicode support.
-    -DNDEBUG # Disable lib-c assertions (our own assertions are independent of this).
+    VOLO_WIN32
+    WINVER=0x0603 _WIN32_WINNT=0x0603 # Target windows '8.1'
+    WIN32_LEAN_AND_MEAN # Use a subset of the windows header.
+    NOMINMAX # Avoid the windows header defining the min / max macros.
+    UNICODE # Enable unicode support.
+    NDEBUG # Disable lib-c assertions (our own assertions are independent of this).
   )
 else()
   message(FATAL_ERROR "Unsupported platform")
@@ -74,7 +68,7 @@ endif()
 
 if("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
   set(VOLO_COMPILER "gcc")
-  add_compile_definitions(-DVOLO_GCC)
+  add_compile_definitions(VOLO_GCC)
   add_compile_options(
     -Wall -Wextra -Werror -Wshadow
 
@@ -82,7 +76,8 @@ if("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
     -Wno-clobbered -Wno-missing-braces -Wno-type-limits -Wno-maybe-uninitialized
     -Wno-override-init-side-effects -Wno-enum-conversion
 
-    -O2 # Optimization level 2.
+    $<$<CONFIG:Debug>:-O1> # Optimization level 1 in Debug.
+    $<$<CONFIG:Release>:-O3> # Optimization level 3 in Release.
     -g # Enable debug symbols.
     -fno-omit-frame-pointer # Include frame-pointers for fast stack-traces.
     -fno-strict-aliasing # Allow aliasing types; use 'restrict' when needed.
@@ -111,8 +106,8 @@ elseif("${CMAKE_C_COMPILER_ID}" STREQUAL "Clang")
   set(SANITIZERS_DISABLED "pointer-overflow,shift-base,shift-exponent,function")
 
   add_compile_definitions(
-    -DVOLO_CLANG
-    $<$<BOOL:${VOLO_SANITIZE}>:-DVOLO_ASAN>
+    VOLO_CLANG
+    $<$<BOOL:${VOLO_SANITIZE}>:VOLO_ASAN>
     )
   add_compile_options(
     -Wall -Wextra -Werror -Wshadow -Wgnu-empty-initializer -Wconversion
@@ -121,7 +116,8 @@ elseif("${CMAKE_C_COMPILER_ID}" STREQUAL "Clang")
     -Wno-sign-conversion -Wno-implicit-int-float-conversion -Wno-implicit-int-conversion
     -Wno-missing-field-initializers -Wno-enum-enum-conversion
 
-    -O2 # Optimization level 2.
+    $<$<CONFIG:Debug>:-O1> # Optimization level 1 in Debug.
+    $<$<CONFIG:Release>:-O3> # Optimization level 3 in Release.
     -g # Enable debug symbols.
     -fno-omit-frame-pointer # Include frame-pointers for fast stack-traces.
     -fno-strict-aliasing # Allow aliasing types; use 'restrict' when needed.
@@ -162,7 +158,7 @@ elseif("${CMAKE_C_COMPILER_ID}" STREQUAL "Clang")
     )
 elseif("${CMAKE_C_COMPILER_ID}" STREQUAL "MSVC")
   set(VOLO_COMPILER "msvc")
-  add_compile_definitions(-DVOLO_MSVC)
+  add_compile_definitions(VOLO_MSVC)
   add_compile_options(
     /TC /std:c11 # Use the c11 standard.
     /utf-8 # Use utf8 for both the source and the executable format.
@@ -172,7 +168,8 @@ elseif("${CMAKE_C_COMPILER_ID}" STREQUAL "MSVC")
     /W4 /WX /wd4127 /wd5105 /wd4200 /wd4244 /wd4201 /wd4210 /wd4701 /wd4706 /wd4324 /wd4100 /wd4703
     /wd4152 /wd5286 /wd5287 /wd4189
 
-    /O2 # Optimization level 2.
+    $<$<CONFIG:Debug>:/Od> # No optimizations in Debug.
+    $<$<CONFIG:Release>:/O2> # Optimization level 2 in Release.
     /Zi # Debug symbols in separate pdb files.
     /Oi # Enable intrinsic functions.
     /Gv # Use the 'vectorcall' calling convention.

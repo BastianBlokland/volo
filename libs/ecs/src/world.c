@@ -152,7 +152,7 @@ ecs_world_new_comps_mask(EcsBuffer* buffer, const usize idx, const BitSet curren
   bitset_or(out, ecs_buffer_entity_added(buffer, idx));
 }
 
-#ifndef VOLO_FAST
+#ifndef VOLO_RELEASE
 static void ecs_world_validate_exclusive_entities(EcsWorld* world) {
   DynArray totalEntities = dynarray_create_t(g_allocScratch, EcsEntityId, 512);
   dynarray_for_t(&world->views, EcsView, view) {
@@ -218,7 +218,7 @@ EcsWorld* ecs_world_create(Allocator* alloc, const EcsDef* def) {
         ecs_view_create(alloc, &world->storage, def, viewDef);
   }
 
-#ifndef VOLO_FAST
+#ifndef VOLO_RELEASE
   ecs_world_validate_init(world);
 #endif
 
@@ -463,7 +463,7 @@ void ecs_world_flush_internal(EcsWorld* world) {
 
   ecs_buffer_clear(&world->buffer);
 
-#ifndef VOLO_FAST
+#ifndef VOLO_RELEASE
   trace_begin("ecs_flush_validate", TraceColor_White);
   ecs_world_validate_exclusive_entities(world);
   trace_end();

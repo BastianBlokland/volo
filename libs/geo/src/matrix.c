@@ -354,7 +354,7 @@ GeoMatrix geo_matrix_rotate_z(const f32 angle) {
 }
 
 GeoMatrix geo_matrix_rotate(const GeoVector right, const GeoVector up, const GeoVector fwd) {
-#ifndef VOLO_FAST
+#ifndef VOLO_RELEASE
   assert_orthonormal(right, up, fwd);
 #endif
 

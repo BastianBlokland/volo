@@ -63,7 +63,7 @@ typedef struct sLogSink LogSink;
     }                                                                                              \
   } while (false)
 
-#ifndef VOLO_FAST
+#ifndef VOLO_RELEASE
 #define log_d(_TXT_LIT_, ...) log(g_logger, LogLevel_Debug, _TXT_LIT_, __VA_ARGS__)
 #else
 #define log_d(_TXT_LIT_, ...)

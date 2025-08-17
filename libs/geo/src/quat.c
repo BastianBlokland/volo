@@ -16,7 +16,7 @@ MAYBE_UNUSED static void assert_normalized(const GeoVector v) {
 }
 
 GeoQuat geo_quat_angle_axis(const f32 angle, const GeoVector axis) {
-#ifndef VOLO_FAST
+#ifndef VOLO_RELEASE
   assert_normalized(axis);
 #endif
 
@@ -316,7 +316,7 @@ GeoVector geo_quat_to_angle_axis(const GeoQuat q) {
 f32 geo_quat_to_angle(const GeoQuat q) { return geo_vector_mag(geo_quat_to_angle_axis(q)); }
 
 GeoSwingTwist geo_quat_to_swing_twist(const GeoQuat q, const GeoVector twistAxis) {
-#ifndef VOLO_FAST
+#ifndef VOLO_RELEASE
   assert_normalized(twistAxis);
 #endif
   static const f32 g_twistEpsilon = 1e-9f;
@@ -351,7 +351,7 @@ GeoSwingTwist geo_quat_to_swing_twist(const GeoQuat q, const GeoVector twistAxis
 }
 
 GeoQuat geo_quat_to_twist(const GeoQuat q, const GeoVector twistAxis) {
-#ifndef VOLO_FAST
+#ifndef VOLO_RELEASE
   assert_normalized(twistAxis);
 #endif
   const GeoVector qAxis = geo_vector(q.x, q.y, q.z);

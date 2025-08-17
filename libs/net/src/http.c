@@ -564,7 +564,7 @@ net_http_head_sync(NetHttp* http, const String uri, const NetHttpAuth* auth, Net
     http_read_decode_etag(http, &resp, etag);
   }
 
-#ifndef VOLO_FAST
+#ifndef VOLO_RELEASE
   {
     const String lReason = http_view_str_trim_or(http, resp.reason, string_lit("unknown"));
     const String lType   = http_view_str_trim_or(http, resp.contentType, string_lit("unknown"));
@@ -617,7 +617,7 @@ NetResult net_http_get_sync(
     return http->status;
   }
 
-#ifndef VOLO_FAST
+#ifndef VOLO_RELEASE
   {
     const String lReason = http_view_str_trim_or(http, resp.reason, string_lit("unknown"));
     const String lType   = http_view_str_trim_or(http, resp.contentType, string_lit("unknown"));

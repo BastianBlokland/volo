@@ -68,7 +68,7 @@ void thread_pal_init(void) {
   /**
    * NOTE: Called during early startup so cannot allocate memory.
    */
-#ifdef VOLO_FAST
+#ifdef VOLO_RELEASE
   /**
    * When running an optimized build we assume the user wants to give additional priority to the
    * process. We might want to make this customizable in the future.

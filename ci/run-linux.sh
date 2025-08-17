@@ -36,6 +36,16 @@ verifyBuildSystemOption() {
   esac
 }
 
+verifyBuildTypeOption() {
+  case "${1}" in
+    Debug|Release)
+      ;;
+    *)
+      fail "Unsupported build-type: '${1}'"
+      ;;
+  esac
+}
+
 verifyBoolOption() {
   case "${1}" in
     On|Off)
@@ -61,13 +71,13 @@ build() {
   local buildDir="${1}"
   local buildTarget="${2}"
   local buildSystem="${3}"
-  local fastMode="${4}"
+  local buildType="${4}"
   local traceMode="${5}"
   local ltoMode="${6}"
   local sanitizeMode="${7}"
 
   verifyBuildSystemOption "${buildSystem}"
-  verifyBoolOption "${fastMode}"
+  verifyBuildTypeOption "${buildType}"
   verifyBoolOption "${traceMode}"
   verifyBoolOption "${ltoMode}"
   verifyBoolOption "${sanitizeMode}"
@@ -86,7 +96,7 @@ build() {
   # Configure.
   ( cd "$sourceDir"; cmake -B "${buildDir}" \
     -G "$(getGeneratorName "${buildSystem}")" \
-    -DVOLO_FAST="${fastMode}" \
+    -DCMAKE_BUILD_TYPE="${buildType}" \
     -DVOLO_TRACE="${traceMode}" \
     -DVOLO_LTO="${ltoMode}" \
     -DVOLO_SANITIZE="${sanitizeMode}" )
@@ -101,7 +111,7 @@ build() {
 buildDir="build"
 buildTarget="run.volo"
 buildSystem="ninja"
-fastMode="Off"
+buildType="Release"
 traceMode="Off"
 ltoMode="Off"
 sanitizeMode="Off"
@@ -112,7 +122,7 @@ printUsage() {
   echo "-d,--dir      Build directory, default: '${buildDir}'"
   echo "-t,--target   Build target, default: '${buildTarget}'"
   echo "-s,--system   Build system, default: '${buildSystem}'"
-  echo "--fast        Fast mode, disables various runtime validations, default: '${fastMode}'"
+  echo "--type        Build type (Debug/Release), default: '${buildType}'"
   echo "--trace       Trace mode, enables runtime performance tracing, default: '${traceMode}'"
   echo "--lto         Link time optimization, default: '${ltoMode}'"
   echo "--sanitize    Santiser instrumentation, default: '${sanitizeMode}'"
@@ -139,8 +149,8 @@ do
       buildSystem="${2}"
       shift 2
       ;;
-    --fast)
-      fastMode="On"
+    --type)
+      buildType="${2}"
       shift 1
       ;;
     --trace)
@@ -168,7 +178,7 @@ build \
   "${buildDir}" \
   "${buildTarget}" \
   "${buildSystem}" \
-  "${fastMode}" \
+  "${buildType}" \
   "${traceMode}" \
   "${ltoMode}" \
   "${sanitizeMode}"
