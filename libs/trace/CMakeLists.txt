@@ -21,5 +21,4 @@ add_executable(test_trace
   )
 target_link_libraries(test_trace PRIVATE app_check trace json)
 
-configure_test(test_trace SHORT_NAME trace)
 configure_debuggable(test_trace)

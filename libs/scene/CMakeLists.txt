@@ -54,5 +54,4 @@ add_executable(test_scene
   )
 target_link_libraries(test_scene PRIVATE app_check scene)
 
-configure_test(test_scene SHORT_NAME scene)
 configure_debuggable(test_scene)

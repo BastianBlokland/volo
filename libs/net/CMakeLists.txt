@@ -25,5 +25,4 @@ add_executable(test_net
   )
 target_link_libraries(test_net PRIVATE app_check net)
 
-configure_test(test_net SHORT_NAME net)
 configure_debuggable(test_net)

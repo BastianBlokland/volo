@@ -24,5 +24,4 @@ add_executable(test_cli
   )
 target_link_libraries(test_cli PRIVATE app_check cli)
 
-configure_test(test_cli SHORT_NAME cli)
 configure_debuggable(test_cli)

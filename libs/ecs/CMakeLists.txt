@@ -38,5 +38,4 @@ add_executable(test_ecs
   )
 target_link_libraries(test_ecs PRIVATE app_check ecs)
 
-configure_test(test_ecs SHORT_NAME ecs)
 configure_debuggable(test_ecs)

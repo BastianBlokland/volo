@@ -35,5 +35,4 @@ add_executable(test_data
   )
 target_link_libraries(test_data PRIVATE app_check data)
 
-configure_test(test_data SHORT_NAME data)
 configure_debuggable(test_data)

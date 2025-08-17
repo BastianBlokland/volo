@@ -23,5 +23,4 @@ add_executable(test_check
   )
 target_link_libraries(test_check PRIVATE app_check check)
 
-configure_test(test_check SHORT_NAME check)
 configure_debuggable(test_check)

@@ -83,5 +83,4 @@ add_executable(test_asset
   )
 target_link_libraries(test_asset PRIVATE app_check asset)
 
-configure_test(test_asset SHORT_NAME asset)
 configure_debuggable(test_asset)

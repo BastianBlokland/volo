@@ -45,5 +45,4 @@ add_executable(test_script
   )
 target_link_libraries(test_script PRIVATE app_check script)
 
-configure_test(test_script SHORT_NAME script)
 configure_debuggable(test_script)

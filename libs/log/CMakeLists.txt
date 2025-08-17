@@ -20,5 +20,4 @@ add_executable(test_log
   )
 target_link_libraries(test_log PRIVATE app_check json log)
 
-configure_test(test_log SHORT_NAME log)
 configure_debuggable(test_log)

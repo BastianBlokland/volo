@@ -25,5 +25,4 @@ add_executable(test_jobs
   )
 target_link_libraries(test_jobs PRIVATE app_check jobs)
 
-configure_test(test_jobs SHORT_NAME jobs)
 configure_debuggable(test_jobs)

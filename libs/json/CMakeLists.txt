@@ -21,5 +21,4 @@ add_executable(test_json
   )
 target_link_libraries(test_json PRIVATE app_check json)
 
-configure_test(test_json SHORT_NAME json)
 configure_debuggable(test_json)

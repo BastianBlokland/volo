@@ -21,5 +21,4 @@ add_executable(test_xml
   )
 target_link_libraries(test_xml PRIVATE app_check xml)
 
-configure_test(test_xml SHORT_NAME xml)
 configure_debuggable(test_xml)

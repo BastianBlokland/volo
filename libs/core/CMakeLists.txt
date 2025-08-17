@@ -131,7 +131,6 @@ add_executable(test_core
   )
 target_link_libraries(test_core PRIVATE app_check core)
 
-configure_test(test_core SHORT_NAME core)
 configure_debuggable(test_core)
 
 # Helper executable that is used as part of the process tests.

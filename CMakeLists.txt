@@ -41,7 +41,6 @@ message(STATUS "* Sanitize: ${VOLO_SANITIZE}")
 
 include(cmake/compiler.cmake)
 include(cmake/debug.cmake)
-include(cmake/test.cmake)
 
 # --------------------------------------------------------------------------------------------------
 # Setup targets.
@@ -73,8 +72,47 @@ add_subdirectory(libs/ui)
 add_subdirectory(libs/vfx)
 add_subdirectory(libs/xml)
 
-configure_test_target()
 configure_dbgsetup_target()
+
+# --------------------------------------------------------------------------------------------------
+# Testing.
+# --------------------------------------------------------------------------------------------------
+
+add_custom_target(test.asset  COMMAND test_asset VERBATIM USES_TERMINAL)
+add_custom_target(test.check  COMMAND test_check VERBATIM USES_TERMINAL)
+add_custom_target(test.cli    COMMAND test_cli VERBATIM USES_TERMINAL)
+add_custom_target(test.core   COMMAND test_core VERBATIM USES_TERMINAL)
+add_custom_target(test.data   COMMAND test_data VERBATIM USES_TERMINAL)
+add_custom_target(test.ecs    COMMAND test_ecs VERBATIM USES_TERMINAL)
+add_custom_target(test.geo    COMMAND test_geo VERBATIM USES_TERMINAL)
+add_custom_target(test.jobs   COMMAND test_jobs VERBATIM USES_TERMINAL)
+add_custom_target(test.json   COMMAND test_json VERBATIM USES_TERMINAL)
+add_custom_target(test.log    COMMAND test_log VERBATIM USES_TERMINAL)
+add_custom_target(test.net    COMMAND test_net VERBATIM USES_TERMINAL)
+add_custom_target(test.scene  COMMAND test_scene VERBATIM USES_TERMINAL)
+add_custom_target(test.script COMMAND test_script VERBATIM USES_TERMINAL)
+add_custom_target(test.trace  COMMAND test_trace VERBATIM USES_TERMINAL)
+add_custom_target(test.vfx    COMMAND test_vfx VERBATIM USES_TERMINAL)
+add_custom_target(test.xml    COMMAND test_xml VERBATIM USES_TERMINAL)
+
+add_custom_target(test DEPENDS
+  test.asset
+  test.check
+  test.cli
+  test.core
+  test.data
+  test.ecs
+  test.geo
+  test.jobs
+  test.json
+  test.log
+  test.net
+  test.scene
+  test.script
+  test.trace
+  test.vfx
+  test.xml
+  )
 
 # --------------------------------------------------------------------------------------------------
 # Install.

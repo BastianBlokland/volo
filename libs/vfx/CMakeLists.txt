@@ -23,5 +23,4 @@ add_executable(test_vfx
   )
 target_link_libraries(test_vfx PRIVATE app_check vfx)
 
-configure_test(test_vfx SHORT_NAME vfx)
 configure_debuggable(test_vfx)

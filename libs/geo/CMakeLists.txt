@@ -38,5 +38,4 @@ add_executable(test_geo
   )
 target_link_libraries(test_geo PRIVATE app_check geo)
 
-configure_test(test_geo SHORT_NAME geo)
 configure_debuggable(test_geo)
