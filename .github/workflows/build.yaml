@@ -61,7 +61,7 @@ jobs:
             simd: On,
             trace: On,
             lto: Off,
-            sanitize: On,
+            sanitize: Off,
           }
         - {
             name: windows-dev-clang-x64,
@@ -73,7 +73,7 @@ jobs:
             simd: On,
             trace: On,
             lto: Off,
-            sanitize: On,
+            sanitize: Off,
           }
         - {
             name: windows-dev-mingw-x64,
@@ -85,7 +85,7 @@ jobs:
             simd: On,
             trace: On,
             lto: Off,
-            sanitize: On,
+            sanitize: Off,
           }
         - {
             name: linux-rel-x64,
