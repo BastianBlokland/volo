@@ -2,281 +2,180 @@
 # CMake compiler utilities.
 # --------------------------------------------------------------------------------------------------
 
-#
-# Detect the current compiler
-# Sets 'VOLO_COMPILER' to either:
-# * gcc
-# * clang
-# * msvc
-#
-macro(detect_compiler)
-  if("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
-    message(STATUS "Detected gcc compiler")
-    set(VOLO_COMPILER "gcc")
-  elseif("${CMAKE_C_COMPILER_ID}" STREQUAL "Clang")
-    message(STATUS "Detected clang compiler")
-    set(VOLO_COMPILER "clang")
-  elseif("${CMAKE_C_COMPILER_ID}" STREQUAL "MSVC")
-    message(STATUS "Detected msvc compiler")
-    set(VOLO_COMPILER "msvc")
-  else()
-    message(FATAL_ERROR "Unsupported compiler: '${CMAKE_C_COMPILER_ID}'")
-  endif()
-endmacro(detect_compiler)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON) # Generate a 'compile_commands.json' for intellisense
 
-#
-# Set generic defines
-#
-macro(set_generic_defines)
-  if(${VOLO_FAST})
-    message(STATUS "Enabling fast mode")
-    add_definitions(-DVOLO_FAST)
-  endif()
-  if(${VOLO_SIMD})
-    message(STATUS "Enabling simd mode")
-    add_definitions(-DVOLO_SIMD)
-  endif()
-  if(${VOLO_TRACE})
-    message(STATUS "Enabling trace mode")
-    add_definitions(-DVOLO_TRACE)
-  endif()
-endmacro(set_generic_defines)
+# --------------------------------------------------------------------------------------------------
+# Options setup.
+# --------------------------------------------------------------------------------------------------
 
-#
-# Set gcc specific defines
-#
-macro(set_gcc_defines)
-  add_definitions(-DVOLO_GCC)
-endmacro(set_gcc_defines)
+add_compile_definitions(
+  $<$<BOOL:${VOLO_FAST}>:-DVOLO_FAST>
+  $<$<BOOL:${VOLO_SIMD}>:-DVOLO_SIMD>
+  $<$<BOOL:${VOLO_TRACE}>:-DVOLO_TRACE>
+  )
 
-#
-# Set clang specific defines
-#
-macro(set_clang_defines)
-  add_definitions(-DVOLO_CLANG)
-endmacro(set_clang_defines)
+# --------------------------------------------------------------------------------------------------
+# Platform setup.
+# --------------------------------------------------------------------------------------------------
 
-#
-# Set msvc specific defines
-#
-macro(set_msvc_defines)
-  add_definitions(-DVOLO_MSVC)
-endmacro(set_msvc_defines)
+if(UNIX AND NOT APPLE)
+  set(VOLO_PLATFORM "linux")
+  message(STATUS "Detected linux platform")
+  add_compile_definitions(
+    -DVOLO_LINUX
+    -D_GNU_SOURCE # Enable GNU extensions.
+    -DNDEBUG # Disable lib-c assertions (our own assertions are independent of this).
+    )
+  add_compile_options(
+    -pthread # Enable pthread threading.
+    )
+  add_link_options(
+    -pthread # Enable pthread threading.
+    -Wl,--wrap=__libc_start_main # For compat with old GLIBC versions, see: libs/app/src/glibc_compat.c
+    )
+elseif(WIN32)
+  set(VOLO_PLATFORM "win32")
+  message(STATUS "Detected win32 platform")
+  set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded") # Statically link the runtime library.
+  add_compile_definitions(
+    -DVOLO_WIN32
+    -DWINVER=0x0603 -D_WIN32_WINNT=0x0603 # Target windows '8.1'
+    -DWIN32_LEAN_AND_MEAN # Use a subset of the windows header.
+    -DNOMINMAX # Avoid the windows header defining the min / max macros.
+    -DUNICODE # Enable unicode support.
+    -DNDEBUG # Disable lib-c assertions (our own assertions are independent of this).
+  )
+else()
+  message(FATAL_ERROR "Unsupported platform")
+endif()
 
-#
-# Set compiler specific defines
-# Requires 'VOLO_COMPILER' to be configured
-#
-macro(set_compiler_defines)
-  set_generic_defines()
-  if(${VOLO_COMPILER} STREQUAL "gcc")
-    set_gcc_defines()
-  elseif(${VOLO_COMPILER} STREQUAL "clang")
-    set_clang_defines()
-  elseif(${VOLO_COMPILER} STREQUAL "msvc")
-    set_msvc_defines()
-  else()
-    message(FATAL_ERROR "Unknown compiler")
-  endif()
-endmacro(set_compiler_defines)
+# --------------------------------------------------------------------------------------------------
+# Compiler setup.
+# --------------------------------------------------------------------------------------------------
 
-#
-# Set gcc specific compile options
-#
-macro(set_gcc_compile_options)
-  message(STATUS "Configuring gcc compile options")
+if("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
+  message(STATUS "Detected gcc compiler")
+  set(VOLO_COMPILER "gcc")
 
-  # Setup warning flags.
-  add_compile_options(-Wall -Wextra -Werror -Wshadow)
-  add_compile_options(-Wno-missing-field-initializers -Wno-override-init -Wno-implicit-fallthrough
-                      -Wno-clobbered -Wno-missing-braces -Wno-type-limits -Wno-maybe-uninitialized
-                      -Wno-override-init-side-effects -Wno-enum-conversion)
+  add_compile_definitions(-DVOLO_GCC)
+  add_compile_options(
+    -Wall -Wextra -Werror -Wshadow
 
-  add_link_options(-no-pie) # Disable 'Position Independent Executables'.
+    -Wno-missing-field-initializers -Wno-override-init -Wno-implicit-fallthrough
+    -Wno-clobbered -Wno-missing-braces -Wno-type-limits -Wno-maybe-uninitialized
+    -Wno-override-init-side-effects -Wno-enum-conversion
 
-  # Optimization settings.
-  add_compile_options(-O2) # Optimization level 2.
-  # add_compile_options(-march=native) # Optimize for the native cpu architecture (non portable).
-  add_compile_options(-fno-strict-aliasing) # Allow aliasing types; use 'restrict' when needed.
-  add_compile_options(-fno-stack-protector)
-  add_compile_options(-fno-math-errno) # Disable errno setting behavior for math functions.
-  add_compile_options(-mf16c) # Enable output of f16c (f32 <-> f16 conversions)
-  # add_compile_options(-mfma) # Enable output of 'fused multiply-add' instructions.
-  add_compile_options(-U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=0) # Disable fortification.
+    -O2 # Optimization level 2.
+    -g # Enable debug symbols.
+    -fno-omit-frame-pointer # Include frame-pointers for fast stack-traces.
+    -fno-strict-aliasing # Allow aliasing types; use 'restrict' when needed.
+    -fno-stack-protector
+    -fno-math-errno # Disable errno setting behavior for math functions.
+    -mf16c # Enable output of f16c (f32 <-> f16 conversions)
+    -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=0 # Disable fortification.
+    $<$<NOT:$<BOOL:${VOLO_SIMD}>>:-fno-tree-vectorize> # No vectorization when SIMD is disabled.
+    $<$<BOOL:${VOLO_LTO}>:-flto> # Link time optimization.
+    $<$<BOOL:${VOLO_LTO}>:-fno-fat-lto-objects>
+    )
+  add_link_options(
+    -g # Enable debug symbols.
+    -no-pie # Disable 'Position Independent Executables'.
 
-  if(${VOLO_PLATFORM} STREQUAL "win32")
-    add_link_options(-municode) # Entry point with unicode support.
-  endif()
+    $<$<BOOL:${WIN32}>:-municode> # Entry point with unicode support on windows.
 
-  if(NOT ${VOLO_SIMD})
-    message(STATUS "Disabling auto-vectorization")
-    add_compile_options(-fno-tree-vectorize)
-  endif()
+    $<$<BOOL:${VOLO_LTO}>:-flto> # Link time optimization.
+    $<$<BOOL:${VOLO_LTO}>:-fwhole-program> # Link time optimization.
+    $<$<BOOL:${VOLO_LTO}>:-O2> # Optimization level 2.
+    $<$<BOOL:${VOLO_LTO}>:-mf16c> # Enable output of f16c (f32 <-> f16 conversions)
+    )
+elseif("${CMAKE_C_COMPILER_ID}" STREQUAL "Clang")
+  message(STATUS "Detected clang compiler")
+  set(VOLO_COMPILER "clang")
 
-  # Debug options.
-  add_compile_options(-g) # Enable debug symbols.
-  add_compile_options(-fno-omit-frame-pointer) # Include frame-pointers for fast stack-traces.
+  set(SANITIZERS "address,alignment,builtin,bounds,integer-divide-by-zero,float-divide-by-zero,undefined,unreachable")
+  set(SANITIZERS_DISABLED "pointer-overflow,shift-base,shift-exponent,function")
 
-  # Link time optimization.
-  if(${VOLO_LTO})
-    message(STATUS "Enabling link-time-optimization")
-    add_compile_options(-flto -fno-fat-lto-objects)
-    add_link_options(-flto -fwhole-program -O2 -mf16c)
-  endif()
+  add_compile_definitions(
+    -DVOLO_CLANG
+    $<$<BOOL:${VOLO_SANITIZE}>:-DVOLO_ASAN>
+    )
+  add_compile_options(
+    -Wall -Wextra -Werror -Wshadow -Wgnu-empty-initializer -Wconversion
 
-endmacro(set_gcc_compile_options)
+    -Wno-initializer-overrides -Wno-unused-value -Wno-missing-braces
+    -Wno-sign-conversion -Wno-implicit-int-float-conversion -Wno-implicit-int-conversion
+    -Wno-missing-field-initializers -Wno-enum-enum-conversion
 
-#
-# Set clang specific compile options
-#
-macro(set_clang_compile_options)
-  message(STATUS "Configuring clang compile options")
+    -O2 # Optimization level 2.
+    -g # Enable debug symbols.
+    -fno-omit-frame-pointer # Include frame-pointers for fast stack-traces.
+    -fno-strict-aliasing # Allow aliasing types; use 'restrict' when needed.
+    -fno-stack-protector
+    -fno-math-errno # Disable errno setting behavior for math functions.
+    -mf16c # Enable output of f16c (f32 <-> f16 conversions)
+    -fmerge-all-constants
+    -fcf-protection=none # Disable 'Control Flow Guard' (CFG).
+    -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=0 # Disable fortification.
 
-  # Setup warning flags.
-  add_compile_options(-Wall -Wextra -Werror -Wshadow -Wgnu-empty-initializer -Wconversion)
-  add_compile_options(-Wno-initializer-overrides -Wno-unused-value -Wno-missing-braces
-                      -Wno-sign-conversion -Wno-implicit-int-float-conversion
-                      -Wno-implicit-int-conversion -Wno-missing-field-initializers
-                      -Wno-enum-enum-conversion)
+    $<$<NOT:$<BOOL:${VOLO_SIMD}>>:-fno-vectorize> # No vectorization when SIMD is disabled.
+    $<$<NOT:$<BOOL:${VOLO_SIMD}>>:-fno-slp-vectorize> # No vectorization when SIMD is disabled.
+    $<$<NOT:$<BOOL:${VOLO_SIMD}>>:-ffp-exception-behavior=maytrap>
 
-  add_link_options(-fuse-ld=lld) # Use the LLD linker (https://lld.llvm.org/).
-  add_link_options(-no-pie) # Disable 'Position Independent Executables'.
+    $<$<BOOL:${VOLO_LTO}>:-flto=full> # Link time optimization.
 
-  # Optimization settings.
-  add_compile_options(-O2) # Optimization level 2.
-  # add_compile_options(-march=native) # Optimize for the native cpu architecture (non portable).
-  add_compile_options(-fno-strict-aliasing) # Allow aliasing types; use 'restrict' when needed.
-  add_compile_options(-fno-stack-protector)
-  add_compile_options(-fno-math-errno) # Disable errno setting behavior for math functions.
-  add_compile_options(-mf16c) # Enable output of f16c (f32 <-> f16 conversions)
-  # add_compile_options(-mfma) # Enable output of 'fused multiply-add' instructions.
-  add_compile_options(-fmerge-all-constants)
-  add_compile_options(-fcf-protection=none) # Disable 'Control Flow Guard' (CFG).
-  add_compile_options(-U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=0) # Disable fortification.
+    $<$<BOOL:${VOLO_SANITIZE}>:-fsanitize=${SANITIZERS}> # Enable supported sanitizers.
+    $<$<BOOL:${VOLO_SANITIZE}>:-fno-sanitize=${SANITIZERS_DISABLED}> # Disable unsupported sanitizers.
 
-  if(NOT ${VOLO_SIMD})
-    message(STATUS "Disabling auto-vectorization")
-    add_compile_options(-fno-vectorize -fno-slp-vectorize -ffp-exception-behavior=maytrap)
-  endif()
+    $<$<BOOL:${WIN32}>:-Xclang=-fdefault-calling-conv=vectorcall> # Use the 'vectorcall' call conv.
+    $<$<BOOL:${WIN32}>:-Wno-microsoft-enum-forward-reference> # Forward declare enum as int.
+    $<$<BOOL:${WIN32}>:-fms-compatibility-version=0>
+    )
+  add_link_options(
+    -fuse-ld=lld # Use the LLD linker (https://lld.llvm.org/).
+    -g # Enable debug symbols.
+    -no-pie # Disable 'Position Independent Executables'.
 
-  # Debug options.
-  add_compile_options(-g) # Enable debug symbols.
-  add_link_options(-g) # Output debug symbols.
-  add_compile_options(-fno-omit-frame-pointer) # Include frame-pointers for fast stack-traces.
+    $<$<BOOL:${VOLO_LTO}>:-flto=full> # Link time optimization.
+    $<$<BOOL:${VOLO_LTO}>:-O2> # Optimization level 2.
+    $<$<BOOL:${VOLO_LTO}>:-mf16c> # Enable output of f16c (f32 <-> f16 conversions)
 
-  if(${VOLO_PLATFORM} STREQUAL "win32")
-    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded") # Statically link the runtime library.
-    add_compile_options(-Xclang -fdefault-calling-conv=vectorcall) # Use the 'vectorcall' call conv.
-    add_compile_options(-Wno-microsoft-enum-forward-reference) # Forward declare enum as int.
-    add_compile_options(-fms-compatibility-version=0)
-    add_link_options(--for-linker=/ENTRY:wmainCRTStartup) # Entry point with unicode support.
-    add_link_options(--for-linker=/OPT:REF,ICF=2) # Remove functions and data that are never referenced.
-    add_link_options(--for-linker=/GUARD:NO) # Disable 'Control Flow Guard' (CFG).
-  endif()
+    $<$<BOOL:${VOLO_SANITIZE}>:-fsanitize=${SANITIZERS}> # Enable supported sanitizers.
 
-  # Enable various clang sanitizers on supported platforms.
-  if(${VOLO_SANITIZE} AND ${VOLO_PLATFORM} STREQUAL "linux")
-    set(SANITIZERS "address,alignment,builtin,bounds,integer-divide-by-zero,float-divide-by-zero,undefined,unreachable")
-    set(SANITIZERS_DISABLED "pointer-overflow,shift-base,shift-exponent,function")
+    $<$<BOOL:${WIN32}>:--for-linker=/ENTRY:wmainCRTStartup> # Entry point with unicode support.
+    $<$<BOOL:${WIN32}>:--for-linker=/OPT:REF,ICF=2> # Remove unneeded functions and data.
+    $<$<BOOL:${WIN32}>:--for-linker=/GUARD:NO> # Disable 'Control Flow Guard' (CFG).
+    )
+elseif("${CMAKE_C_COMPILER_ID}" STREQUAL "MSVC")
+  set(VOLO_COMPILER "msvc")
+  message(STATUS "Detected msvc compiler")
 
-    message(STATUS "Configuring clang sanitizers: ${SANITIZERS}")
-    add_compile_options(-fsanitize=${SANITIZERS} -fno-sanitize=${SANITIZERS_DISABLED})
-    add_link_options(-fsanitize=${SANITIZERS})
-    add_definitions(-DVOLO_ASAN)
-  endif()
+  add_compile_definitions(-DVOLO_MSVC)
+  add_compile_options(
+    /TC /std:c11 # Use the c11 standard.
+    /utf-8 # Use utf8 for both the source and the executable format.
+    /Zc:preprocessor # Enable the conformant c-preprocessor.
+    /FS # Use synchronous pdb writes.
 
-  # Link time optimization.
-  if(${VOLO_LTO})
-    message(STATUS "Enabling link-time-optimization")
-    add_compile_options(-flto=full)
-    add_link_options(-flto=full -O2 -mf16c)
-  endif()
+    /W4 /WX /wd4127 /wd5105 /wd4200 /wd4244 /wd4201 /wd4210 /wd4701 /wd4706 /wd4324 /wd4100 /wd4703
+    /wd4152 /wd5286 /wd5287 /wd4189
 
-endmacro(set_clang_compile_options)
+    /O2 # Optimization level 2.
+    /Zi # Debug symbols in separate pdb files.
+    /Oi # Enable intrinsic functions.
+    /Gv # Use the 'vectorcall' calling convention.
+    /GS- # Disable 'Buffer Security Check'.
+    /guard:cf- # Disable 'Control Flow Guard' (CFG).
 
-#
-# Set msvc specific compile options
-#
-macro(set_msvc_compile_options)
-  message(STATUS "Configuring msvc compile options")
-
-  # Use the c11 standard.
-  add_compile_options(/TC /std:c11)
-
-  # Use utf8 for both the source and the executable format.
-  add_compile_options(/utf-8)
-
-  # Setup warning flags.
-  add_compile_options(/W4 /WX /wd4127 /wd5105 /wd4200 /wd4244 /wd4201 /wd4210 /wd4701 /wd4706
-                      /wd4324 /wd4100 /wd4703 /wd4152 /wd5286 /wd5287)
-
-  # Ignore unused local variable warning,
-  # Current MSVC version (19.29.30037) reports false positives on compiler generated vars ($SXX).
-  add_compile_options(/wd4189)
-
-  # Enabling the conformant c-preprocessor. More info:
-  # https://devblogs.microsoft.com/cppblog/announcing-full-support-for-a-c-c-conformant-preprocessor-in-msvc/
-  add_compile_options(/Zc:preprocessor)
-
-  # Use synchronous pdb writes, reason is Ninja spawns multiple compiler processes that can end up
-  # writing to the same pdb.
-  add_compile_options(/FS)
-
-  # Optimization settings.
-  add_compile_options(/O2) # Optimization level 2.
-  add_compile_options(/Oi) # Enable intrinsic functions.
-  add_compile_options(/Gv) # Use the 'vectorcall' calling convention.
-  add_compile_options(/GS-) # Disable 'Buffer Security Check'.
-  add_compile_options(/guard:cf-) # Disable 'Control Flow Guard' (CFG).
-
-  if(NOT ${VOLO_SIMD})
-    message(STATUS "Disabling auto-vectorization")
-    add_compile_options(/d2Qvec-)
-  endif()
-
-  # Debug options.
-  add_compile_options(/Zi) # Debug symbols in separate pdb files.
-
-  # Statically link the runtime library.
-  set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded")
-
-  # Linker options.
-  add_link_options(/ENTRY:wmainCRTStartup) # Entry point with unicode support.
-  add_link_options(/INCREMENTAL:NO) # No incremental linking.
-  add_link_options(/OPT:REF,ICF=2) # Remove functions and data that are never referenced.
-  add_link_options(/GUARD:NO) # Disable 'Control Flow Guard' (CFG).
-
-  # Link time optimization.
-  if(${VOLO_LTO})
-    message(STATUS "Enabling link-time-optimization")
-    add_compile_options(/GL)
-    add_link_options(/LTCG)
-  endif()
-
-endmacro(set_msvc_compile_options)
-
-#
-# Set compile options
-# Requires 'VOLO_COMPILER' to be configured
-#
-macro(set_compile_options)
-
-  # Clear the default compiler options.
-  set(CMAKE_C_FLAGS "")
-  set(CMAKE_C_FLAGS_DEBUG "")
-  set(CMAKE_C_FLAGS_RELEASE "")
-  set(CMAKE_C_FLAGS_RELWITHDEBINFO "")
-  set(CMAKE_C_FLAGS_MINSIZEREL "")
-  set(CMAKE_STATIC_LIBRARY_PREFIX_C "") # Manually prefix libraries for clarity.
-
-  # Set our custom compiler options.
-  if(${VOLO_COMPILER} STREQUAL "gcc")
-    set_gcc_compile_options()
-  elseif(${VOLO_COMPILER} STREQUAL "clang")
-    set_clang_compile_options()
-  elseif(${VOLO_COMPILER} STREQUAL "msvc")
-    set_msvc_compile_options()
-  else()
-    message(FATAL_ERROR "Unknown compiler")
-  endif()
-endmacro(set_compile_options)
+    $<$<NOT:$<BOOL:${VOLO_SIMD}>>:/d2Qvec-> # No vectorization when SIMD is disabled.
+    $<$<BOOL:${VOLO_LTO}>:/GL> # Link time optimization.
+  )
+  add_link_options(
+    /ENTRY:wmainCRTStartup # Entry point with unicode support.
+    /INCREMENTAL:NO # No incremental linking.
+    /OPT:REF,ICF=2 # Remove functions and data that are never referenced.
+    /GUARD:NO # Disable 'Control Flow Guard' (CFG).
+    $<$<BOOL:${VOLO_LTO}>:/LTCG> # Link time optimization.
+  )
+else()
+  message(FATAL_ERROR "Unsupported compiler: '${CMAKE_C_COMPILER_ID}'")
+endif()

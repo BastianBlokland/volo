@@ -35,22 +35,10 @@ message(STATUS "* Trace: ${VOLO_TRACE}")
 message(STATUS "* Lto: ${VOLO_LTO}")
 message(STATUS "* Sanitize: ${VOLO_SANITIZE}")
 
+# Perform global setup.
 include(cmake/compiler.cmake)
 include(cmake/debug.cmake)
-include(cmake/platform.cmake)
 include(cmake/test.cmake)
-
-# Setup global platform specific defines.
-detect_platform()
-set_platform_defines()
-
-# Setup global compiler specific defines and options.
-detect_compiler()
-set_compiler_defines()
-set_compile_options()
-
-# Generate a 'compile_commands.json' for intellisense (for example clangd).
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 add_subdirectory(libs)
 add_subdirectory(volo)
