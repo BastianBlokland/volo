@@ -27,9 +27,7 @@
  *       "request": "launch",
  *       "program": "/home/user/dev/projects/volo/build/libs/check/volo_check_test",
  *       "cwd": "/home/user/dev/projects/volo/",
- *       "args": [],
- *       "terminal": "integrated",
- *       "stopOnEntry": false
+ *       "args": []
  *     }
  *   ]
  * }
@@ -94,8 +92,6 @@ static JsonVal dbgsetup_vscode_gen_launch_entry(DbgSetupCtx* ctx, JsonDoc* doc, 
   json_add_field_lit(doc, obj, "program", json_add_string(doc, target));
   json_add_field_lit(doc, obj, "cwd", json_add_string(doc, ctx->workspace));
   json_add_field_lit(doc, obj, "args", json_add_array(doc));
-  json_add_field_lit(doc, obj, "terminal", json_add_string_lit(doc, "integrated"));
-  json_add_field_lit(doc, obj, "stopOnEntry", json_add_bool(doc, false));
   return obj;
 }
 
@@ -109,7 +105,6 @@ static JsonVal dbgsetup_vscode_gen_attach_entry(DbgSetupCtx* ctx, JsonDoc* doc, 
   json_add_field_lit(doc, obj, "type", json_add_string(doc, g_dbgStrs[ctx->dbg]));
   json_add_field_lit(doc, obj, "request", json_add_string_lit(doc, "attach"));
   json_add_field_lit(doc, obj, "program", json_add_string(doc, target));
-  json_add_field_lit(doc, obj, "processId", json_add_string_lit(doc, "${command:pickProcess}"));
   return obj;
 }
 

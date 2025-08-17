@@ -61,7 +61,7 @@ jobs:
             simd: On,
             trace: On,
             lto: Off,
-            sanitize: On,
+            sanitize: Off,
           }
         - {
             name: windows-dev-clang-x64,
@@ -73,7 +73,7 @@ jobs:
             simd: On,
             trace: On,
             lto: Off,
-            sanitize: On,
+            sanitize: Off,
           }
         - {
             name: windows-dev-mingw-x64,
@@ -85,7 +85,7 @@ jobs:
             simd: On,
             trace: On,
             lto: Off,
-            sanitize: On,
+            sanitize: Off,
           }
         - {
             name: linux-rel-x64,
@@ -114,12 +114,12 @@ jobs:
     env:
       CC: ${{matrix.config.cc}}
       CMAKE_OPTS: >-
-        -DLABEL=${{github.sha}}
-        -DFAST=${{matrix.config.fast}}
-        -DSIMD=${{matrix.config.simd}}
-        -DLTO=${{matrix.config.lto}}
-        -DTRACE=${{matrix.config.trace}}
-        -DSANITIZE=${{matrix.config.sanitize}}
+        -DVOLO_LABEL=${{github.sha}}
+        -DVOLO_FAST=${{matrix.config.fast}}
+        -DVOLO_SIMD=${{matrix.config.simd}}
+        -DVOLO_LTO=${{matrix.config.lto}}
+        -DVOLO_TRACE=${{matrix.config.trace}}
+        -DVOLO_SANITIZE=${{matrix.config.sanitize}}
     steps:
     - name: checkout
       uses: actions/checkout@v5

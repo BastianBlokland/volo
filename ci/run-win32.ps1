@@ -96,10 +96,10 @@ function ExecuteGenerator(
 
   & cmake.exe -B $buildDirectory `
     -G "$(GetGeneratorName $buildSystem)" `
-    -DFAST="$(if($fast) { "On" } else { "Off" })" `
-    -DTRACE="$(if($trace) { "On" } else { "Off" })" `
-    -DLTO="$(if($lto) { "On" } else { "Off" })" `
-    -DSANITIZE="$(if($sanitize) { "On" } else { "Off" })"
+    -DVOLO_FAST="$(if($fast) { "On" } else { "Off" })" `
+    -DVOLO_TRACE="$(if($trace) { "On" } else { "Off" })" `
+    -DVOLO_LTO="$(if($lto) { "On" } else { "Off" })" `
+    -DVOLO_SANITIZE="$(if($sanitize) { "On" } else { "Off" })"
 
   $result = $LASTEXITCODE
   Pop-Location

@@ -15,7 +15,7 @@ spec(process) {
 
   setup() {
     const String parentPath = path_parent(g_pathExecutable);
-    const String helperName = string_lit("test_lib_core_helper");
+    const String helperName = string_lit("core_test_helper");
     helperPath              = string_dup(g_allocHeap, path_build_scratch(parentPath, helperName));
 
     buffer = dynstring_create(g_allocHeap, 1 * usize_kibibyte);

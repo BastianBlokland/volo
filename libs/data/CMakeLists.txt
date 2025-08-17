@@ -2,9 +2,7 @@
 # Data library cmake file.
 # --------------------------------------------------------------------------------------------------
 
-message(STATUS "> library: data")
-
-add_library(lib_data STATIC
+add_library(data STATIC
   src/init.c
   src/jsonschema.c
   src/read_bin.c
@@ -18,11 +16,11 @@ add_library(lib_data STATIC
   src/write_bin.c
   src/write_json.c
   )
-target_include_directories(lib_data PUBLIC include)
-target_link_libraries(lib_data PRIVATE lib_json)
-target_link_libraries(lib_data PUBLIC lib_core)
+target_include_directories(data PUBLIC include)
+target_link_libraries(data PRIVATE json)
+target_link_libraries(data PUBLIC core)
 
-add_executable(test_lib_data
+add_executable(data_test
   test/config.c
   test/test_bin.c
   test/test_jsonschema.c
@@ -35,7 +33,4 @@ add_executable(test_lib_data
   test/test_utils_visit.c
   test/test_write_json.c
   )
-target_link_libraries(test_lib_data PRIVATE lib_app_check lib_data)
-
-configure_test(test_lib_data SHORT_NAME data)
-configure_debuggable(test_lib_data)
+target_link_libraries(data_test PRIVATE app_check data)

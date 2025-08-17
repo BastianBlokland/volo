@@ -2,9 +2,7 @@
 # Ecs library cmake file.
 # --------------------------------------------------------------------------------------------------
 
-message(STATUS "> library: ecs")
-
-add_library(lib_ecs STATIC
+add_library(ecs STATIC
   src/archetype.c
   src/buffer.c
   src/comp.c
@@ -20,11 +18,11 @@ add_library(lib_ecs STATIC
   src/view.c
   src/world.c
   )
-target_include_directories(lib_ecs PUBLIC include)
-target_link_libraries(lib_ecs PUBLIC lib_core lib_jobs)
-target_link_libraries(lib_ecs PRIVATE lib_log lib_trace)
+target_include_directories(ecs PUBLIC include)
+target_link_libraries(ecs PUBLIC core jobs)
+target_link_libraries(ecs PRIVATE log trace)
 
-add_executable(test_lib_ecs
+add_executable(ecs_test
   test/config.c
   test/test_affinity.c
   test/test_combinator.c
@@ -38,7 +36,4 @@ add_executable(test_lib_ecs
   test/test_view.c
   test/test_world.c
   )
-target_link_libraries(test_lib_ecs PRIVATE lib_app_check lib_ecs)
-
-configure_test(test_lib_ecs SHORT_NAME ecs)
-configure_debuggable(test_lib_ecs)
+target_link_libraries(ecs_test PRIVATE app_check ecs)

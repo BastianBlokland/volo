@@ -2,9 +2,7 @@
 # Renderer library cmake file.
 # --------------------------------------------------------------------------------------------------
 
-message(STATUS "> library: rend")
-
-add_library(lib_rend STATIC
+add_library(rend STATIC
   src/builder.c
   src/error.c
   src/fog.c
@@ -49,6 +47,6 @@ add_library(lib_rend STATIC
   src/terrain.c
   src/view.c
   )
-target_include_directories(lib_rend PUBLIC include)
-target_link_libraries(lib_rend PUBLIC lib_core lib_ecs lib_scene)
-target_link_libraries(lib_rend PRIVATE lib_asset lib_gap lib_log lib_trace)
+target_include_directories(rend PUBLIC include)
+target_link_libraries(rend PUBLIC core ecs scene)
+target_link_libraries(rend PRIVATE asset gap log trace)

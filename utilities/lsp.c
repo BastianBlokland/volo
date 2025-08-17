@@ -11,6 +11,7 @@
 #include "core_sort.h"
 #include "core_stringtable.h"
 #include "core_time.h"
+#include "core_version.h"
 #include "geo_color.h"
 #include "json_doc.h"
 #include "json_read.h"
@@ -1979,7 +1980,8 @@ static i32 lsp_run_stdio(ScriptBinder* scriptBinders[PARAM_ARRAY_SIZE(lsp_script
       .out           = g_fileStdOut,
   };
 
-  lsp_send_info(&ctx, string_lit("Server starting up"));
+  const String versionScratch = version_str_scratch(g_versionExecutable);
+  lsp_send_info(&ctx, fmt_write_scratch("Server starting up (v{})", fmt_text(versionScratch)));
   for (u32 i = 0; i != lsp_script_binders_max; ++i) {
     if (scriptBinders[i]) {
       const String binderName   = script_binder_name(scriptBinders[i]);

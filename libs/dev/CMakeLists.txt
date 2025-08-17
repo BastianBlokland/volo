@@ -2,9 +2,7 @@
 # Development library cmake file.
 # --------------------------------------------------------------------------------------------------
 
-message(STATUS "> library: dev")
-
-add_library(lib_dev STATIC
+add_library(dev STATIC
   src/asset.c
   src/camera.c
   src/ecs.c
@@ -32,6 +30,6 @@ add_library(lib_dev STATIC
   src/vfx.c
   src/widget.c
   )
-target_include_directories(lib_dev PUBLIC include)
-target_link_libraries(lib_dev PUBLIC lib_core lib_ecs lib_scene lib_log)
-target_link_libraries(lib_dev PRIVATE lib_gap lib_rend lib_input lib_ui lib_snd lib_trace lib_vfx)
+target_include_directories(dev PUBLIC include)
+target_link_libraries(dev PUBLIC core ecs scene log)
+target_link_libraries(dev PRIVATE gap rend input ui snd trace vfx)

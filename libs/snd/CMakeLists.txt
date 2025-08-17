@@ -2,9 +2,7 @@
 # Sound library cmake file.
 # --------------------------------------------------------------------------------------------------
 
-message(STATUS "> library: snd")
-
-add_library(lib_snd STATIC
+add_library(snd STATIC
   src/buffer.c
   src/channel.c
   src/device_pal.c
@@ -14,6 +12,6 @@ add_library(lib_snd STATIC
   src/result.c
   src/source.c
   )
-target_include_directories(lib_snd PUBLIC include)
-target_link_libraries(lib_snd PUBLIC lib_core lib_ecs)
-target_link_libraries(lib_snd PRIVATE lib_log lib_scene)
+target_include_directories(snd PUBLIC include)
+target_link_libraries(snd PUBLIC core ecs)
+target_link_libraries(snd PRIVATE log scene)

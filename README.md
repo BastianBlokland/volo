@@ -10,13 +10,13 @@
 ## Building
 
 ### Supported platforms
-* Linux + X11 (*Ports to other POSIX + x11 platforms should be doable, but linux specific apis are used at the moment*).
+* Linux + X11.
 * Microsoft Windows (*8.1 or newer*).
 
 ### Dependencies
 * `C` compiler supporting `c11`: Tested on recent [`gcc`](https://gcc.gnu.org/), [`clang`](https://clang.llvm.org/) and [`msvc`](https://docs.microsoft.com/en-us/cpp/build/reference/c-cpp-building-reference?).
 * Meta build-system: [CMake](https://cmake.org/) (*3.19 or newer*).
-* Build-system: Tested with [`ninja`](https://ninja-build.org/manual.html), [`make`](https://www.gnu.org/software/make/), [`nmake`](https://docs.microsoft.com/en-us/cpp/build/reference/nmake-reference) and [`msbuild`](https://docs.microsoft.com/en-us/visualstudio/msbuild) (`Ninja` comes highly recommended).
+* Build-system: Tested with [`ninja`](https://ninja-build.org/manual.html), [`make`](https://www.gnu.org/software/make/), [`nmake`](https://docs.microsoft.com/en-us/cpp/build/reference/nmake-reference) and [`msbuild`](https://docs.microsoft.com/en-us/visualstudio/msbuild).
 * [Vulkan SDK](https://vulkan.lunarg.com/).
 * (*Linux only*) [XCB](https://xcb.freedesktop.org/) (X protocol bindings) + various extensions.
 * (*Optional*)(*Linux only*) [ASound](https://alsa-project.org) audio library for the Alsa architecture.
@@ -25,7 +25,7 @@
 * Install a `c` compiler and build-system (debian: `apt install build-essential`).
 * Install `CMake` (debian: `apt install cmake`).
 * Install the `Vulkan` sdk (source: https://vulkan.lunarg.com/sdk/home#linux).
-* Install `XCB` (debian: `apt install libxcb1-dev).
+* Install `XCB` (debian: `apt install libxcb1-dev`).
 * (*Optional*) Install `asound` (audio library for the Alsa architecture)
   (debian: `apt install libasound2`).
 * Build and run: `ci/run-linux.sh` (or invoke `cmake` and your build-system manually).
