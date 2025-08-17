@@ -13,7 +13,7 @@ add_library(cli STATIC
 target_include_directories(cli PUBLIC include)
 target_link_libraries(cli PUBLIC core)
 
-add_executable(test_cli
+add_executable(cli_test
   test/config.c
   test/test_app.c
   test/test_failure.c
@@ -22,6 +22,6 @@ add_executable(test_cli
   test/test_read.c
   test/test_validate.c
   )
-target_link_libraries(test_cli PRIVATE app_check cli)
+target_link_libraries(cli_test PRIVATE app_check cli)
 
-configure_debuggable(test_cli)
+configure_debuggable(cli_test)

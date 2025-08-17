@@ -17,12 +17,12 @@ target_include_directories(net PUBLIC include)
 target_link_libraries(net PUBLIC core)
 target_link_libraries(net PRIVATE log)
 
-add_executable(test_net
+add_executable(net_test
   test/config.c
   test/test_addr.c
   test/test_http.c
   test/test_socket.c
   )
-target_link_libraries(test_net PRIVATE app_check net)
+target_link_libraries(net_test PRIVATE app_check net)
 
-configure_debuggable(test_net)
+configure_debuggable(net_test)

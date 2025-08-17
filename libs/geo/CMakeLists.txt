@@ -21,7 +21,7 @@ target_include_directories(geo PUBLIC include)
 target_link_libraries(geo PUBLIC core)
 target_link_libraries(geo PRIVATE jobs log)
 
-add_executable(test_geo
+add_executable(geo_test
   test/config.c
   test/test_box_rotated.c
   test/test_box.c
@@ -36,6 +36,6 @@ add_executable(test_geo
   test/test_vector.c
   test/utils.c
   )
-target_link_libraries(test_geo PRIVATE app_check geo)
+target_link_libraries(geo_test PRIVATE app_check geo)
 
-configure_debuggable(test_geo)
+configure_debuggable(geo_test)

@@ -81,7 +81,7 @@ endif()
 
 configure_file("src/version_internal.h.in" "${CMAKE_CURRENT_LIST_DIR}/src/version_internal.h")
 
-add_executable(test_core
+add_executable(core_test
   test/config.c
   test/test_alloc_block.c
   test/test_alloc_bump.c
@@ -129,11 +129,11 @@ add_executable(test_core
   test/test_winutils.c
   test/test_zlib.c
   )
-target_link_libraries(test_core PRIVATE app_check core)
+target_link_libraries(core_test PRIVATE app_check core)
 
-configure_debuggable(test_core)
+configure_debuggable(core_test)
 
 # Helper executable that is used as part of the process tests.
-add_executable(test_core_helper test/exec_helper.c)
-target_link_libraries(test_core_helper PRIVATE app_cli)
-add_dependencies(test_core test_core_helper)
+add_executable(core_test_helper test/exec_helper.c)
+target_link_libraries(core_test_helper PRIVATE app_cli)
+add_dependencies(core_test core_test_helper)

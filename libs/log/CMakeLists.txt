@@ -12,12 +12,12 @@ target_include_directories(log PUBLIC include)
 target_link_libraries(log PRIVATE json)
 target_link_libraries(log PUBLIC core)
 
-add_executable(test_log
+add_executable(log_test
   test/config.c
   test/test_logger.c
   test/test_sink_json.c
   test/test_sink_pretty.c
   )
-target_link_libraries(test_log PRIVATE app_check json log)
+target_link_libraries(log_test PRIVATE app_check json log)
 
-configure_debuggable(test_log)
+configure_debuggable(log_test)

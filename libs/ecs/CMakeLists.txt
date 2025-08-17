@@ -22,7 +22,7 @@ target_include_directories(ecs PUBLIC include)
 target_link_libraries(ecs PUBLIC core jobs)
 target_link_libraries(ecs PRIVATE log trace)
 
-add_executable(test_ecs
+add_executable(ecs_test
   test/config.c
   test/test_affinity.c
   test/test_combinator.c
@@ -36,6 +36,6 @@ add_executable(test_ecs
   test/test_view.c
   test/test_world.c
   )
-target_link_libraries(test_ecs PRIVATE app_check ecs)
+target_link_libraries(ecs_test PRIVATE app_check ecs)
 
-configure_debuggable(test_ecs)
+configure_debuggable(ecs_test)

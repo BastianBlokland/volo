@@ -13,12 +13,12 @@ target_include_directories(trace PUBLIC include)
 target_link_libraries(trace PUBLIC core)
 target_link_libraries(trace PRIVATE log)
 
-add_executable(test_trace
+add_executable(trace_test
   test/config.c
   test/test_dump_eventtrace.c
   test/test_sink_store.c
   test/test_tracer.c
   )
-target_link_libraries(test_trace PRIVATE app_check trace json)
+target_link_libraries(trace_test PRIVATE app_check trace json)
 
-configure_debuggable(test_trace)
+configure_debuggable(trace_test)

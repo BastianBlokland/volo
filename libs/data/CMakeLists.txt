@@ -20,7 +20,7 @@ target_include_directories(data PUBLIC include)
 target_link_libraries(data PRIVATE json)
 target_link_libraries(data PUBLIC core)
 
-add_executable(test_data
+add_executable(data_test
   test/config.c
   test/test_bin.c
   test/test_jsonschema.c
@@ -33,6 +33,6 @@ add_executable(test_data
   test/test_utils_visit.c
   test/test_write_json.c
   )
-target_link_libraries(test_data PRIVATE app_check data)
+target_link_libraries(data_test PRIVATE app_check data)
 
-configure_debuggable(test_data)
+configure_debuggable(data_test)

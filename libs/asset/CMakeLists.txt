@@ -58,7 +58,7 @@ target_include_directories(asset PUBLIC include)
 target_link_libraries(asset PUBLIC core data ecs geo script)
 target_link_libraries(asset PRIVATE json log trace)
 
-add_executable(test_asset
+add_executable(asset_test
   test/config.c
   test/test_loader_font_ttf.c
   test/test_loader_graphic.c
@@ -81,6 +81,6 @@ add_executable(test_asset
   test/test_manager.c
   test/utils.c
   )
-target_link_libraries(test_asset PRIVATE app_check asset)
+target_link_libraries(asset_test PRIVATE app_check asset)
 
-configure_debuggable(test_asset)
+configure_debuggable(asset_test)

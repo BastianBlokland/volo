@@ -46,12 +46,12 @@ target_include_directories(scene PUBLIC include)
 target_link_libraries(scene PUBLIC asset core ecs geo)
 target_link_libraries(scene PRIVATE log trace)
 
-add_executable(test_scene
+add_executable(scene_test
   test/config.c
   test/test_nav.c
   test/test_script.c
   test/test_set.c
   )
-target_link_libraries(test_scene PRIVATE app_check scene)
+target_link_libraries(scene_test PRIVATE app_check scene)
 
-configure_debuggable(test_scene)
+configure_debuggable(scene_test)

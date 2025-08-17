@@ -12,13 +12,13 @@ add_library(xml STATIC
 target_include_directories(xml PUBLIC include)
 target_link_libraries(xml PUBLIC core)
 
-add_executable(test_xml
+add_executable(xml_test
   test/config.c
   test/test_doc.c
   test/test_eq.c
   test/test_read.c
   test/test_write.c
   )
-target_link_libraries(test_xml PRIVATE app_check xml)
+target_link_libraries(xml_test PRIVATE app_check xml)
 
-configure_debuggable(test_xml)
+configure_debuggable(xml_test)

@@ -27,7 +27,7 @@ target_include_directories(script PUBLIC include)
 target_link_libraries(script PUBLIC core geo ecs)
 target_link_libraries(script PRIVATE json)
 
-add_executable(test_script
+add_executable(script_test
   test/config.c
   test/test_binder.c
   test/test_doc.c
@@ -43,6 +43,6 @@ add_executable(test_script
   test/test_val.c
   test/utils.c
   )
-target_link_libraries(test_script PRIVATE app_check script)
+target_link_libraries(script_test PRIVATE app_check script)
 
-configure_debuggable(test_script)
+configure_debuggable(script_test)

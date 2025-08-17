@@ -17,10 +17,10 @@ target_include_directories(vfx PUBLIC include)
 target_link_libraries(vfx PUBLIC asset scene core ecs)
 target_link_libraries(vfx PRIVATE rend log)
 
-add_executable(test_vfx
+add_executable(vfx_test
   test/config.c
   test/test_warp.c
   )
-target_link_libraries(test_vfx PRIVATE app_check vfx)
+target_link_libraries(vfx_test PRIVATE app_check vfx)
 
-configure_debuggable(test_vfx)
+configure_debuggable(vfx_test)
