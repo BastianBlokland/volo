@@ -16,72 +16,72 @@ jobs:
       matrix:
         config:
         - {
-            name: linux-dev-gcc-x64,
+            name: linux-dbg-gcc-x64,
             image: ubuntu-24.04,
             os: linux,
             toolchain: unix,
             cc: gcc-14,
-            fast: Off,
+            type: Debug,
             simd: On,
             trace: On,
             lto: Off,
             sanitize: On,
           }
         - {
-            name: linux-dev-gcc-no-simd-x64,
+            name: linux-dbg-gcc-no-simd-x64,
             image: ubuntu-24.04,
             os: linux,
             toolchain: unix,
             cc: gcc-14,
-            fast: Off,
+            type: Debug,
             simd: Off,
             trace: On,
             lto: Off,
             sanitize: On,
           }
         - {
-            name: linux-dev-clang-x64,
+            name: linux-dbg-clang-x64,
             image: ubuntu-24.04,
             os: linux,
             toolchain: unix,
             cc: clang-18,
-            fast: Off,
+            type: Debug,
             simd: On,
             trace: On,
             lto: Off,
             sanitize: On,
           }
         - {
-            name: windows-dev-msvc-x64,
+            name: windows-dbg-msvc-x64,
             image: windows-2025,
             os: windows,
             toolchain: msvc,
             cc: cl,
-            fast: Off,
+            type: Debug,
             simd: On,
             trace: On,
             lto: Off,
             sanitize: Off,
           }
         - {
-            name: windows-dev-clang-x64,
+            name: windows-dbg-clang-x64,
             image: windows-2025,
             os: windows,
             toolchain: msvc,
             cc: clang,
-            fast: Off,
+            type: Debug,
             simd: On,
             trace: On,
             lto: Off,
             sanitize: Off,
           }
         - {
-            name: windows-dev-mingw-x64,
+            name: windows-dbg-mingw-x64,
             image: windows-2025,
             os: windows,
             toolchain: mingw,
             cc: gcc,
-            fast: Off,
+            type: Debug,
             simd: On,
             trace: On,
             lto: Off,
@@ -93,7 +93,7 @@ jobs:
             os: linux,
             toolchain: unix,
             cc: clang-18,
-            fast: On,
+            type: Release,
             simd: On,
             trace: Off,
             lto: On,
@@ -105,7 +105,7 @@ jobs:
             os: windows,
             toolchain: msvc,
             cc: clang,
-            fast: On,
+            type: Release,
             simd: On,
             trace: Off,
             lto: On,
@@ -114,8 +114,8 @@ jobs:
     env:
       CC: ${{matrix.config.cc}}
       CMAKE_OPTS: >-
+        -DCMAKE_BUILD_TYPE=${{matrix.config.type}}
         -DVOLO_LABEL=${{github.sha}}
-        -DVOLO_FAST=${{matrix.config.fast}}
         -DVOLO_SIMD=${{matrix.config.simd}}
         -DVOLO_LTO=${{matrix.config.lto}}
         -DVOLO_TRACE=${{matrix.config.trace}}

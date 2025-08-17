@@ -10,9 +10,9 @@
 .PARAMETER BuildSystem
   Default: nmake
   Build system to use.
-.PARAMETER Fast
-  Default: Off
-  Fast mode, disables various runtime validations.
+.PARAMETER BuildType
+  Default: Release
+  Build type.
 .PARAMETER Trace
   Default: Off
   Trace mode, enables runtime performance tracing.
@@ -28,7 +28,7 @@ param(
   [string]$BuildDirectory = "build",
   [string]$BuildTarget = "run.volo",
   [ValidateSet("ninja", "nmake", "mingw", "vs2019", "vs2022")] [string]$BuildSystem = "nmake",
-  [switch]$Fast,
+  [ValidateSet("Debug", "Release")] [string]$BuildType = "Release",
   [switch]$Trace,
   [switch]$Lto,
   [switch]$Sanitize
@@ -78,7 +78,7 @@ function SetupEnvironment() {
 function ExecuteGenerator(
     [string] $buildDirectory,
     [string] $buildSystem,
-    [bool] $fast,
+    [string] $buildType,
     [bool] $trace,
     [bool] $lto,
     [bool] $sanitize) {
@@ -96,7 +96,7 @@ function ExecuteGenerator(
 
   & cmake.exe -B $buildDirectory `
     -G "$(GetGeneratorName $buildSystem)" `
-    -DVOLO_FAST="$(if($fast) { "On" } else { "Off" })" `
+    -DCMAKE_BUILD_TYPE="$buildType" `
     -DVOLO_TRACE="$(if($trace) { "On" } else { "Off" })" `
     -DVOLO_LTO="$(if($lto) { "On" } else { "Off" })" `
     -DVOLO_SANITIZE="$(if($sanitize) { "On" } else { "Off" })"
@@ -135,7 +135,7 @@ function Execute() {
   SetupEnvironment
 
   Info "Configuring build directory '$BuildDirectory'"
-  ExecuteGenerator $BuildDirectory $BuildSystem $Fast $Trace $Lto $Sanitize
+  ExecuteGenerator $BuildDirectory $BuildSystem $BuildType $Trace $Lto $Sanitize
 
   Info "Building target '$BuildTarget' using '$BuildSystem'"
   ExecuteBuild $BuildDirectory $BuildTarget

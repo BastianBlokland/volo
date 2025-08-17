@@ -16,9 +16,11 @@ project(Volo
   )
 
 set(CMAKE_CONFIGURATION_TYPES "Debug;Release" CACHE STRING "Supported configuration types" FORCE)
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE Debug)
+endif()
 
 # Custom options.
-option(VOLO_FAST                  "Fast mode, disables various runtime validations"   Off)
 option(VOLO_SIMD                  "SIMD support, enables usage of SIMD instructions"  On)
 option(VOLO_TRACE                 "Trace mode, enables runtime performance tracing"   On)
 option(VOLO_LTO                   "Link time optimization"                            Off)
@@ -34,8 +36,7 @@ message(STATUS "Source path: ${PROJECT_SOURCE_DIR}")
 message(STATUS "Build path: ${PROJECT_BINARY_DIR}")
 message(STATUS "Compiler: ${CMAKE_C_COMPILER_ID}")
 message(STATUS "Generator: ${CMAKE_GENERATOR}")
-message(STATUS "Label: '${VOLO_LABEL}'")
-message(STATUS "Fast: ${VOLO_FAST}")
+message(STATUS "Type: '${CMAKE_BUILD_TYPE}'")
 message(STATUS "Simd: ${VOLO_SIMD}")
 message(STATUS "Trace: ${VOLO_TRACE}")
 message(STATUS "Lto: ${VOLO_LTO}")

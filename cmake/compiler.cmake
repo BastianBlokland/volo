@@ -24,7 +24,7 @@ set(CMAKE_STATIC_LINKER_FLAGS_RELEASE "" CACHE STRING "Library linker flags" FOR
 # --------------------------------------------------------------------------------------------------
 
 add_compile_definitions(
-  $<$<BOOL:${VOLO_FAST}>:-DVOLO_FAST>
+  $<$<CONFIG:Release>:-DVOLO_FAST>
   $<$<BOOL:${VOLO_SIMD}>:-DVOLO_SIMD>
   $<$<BOOL:${VOLO_TRACE}>:-DVOLO_TRACE>
   )
@@ -76,7 +76,8 @@ if("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
     -Wno-clobbered -Wno-missing-braces -Wno-type-limits -Wno-maybe-uninitialized
     -Wno-override-init-side-effects -Wno-enum-conversion
 
-    -O2 # Optimization level 2.
+    $<$<CONFIG:Debug>:-O1> # Optimization level 1 in Debug.
+    $<$<CONFIG:Release>:-O3> # Optimization level 3 in Release.
     -g # Enable debug symbols.
     -fno-omit-frame-pointer # Include frame-pointers for fast stack-traces.
     -fno-strict-aliasing # Allow aliasing types; use 'restrict' when needed.
@@ -115,7 +116,8 @@ elseif("${CMAKE_C_COMPILER_ID}" STREQUAL "Clang")
     -Wno-sign-conversion -Wno-implicit-int-float-conversion -Wno-implicit-int-conversion
     -Wno-missing-field-initializers -Wno-enum-enum-conversion
 
-    -O2 # Optimization level 2.
+    $<$<CONFIG:Debug>:-O1> # Optimization level 1 in Debug.
+    $<$<CONFIG:Release>:-O3> # Optimization level 3 in Release.
     -g # Enable debug symbols.
     -fno-omit-frame-pointer # Include frame-pointers for fast stack-traces.
     -fno-strict-aliasing # Allow aliasing types; use 'restrict' when needed.
@@ -166,7 +168,8 @@ elseif("${CMAKE_C_COMPILER_ID}" STREQUAL "MSVC")
     /W4 /WX /wd4127 /wd5105 /wd4200 /wd4244 /wd4201 /wd4210 /wd4701 /wd4706 /wd4324 /wd4100 /wd4703
     /wd4152 /wd5286 /wd5287 /wd4189
 
-    /O2 # Optimization level 2.
+    $<$<CONFIG:Debug>:/O1> # Optimization level 1 in Debug.
+    $<$<CONFIG:Release>:/O2> # Optimization level 2 in Release.
     /Zi # Debug symbols in separate pdb files.
     /Oi # Enable intrinsic functions.
     /Gv # Use the 'vectorcall' calling convention.
