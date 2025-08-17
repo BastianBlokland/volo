@@ -96,7 +96,7 @@ if("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
     )
   add_link_options(
     -g # Enable debug symbols.
-    -no-pie # Disable 'Position Independent Executables'.
+    $<$<NOT:$<BOOL:${WIN32}>>:-no-pie> # Disable 'Position Independent Executables'.
 
     $<$<BOOL:${WIN32}>:-municode> # Entry point with unicode support on windows.
 
@@ -148,7 +148,7 @@ elseif("${CMAKE_C_COMPILER_ID}" STREQUAL "Clang")
   add_link_options(
     -fuse-ld=lld # Use the LLD linker (https://lld.llvm.org/).
     -g # Enable debug symbols.
-    -no-pie # Disable 'Position Independent Executables'.
+    $<$<NOT:$<BOOL:${WIN32}>>:-no-pie> # Disable 'Position Independent Executables'.
 
     $<$<BOOL:${VOLO_LTO}>:-flto=full> # Link time optimization.
     $<$<BOOL:${VOLO_LTO}>:-O2> # Optimization level 2.
