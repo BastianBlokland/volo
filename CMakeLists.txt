@@ -35,10 +35,17 @@ message(STATUS "* Trace: ${VOLO_TRACE}")
 message(STATUS "* Lto: ${VOLO_LTO}")
 message(STATUS "* Sanitize: ${VOLO_SANITIZE}")
 
-# Perform global setup.
+# --------------------------------------------------------------------------------------------------
+# Global setup.
+# --------------------------------------------------------------------------------------------------
+
 include(cmake/compiler.cmake)
 include(cmake/debug.cmake)
 include(cmake/test.cmake)
+
+# --------------------------------------------------------------------------------------------------
+# Register targets.
+# --------------------------------------------------------------------------------------------------
 
 add_subdirectory(libs)
 add_subdirectory(volo)
