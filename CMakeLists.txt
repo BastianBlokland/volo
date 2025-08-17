@@ -15,6 +15,8 @@ project(Volo
   LANGUAGES C
   )
 
+set(CMAKE_CONFIGURATION_TYPES "Debug;Release" CACHE STRING "Supported configuration types" FORCE)
+
 # Custom options.
 option(VOLO_FAST                  "Fast mode, disables various runtime validations"   Off)
 option(VOLO_SIMD                  "SIMD support, enables usage of SIMD instructions"  On)

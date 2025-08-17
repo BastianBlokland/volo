@@ -8,22 +8,16 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON) # Generate a 'compile_commands.json' for i
 set(CMAKE_C_FLAGS "" CACHE STRING "Compiler flags" FORCE)
 set(CMAKE_C_FLAGS_DEBUG "" CACHE STRING  "Compiler flags" FORCE)
 set(CMAKE_C_FLAGS_RELEASE "" CACHE STRING "Compiler flags" FORCE)
-set(CMAKE_C_FLAGS_RELWITHDEBINFO "" CACHE STRING "Compiler flags" FORCE)
-set(CMAKE_C_FLAGS_MINSIZEREL "" CACHE STRING "Compiler flags" FORCE)
 
 # Clear default executable linker flags.
 set(CMAKE_EXE_LINKER_FLAGS "" CACHE STRING "Executable linker flags" FORCE)
 set(CMAKE_EXE_LINKER_FLAGS_DEBUG "" CACHE STRING "Executable linker flags" FORCE)
-set(CMAKE_EXE_LINKER_FLAGS_MINSIZEREL "" CACHE STRING "Executable linker flags" FORCE)
 set(CMAKE_EXE_LINKER_FLAGS_RELEASE "" CACHE STRING "Executable linker flags" FORCE)
-set(CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO "" CACHE STRING "Executable linker flags" FORCE)
 
 # Clear default library linker flags.
 set(CMAKE_STATIC_LINKER_FLAGS "" CACHE STRING "Library linker flags" FORCE)
 set(CMAKE_STATIC_LINKER_FLAGS_DEBUG "" CACHE STRING "Library linker flags" FORCE)
-set(CMAKE_STATIC_LINKER_FLAGS_MINSIZEREL "" CACHE STRING "Library linker flags" FORCE)
 set(CMAKE_STATIC_LINKER_FLAGS_RELEASE "" CACHE STRING "Library linker flags" FORCE)
-set(CMAKE_STATIC_LINKER_FLAGS_RELWITHDEBINFO "" CACHE STRING "Library linker flags" FORCE)
 
 # --------------------------------------------------------------------------------------------------
 # Options setup.
