@@ -83,6 +83,15 @@ bool rvk_repository_is_set(const RvkRepository* r, const RvkRepositoryId id) {
   return r->entries[id].type != RvkRepositoryType_None;
 }
 
+bool rvk_repository_all_set(const RvkRepository* r) {
+  for (RvkRepositoryId id = 0; id != RvkRepositoryId_Count; ++id) {
+    if (r->entries[id].type == RvkRepositoryType_None) {
+      return false;
+    }
+  }
+  return true;
+}
+
 const RvkTexture* rvk_repository_texture_get(const RvkRepository* r, const RvkRepositoryId id) {
   if (UNLIKELY(r->entries[id].type != RvkRepositoryType_Texture)) {
     return null;
