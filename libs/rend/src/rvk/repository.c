@@ -61,37 +61,22 @@ RvkRepository* rvk_repository_create(void) {
 void rvk_repository_destroy(RvkRepository* repo) { alloc_free_t(g_allocHeap, repo); }
 
 void rvk_repository_texture_set(RvkRepository* r, const RvkRepositoryId id, const RvkTexture* tex) {
-  diag_assert(!r->entries[id].type || r->entries[id].type == RvkRepositoryType_Texture);
   r->entries[id].type    = RvkRepositoryType_Texture;
   r->entries[id].texture = tex;
 }
 
 void rvk_repository_mesh_set(RvkRepository* r, const RvkRepositoryId id, const RvkMesh* mesh) {
-  diag_assert(!r->entries[id].type || r->entries[id].type == RvkRepositoryType_Mesh);
   r->entries[id].type = RvkRepositoryType_Mesh;
   r->entries[id].mesh = mesh;
 }
 
 void rvk_repository_graphic_set(RvkRepository* r, const RvkRepositoryId id, const RvkGraphic* gra) {
-  diag_assert(!r->entries[id].type || r->entries[id].type == RvkRepositoryType_Graphic);
   r->entries[id].type    = RvkRepositoryType_Graphic;
   r->entries[id].graphic = gra;
 }
 
 void rvk_repository_unset(RvkRepository* r, const RvkRepositoryId id) {
-  switch (r->entries[id].type) {
-  case RvkRepositoryType_Texture:
-    r->entries[id].texture = null;
-    break;
-  case RvkRepositoryType_Mesh:
-    r->entries[id].mesh = null;
-    break;
-  case RvkRepositoryType_Graphic:
-    r->entries[id].graphic = null;
-    break;
-  case RvkRepositoryType_None:
-    break;
-  }
+  r->entries[id].type = RvkRepositoryType_None;
 }
 
 bool rvk_repository_is_set(const RvkRepository* r, const RvkRepositoryId id) {
