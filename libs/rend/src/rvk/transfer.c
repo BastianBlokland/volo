@@ -369,6 +369,7 @@ rvk_transfer_image(RvkTransferer* trans, RvkImage* dest, const Mem data, const u
   diag_assert(array_elems(regions) >= mips);
   u64 srcBufferOffset = buffer->offset;
   for (u32 mipLevel = 0; mipLevel != mips; ++mipLevel) {
+    diag_assert(bits_aligned(srcBufferOffset, 4));
     regions[mipLevel] = (VkBufferImageCopy){
         .bufferOffset                = srcBufferOffset,
         .imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
