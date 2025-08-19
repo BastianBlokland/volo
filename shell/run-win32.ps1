@@ -109,7 +109,7 @@ function ExecuteGenerator(
   }
 }
 
-function ExecuteBuild([string] $buildDirectory, [string]$buildTarget) {
+function ExecuteBuild([string] $buildDirectory, [string]$buildTarget, [string] $buildType) {
   if (!(Get-Command "cmake.exe" -ErrorAction SilentlyContinue)) {
     Fail "'cmake.exe' not found on path"
   }
@@ -120,7 +120,7 @@ function ExecuteBuild([string] $buildDirectory, [string]$buildTarget) {
 
   Push-Location $sourceDir
 
-  & cmake.exe --build $buildDirectory --target $buildTarget --parallel $jobs
+  & cmake.exe --build $buildDirectory --target $buildTarget --config $buildType --parallel $jobs
 
   $result = $LASTEXITCODE
   Pop-Location
@@ -137,8 +137,8 @@ function Execute() {
   Info "Configuring build directory '$BuildDirectory'"
   ExecuteGenerator $BuildDirectory $BuildSystem $BuildType $Trace $Lto $Sanitize
 
-  Info "Building target '$BuildTarget' using '$BuildSystem'"
-  ExecuteBuild $BuildDirectory $BuildTarget
+  Info "Building target '$BuildTarget' using '$BuildSystem' ($BuildType)"
+  ExecuteBuild $BuildDirectory $BuildTarget $BuildType
 }
 
 Execute

@@ -101,10 +101,10 @@ build() {
     -DVOLO_LTO="${ltoMode}" \
     -DVOLO_SANITIZE="${sanitizeMode}" )
 
-  info "Building target '${buildTarget}' using '${buildSystem}'"
+  info "Building target '${buildTarget}' using '${buildSystem}' (${buildType})"
 
   # Build.
-  ( cd "$sourceDir"; cmake --build "${buildDir}" --target "${buildTarget}" )
+  ( cd "$sourceDir"; cmake --build "${buildDir}" --target "${buildTarget}" --config "${buildType}" )
 }
 
 # Defaults.
