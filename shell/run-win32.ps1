@@ -50,7 +50,7 @@ function Fail([string] $message) {
   exit 1
 }
 
-function GetScriptDirectory() {
+function GetSourceDirectory() {
   "$PSScriptRoot" | Resolve-Path
 }
 
@@ -85,7 +85,7 @@ function ExecuteGenerator(
   if (!(Get-Command "cmake.exe" -ErrorAction SilentlyContinue)) {
     Fail "'cmake.exe' not found on path, please install the CMake build-system generator"
   }
-  $sourceDir = "$(GetScriptDirectory)\..\"
+  $sourceDir = "$(GetSourceDirectory)\..\"
 
   # Create target directory if it doesn't exist yet.
   if (!(Test-Path "$sourceDir\$buildDirectory")) {
@@ -113,7 +113,7 @@ function ExecuteBuild([string] $buildDirectory, [string]$buildTarget) {
   if (!(Get-Command "cmake.exe" -ErrorAction SilentlyContinue)) {
     Fail "'cmake.exe' not found on path"
   }
-  $sourceDir = "$(GetScriptDirectory)\..\"
+  $sourceDir = "$(GetSourceDirectory)\..\"
   $jobs = $(Get-CimInstance Win32_ComputerSystem).NumberOfLogicalProcessors
 
   Verbose "Maximum number of jobs: $jobs"

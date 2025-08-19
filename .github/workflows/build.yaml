@@ -152,7 +152,7 @@ jobs:
       if: matrix.config.os == 'windows'
       shell: pwsh
       run: |
-        ./ci/env-win32.ps1
+        ./shell/env-win32.ps1
         cmake -B build -G Ninja $($env:CMAKE_OPTS -split ' ')
         ninja -k 0 -C build all test install
 

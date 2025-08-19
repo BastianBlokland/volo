@@ -22,7 +22,7 @@ hasCommand() {
   [ -x "$(command -v "${1}")" ]
 }
 
-getScriptDirectory() {
+getSourceDirectory() {
   realpath "$(dirname -- "${0}")"
 }
 
@@ -83,7 +83,7 @@ build() {
   verifyBoolOption "${sanitizeMode}"
 
   local sourceDir
-  sourceDir="$(getScriptDirectory)/.."
+  sourceDir="$(getSourceDirectory)/.."
 
   # Create target directory if it doesn't exist yet.
   test -d "${buildDir}" || mkdir -p "${buildDir}"
