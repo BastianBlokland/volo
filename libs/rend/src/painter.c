@@ -1031,7 +1031,8 @@ ecs_system_define(RendPainterDrawSys) {
     const SceneCameraComp*    cam      = ecs_view_read_t(itr, SceneCameraComp);
     const SceneTransformComp* camTrans = ecs_view_read_t(itr, SceneTransformComp);
 
-    if (cam) {
+    const RvkRepository* repo = rvk_canvas_repository(painter->canvas);
+    if (cam && rvk_repository_all_set(repo)) {
       rend_canvas_paint_3d(
           world,
           painter,
