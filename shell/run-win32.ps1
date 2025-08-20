@@ -50,7 +50,7 @@ function Fail([string] $message) {
   exit 1
 }
 
-function GetScriptDirectory() {
+function GetSourceDirectory() {
   "$PSScriptRoot" | Resolve-Path
 }
 
@@ -85,7 +85,7 @@ function ExecuteGenerator(
   if (!(Get-Command "cmake.exe" -ErrorAction SilentlyContinue)) {
     Fail "'cmake.exe' not found on path, please install the CMake build-system generator"
   }
-  $sourceDir = "$(GetScriptDirectory)\..\"
+  $sourceDir = "$(GetSourceDirectory)\..\"
 
   # Create target directory if it doesn't exist yet.
   if (!(Test-Path "$sourceDir\$buildDirectory")) {
@@ -109,18 +109,18 @@ function ExecuteGenerator(
   }
 }
 
-function ExecuteBuild([string] $buildDirectory, [string]$buildTarget) {
+function ExecuteBuild([string] $buildDirectory, [string]$buildTarget, [string] $buildType) {
   if (!(Get-Command "cmake.exe" -ErrorAction SilentlyContinue)) {
     Fail "'cmake.exe' not found on path"
   }
-  $sourceDir = "$(GetScriptDirectory)\..\"
+  $sourceDir = "$(GetSourceDirectory)\..\"
   $jobs = $(Get-CimInstance Win32_ComputerSystem).NumberOfLogicalProcessors
 
   Verbose "Maximum number of jobs: $jobs"
 
   Push-Location $sourceDir
 
-  & cmake.exe --build $buildDirectory --target $buildTarget --parallel $jobs
+  & cmake.exe --build $buildDirectory --target $buildTarget --config $buildType --parallel $jobs
 
   $result = $LASTEXITCODE
   Pop-Location
@@ -137,8 +137,8 @@ function Execute() {
   Info "Configuring build directory '$BuildDirectory'"
   ExecuteGenerator $BuildDirectory $BuildSystem $BuildType $Trace $Lto $Sanitize
 
-  Info "Building target '$BuildTarget' using '$BuildSystem'"
-  ExecuteBuild $BuildDirectory $BuildTarget
+  Info "Building target '$BuildTarget' using '$BuildSystem' ($BuildType)"
+  ExecuteBuild $BuildDirectory $BuildTarget $BuildType
 }
 
 Execute

@@ -28,14 +28,14 @@
 * Install `XCB` (debian: `apt install libxcb1-dev`).
 * (*Optional*) Install `asound` (audio library for the Alsa architecture)
   (debian: `apt install libasound2`).
-* Build and run: `ci/run-linux.sh` (or invoke `cmake` and your build-system manually).
+* Build and run: `shell/run-linux.sh` (or invoke `cmake` and your build-system manually).
 
 ### Windows
 * (*Optional*) Install the `winget` package manager (info: https://docs.microsoft.com/en-us/windows/package-manager/winget/).
 * Install `Visual Studio Build Tools` (winget: `winget install Microsoft.VisualStudio.2022.BuildTools --override "--add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.VC.Tools.x86.x64 --add Microsoft.VisualStudio.Component.Windows10SDK.19041 --focusedUi"`)
 * Install `CMake` (winget: `winget install Kitware.CMake`).
 * Install the `Vulkan` sdk (winget: `winget install KhronosGroup.VulkanSDK`).
-* Build and run: `ci/run-win32.bat` (or invoke `cmake` and your build-system manually).
+* Build and run: `shell/run-win32.bat` (or invoke `cmake` and your build-system manually).
 
 ### Tests
 
