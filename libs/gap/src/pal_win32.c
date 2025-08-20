@@ -978,6 +978,7 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
   const WNDCLASSEX winClass = {
       .cbSize        = sizeof(WNDCLASSEX),
       .style         = CS_HREDRAW | CS_VREDRAW,
+      .hbrBackground = CreateSolidBrush(RGB(0, 0, 0)),
       .lpfnWndProc   = pal_window_proc,
       .hInstance     = pal->moduleInstance,
       .hCursor       = pal->cursors[GapCursor_Normal],
