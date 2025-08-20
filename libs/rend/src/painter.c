@@ -542,7 +542,7 @@ painter_push_debug_wireframe(RendPaintContext* ctx, EcsView* objView, EcsView* r
       continue; // Graphic is not loaded.
     }
 
-    // If the object uses a 'per draw' texture then retrieve and prepare it.
+    // If the object uses a 'per draw' texture then retrieve it.
     const EcsEntityId textureRes = rend_object_resource(obj, RendObjectRes_Texture);
     const RvkTexture* texture    = null;
     if (textureRes && !(texture = painter_get_texture(resourceItr, textureRes))) {
