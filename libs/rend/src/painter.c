@@ -811,8 +811,7 @@ static bool rend_canvas_paint_3d(
   {
     rend_builder_pass_push(b, fwdPass);
 
-    if (set->flags & RendFlags_DebugCamera && set->skyMode == RendSkyMode_None) {
-      // NOTE: The debug camera-mode does not draw to the whole image; thus we need to clear it.
+    if (set->skyMode == RendSkyMode_None) {
       rend_builder_img_clear_color(b, fwdColor, geo_color_black);
     }
     RendPaintContext ctx = painter_context(b, set, time, mainView);
