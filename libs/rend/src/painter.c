@@ -228,14 +228,14 @@ static SceneTags painter_push_objects_simple(
       continue; // Object has no instances.
     }
 
-    // Retrieve and prepare the object's graphic.
+    // Retrieve the object's graphic.
     const EcsEntityId graphicResource = rend_object_resource(obj, RendObjectRes_Graphic);
     const RvkGraphic* graphic         = painter_get_graphic(resourceItr, graphicResource);
     if (!graphic || graphic->passId != passId) {
       continue; // Graphic not loaded or not valid for this pass.
     }
 
-    // If the object uses a 'per draw' texture then retrieve and prepare it.
+    // If the object uses a 'per draw' texture then retrieve it.
     const EcsEntityId textureResource = rend_object_resource(obj, RendObjectRes_Texture);
     const RvkTexture* texture         = null;
     if (textureResource && !(texture = painter_get_texture(resourceItr, textureResource))) {
