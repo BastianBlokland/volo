@@ -1,25 +1,23 @@
 <#
 .SYNOPSIS
-  Script to setup environment variables required for the MSVC (Microsoft Visual C) compiler.
+  Script to setup environment variables required by the MSVC (Microsoft Visual C) toolchain.
 .DESCRIPTION
-  Sets up the current shell to be able to invoke the MSVC 'cl' compiler.
+  Sets up the current shell to be able to invoke the MSVC 'cl' compiler to compile Windows apps.
   Call this once per powershell session before configuring or invoking the build system.
   Dependencies:
-  - MSVC (Microsoft Visual C) toolchain. Can be installed through the 'Visual Studio Installer' by
-    choosing the 'Desktop development with C++' workload and including the recommended components.
-    Or alternativly using winget:
-      winget install Microsoft.VisualStudio.2022.BuildTools --override "--add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.VC.Tools.x86.x64 --add Microsoft.VisualStudio.Component.Windows10SDK.19041 --focusedUi"
+  - VCTools (Microsoft Visual C toolchain).
+  - Windows10SDK
+  Both can be installed through the 'Visual Studio Installer' by choosing the 'Desktop development
+  with C++' workload and including the recommended components.
+  Or alternatively using winget:
+  winget install Microsoft.VisualStudio.2022.BuildTools --override "--add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.VC.Tools.x86.x64 --add Microsoft.VisualStudio.Component.Windows10SDK.19041 --focusedUi"
 .PARAMETER Arch
   Default: x64
-  Target machine architecture.
-.PARAMETER HostArch
-  Default: x64
-  Host machine architecture.
+  Machine architecture.
 #>
 [cmdletbinding()]
 param(
-  [ValidateSet("x64")] [string]$Arch = "x64",
-  [ValidateSet("x64")] [string]$HostArch = "x64"
+  [ValidateSet("x64")] [string]$Arch = "x64"
 )
 
 Set-StrictMode -Version Latest
@@ -38,24 +36,25 @@ function Fail([string] $message) {
   exit 1
 }
 
+function EnvAdd([string] $key, [string] $value) {
+  $valueOld   = [Environment]::GetEnvironmentVariable($key)
+  $entriesOld = $valueOld -split [IO.Path]::PathSeparator
+  if ($entriesOld -notcontains $value) {
+    [Environment]::SetEnvironmentVariable($key, "$valueOld;$value")
+  }
+}
+
 function GetVsWherePath() {
   # Attempt to find it on the path.
-  $vswhere = Get-Command "vswhere.exe" -ErrorAction SilentlyContinue
+  $vswhere = Get-Command "vswhere.exe" -ErrorAction Ignore
   if ($vswhere) {
     return $vswhere.Source
   }
-  # Attempt the location where Visual Studio installs it by default.
-  $defaultPath = "${Env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
-  if (!(Test-Path $defaultPath)) {
-    Fail "'vswhere.exe' not found, please install the 'Build Tools for Visual Studio'"
-  }
-  return $defaultPath
+  # Fall back to the location where Visual Studio installs it by default.
+  return "${Env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
 }
 
-function GetVCToolsInstallPath() {
-  $vswherePath = "$(GetVsWherePath)"
-  Verbose "vswhere path: $vswherePath"
-
+function GetVcToolsInstallPath([string] $vswherePath) {
   & "$vswherePath" `
     -latest `
     -products * `
@@ -63,38 +62,63 @@ function GetVCToolsInstallPath() {
     -property installationPath
 }
 
-function GetVSDevEnvBatPath() {
-  $vctoolsInstallPath = "$(GetVCToolsInstallPath)"
+function GetVcToolsVersion([string] $vctoolsInstallPath) {
+  Get-Content -Path "${vctoolsInstallPath}\VC\Auxiliary\Build\Microsoft.VCToolsVersion.default.txt"
+}
+
+function SetToolchainEnv([string] $arch) {
+  $vswherePath = "$(GetVsWherePath)"
+  if (!(Test-Path ${vswherePath})) {
+    Fail "'vswhere.exe' not found, please install the 'Build Tools for Visual Studio'"
+  }
+  Verbose "VSWhere path: '${vswherePath}'"
+
+  $vctoolsInstallPath = "$(GetVcToolsInstallPath ${vswherePath})"
   if ([string]::IsNullOrEmpty($vctoolsInstallPath)) {
     Fail "MSVC (Microsoft Visual C) toolchain not found, please install the 'VCTools' workload"
   }
-  Verbose "vctools path: $vctoolsInstallPath"
+  Verbose "VCTools install-path: ${vctoolsInstallPath}"
 
-  join-path "$vctoolsInstallPath" 'Common7\Tools\vsdevcmd.bat'
+  $vctoolsVersion = "$(GetVcToolsVersion ${vctoolsInstallPath})"
+  if ([string]::IsNullOrEmpty($vctoolsVersion)) {
+    Fail "MSVC (Microsoft Visual C) toolchain version missing"
+  }
+  Info "VCTools version: ${vctoolsVersion}"
+
+  $vctoolsPath = "${vctoolsInstallPath}\VC\Tools\MSVC\${vctoolsVersion}"
+  if (-not(Test-Path -path ${vctoolsPath})) {
+    Fail "VCTools installation missing (path: ${vctoolsPath})"
+  }
+  Info "VCTools path: ${vctoolsPath}"
+
+  EnvAdd "PATH" "$vctoolsPath\bin\Host$($arch.ToUpper())\$arch"
+  EnvAdd "LIB" "$vctoolsPath\lib\$arch"
+  EnvAdd "INCLUDE" "$vctoolsPath\include"
 }
 
-function SetVsDevEnvVars() {
-  if (!(Get-Command "cmd.exe" -ErrorAction SilentlyContinue)) {
-    Fail "'cmd.exe' not found on path"
+function SetWindowsSDKEnv([string] $arch) {
+  $sdkRegPath  = "HKLM\SOFTWARE\WOW6432Node\Microsoft\Microsoft SDKs\Windows"
+  $sdkRegEntry = Get-ItemProperty -ErrorAction Ignore -Path "Registry::${sdkRegPath}\v10.0"
+  if ($sdkRegEntry -eq $null) {
+    Fail "Windows SDK not found, please install the 'Windows10SDK' component"
   }
-  $argString = "/s /c " + `
-    "set VSCMD_SKIP_SENDTELEMETRY=1 &&" + `
-    "`"$(GetVSDevEnvBatPath)`" -arch=$Arch -host_arch=$HostArch -no_logo &&" + `
-    "set"
-  $outputFile = "$env:windir\temp\env-vars"
-  Start-Process `
-    -NoNewWindow `
-    -Wait `
-    -RedirectStandardOutput "$outputFile" `
-    -FilePath "cmd.exe" `
-    -ArgumentList $argString
+  $sdkVersion = $sdkRegEntry.ProductVersion
+  Info "WindowsSDK version: ${sdkVersion}"
 
-  Get-Content -Path $outputFile | Foreach-Object {
-    $name, $value = $_ -split '=', 2
-    Verbose "$name = $value"
-    [Environment]::SetEnvironmentVariable($name, $value)
+  $sdkPath = $sdkRegEntry.InstallationFolder
+  if (-not(Test-Path -path ${sdkPath})) {
+    Fail "WindowsSDK installation missing (path: ${sdkPath})"
   }
+  Info "WindowsSDK path: ${sdkPath}"
+
+  EnvAdd "PATH" "${sdkPath}bin\${sdkVersion}.0\$arch"
+  EnvAdd "LIB" "${sdkPath}lib\${sdkVersion}.0\ucrt\$arch"
+  EnvAdd "LIB" "${sdkPath}lib\${sdkVersion}.0\um\$arch"
+  EnvAdd "INCLUDE" "${sdkPath}include\${sdkVersion}.0\ucrt"
+  EnvAdd "INCLUDE" "${sdkPath}include\${sdkVersion}.0\shared"
+  EnvAdd "INCLUDE" "${sdkPath}include\${sdkVersion}.0\um"
 }
 
-SetVsDevEnvVars
-Info "win32 environment setup (arch: $Arch, host_arg: $HostArch)"
+SetToolchainEnv $Arch
+SetWindowsSDKEnv $Arch
+Info "Win32 environment setup (arch: $Arch)"
