@@ -77,7 +77,7 @@ function SetToolchainEnv([string] $arch) {
   if ([string]::IsNullOrEmpty($vctoolsInstallPath)) {
     Fail "MSVC (Microsoft Visual C) toolchain not found, please install the 'VCTools' workload"
   }
-  Verbose "VCTools install-path: ${vctoolsInstallPath}"
+  Verbose "VCTools install-path: '${vctoolsInstallPath}'"
 
   $vctoolsVersion = "$(GetVcToolsVersion ${vctoolsInstallPath})"
   if ([string]::IsNullOrEmpty($vctoolsVersion)) {
@@ -87,9 +87,9 @@ function SetToolchainEnv([string] $arch) {
 
   $vctoolsPath = "${vctoolsInstallPath}\VC\Tools\MSVC\${vctoolsVersion}"
   if (-not(Test-Path -path ${vctoolsPath})) {
-    Fail "VCTools installation missing (path: ${vctoolsPath})"
+    Fail "VCTools installation missing (path: '${vctoolsPath}')"
   }
-  Info "VCTools path: ${vctoolsPath}"
+  Info "VCTools path: '${vctoolsPath}'"
 
   EnvAdd "PATH" "$vctoolsPath\bin\Host$($arch.ToUpper())\$arch"
   EnvAdd "LIB" "$vctoolsPath\lib\$arch"
@@ -107,9 +107,9 @@ function SetWindowsSDKEnv([string] $arch) {
 
   $sdkPath = $sdkRegEntry.InstallationFolder
   if (-not(Test-Path -path ${sdkPath})) {
-    Fail "WindowsSDK installation missing (path: ${sdkPath})"
+    Fail "WindowsSDK installation missing (path: '${sdkPath}')"
   }
-  Info "WindowsSDK path: ${sdkPath}"
+  Info "WindowsSDK path: '${sdkPath}'"
 
   EnvAdd "PATH" "${sdkPath}bin\${sdkVersion}.0\$arch"
   EnvAdd "LIB" "${sdkPath}lib\${sdkVersion}.0\ucrt\$arch"
