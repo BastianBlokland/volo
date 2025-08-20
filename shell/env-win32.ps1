@@ -94,6 +94,10 @@ function SetToolchainEnv([string] $arch) {
   EnvAdd "PATH" "$vctoolsPath\bin\Host$($arch.ToUpper())\$arch"
   EnvAdd "LIB" "$vctoolsPath\lib\$arch"
   EnvAdd "INCLUDE" "$vctoolsPath\include"
+
+  if ([string]::IsNullOrEmpty([Environment]::GetEnvironmentVariable("CC"))) {
+    [Environment]::SetEnvironmentVariable("CC", "cl.exe")
+  }
 }
 
 function SetWindowsSDKEnv([string] $arch) {
