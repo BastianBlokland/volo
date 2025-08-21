@@ -121,6 +121,7 @@ jobs:
         -DVOLO_LTO=${{matrix.config.lto}}
         -DVOLO_TRACE=${{matrix.config.trace}}
         -DVOLO_SANITIZE=${{matrix.config.sanitize}}
+        -DVOLO_WERROR=On
     steps:
     - name: checkout
       uses: actions/checkout@v5
