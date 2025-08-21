@@ -1,6 +1,7 @@
 {
   "pass": "Post",
   "passOrder": -10,
+  "passRequirements": [ "Forward" ],
   "shaders": [
     { "program": "shaders/hud/minimap.vert" },
     { "program": "shaders/hud/minimap.frag" }

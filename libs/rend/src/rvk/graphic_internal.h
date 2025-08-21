@@ -37,6 +37,7 @@ typedef struct sRvkGraphic {
   const RvkMesh*    mesh;
   const RvkTexture* samplerTextures[rvk_graphic_samplers_max];
   RvkSamplerSpec    samplerSpecs[rvk_graphic_samplers_max];
+  u32               passReq; // Mask of passes that are needed for this graphic.
   RvkDescSet        graphicDescSet;
   RvkDescMeta       drawDescMeta;
   VkPipelineLayout  vkPipelineLayout;

@@ -205,10 +205,17 @@ static const RvkTexture* painter_get_texture(EcsIterator* resourceItr, const Ecs
   return textureRes->texture;
 }
 
+static bool painter_graphic_should_draw(RendPaintContext* ctx, const RvkGraphic* graphic) {
+  if ((rend_builder_pass_mask(ctx->builder) & graphic->passReq) != graphic->passReq) {
+    return false; // Required passes are not drawn this frame.
+  }
+  return true;
+}
+
 static void painter_push_simple(RendPaintContext* ctx, const RvkRepositoryId id, const Mem data) {
   const RvkRepository* repo    = rend_builder_repository(ctx->builder);
   const RvkGraphic*    graphic = rvk_repository_graphic_get(repo, id);
-  if (graphic) {
+  if (graphic && painter_graphic_should_draw(ctx, graphic)) {
     rend_builder_draw_push(ctx->builder, graphic);
     if (data.size) {
       mem_cpy(rend_builder_draw_data(ctx->builder, (u32)data.size), data);
@@ -228,14 +235,14 @@ static SceneTags painter_push_objects_simple(
       continue; // Object has no instances.
     }
 
-    // Retrieve and prepare the object's graphic.
+    // Retrieve the object's graphic.
     const EcsEntityId graphicResource = rend_object_resource(obj, RendObjectRes_Graphic);
     const RvkGraphic* graphic         = painter_get_graphic(resourceItr, graphicResource);
-    if (!graphic || graphic->passId != passId) {
+    if (!graphic || graphic->passId != passId || !painter_graphic_should_draw(ctx, graphic)) {
       continue; // Graphic not loaded or not valid for this pass.
     }
 
-    // If the object uses a 'per draw' texture then retrieve and prepare it.
+    // If the object uses a 'per draw' texture then retrieve it.
     const EcsEntityId textureResource = rend_object_resource(obj, RendObjectRes_Texture);
     const RvkTexture* texture         = null;
     if (textureResource && !(texture = painter_get_texture(resourceItr, textureResource))) {
@@ -272,8 +279,8 @@ static void painter_push_shadow(RendPaintContext* ctx, EcsView* objView, EcsView
       continue; // Object has no shadow graphic.
     }
     const RvkGraphic* graphic = painter_get_graphic(resourceItr, graphicRes);
-    if (!graphic) {
-      continue; // Shadow graphic is not loaded.
+    if (!graphic || !painter_graphic_should_draw(ctx, graphic)) {
+      continue; // Shadow graphic is not loaded or has unmet dependencies.
     }
     if (UNLIKELY(graphic->passId != AssetGraphicPass_Shadow)) {
       log_e("Shadow's can only be drawn from the shadow pass");
@@ -542,7 +549,7 @@ painter_push_debug_wireframe(RendPaintContext* ctx, EcsView* objView, EcsView* r
       continue; // Graphic is not loaded.
     }
 
-    // If the object uses a 'per draw' texture then retrieve and prepare it.
+    // If the object uses a 'per draw' texture then retrieve it.
     const EcsEntityId textureRes = rend_object_resource(obj, RendObjectRes_Texture);
     const RvkTexture* texture    = null;
     if (textureRes && !(texture = painter_get_texture(resourceItr, textureRes))) {
@@ -811,8 +818,7 @@ static bool rend_canvas_paint_3d(
   {
     rend_builder_pass_push(b, fwdPass);
 
-    if (set->flags & RendFlags_DebugCamera && set->skyMode == RendSkyMode_None) {
-      // NOTE: The debug camera-mode does not draw to the whole image; thus we need to clear it.
+    if (set->skyMode == RendSkyMode_None) {
       rend_builder_img_clear_color(b, fwdColor, geo_color_black);
     }
     RendPaintContext ctx = painter_context(b, set, time, mainView);
@@ -1032,7 +1038,8 @@ ecs_system_define(RendPainterDrawSys) {
     const SceneCameraComp*    cam      = ecs_view_read_t(itr, SceneCameraComp);
     const SceneTransformComp* camTrans = ecs_view_read_t(itr, SceneTransformComp);
 
-    if (cam) {
+    const RvkRepository* repo = rvk_canvas_repository(painter->canvas);
+    if (cam && rvk_repository_all_set(repo)) {
       rend_canvas_paint_3d(
           world,
           painter,

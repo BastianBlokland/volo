@@ -905,6 +905,7 @@ rvk_graphic_create(RvkDevice* dev, const AssetGraphicComp* asset, const String d
       .dbgName     = string_dup(g_allocHeap, dbgName),
       .passId      = asset->pass,
       .passOrder   = asset->passOrder,
+      .passReq     = asset->passRequirements,
       .vertexCount = asset->vertexCount,
   };
 
@@ -986,7 +987,7 @@ bool rvk_graphic_finalize(
     const RvkPass*          pass,
     RendReport*             report) {
   diag_assert_msg(!gra->vkPipeline, "Graphic already finalized");
-  diag_assert(gra->passId == rvk_pass_config(pass)->id);
+  diag_assert((u32)gra->passId == rvk_pass_config(pass)->id);
 
   const TimeSteady startTime = time_steady_clock();
 
@@ -1093,7 +1094,10 @@ bool rvk_graphic_finalize(
 
   if (report) {
     rend_report_push_value(
-        report, string_lit("Pass"), string_empty, asset_graphic_pass_name(gra->passId));
+        report,
+        string_lit("Pass"),
+        string_empty,
+        asset_graphic_pass_name((AssetGraphicPass)gra->passId));
     rend_report_push_value(
         report,
         string_lit("Pass order"),
@@ -1152,7 +1156,7 @@ void rvk_graphic_bind(
   diag_assert_msg(rvk_graphic_is_ready(graphic, dev), "Graphic is not ready");
   diag_assert_msg(rvk_pass_active(pass), "Pass not active");
 #endif
-  diag_assert_msg(graphic->passId == rvk_pass_config(pass)->id, "Unsupported pass");
+  diag_assert_msg((u32)graphic->passId == rvk_pass_config(pass)->id, "Unsupported pass");
 
   rvk_call(dev, cmdBindPipeline, vkCmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, graphic->vkPipeline);
 

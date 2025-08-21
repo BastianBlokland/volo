@@ -348,9 +348,9 @@ rvk_transfer_image(RvkTransferer* trans, RvkImage* dest, const Mem data, const u
 
   thread_mutex_lock(trans->mutex);
 
-  const u64 reqAlign = math_max(
-      vkFormatByteSize(dest->vkFormat),
-      trans->dev->vkProperties.limits.optimalBufferCopyOffsetAlignment);
+  u64 reqAlign = vkFormatByteSize(dest->vkFormat);
+  reqAlign = math_max(reqAlign, trans->dev->vkProperties.limits.optimalBufferCopyOffsetAlignment);
+  reqAlign = math_max(reqAlign, 4 /* Minimum requirement for transfer queue */);
 
   RvkTransferBuffer* buffer = rvk_transfer_get(trans, data.size, reqAlign);
   if (buffer->state == RvkTransferState_Idle) {
@@ -369,6 +369,7 @@ rvk_transfer_image(RvkTransferer* trans, RvkImage* dest, const Mem data, const u
   diag_assert(array_elems(regions) >= mips);
   u64 srcBufferOffset = buffer->offset;
   for (u32 mipLevel = 0; mipLevel != mips; ++mipLevel) {
+    diag_assert(bits_aligned(srcBufferOffset, 4));
     regions[mipLevel] = (VkBufferImageCopy){
         .bufferOffset                = srcBufferOffset,
         .imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
