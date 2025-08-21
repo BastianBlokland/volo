@@ -69,7 +69,8 @@ if("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
   set(VOLO_COMPILER "gcc")
   add_compile_definitions(VOLO_GCC)
   add_compile_options(
-    -Wall -Wextra -Werror -Wshadow
+    $<$<BOOL:${VOLO_WERROR}>:-Werror> # Warnings as errors.
+    -Wall -Wextra  -Wshadow
 
     -Wno-missing-field-initializers -Wno-override-init -Wno-implicit-fallthrough
     -Wno-clobbered -Wno-missing-braces -Wno-type-limits -Wno-maybe-uninitialized
@@ -108,7 +109,8 @@ elseif("${CMAKE_C_COMPILER_ID}" STREQUAL "Clang")
     $<$<BOOL:${VOLO_SANITIZE}>:VOLO_ASAN>
     )
   add_compile_options(
-    -Wall -Wextra -Werror -Wshadow -Wgnu-empty-initializer -Wconversion
+    $<$<BOOL:${VOLO_WERROR}>:-Werror> # Warnings as errors.
+    -Wall -Wextra -Wshadow -Wgnu-empty-initializer -Wconversion
 
     -Wno-initializer-overrides -Wno-unused-value -Wno-missing-braces
     -Wno-sign-conversion -Wno-implicit-int-float-conversion -Wno-implicit-int-conversion
@@ -163,7 +165,8 @@ elseif("${CMAKE_C_COMPILER_ID}" STREQUAL "MSVC")
     /Zc:preprocessor # Enable the conformant c-preprocessor.
     /FS # Use synchronous pdb writes.
 
-    /W4 /WX /wd4127 /wd5105 /wd4200 /wd4244 /wd4201 /wd4210 /wd4701 /wd4706 /wd4324 /wd4100 /wd4703
+    $<$<BOOL:${VOLO_WERROR}>:/WX> # Warnings as errors.
+    /W4 /wd4127 /wd5105 /wd4200 /wd4244 /wd4201 /wd4210 /wd4701 /wd4706 /wd4324 /wd4100 /wd4703
     /wd4152 /wd5286 /wd5287 /wd4189
 
     $<$<CONFIG:Debug>:/Od> # No optimizations in Debug.
@@ -184,6 +187,7 @@ elseif("${CMAKE_C_COMPILER_ID}" STREQUAL "MSVC")
     /DEBUG # Generate a 'Program Database' file with debug symbols.
     /OPT:REF,ICF=2 # Remove functions and data that are never referenced.
     /GUARD:NO # Disable 'Control Flow Guard' (CFG).
+    $<$<BOOL:${VOLO_WERROR}>:/WX> # Warnings as errors.
     $<$<BOOL:${VOLO_LTO}>:/LTCG> # Link time optimization.
   )
 else()
