@@ -902,11 +902,11 @@ rvk_graphic_create(RvkDevice* dev, const AssetGraphicComp* asset, const String d
   RvkGraphic* graphic = alloc_alloc_t(g_allocHeap, RvkGraphic);
 
   *graphic = (RvkGraphic){
-      .dbgName          = string_dup(g_allocHeap, dbgName),
-      .passId           = asset->pass,
-      .passOrder        = asset->passOrder,
-      .passRequirements = asset->passRequirements,
-      .vertexCount      = asset->vertexCount,
+      .dbgName     = string_dup(g_allocHeap, dbgName),
+      .passId      = asset->pass,
+      .passOrder   = asset->passOrder,
+      .passReq     = asset->passRequirements,
+      .vertexCount = asset->vertexCount,
   };
 
   log_d("Vulkan graphic created", log_param("name", fmt_text(dbgName)));
