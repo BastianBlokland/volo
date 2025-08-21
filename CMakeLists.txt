@@ -21,10 +21,11 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 
 # Custom options.
-option(VOLO_SIMD                  "SIMD support, enables usage of SIMD instructions"  On)
-option(VOLO_TRACE                 "Trace mode, enables runtime performance tracing"   On)
-option(VOLO_LTO                   "Link time optimization"                            Off)
-option(VOLO_SANITIZE              "Should sanitizer instrumentation be enabled"       Off)
+option(VOLO_SIMD                  "SIMD support"                    On)
+option(VOLO_TRACE                 "Runtime performance tracing"     On)
+option(VOLO_LTO                   "Link time optimization"          Off)
+option(VOLO_SANITIZE              "Sanitizer instrumentation"       Off)
+option(VOLO_WERROR                "Warnings as errors"              Off)
 set(   VOLO_LABEL "" CACHE STRING "Label to be associated with the build")
 
 # Diagnostic information.
