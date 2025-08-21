@@ -7,6 +7,7 @@
       "additionalProperties": false,
       "properties": {
         "pass": { "title": "AssetGraphicPass", "$ref": "#/$defs/AssetGraphicPass" },
+        "passRequirements": { "title": "AssetGraphicPassMask", "$ref": "#/$defs/AssetGraphicPassMask" },
         "passOrder": { "title": "i32", "type": "integer", "minimum": -2147483648, "maximum": 2147483647 },
         "shaders": {
           "type": "array",
@@ -49,6 +50,24 @@
         "Bloom",
         "Post"
       ]
+    },
+    "AssetGraphicPassMask": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "Geometry",
+          "Decal",
+          "Fog",
+          "FogBlur",
+          "Shadow",
+          "AmbientOcclusion",
+          "Forward",
+          "Distortion",
+          "Bloom",
+          "Post"
+        ]
+      }
     },
     "AssetGraphicShader": {
       "type": "object",

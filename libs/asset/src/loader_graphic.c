@@ -98,16 +98,11 @@ ecs_module_init(asset_graphic_module) {
 void asset_data_init_graphic(void) {
   // clang-format off
   data_reg_enum_t(g_dataReg, AssetGraphicPass);
-  data_reg_const_t(g_dataReg, AssetGraphicPass, Geometry);
-  data_reg_const_t(g_dataReg, AssetGraphicPass, Decal);
-  data_reg_const_t(g_dataReg, AssetGraphicPass, Fog);
-  data_reg_const_t(g_dataReg, AssetGraphicPass, FogBlur);
-  data_reg_const_t(g_dataReg, AssetGraphicPass, Shadow);
-  data_reg_const_t(g_dataReg, AssetGraphicPass, AmbientOcclusion);
-  data_reg_const_t(g_dataReg, AssetGraphicPass, Forward);
-  data_reg_const_t(g_dataReg, AssetGraphicPass, Distortion);
-  data_reg_const_t(g_dataReg, AssetGraphicPass, Bloom);
-  data_reg_const_t(g_dataReg, AssetGraphicPass, Post);
+  data_reg_enum_multi_t(g_dataReg, AssetGraphicPassMask);
+  for(AssetGraphicPass pass = 0; pass != AssetGraphicPass_Count; ++pass) {
+    data_reg_const(g_dataReg, t_AssetGraphicPass, asset_graphic_pass_name(pass), pass);
+    data_reg_const(g_dataReg, t_AssetGraphicPassMask, asset_graphic_pass_name(pass), 1 << pass);
+  }
 
   data_reg_enum_t(g_dataReg, AssetGraphicTopology);
   data_reg_const_t(g_dataReg, AssetGraphicTopology, Triangles);
@@ -182,6 +177,7 @@ void asset_data_init_graphic(void) {
 
   data_reg_struct_t(g_dataReg, AssetGraphicComp);
   data_reg_field_t(g_dataReg, AssetGraphicComp, pass, t_AssetGraphicPass);
+  data_reg_field_t(g_dataReg, AssetGraphicComp, passRequirements, t_AssetGraphicPassMask, .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AssetGraphicComp, passOrder, data_prim_t(i32), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AssetGraphicComp, shaders, t_AssetGraphicShader, .container = DataContainer_HeapArray, .flags = DataFlags_NotEmpty);
   data_reg_field_t(g_dataReg, AssetGraphicComp, samplers, t_AssetGraphicSampler, .container = DataContainer_HeapArray, .flags = DataFlags_Opt);

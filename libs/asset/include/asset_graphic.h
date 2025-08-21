@@ -114,6 +114,7 @@ typedef struct {
 
 ecs_comp_extern_public(AssetGraphicComp) {
   AssetGraphicPass pass;
+  u32              passRequirements; // (1 << AssetGraphicPass)[], mask of required passes.
   i32              passOrder;
   HeapArray_t(AssetGraphicShader) shaders;
   HeapArray_t(AssetGraphicSampler) samplers;
