@@ -34,6 +34,7 @@ void      rend_builder_img_blit(RendBuilder*, RvkImage* src, RvkImage* dst);
 
 void rend_builder_phase_output(RendBuilder*); // Advance to the output phase.
 
+u32  rend_builder_pass_mask(RendBuilder*); // Mask of pushed pass ids.
 void rend_builder_pass_push(RendBuilder*, RvkPass*);
 void rend_builder_pass_flush(RendBuilder*);
 

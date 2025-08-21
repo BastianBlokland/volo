@@ -29,6 +29,7 @@ struct sRendBuilder {
   RvkPassDraw*     draw;
   DynArray         drawList; // RvkPassDraw[]
   RendImgCopyBatch imgCopyBatch;
+  u32              passMask; // Mask of pushed pass ids.
 };
 
 ASSERT(alignof(RendBuilder) == 64, "Unexpected builder alignment");
@@ -110,7 +111,8 @@ void rend_builder_canvas_flush(RendBuilder* b) {
   diag_assert_msg(!b->pass, "RendBuilder: Pass still active");
 
   rvk_canvas_end(b->canvas);
-  b->canvas = null;
+  b->canvas   = null;
+  b->passMask = 0;
 
   trace_end();
 }
@@ -200,15 +202,19 @@ void rend_builder_phase_output(RendBuilder* b) {
   rvk_canvas_phase_output(b->canvas);
 }
 
+u32 rend_builder_pass_mask(RendBuilder* b) { return b->passMask; }
+
 void rend_builder_pass_push(RendBuilder* b, RvkPass* pass) {
   diag_assert_msg(!b->pass, "RendBuilder: Pass already active");
   diag_assert_msg(b->canvas, "RendBuilder: Canvas not active");
+  diag_assert_msg(rvk_pass_config(pass)->id < 32, "RendBuilder: Only 32 pass ids are supported");
 
   MAYBE_UNUSED const String passName = rvk_pass_config(pass)->name;
   trace_begin_msg("rend_builder_pass", TraceColor_White, "pass_{}", fmt_text(passName));
 
   b->pass      = pass;
   b->passSetup = (RvkPassSetup){0};
+  b->passMask |= 1 << rvk_pass_config(pass)->id;
 
   rvk_canvas_pass_push(b->canvas, pass);
 }
