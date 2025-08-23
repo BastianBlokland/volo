@@ -1,9 +1,9 @@
-#include "check_spec.h"
-#include "core_alloc.h"
-#include "core_diag.h"
-#include "core_thread.h"
-#include "trace_sink_store.h"
-#include "trace_tracer.h"
+#include "check/spec.h"
+#include "core/alloc.h"
+#include "core/diag.h"
+#include "core/thread.h"
+#include "trace/sink_store.h"
+#include "trace/tracer.h"
 
 #define test_visitor_max_entries 8
 

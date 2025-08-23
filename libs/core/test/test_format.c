@@ -1,12 +1,12 @@
-#include "check_spec.h"
-#include "core_alloc.h"
-#include "core_array.h"
-#include "core_dynstring.h"
-#include "core_float.h"
-#include "core_format.h"
-#include "core_math.h"
-#include "core_rng.h"
-#include "core_time.h"
+#include "check/spec.h"
+#include "core/alloc.h"
+#include "core/array.h"
+#include "core/dynstring.h"
+#include "core/float.h"
+#include "core/format.h"
+#include "core/math.h"
+#include "core/rng.h"
+#include "core/time.h"
 
 spec(format) {
 

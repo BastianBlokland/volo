@@ -1,6 +1,6 @@
 #pragma once
-#include "core_bitset.h"
-#include "ecs_def.h"
+#include "core/bitset.h"
+#include "ecs/def.h"
 
 #include "iterator_internal.h"
 

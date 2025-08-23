@@ -1,7 +1,7 @@
 #pragma once
-#include "core_array.h"
-#include "core_dynarray.h"
-#include "data_registry.h"
+#include "core/array.h"
+#include "core/dynarray.h"
+#include "data/registry.h"
 
 typedef struct {
   String     name;

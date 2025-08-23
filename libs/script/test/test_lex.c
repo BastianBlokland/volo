@@ -1,6 +1,6 @@
-#include "check_spec.h"
-#include "core_array.h"
-#include "script_lex.h"
+#include "check/spec.h"
+#include "core/array.h"
+#include "script/lex.h"
 
 #include "utils_internal.h"
 

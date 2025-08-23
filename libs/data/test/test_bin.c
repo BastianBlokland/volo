@@ -1,11 +1,11 @@
-#include "check_spec.h"
-#include "core_alloc.h"
-#include "core_array.h"
-#include "core_dynstring.h"
-#include "core_float.h"
-#include "data_read.h"
-#include "data_utils.h"
-#include "data_write.h"
+#include "check/spec.h"
+#include "core/alloc.h"
+#include "core/array.h"
+#include "core/dynstring.h"
+#include "core/float.h"
+#include "data/read.h"
+#include "data/utils.h"
+#include "data/write.h"
 
 static void test_bin_roundtrip(
     CheckTestContext* _testCtx, const DataReg* reg, const DataMeta meta, const Mem data) {

@@ -1,11 +1,11 @@
-#include "core_array.h"
-#include "core_float.h"
-#include "core_intrinsic.h"
-#include "geo_quat.h"
-#include "geo_sphere.h"
+#include "core/array.h"
+#include "core/float.h"
+#include "core/intrinsic.h"
+#include "geo/quat.h"
+#include "geo/sphere.h"
 
 #ifdef VOLO_SIMD
-#include "core_simd.h"
+#include "core/simd.h"
 #endif
 
 GeoSphere geo_sphere_dilate(const GeoSphere* sphere, const f32 radius) {

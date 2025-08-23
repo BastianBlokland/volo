@@ -1,6 +1,6 @@
-#include "check_spec.h"
-#include "geo_line.h"
-#include "geo_ray.h"
+#include "check/spec.h"
+#include "geo/line.h"
+#include "geo/ray.h"
 
 #include "utils_internal.h"
 

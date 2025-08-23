@@ -1,7 +1,7 @@
-#include "asset_manager.h"
-#include "asset_ref.h"
-#include "core_stringtable.h"
-#include "ecs_entity.h"
+#include "asset/manager.h"
+#include "asset/ref.h"
+#include "core/stringtable.h"
+#include "ecs/entity.h"
 
 EcsEntityId asset_ref_resolve(EcsWorld* world, AssetManagerComp* manager, const AssetRef* ref) {
   if (ecs_entity_valid(ref->entity)) {

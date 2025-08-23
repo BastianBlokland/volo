@@ -1,10 +1,10 @@
-#include "core_alloc.h"
-#include "core_bits.h"
-#include "core_complex.h"
-#include "core_diag.h"
-#include "core_math.h"
-#include "core_time.h"
-#include "snd_buffer.h"
+#include "core/alloc.h"
+#include "core/bits.h"
+#include "core/complex.h"
+#include "core/diag.h"
+#include "core/math.h"
+#include "core/time.h"
+#include "snd/buffer.h"
 
 /**
  * Fast-Fourier-Transform.

@@ -1,6 +1,6 @@
-#include "check_spec.h"
-#include "core_alloc.h"
-#include "jobs_graph.h"
+#include "check/spec.h"
+#include "core/alloc.h"
+#include "jobs/graph.h"
 
 #define task_flags JobTaskFlags_None
 

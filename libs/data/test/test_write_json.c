@@ -1,13 +1,13 @@
-#include "check_spec.h"
-#include "core_alloc.h"
-#include "core_array.h"
-#include "core_dynstring.h"
-#include "core_float.h"
-#include "core_math.h"
-#include "core_stringtable.h"
-#include "core_time.h"
-#include "data_registry.h"
-#include "data_write.h"
+#include "check/spec.h"
+#include "core/alloc.h"
+#include "core/array.h"
+#include "core/dynstring.h"
+#include "core/float.h"
+#include "core/math.h"
+#include "core/stringtable.h"
+#include "core/time.h"
+#include "data/registry.h"
+#include "data/write.h"
 
 static void test_write(
     CheckTestContext* _testCtx,

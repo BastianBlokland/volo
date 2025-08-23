@@ -1,8 +1,8 @@
 #pragma once
-#include "core_intrinsic.h"
-#include "geo_color.h"
-#include "geo_quat.h"
-#include "script_val.h"
+#include "core/intrinsic.h"
+#include "geo/color.h"
+#include "geo/quat.h"
+#include "script/val.h"
 
 /**
  * ScriptVal's are 128bit values with 128bit alignment.

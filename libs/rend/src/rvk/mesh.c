@@ -1,5 +1,5 @@
-#include "core_diag.h"
-#include "log_logger.h"
+#include "core/diag.h"
+#include "log/logger.h"
 
 #include "device_internal.h"
 #include "lib_internal.h"

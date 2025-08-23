@@ -1,6 +1,6 @@
-#include "check_spec.h"
-#include "core_array.h"
-#include "geo_sphere.h"
+#include "check/spec.h"
+#include "core/array.h"
+#include "geo/sphere.h"
 
 spec(sphere) {
 

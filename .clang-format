@@ -23,12 +23,10 @@ SortIncludes: true
 IncludeBlocks: Regroup
 IncludeIsMainRegex: "not-used"
 IncludeCategories:
-  - Regex: '^<.*>$'
-    SortPriority: 4
-  - Regex: '^".*_api.h"$'
-    SortPriority: 3
-  - Regex: '^".*_internal.h"$'
-    SortPriority: 2
-  - Regex: '^".*"$'
+  - Regex: '^".+/.+.h"$'
     SortPriority: 1
+  - Regex: '^".+"$'
+    SortPriority: 2
+  - Regex: '^<.+>$'
+    SortPriority: 3
 PointerAlignment: Left

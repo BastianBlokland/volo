@@ -1,5 +1,5 @@
 #pragma once
-#include "core.h"
+#include "core/forward.h"
 
 typedef enum {
   RvkDisassembler_Success = 0,

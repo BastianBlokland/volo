@@ -1,5 +1,5 @@
-#include "check_spec.h"
-#include "cli_validate.h"
+#include "check/spec.h"
+#include "cli/validate.h"
 
 spec(validate) {
 

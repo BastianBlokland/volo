@@ -1,12 +1,12 @@
-#include "asset_register.h"
-#include "check_spec.h"
-#include "core_alloc.h"
-#include "core_array.h"
-#include "ecs_runner.h"
-#include "ecs_utils.h"
-#include "scene_register.h"
-#include "scene_set.h"
-#include "scene_tag.h"
+#include "asset/register.h"
+#include "check/spec.h"
+#include "core/alloc.h"
+#include "core/array.h"
+#include "ecs/runner.h"
+#include "ecs/utils.h"
+#include "scene/register.h"
+#include "scene/set.h"
+#include "scene/tag.h"
 
 ecs_view_define(SetEnvView) { ecs_access_write(SceneSetEnvComp); }
 ecs_view_define(SetMemberView) { ecs_access_read(SceneSetMemberComp); }

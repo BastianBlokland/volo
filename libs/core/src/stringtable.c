@@ -1,8 +1,8 @@
-#include "core_alloc.h"
-#include "core_bits.h"
-#include "core_diag.h"
-#include "core_stringtable.h"
-#include "core_thread.h"
+#include "core/alloc.h"
+#include "core/bits.h"
+#include "core/diag.h"
+#include "core/stringtable.h"
+#include "core/thread.h"
 
 #define stringtable_chunk_size (32 * usize_kibibyte)
 #define stringtable_string_size_max 512

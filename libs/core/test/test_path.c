@@ -1,10 +1,10 @@
-#include "check_spec.h"
-#include "core_alloc.h"
-#include "core_array.h"
-#include "core_dynstring.h"
-#include "core_format.h"
-#include "core_path.h"
-#include "core_rng.h"
+#include "check/spec.h"
+#include "core/alloc.h"
+#include "core/array.h"
+#include "core/dynstring.h"
+#include "core/format.h"
+#include "core/path.h"
+#include "core/rng.h"
 
 spec(path) {
 

@@ -1,9 +1,9 @@
-#include "check_spec.h"
-#include "core_alloc.h"
-#include "core_math.h"
-#include "geo_box.h"
-#include "geo_nav.h"
-#include "geo_vector.h"
+#include "check/spec.h"
+#include "core/alloc.h"
+#include "core/math.h"
+#include "geo/box.h"
+#include "geo/nav.h"
+#include "geo/vector.h"
 
 #include "utils_internal.h"
 

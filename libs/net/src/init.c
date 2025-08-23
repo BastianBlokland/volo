@@ -1,6 +1,6 @@
-#include "core_diag.h"
-#include "core_thread.h"
-#include "net_init.h"
+#include "core/diag.h"
+#include "core/thread.h"
+#include "net/init.h"
 
 #include "pal_internal.h"
 #include "tls_internal.h"

@@ -1,8 +1,8 @@
-#include "core_alloc.h"
-#include "core_file.h"
-#include "core_format.h"
-#include "core_path.h"
-#include "jobs_dot.h"
+#include "core/alloc.h"
+#include "core/file.h"
+#include "core/format.h"
+#include "core/path.h"
+#include "jobs/dot.h"
 
 #define dot_start_shape "octagon"
 #define dot_end_shape "octagon"

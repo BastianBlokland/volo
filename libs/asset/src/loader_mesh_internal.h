@@ -1,4 +1,4 @@
-#include "asset_mesh.h"
+#include "asset/mesh.h"
 
 #include "repo_internal.h"
 

@@ -1,10 +1,10 @@
-#include "check_spec.h"
-#include "core_alloc.h"
-#include "ecs_def.h"
-#include "ecs_runner.h"
-#include "ecs_world.h"
-#include "jobs_executor.h"
-#include "jobs_graph.h"
+#include "check/spec.h"
+#include "core/alloc.h"
+#include "ecs/def.h"
+#include "ecs/runner.h"
+#include "ecs/world.h"
+#include "jobs/executor.h"
+#include "jobs/graph.h"
 
 ecs_comp_define(GraphCompA) { u32 f1; };
 ecs_comp_define(GraphCompB) { u32 f1; };

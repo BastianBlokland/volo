@@ -1,13 +1,13 @@
-#include "core_alloc.h"
-#include "core_diag.h"
-#include "core_dynstring.h"
-#include "core_format.h"
-#include "core_math.h"
-#include "core_thread.h"
-#include "core_time.h"
-#include "net_http.h"
-#include "net_rest.h"
-#include "net_result.h"
+#include "core/alloc.h"
+#include "core/diag.h"
+#include "core/dynstring.h"
+#include "core/format.h"
+#include "core/math.h"
+#include "core/thread.h"
+#include "core/time.h"
+#include "net/http.h"
+#include "net/rest.h"
+#include "net/result.h"
 
 typedef enum {
   NetRestState_Idle,

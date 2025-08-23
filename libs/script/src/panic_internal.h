@@ -1,5 +1,5 @@
 #pragma once
-#include "script_panic.h"
+#include "script/panic.h"
 
 #include <setjmp.h>
 

@@ -1,10 +1,10 @@
-#include "core_alloc.h"
-#include "core_bits.h"
-#include "core_diag.h"
-#include "core_dynstring.h"
-#include "core_sentinel.h"
-#include "script_sig.h"
-#include "script_val.h"
+#include "core/alloc.h"
+#include "core/bits.h"
+#include "core/diag.h"
+#include "core/dynstring.h"
+#include "core/sentinel.h"
+#include "script/sig.h"
+#include "script/val.h"
 
 /**
  * Signature, stores the return type and names and types for arguments.

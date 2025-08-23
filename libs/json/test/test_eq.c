@@ -1,7 +1,7 @@
-#include "check_spec.h"
-#include "core_alloc.h"
-#include "json_doc.h"
-#include "json_eq.h"
+#include "check/spec.h"
+#include "core/alloc.h"
+#include "json/doc.h"
+#include "json/eq.h"
 
 spec(eq) {
 

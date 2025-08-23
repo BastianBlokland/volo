@@ -1,8 +1,8 @@
 #pragma once
-#include "core_bitset.h"
-#include "core_dynarray.h"
-#include "ecs_def.h"
-#include "ecs_module.h"
+#include "core/bitset.h"
+#include "core/dynarray.h"
+#include "ecs/def.h"
+#include "ecs/module.h"
 
 typedef struct {
   String   name;

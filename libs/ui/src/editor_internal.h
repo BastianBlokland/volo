@@ -1,6 +1,6 @@
 #pragma once
-#include "core_alloc.h"
-#include "gap_window.h"
+#include "core/alloc.h"
+#include "gap/window.h"
 
 #include "builder_internal.h"
 

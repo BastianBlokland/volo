@@ -1,21 +1,21 @@
-#include "app_cli.h"
-#include "cli_app.h"
-#include "cli_failure.h"
-#include "cli_help.h"
-#include "cli_parse.h"
-#include "core_alloc.h"
-#include "core_diag_except.h"
-#include "core_file.h"
-#include "core_format.h"
-#include "core_init.h"
-#include "core_symbol.h"
-#include "core_version.h"
-#include "data_init.h"
-#include "log_init.h"
+#include "app/cli.h"
+#include "cli/app.h"
+#include "cli/failure.h"
+#include "cli/help.h"
+#include "cli/parse.h"
+#include "core/alloc.h"
+#include "core/diag_except.h"
+#include "core/file.h"
+#include "core/format.h"
+#include "core/init.h"
+#include "core/symbol.h"
+#include "core/version.h"
+#include "data/init.h"
+#include "log/init.h"
 
 #ifdef VOLO_WIN32
 
-#include "core_winutils.h"
+#include "core/winutils.h"
 
 usize wcslen(const wchar_t*);
 

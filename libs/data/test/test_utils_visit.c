@@ -1,8 +1,8 @@
-#include "check_spec.h"
-#include "core_alloc.h"
-#include "core_array.h"
-#include "data_registry.h"
-#include "data_utils.h"
+#include "check/spec.h"
+#include "core/alloc.h"
+#include "core/array.h"
+#include "data/registry.h"
+#include "data/utils.h"
 
 typedef struct {
   String txt;

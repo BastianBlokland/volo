@@ -1,6 +1,6 @@
-#include "core_dynstring.h"
-#include "core_symbol.h"
-#include "core_thread.h"
+#include "core/dynstring.h"
+#include "core/symbol.h"
+#include "core/thread.h"
 
 #include "diag_internal.h"
 

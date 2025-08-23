@@ -1,7 +1,7 @@
 #pragma once
-#include "core_dynbitset.h"
-#include "core_thread.h"
-#include "ecs.h"
+#include "core/dynbitset.h"
+#include "core/thread.h"
+#include "ecs/forward.h"
 
 typedef struct {
   ThreadSpinLock lock;

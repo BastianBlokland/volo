@@ -1,5 +1,5 @@
 #pragma once
-#include "core_thread.h"
+#include "core/thread.h"
 
 #define thread_pal_stacksize (usize_mebibyte * 2)
 

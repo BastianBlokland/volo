@@ -1,5 +1,5 @@
-#include "core_init.h"
-#include "core_thread.h"
+#include "core/init.h"
+#include "core/thread.h"
 
 #include "init_internal.h"
 

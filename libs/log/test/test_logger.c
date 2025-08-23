@@ -1,9 +1,9 @@
-#include "check_spec.h"
-#include "core_alloc.h"
-#include "core_dynarray.h"
-#include "core_time.h"
-#include "log.h"
-#include "log_sink.h"
+#include "check/spec.h"
+#include "core/alloc.h"
+#include "core/dynarray.h"
+#include "core/time.h"
+#include "log/forward.h"
+#include "log/sink.h"
 
 typedef struct {
   LogLevel lvl;

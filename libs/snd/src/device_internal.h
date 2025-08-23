@@ -1,7 +1,7 @@
 #pragma once
-#include "core_alloc.h"
-#include "core_string.h"
-#include "core_time.h"
+#include "core/alloc.h"
+#include "core/string.h"
+#include "core/time.h"
 
 typedef struct {
   /**

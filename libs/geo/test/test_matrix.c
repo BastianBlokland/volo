@@ -1,6 +1,6 @@
-#include "check_spec.h"
-#include "core_math.h"
-#include "geo_matrix.h"
+#include "check/spec.h"
+#include "core/math.h"
+#include "geo/matrix.h"
 
 #include "utils_internal.h"
 

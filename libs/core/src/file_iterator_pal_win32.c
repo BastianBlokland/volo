@@ -1,8 +1,8 @@
-#include "core_alloc.h"
-#include "core_diag.h"
-#include "core_file_iterator.h"
-#include "core_path.h"
-#include "core_winutils.h"
+#include "core/alloc.h"
+#include "core/diag.h"
+#include "core/file_iterator.h"
+#include "core/path.h"
+#include "core/winutils.h"
 
 #include <Windows.h>
 

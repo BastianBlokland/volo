@@ -1,11 +1,11 @@
-#include "core.h"
-#include "core_alloc.h"
-#include "core_array.h"
-#include "core_bits.h"
-#include "core_deflate.h"
-#include "core_diag.h"
-#include "core_dynstring.h"
-#include "core_file.h"
+#include "core/alloc.h"
+#include "core/array.h"
+#include "core/bits.h"
+#include "core/deflate.h"
+#include "core/diag.h"
+#include "core/dynstring.h"
+#include "core/file.h"
+#include "core/forward.h"
 
 /**
  * DEFLATE (RFC 1951) compressed data stream utilities.

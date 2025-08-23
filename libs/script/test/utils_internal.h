@@ -1,7 +1,7 @@
 #pragma once
-#include "check_spec.h"
-#include "script_doc.h"
-#include "script_lex.h"
+#include "check/spec.h"
+#include "script/doc.h"
+#include "script/lex.h"
 
 // clang-format off
 

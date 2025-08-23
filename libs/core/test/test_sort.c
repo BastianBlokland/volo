@@ -1,6 +1,6 @@
-#include "check_spec.h"
-#include "core_array.h"
-#include "core_sort.h"
+#include "check/spec.h"
+#include "core/array.h"
+#include "core/sort.h"
 
 static i8 test_sort_i32_index_compare(const void* ctx, const usize a, const usize b) {
   const i32* data = ctx;

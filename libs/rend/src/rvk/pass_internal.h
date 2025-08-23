@@ -1,6 +1,6 @@
 #pragma once
-#include "core_time.h"
-#include "geo_color.h"
+#include "core/time.h"
+#include "geo/color.h"
 
 #include "forward_internal.h"
 #include "sampler_internal.h"

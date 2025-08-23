@@ -1,5 +1,5 @@
 #pragma once
-#include "ecs_world.h"
+#include "ecs/world.h"
 
 typedef struct sEcsView EcsView;
 

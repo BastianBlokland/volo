@@ -1,11 +1,11 @@
-#include "core_diag.h"
-#include "core_float.h"
-#include "core_intrinsic.h"
-#include "core_math.h"
-#include "geo_matrix.h"
+#include "core/diag.h"
+#include "core/float.h"
+#include "core/intrinsic.h"
+#include "core/math.h"
+#include "geo/matrix.h"
 
 #ifdef VOLO_SIMD
-#include "core_simd.h"
+#include "core/simd.h"
 #endif
 
 MAYBE_UNUSED static void assert_normalized(const GeoVector v) {

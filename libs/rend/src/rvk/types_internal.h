@@ -1,5 +1,5 @@
 #pragma once
-#include "core.h"
+#include "core/forward.h"
 
 typedef union uRvkSize {
   struct {

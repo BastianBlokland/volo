@@ -1,6 +1,6 @@
 #pragma once
-#include "core_time.h"
-#include "geo.h"
+#include "core/time.h"
+#include "geo/forward.h"
 
 #include "forward_internal.h"
 #include "uniform_internal.h"

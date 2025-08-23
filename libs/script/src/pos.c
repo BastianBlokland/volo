@@ -1,12 +1,12 @@
-#include "core_alloc.h"
-#include "core_bits.h"
-#include "core_diag.h"
-#include "core_dynarray.h"
-#include "core_math.h"
-#include "core_search.h"
-#include "core_utf8.h"
-#include "script_lex.h"
-#include "script_pos.h"
+#include "core/alloc.h"
+#include "core/bits.h"
+#include "core/diag.h"
+#include "core/dynarray.h"
+#include "core/math.h"
+#include "core/search.h"
+#include "core/utf8.h"
+#include "script/lex.h"
+#include "script/pos.h"
 
 ScriptPosLineCol script_pos_to_line_col(const String src, const ScriptPos pos) {
   diag_assert(pos <= src.size);

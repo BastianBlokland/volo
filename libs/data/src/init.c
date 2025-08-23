@@ -1,6 +1,6 @@
-#include "core_diag.h"
-#include "core_thread.h"
-#include "data_init.h"
+#include "core/diag.h"
+#include "core/thread.h"
+#include "data/init.h"
 
 #include "registry_internal.h"
 

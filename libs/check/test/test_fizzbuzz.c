@@ -1,4 +1,4 @@
-#include "check_spec.h"
+#include "check/spec.h"
 
 static String fizzbuzz(const i32 i) {
   const bool fizz = (i % 3) == 0;

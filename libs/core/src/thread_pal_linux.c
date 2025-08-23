@@ -1,6 +1,6 @@
-#include "core_alloc.h"
-#include "core_diag.h"
-#include "core_time.h"
+#include "core/alloc.h"
+#include "core/diag.h"
+#include "core/time.h"
 
 #include "thread_internal.h"
 

@@ -1,4 +1,4 @@
-#include "core_array.h"
+#include "core/array.h"
 
 #include "device_internal.h"
 

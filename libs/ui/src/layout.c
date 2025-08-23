@@ -1,5 +1,5 @@
-#include "core_diag.h"
-#include "ui_layout.h"
+#include "core/diag.h"
+#include "ui/layout.h"
 
 #include "canvas_internal.h"
 

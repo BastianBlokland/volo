@@ -1,6 +1,6 @@
 #pragma once
-#include "asset_mesh.h"
-#include "geo_quat.h"
+#include "asset/mesh.h"
+#include "geo/quat.h"
 
 #include "import_internal.h"
 

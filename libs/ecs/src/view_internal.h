@@ -1,6 +1,6 @@
-#include "core_bitset.h"
-#include "core_dynarray.h"
-#include "ecs_view.h"
+#include "core/bitset.h"
+#include "core/dynarray.h"
+#include "ecs/view.h"
 
 #include "def_internal.h"
 #include "storage_internal.h"

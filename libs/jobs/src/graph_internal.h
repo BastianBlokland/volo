@@ -1,8 +1,8 @@
-#include "core.h"
-#include "core_bits.h"
-#include "core_diag.h"
-#include "core_dynarray.h"
-#include "jobs_graph.h"
+#include "core/bits.h"
+#include "core/diag.h"
+#include "core/dynarray.h"
+#include "core/forward.h"
+#include "jobs/graph.h"
 
 #define jobtask_max_user_data (usize)(64 - sizeof(JobTask))
 

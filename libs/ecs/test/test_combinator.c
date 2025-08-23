@@ -1,8 +1,8 @@
-#include "check_spec.h"
-#include "core_alloc.h"
-#include "ecs_def.h"
-#include "ecs_view.h"
-#include "ecs_world.h"
+#include "check/spec.h"
+#include "core/alloc.h"
+#include "ecs/def.h"
+#include "ecs/view.h"
+#include "ecs/world.h"
 
 ecs_comp_define(CombineCompA) { u64 state; };
 ecs_comp_define(CombineCompB) { String text; };

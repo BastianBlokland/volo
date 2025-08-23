@@ -1,5 +1,5 @@
 #pragma once
-#include "input_resource.h"
+#include "input/resource.h"
 
 #define input_resource_max_maps 3
 

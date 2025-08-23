@@ -1,6 +1,6 @@
-#include "check_spec.h"
-#include "core_bits.h"
-#include "core_float.h"
+#include "check/spec.h"
+#include "core/bits.h"
+#include "core/float.h"
 
 spec(float) {
 

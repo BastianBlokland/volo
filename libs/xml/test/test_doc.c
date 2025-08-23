@@ -1,7 +1,7 @@
-#include "check_spec.h"
-#include "core_alloc.h"
-#include "core_array.h"
-#include "xml_doc.h"
+#include "check/spec.h"
+#include "core/alloc.h"
+#include "core/array.h"
+#include "xml/doc.h"
 
 spec(doc) {
 

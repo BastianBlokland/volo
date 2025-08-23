@@ -1,7 +1,7 @@
-#include "ecs_view.h"
-#include "ecs_world.h"
-#include "rend_stats.h"
-#include "scene_camera.h"
+#include "ecs/view.h"
+#include "ecs/world.h"
+#include "rend/stats.h"
+#include "scene/camera.h"
 
 #include "limiter_internal.h"
 #include "painter_internal.h"

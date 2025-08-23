@@ -1,5 +1,5 @@
-#include "app_check.h"
-#include "net_init.h"
+#include "app/check.h"
+#include "net/init.h"
 
 void app_check_init(CheckDef* check) {
   net_init();

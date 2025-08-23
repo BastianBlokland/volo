@@ -1,5 +1,5 @@
 #pragma once
-#include "core_tty.h"
+#include "core/tty.h"
 
 void tty_pal_init(void);
 void tty_pal_teardown(void);

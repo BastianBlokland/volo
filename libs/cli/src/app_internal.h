@@ -1,6 +1,6 @@
 #pragma once
-#include "cli_app.h"
-#include "core_dynarray.h"
+#include "cli/app.h"
+#include "core/dynarray.h"
 
 typedef enum {
   CliOptionType_Flag,

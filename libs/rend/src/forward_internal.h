@@ -1,5 +1,5 @@
 #pragma once
-#include "core.h"
+#include "core/forward.h"
 
 /**
  * Internal forward header for the rend library.

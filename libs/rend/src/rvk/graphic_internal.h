@@ -1,6 +1,6 @@
 #pragma once
-#include "asset_graphic.h"
-#include "rend.h"
+#include "asset/graphic.h"
+#include "rend/forward.h"
 
 #include "desc_internal.h"
 #include "forward_internal.h"

@@ -1,5 +1,5 @@
 #pragma once
-#include "core_signal.h"
+#include "core/signal.h"
 
 void signal_pal_setup_handlers(void);
 

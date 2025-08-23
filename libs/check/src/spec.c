@@ -1,9 +1,9 @@
-#include "check_spec.h"
-#include "core_alloc.h"
-#include "core_diag.h"
-#include "core_float.h"
-#include "core_math.h"
-#include "core_time.h"
+#include "check/spec.h"
+#include "core/alloc.h"
+#include "core/diag.h"
+#include "core/float.h"
+#include "core/math.h"
+#include "core/time.h"
 
 #include "spec_internal.h"
 

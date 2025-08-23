@@ -1,6 +1,6 @@
 #pragma once
-#include "ecs_module.h"
-#include "geo_vector.h"
+#include "ecs/module.h"
+#include "geo/vector.h"
 
 #define cmd_group_count 9
 

@@ -1,9 +1,9 @@
-#include "core_alloc.h"
-#include "core_dynstring.h"
-#include "core_float.h"
-#include "core_math.h"
-#include "geo_color.h"
-#include "geo_matrix.h"
+#include "core/alloc.h"
+#include "core/dynstring.h"
+#include "core/float.h"
+#include "core/math.h"
+#include "geo/color.h"
+#include "geo/matrix.h"
 
 #include "utils_internal.h"
 

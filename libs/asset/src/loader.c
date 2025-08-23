@@ -1,5 +1,5 @@
-#include "core_bits.h"
-#include "core_path.h"
+#include "core/bits.h"
+#include "core/path.h"
 
 #include "import_internal.h"
 #include "loader_internal.h"

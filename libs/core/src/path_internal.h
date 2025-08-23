@@ -1,5 +1,5 @@
 #pragma once
-#include "core_path.h"
+#include "core/path.h"
 
 #define path_pal_max_size 512
 

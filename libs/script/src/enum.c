@@ -1,10 +1,10 @@
-#include "core_diag.h"
-#include "core_stringtable.h"
-#include "script_enum.h"
-#include "script_panic.h"
+#include "core/diag.h"
+#include "core/stringtable.h"
+#include "script/enum.h"
+#include "script/panic.h"
 
 #ifdef VOLO_SIMD
-#include "core_simd.h"
+#include "core/simd.h"
 #endif
 
 ASSERT((script_enum_max_entries % 8) == 0, "Only multiple of 8 max entry counts are supported");

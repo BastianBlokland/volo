@@ -1,8 +1,8 @@
-#include "core_alloc.h"
-#include "core_array.h"
-#include "core_diag.h"
-#include "core_process.h"
-#include "core_signal.h"
+#include "core/alloc.h"
+#include "core/array.h"
+#include "core/diag.h"
+#include "core/process.h"
+#include "core/signal.h"
 
 #include "file_internal.h"
 

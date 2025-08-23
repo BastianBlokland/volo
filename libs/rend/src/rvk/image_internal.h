@@ -1,5 +1,5 @@
 #pragma once
-#include "geo.h"
+#include "geo/forward.h"
 
 #include "forward_internal.h"
 #include "mem_internal.h"

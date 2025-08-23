@@ -1,6 +1,6 @@
 #pragma once
-#include "asset_graphic.h"
-#include "ecs_module.h"
+#include "asset/graphic.h"
+#include "ecs/module.h"
 
 #include "forward_internal.h"
 #include "rvk/forward_internal.h"

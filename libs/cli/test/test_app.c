@@ -1,6 +1,6 @@
-#include "check_spec.h"
-#include "cli_app.h"
-#include "core_alloc.h"
+#include "check/spec.h"
+#include "cli/app.h"
+#include "core/alloc.h"
 
 spec(app) {
 

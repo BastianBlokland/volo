@@ -1,5 +1,5 @@
 #pragma once
-#include "rend_settings.h"
+#include "rend/settings.h"
 
 #include "forward_internal.h"
 

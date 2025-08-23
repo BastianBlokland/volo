@@ -1,8 +1,8 @@
-#include "check_spec.h"
-#include "core_alloc.h"
-#include "core_dynstring.h"
-#include "data_registry.h"
-#include "data_schema.h"
+#include "check/spec.h"
+#include "core/alloc.h"
+#include "core/dynstring.h"
+#include "data/registry.h"
+#include "data/schema.h"
 
 static void test_jsonschema_write(
     CheckTestContext* _testCtx, const DataReg* reg, const DataMeta meta, const String expected) {

@@ -1,12 +1,12 @@
-#include "core_diag.h"
-#include "core_float.h"
-#include "core_intrinsic.h"
-#include "core_math.h"
-#include "core_rng.h"
-#include "geo_vector.h"
+#include "core/diag.h"
+#include "core/float.h"
+#include "core/intrinsic.h"
+#include "core/math.h"
+#include "core/rng.h"
+#include "geo/vector.h"
 
 #ifdef VOLO_SIMD
-#include "core_simd.h"
+#include "core/simd.h"
 #endif
 
 bool geo_vector_equal(const GeoVector a, const GeoVector b, const f32 threshold) {

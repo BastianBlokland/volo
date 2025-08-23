@@ -1,11 +1,11 @@
-#include "asset_manager.h"
-#include "core_alloc.h"
-#include "core_array.h"
-#include "core_diag.h"
-#include "core_dynarray.h"
-#include "dev_finder.h"
-#include "ecs_view.h"
-#include "ecs_world.h"
+#include "asset/manager.h"
+#include "core/alloc.h"
+#include "core/array.h"
+#include "core/diag.h"
+#include "core/dynarray.h"
+#include "dev/finder.h"
+#include "ecs/view.h"
+#include "ecs/world.h"
 
 static const String g_queryPatterns[DevFinderCategory_Count] = {
     [DevFinder_Decal]   = string_static("vfx/*.decal"),

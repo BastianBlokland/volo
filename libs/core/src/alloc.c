@@ -1,5 +1,5 @@
-#include "core_bits.h"
-#include "core_diag.h"
+#include "core/bits.h"
+#include "core/diag.h"
 
 #include "alloc_internal.h"
 #include "init_internal.h"

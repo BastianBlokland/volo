@@ -1,8 +1,8 @@
-#include "check_spec.h"
-#include "core_alloc.h"
-#include "core_float.h"
-#include "core_rng.h"
-#include "geo_color.h"
+#include "check/spec.h"
+#include "core/alloc.h"
+#include "core/float.h"
+#include "core/rng.h"
+#include "geo/color.h"
 
 #include "utils_internal.h"
 

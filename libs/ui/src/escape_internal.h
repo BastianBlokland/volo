@@ -1,6 +1,6 @@
 #pragma once
-#include "ui_color.h"
-#include "ui_units.h"
+#include "ui/color.h"
+#include "ui/units.h"
 
 typedef enum {
   UiEscape_Invalid,

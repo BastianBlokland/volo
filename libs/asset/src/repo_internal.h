@@ -1,6 +1,6 @@
 #pragma once
-#include "asset_manager.h"
-#include "data_registry.h"
+#include "asset/manager.h"
+#include "data/registry.h"
 
 #include "format_internal.h"
 

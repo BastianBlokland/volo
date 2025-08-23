@@ -1,5 +1,5 @@
-#include "core_array.h"
-#include "core_diag.h"
+#include "core/array.h"
+#include "core/diag.h"
 
 #include "buffer_internal.h"
 #include "device_internal.h"

@@ -1,5 +1,5 @@
 #pragma once
-#include "ecs_module.h"
+#include "ecs/module.h"
 
 typedef enum {
   UiAtlasRes_Font,

@@ -1,8 +1,8 @@
 #pragma once
-#include "asset_atlas.h"
-#include "asset_fonttex.h"
-#include "ui_canvas.h"
-#include "ui_settings.h"
+#include "asset/atlas.h"
+#include "asset/fonttex.h"
+#include "ui/canvas.h"
+#include "ui/settings.h"
 
 #include "forward_internal.h"
 

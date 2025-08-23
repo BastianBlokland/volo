@@ -1,8 +1,8 @@
-#include "core_array.h"
-#include "core_diag.h"
-#include "core_stringtable.h"
-#include "json_doc.h"
-#include "json_read.h"
+#include "core/array.h"
+#include "core/diag.h"
+#include "core/stringtable.h"
+#include "json/doc.h"
+#include "json/read.h"
 
 #include "lex_internal.h"
 

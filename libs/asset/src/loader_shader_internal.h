@@ -1,5 +1,5 @@
 #pragma once
-#include "asset_shader.h"
+#include "asset/shader.h"
 
 #include "repo_internal.h"
 

@@ -1,5 +1,5 @@
-#include "core_alloc.h"
-#include "core_diag.h"
+#include "core/alloc.h"
+#include "core/diag.h"
 
 #include "alloc_internal.h"
 

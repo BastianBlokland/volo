@@ -4,9 +4,9 @@
 
 #include "vulkan_api.h"
 
-#include "core_dynlib.h"
-#include "core_sentinel.h"
-#include "core_string.h"
+#include "core/dynlib.h"
+#include "core/sentinel.h"
+#include "core/string.h"
 
 String vkResultStr(const VkResult v) {
   switch (v) {

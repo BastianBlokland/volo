@@ -1,10 +1,10 @@
-#include "core_dynstring.h"
-#include "core_file.h"
-#include "core_math.h"
-#include "core_path.h"
-#include "core_symbol.h"
-#include "core_thread.h"
-#include "core_version.h"
+#include "core/dynstring.h"
+#include "core/file.h"
+#include "core/math.h"
+#include "core/path.h"
+#include "core/symbol.h"
+#include "core/thread.h"
+#include "core/version.h"
 
 #include "diag_internal.h"
 

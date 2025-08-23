@@ -1,6 +1,6 @@
 #pragma once
-#include "ecs_module.h"
-#include "geo.h"
+#include "ecs/module.h"
+#include "geo/forward.h"
 
 ecs_comp_extern(RendFogComp);
 

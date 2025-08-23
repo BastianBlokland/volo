@@ -1,9 +1,9 @@
-#include "core_alloc.h"
-#include "core_array.h"
-#include "core_bits.h"
-#include "core_diag.h"
-#include "core_dynarray.h"
-#include "json_doc.h"
+#include "core/alloc.h"
+#include "core/array.h"
+#include "core/bits.h"
+#include "core/diag.h"
+#include "core/dynarray.h"
+#include "json/doc.h"
 
 #define json_str_small_chunk_size (16 * usize_kibibyte)
 #define json_str_big_threshold (1 * usize_kibibyte)

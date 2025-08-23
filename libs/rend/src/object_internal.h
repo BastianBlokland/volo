@@ -1,6 +1,6 @@
 #pragma once
-#include "ecs_module.h"
-#include "rend_object.h"
+#include "ecs/module.h"
+#include "rend/object.h"
 
 #include "forward_internal.h"
 

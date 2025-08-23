@@ -1,6 +1,6 @@
-#include "core.h"
-#include "core_diag.h"
-#include "core_thread.h"
+#include "core/diag.h"
+#include "core/forward.h"
+#include "core/thread.h"
 
 #include "work_queue_internal.h"
 

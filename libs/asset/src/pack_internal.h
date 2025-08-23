@@ -1,4 +1,4 @@
-#include "core_dynarray.h"
+#include "core/dynarray.h"
 
 #include "format_internal.h"
 

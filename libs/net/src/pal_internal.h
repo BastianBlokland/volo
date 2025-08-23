@@ -1,5 +1,5 @@
 #pragma once
-#include "core.h"
+#include "core/forward.h"
 
 void net_pal_init(void);
 void net_pal_teardown(void);

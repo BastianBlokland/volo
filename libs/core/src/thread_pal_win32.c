@@ -1,8 +1,8 @@
-#include "core_alloc.h"
-#include "core_diag.h"
-#include "core_dynlib.h"
-#include "core_time.h"
-#include "core_winutils.h"
+#include "core/alloc.h"
+#include "core/diag.h"
+#include "core/dynlib.h"
+#include "core/time.h"
+#include "core/winutils.h"
 
 #include "thread_internal.h"
 

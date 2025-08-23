@@ -1,9 +1,9 @@
-#include "core.h"
-#include "core_array.h"
-#include "core_deflate.h"
-#include "core_diag.h"
-#include "core_dynstring.h"
-#include "core_zlib.h"
+#include "core/array.h"
+#include "core/deflate.h"
+#include "core/diag.h"
+#include "core/dynstring.h"
+#include "core/forward.h"
+#include "core/zlib.h"
 
 /**
  * ZLIB (RFC 1950) compressed data stream utilities.

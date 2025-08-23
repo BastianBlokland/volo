@@ -1,6 +1,6 @@
 #pragma once
-#include "core_dynarray.h"
-#include "ecs_def.h"
+#include "core/dynarray.h"
+#include "ecs/def.h"
 
 typedef struct {
   EcsModuleId       moduleId;

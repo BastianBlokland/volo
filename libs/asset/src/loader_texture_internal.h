@@ -1,5 +1,5 @@
 #pragma once
-#include "asset_texture.h"
+#include "asset/texture.h"
 
 #include "repo_internal.h"
 

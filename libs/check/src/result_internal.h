@@ -1,7 +1,7 @@
 #pragma once
-#include "core_dynarray.h"
-#include "core_sourceloc.h"
-#include "core_time.h"
+#include "core/dynarray.h"
+#include "core/sourceloc.h"
+#include "core/time.h"
 
 typedef struct {
   String    msg;

@@ -1,10 +1,10 @@
-#include "asset_manager.h"
-#include "core_array.h"
-#include "core_diag.h"
-#include "ecs_view.h"
-#include "ecs_world.h"
-#include "log_logger.h"
-#include "snd_mixer.h"
+#include "asset/manager.h"
+#include "core/array.h"
+#include "core/diag.h"
+#include "ecs/view.h"
+#include "ecs/world.h"
+#include "log/logger.h"
+#include "snd/mixer.h"
 
 #include "resource_internal.h"
 

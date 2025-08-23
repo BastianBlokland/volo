@@ -1,5 +1,5 @@
-#include "core.h"
-#include "core_thread.h"
+#include "core/forward.h"
+#include "core/thread.h"
 
 #include "affinity_queue_internal.h"
 

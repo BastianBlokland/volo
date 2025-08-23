@@ -1,6 +1,6 @@
 #pragma once
-#include "core_string.h"
-#include "json_read.h"
+#include "core/string.h"
+#include "json/read.h"
 
 typedef enum {
   JsonTokenType_BracketOpen,

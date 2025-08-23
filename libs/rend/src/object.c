@@ -1,14 +1,14 @@
-#include "core_alloc.h"
-#include "core_bits.h"
-#include "core_diag.h"
-#include "core_math.h"
-#include "core_sort.h"
-#include "ecs_entity.h"
-#include "ecs_view.h"
-#include "ecs_world.h"
-#include "log_logger.h"
-#include "rend_register.h"
-#include "trace_tracer.h"
+#include "core/alloc.h"
+#include "core/bits.h"
+#include "core/diag.h"
+#include "core/math.h"
+#include "core/sort.h"
+#include "ecs/entity.h"
+#include "ecs/view.h"
+#include "ecs/world.h"
+#include "log/logger.h"
+#include "rend/register.h"
+#include "trace/tracer.h"
 
 #include "builder_internal.h"
 #include "object_internal.h"
@@ -17,7 +17,7 @@
 #include "view_internal.h"
 
 #ifdef VOLO_SIMD
-#include "core_simd.h"
+#include "core/simd.h"
 #endif
 
 #define rend_min_align 16

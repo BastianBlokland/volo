@@ -1,10 +1,10 @@
-#include "check_spec.h"
-#include "core_alloc.h"
-#include "core_array.h"
-#include "script_doc.h"
-#include "script_intrinsic.h"
-#include "script_read.h"
-#include "script_val.h"
+#include "check/spec.h"
+#include "core/alloc.h"
+#include "core/array.h"
+#include "script/doc.h"
+#include "script/intrinsic.h"
+#include "script/read.h"
+#include "script/val.h"
 
 #include "utils_internal.h"
 

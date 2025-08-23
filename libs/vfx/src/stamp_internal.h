@@ -1,9 +1,9 @@
 #pragma once
-#include "asset.h"
-#include "geo_quat.h"
-#include "geo_vector.h"
-#include "rend.h"
-#include "vfx_warp.h"
+#include "asset/forward.h"
+#include "geo/quat.h"
+#include "geo/vector.h"
+#include "rend/forward.h"
+#include "vfx/warp.h"
 
 /**
  * NOTE: Flag values are used in GLSL, update the GLSL side when changing these.

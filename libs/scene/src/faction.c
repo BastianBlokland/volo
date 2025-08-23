@@ -1,7 +1,7 @@
-#include "core_array.h"
-#include "core_diag.h"
-#include "scene_collision.h"
-#include "scene_faction.h"
+#include "core/array.h"
+#include "core/diag.h"
+#include "scene/collision.h"
+#include "scene/faction.h"
 
 ecs_comp_define_public(SceneFactionComp);
 

@@ -1,9 +1,9 @@
-#include "check_spec.h"
-#include "core_array.h"
-#include "core_float.h"
-#include "core_math.h"
-#include "geo_matrix.h"
-#include "geo_quat.h"
+#include "check/spec.h"
+#include "core/array.h"
+#include "core/float.h"
+#include "core/math.h"
+#include "geo/matrix.h"
+#include "geo/quat.h"
 
 #include "utils_internal.h"
 

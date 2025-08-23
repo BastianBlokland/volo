@@ -1,7 +1,7 @@
 #pragma once
-#include "core_memory.h"
-#include "geo.h"
-#include "rend_settings.h"
+#include "core/memory.h"
+#include "geo/forward.h"
+#include "rend/settings.h"
 
 #include "rvk/forward_internal.h"
 #include "rvk/types_internal.h"

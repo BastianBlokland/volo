@@ -1,6 +1,6 @@
 #pragma once
-#include "asset.h"
-#include "ecs.h"
+#include "asset/forward.h"
+#include "ecs/forward.h"
 
 enum {
   AppOrder_HudDraw = 725,

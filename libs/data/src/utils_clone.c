@@ -1,8 +1,8 @@
-#include "core_alloc.h"
-#include "core_bits.h"
-#include "core_diag.h"
-#include "core_math.h"
-#include "data_utils.h"
+#include "core/alloc.h"
+#include "core/bits.h"
+#include "core/diag.h"
+#include "core/math.h"
+#include "data/utils.h"
 
 #include "registry_internal.h"
 

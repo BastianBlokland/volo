@@ -1,8 +1,8 @@
-#include "core_alloc.h"
-#include "core_ascii.h"
-#include "core_diag.h"
-#include "core_dynstring.h"
-#include "core_path.h"
+#include "core/alloc.h"
+#include "core/ascii.h"
+#include "core/diag.h"
+#include "core/dynstring.h"
+#include "core/path.h"
 
 #include "app_internal.h"
 

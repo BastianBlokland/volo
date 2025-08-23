@@ -1,8 +1,8 @@
-#include "core_ascii.h"
-#include "core_dynstring.h"
-#include "core_file.h"
-#include "core_format.h"
-#include "core_utf8.h"
+#include "core/ascii.h"
+#include "core/dynstring.h"
+#include "core/file.h"
+#include "core/format.h"
+#include "core/utf8.h"
 
 #include "init_internal.h"
 #include "tty_internal.h"

@@ -1,17 +1,17 @@
-#include "core_alloc.h"
-#include "ecs_view.h"
-#include "ecs_world.h"
-#include "geo_vector.h"
-#include "log_logger.h"
-#include "scene_faction.h"
-#include "scene_level.h"
-#include "scene_transform.h"
-#include "scene_visibility.h"
+#include "core/alloc.h"
+#include "ecs/view.h"
+#include "ecs/world.h"
+#include "geo/vector.h"
+#include "log/logger.h"
+#include "scene/faction.h"
+#include "scene/level.h"
+#include "scene/transform.h"
+#include "scene/visibility.h"
 
 #define scene_vision_areas_max 2048
 
 #ifdef VOLO_SIMD
-#include "core_simd.h"
+#include "core/simd.h"
 #endif
 
 ecs_comp_define(SceneVisibilityEnvComp) {

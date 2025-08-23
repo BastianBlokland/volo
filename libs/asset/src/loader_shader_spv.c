@@ -1,8 +1,8 @@
-#include "core_alloc.h"
-#include "core_bits.h"
-#include "core_diag.h"
-#include "ecs_entity.h"
-#include "ecs_world.h"
+#include "core/alloc.h"
+#include "core/bits.h"
+#include "core/diag.h"
+#include "ecs/entity.h"
+#include "ecs/world.h"
 
 #include "loader_shader_internal.h"
 #include "manager_internal.h"

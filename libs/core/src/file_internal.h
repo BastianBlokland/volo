@@ -1,6 +1,6 @@
 #pragma once
-#include "core_dynarray.h"
-#include "core_file.h"
+#include "core/dynarray.h"
+#include "core/file.h"
 
 typedef struct {
 #if defined(VOLO_WIN32)

@@ -1,5 +1,5 @@
 #pragma once
-#include "core_dynlib.h"
+#include "core/dynlib.h"
 
 void         dynlib_pal_init(void);
 void         dynlib_pal_teardown(void);

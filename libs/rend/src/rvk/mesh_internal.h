@@ -1,5 +1,5 @@
 #pragma once
-#include "asset_mesh.h"
+#include "asset/mesh.h"
 
 #include "buffer_internal.h"
 #include "forward_internal.h"

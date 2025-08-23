@@ -1,6 +1,6 @@
 #pragma once
-#include "asset_texture.h"
-#include "core_string.h"
+#include "asset/texture.h"
+#include "core/string.h"
 
 #include "forward_internal.h"
 #include "image_internal.h"

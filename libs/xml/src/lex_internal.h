@@ -1,6 +1,6 @@
 #pragma once
-#include "core_string.h"
-#include "xml_read.h"
+#include "core/string.h"
+#include "xml/read.h"
 
 typedef enum {
   XmlTokenType_DeclStart,

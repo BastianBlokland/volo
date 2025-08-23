@@ -1,10 +1,10 @@
-#include "asset_manager.h"
-#include "core_alloc.h"
-#include "core_diag.h"
-#include "ecs_entity.h"
-#include "ecs_view.h"
-#include "ecs_world.h"
-#include "log_logger.h"
+#include "asset/manager.h"
+#include "core/alloc.h"
+#include "core/diag.h"
+#include "ecs/entity.h"
+#include "ecs/view.h"
+#include "ecs/world.h"
+#include "log/logger.h"
 
 #include "resource_internal.h"
 

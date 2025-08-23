@@ -1,4 +1,4 @@
-#include "core_diag.h"
+#include "core/diag.h"
 
 #include "iterator_internal.h"
 

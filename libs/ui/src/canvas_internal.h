@@ -1,5 +1,5 @@
 #pragma once
-#include "ui_canvas.h"
+#include "ui/canvas.h"
 
 #include "cmd_internal.h"
 

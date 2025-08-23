@@ -1,5 +1,5 @@
-#include "asset_property.h"
-#include "data_registry.h"
+#include "asset/property.h"
+#include "data/registry.h"
 
 #include "data_internal.h"
 

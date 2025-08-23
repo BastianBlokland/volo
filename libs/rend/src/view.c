@@ -1,6 +1,6 @@
-#include "core.h"
-#include "core_math.h"
-#include "rend_settings.h"
+#include "core/forward.h"
+#include "core/math.h"
+#include "rend/settings.h"
 
 #include "view_internal.h"
 

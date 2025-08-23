@@ -1,7 +1,7 @@
-#include "check_spec.h"
-#include "core_alloc.h"
-#include "core_dynstring.h"
-#include "core_env.h"
+#include "check/spec.h"
+#include "core/alloc.h"
+#include "core/dynstring.h"
+#include "core/env.h"
 
 spec(env) {
 

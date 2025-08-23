@@ -1,5 +1,5 @@
 #pragma once
-#include "core_time.h"
+#include "core/time.h"
 
 void       time_pal_init(void);
 TimeSteady time_pal_steady_clock(void);

@@ -1,6 +1,6 @@
-#include "ecs_utils.h"
-#include "ecs_world.h"
-#include "gap_error.h"
+#include "ecs/utils.h"
+#include "ecs/world.h"
+#include "gap/error.h"
 
 ecs_comp_define_public(GapErrorComp);
 

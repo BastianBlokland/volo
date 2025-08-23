@@ -1,9 +1,9 @@
-#include "core_alloc.h"
-#include "core_math.h"
-#include "core_rng.h"
-#include "ecs_world.h"
-#include "geo_vector.h"
-#include "rend_settings.h"
+#include "core/alloc.h"
+#include "core/math.h"
+#include "core/rng.h"
+#include "ecs/world.h"
+#include "geo/vector.h"
+#include "rend/settings.h"
 
 #define VOLO_REND_GPU_DEBUG 1
 #define VOLO_REND_VALIDATION 0

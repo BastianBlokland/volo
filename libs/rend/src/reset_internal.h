@@ -1,5 +1,5 @@
 #pragma once
-#include "rend_reset.h"
+#include "rend/reset.h"
 
 ecs_comp_extern(RendResetComp);
 

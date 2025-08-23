@@ -1,7 +1,7 @@
-#include "core_alloc.h"
-#include "core_diag_except.h"
-#include "core_string.h"
-#include "core_thread.h"
+#include "core/alloc.h"
+#include "core/diag_except.h"
+#include "core/string.h"
+#include "core/thread.h"
 
 #include "init_internal.h"
 #include "thread_internal.h"

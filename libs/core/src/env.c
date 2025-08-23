@@ -1,7 +1,7 @@
-#include "core_alloc.h"
-#include "core_dynstring.h"
-#include "core_env.h"
-#include "core_string.h"
+#include "core/alloc.h"
+#include "core/dynstring.h"
+#include "core/env.h"
+#include "core/string.h"
 
 #define env_var_max_value_size (usize_kibibyte * 32)
 

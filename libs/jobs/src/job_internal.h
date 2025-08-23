@@ -1,6 +1,6 @@
 #pragma once
-#include "core.h"
-#include "jobs_graph.h"
+#include "core/forward.h"
+#include "jobs/graph.h"
 
 // Padded to 64 bytes to avoid false-sharing of cachelines.
 #define job_align 64

@@ -1,6 +1,6 @@
 #pragma once
-#include "core_string.h"
-#include "geo.h"
+#include "core/string.h"
+#include "geo/forward.h"
 
 #include "forward_internal.h"
 

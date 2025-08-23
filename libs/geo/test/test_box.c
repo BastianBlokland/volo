@@ -1,9 +1,9 @@
-#include "check_spec.h"
-#include "core_array.h"
-#include "core_math.h"
-#include "geo_box.h"
-#include "geo_quat.h"
-#include "geo_sphere.h"
+#include "check/spec.h"
+#include "core/array.h"
+#include "core/math.h"
+#include "geo/box.h"
+#include "geo/quat.h"
+#include "geo/sphere.h"
 
 #include "utils_internal.h"
 

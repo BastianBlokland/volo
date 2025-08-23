@@ -1,5 +1,5 @@
-#include "check_spec.h"
-#include "geo_plane.h"
+#include "check/spec.h"
+#include "geo/plane.h"
 
 #include "utils_internal.h"
 

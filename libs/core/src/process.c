@@ -1,6 +1,6 @@
-#include "core_array.h"
-#include "core_diag.h"
-#include "core_process.h"
+#include "core/array.h"
+#include "core/diag.h"
+#include "core/process.h"
 
 static const String g_processResultStrs[] = {
     string_static("Success"),

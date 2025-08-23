@@ -1,10 +1,10 @@
-#include "core_diag.h"
-#include "core_time.h"
-#include "script_args.h"
-#include "script_binder.h"
-#include "script_enum.h"
-#include "script_panic.h"
-#include "script_val.h"
+#include "core/diag.h"
+#include "core/time.h"
+#include "script/args.h"
+#include "script/binder.h"
+#include "script/enum.h"
+#include "script/panic.h"
+#include "script/val.h"
 
 #include "val_internal.h"
 

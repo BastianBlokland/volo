@@ -1,5 +1,5 @@
 #pragma once
-#include "core_init.h"
+#include "core/init.h"
 
 /**
  * Global initialization routines.

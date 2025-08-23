@@ -1,6 +1,6 @@
-#include "core_alloc.h"
-#include "core_dynlib.h"
-#include "core_path.h"
+#include "core/alloc.h"
+#include "core/dynlib.h"
+#include "core/path.h"
 
 #include "symbol_internal.h"
 

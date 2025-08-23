@@ -1,12 +1,12 @@
-#include "core_array.h"
-#include "core_bits.h"
-#include "core_diag.h"
-#include "core_format.h"
-#include "core_math.h"
-#include "core_stringtable.h"
-#include "core_thread.h"
-#include "core_utf8.h"
-#include "script_lex.h"
+#include "core/array.h"
+#include "core/bits.h"
+#include "core/diag.h"
+#include "core/format.h"
+#include "core/math.h"
+#include "core/stringtable.h"
+#include "core/thread.h"
+#include "core/utf8.h"
+#include "script/lex.h"
 
 #define script_token_diag(_DIAG_)                                                                  \
   (ScriptToken) { .kind = ScriptTokenKind_Diag, .val_diag = (_DIAG_) }

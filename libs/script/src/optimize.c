@@ -1,8 +1,8 @@
-#include "core_array.h"
-#include "core_diag.h"
-#include "script_eval.h"
-#include "script_intrinsic.h"
-#include "script_optimize.h"
+#include "core/array.h"
+#include "core/diag.h"
+#include "script/eval.h"
+#include "script/intrinsic.h"
+#include "script/optimize.h"
 
 #include "doc_internal.h"
 #include "val_internal.h"

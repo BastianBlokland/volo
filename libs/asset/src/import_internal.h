@@ -1,6 +1,6 @@
 #pragma once
-#include "ecs_module.h"
-#include "script.h"
+#include "ecs/module.h"
+#include "script/forward.h"
 
 /**
  * Global asset import environment.

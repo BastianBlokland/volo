@@ -1,10 +1,10 @@
-#include "asset_graphic.h"
-#include "asset_manager.h"
-#include "asset_register.h"
-#include "check_spec.h"
-#include "core_alloc.h"
-#include "ecs.h"
-#include "ecs_utils.h"
+#include "asset/graphic.h"
+#include "asset/manager.h"
+#include "asset/register.h"
+#include "check/spec.h"
+#include "core/alloc.h"
+#include "ecs/forward.h"
+#include "ecs/utils.h"
 
 #include "utils_internal.h"
 

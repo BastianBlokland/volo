@@ -1,8 +1,8 @@
-#include "check_spec.h"
-#include "cli_app.h"
-#include "cli_parse.h"
-#include "cli_read.h"
-#include "core_alloc.h"
+#include "check/spec.h"
+#include "cli/app.h"
+#include "cli/parse.h"
+#include "cli/read.h"
+#include "core/alloc.h"
 
 spec(read) {
 

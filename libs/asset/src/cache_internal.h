@@ -1,6 +1,6 @@
 #pragma once
-#include "core_string.h"
-#include "data_registry.h"
+#include "core/string.h"
+#include "data/registry.h"
 
 #include "repo_internal.h"
 

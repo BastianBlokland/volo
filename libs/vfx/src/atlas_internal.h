@@ -1,6 +1,6 @@
 #pragma once
-#include "asset.h"
-#include "ecs_module.h"
+#include "asset/forward.h"
+#include "ecs/module.h"
 
 typedef enum {
   VfxAtlasType_Sprite,

@@ -1,7 +1,7 @@
-#include "core_array.h"
-#include "core_bits.h"
-#include "core_diag.h"
-#include "core_intrinsic.h"
+#include "core/array.h"
+#include "core/bits.h"
+#include "core/diag.h"
+#include "core/intrinsic.h"
 
 static const u32 g_crcPolynomial = 0xEDB88320; // Reversed version of: 0x04C11DB7.
 static u32       g_crcTable[256];

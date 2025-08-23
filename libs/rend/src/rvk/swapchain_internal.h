@@ -1,6 +1,6 @@
 #pragma once
-#include "gap_window.h"
-#include "rend_settings.h"
+#include "gap/window.h"
+#include "rend/settings.h"
 
 #include "forward_internal.h"
 

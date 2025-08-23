@@ -1,6 +1,6 @@
-#include "asset_raw.h"
-#include "ecs_view.h"
-#include "ecs_world.h"
+#include "asset/raw.h"
+#include "ecs/view.h"
+#include "ecs/world.h"
 
 #include "import_internal.h"
 #include "manager_internal.h"

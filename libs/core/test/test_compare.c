@@ -1,6 +1,6 @@
-#include "check_spec.h"
-#include "core_compare.h"
-#include "core_string.h"
+#include "check/spec.h"
+#include "core/compare.h"
+#include "core/string.h"
 
 spec(compare) {
 

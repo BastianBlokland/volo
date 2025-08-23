@@ -1,6 +1,6 @@
 #pragma once
-#include "asset.h"
-#include "data.h"
+#include "asset/forward.h"
+#include "data/forward.h"
 
 void asset_data_init_arraytex(void);
 void asset_data_init_atlas(void);

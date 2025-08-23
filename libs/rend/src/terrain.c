@@ -1,13 +1,13 @@
-#include "asset_manager.h"
-#include "core_diag.h"
-#include "core_math.h"
-#include "ecs_utils.h"
-#include "ecs_view.h"
-#include "ecs_world.h"
-#include "geo_box.h"
-#include "rend_object.h"
-#include "scene_tag.h"
-#include "scene_terrain.h"
+#include "asset/manager.h"
+#include "core/diag.h"
+#include "core/math.h"
+#include "ecs/utils.h"
+#include "ecs/view.h"
+#include "ecs/world.h"
+#include "geo/box.h"
+#include "rend/object.h"
+#include "scene/tag.h"
+#include "scene/terrain.h"
 
 // clang-format off
 

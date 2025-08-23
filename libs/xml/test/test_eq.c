@@ -1,7 +1,7 @@
-#include "check_spec.h"
-#include "core_alloc.h"
-#include "xml_doc.h"
-#include "xml_eq.h"
+#include "check/spec.h"
+#include "core/alloc.h"
+#include "xml/doc.h"
+#include "xml/eq.h"
 
 spec(eq) {
 

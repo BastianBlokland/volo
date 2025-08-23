@@ -1,8 +1,8 @@
 #pragma once
-#include "core_dynarray.h"
-#include "script_doc.h"
-#include "script_intrinsic.h"
-#include "script_pos.h"
+#include "core/dynarray.h"
+#include "script/doc.h"
+#include "script/intrinsic.h"
+#include "script/pos.h"
 
 typedef u32 ScriptValId;
 typedef u32 ScriptExprSet;

@@ -1,6 +1,6 @@
-#include "core_alloc.h"
-#include "core_math.h"
-#include "rend_report.h"
+#include "core/alloc.h"
+#include "core/math.h"
+#include "rend/report.h"
 
 typedef struct sRendReport {
   Allocator*       bumpAlloc;

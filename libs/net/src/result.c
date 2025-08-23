@@ -1,7 +1,7 @@
-#include "core_array.h"
-#include "core_diag.h"
-#include "core_string.h"
-#include "net_result.h"
+#include "core/array.h"
+#include "core/diag.h"
+#include "core/string.h"
+#include "net/result.h"
 
 static const String g_netResultStrs[] = {
     [NetResult_Success]                         = string_static("NetSuccess"),

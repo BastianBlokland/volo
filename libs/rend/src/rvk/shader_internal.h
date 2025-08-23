@@ -1,7 +1,7 @@
 #pragma once
-#include "asset.h"
-#include "asset_shader.h"
-#include "rend.h"
+#include "asset/forward.h"
+#include "asset/shader.h"
+#include "rend/forward.h"
 
 #include "desc_internal.h"
 #include "forward_internal.h"

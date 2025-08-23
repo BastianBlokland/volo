@@ -1,7 +1,7 @@
 #pragma once
-#include "gap_window.h"
-#include "rend_settings.h"
-#include "rend_stats.h"
+#include "gap/window.h"
+#include "rend/settings.h"
+#include "rend/stats.h"
 
 #include "forward_internal.h"
 #include "types_internal.h"

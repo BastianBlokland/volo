@@ -1,5 +1,5 @@
 #pragma once
-#include "core_symbol.h"
+#include "core/symbol.h"
 
 typedef struct sSymbolReg SymbolReg;
 

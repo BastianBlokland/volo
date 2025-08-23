@@ -1,6 +1,6 @@
 #pragma once
-#include "check_spec.h"
-#include "geo.h"
+#include "check/spec.h"
+#include "geo/forward.h"
 
 #define check_eq_matrix(_A_, _B_) check_eq_matrix_impl(_testCtx, (_A_), (_B_), source_location())
 #define check_eq_quat(_A_, _B_) check_eq_quat_impl(_testCtx, (_A_), (_B_), source_location())

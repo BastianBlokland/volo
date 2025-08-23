@@ -1,8 +1,8 @@
-#include "core.h"
-#include "core_array.h"
-#include "core_diag.h"
-#include "core_math.h"
-#include "geo_color.h"
+#include "core/array.h"
+#include "core/diag.h"
+#include "core/forward.h"
+#include "core/math.h"
+#include "geo/color.h"
 
 #include "desc_internal.h"
 #include "device_internal.h"

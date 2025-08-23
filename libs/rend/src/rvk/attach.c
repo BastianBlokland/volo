@@ -1,6 +1,6 @@
-#include "core_bits.h"
-#include "core_bitset.h"
-#include "core_diag.h"
+#include "core/bits.h"
+#include "core/bitset.h"
+#include "core/diag.h"
 
 #include "attach_internal.h"
 #include "device_internal.h"

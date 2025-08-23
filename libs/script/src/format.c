@@ -1,10 +1,10 @@
-#include "core_alloc.h"
-#include "core_diag.h"
-#include "core_dynstring.h"
-#include "core_math.h"
-#include "core_utf8.h"
-#include "script_format.h"
-#include "script_lex.h"
+#include "core/alloc.h"
+#include "core/diag.h"
+#include "core/dynstring.h"
+#include "core/math.h"
+#include "core/utf8.h"
+#include "script/format.h"
+#include "script/lex.h"
 
 #define script_format_align_entries_max 64
 #define script_format_align_diff_max 25

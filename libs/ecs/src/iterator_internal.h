@@ -1,7 +1,7 @@
 #pragma once
-#include "core_bitset.h"
-#include "ecs.h"
-#include "ecs_comp.h"
+#include "core/bitset.h"
+#include "ecs/comp.h"
+#include "ecs/forward.h"
 
 #include "comp_internal.h"
 

@@ -1,4 +1,4 @@
-#include "core_diag.h"
+#include "core/diag.h"
 
 #include "comp_internal.h"
 #include "def_internal.h"

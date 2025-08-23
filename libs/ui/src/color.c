@@ -1,5 +1,5 @@
-#include "core_math.h"
-#include "ui_color.h"
+#include "core/math.h"
+#include "ui/color.h"
 
 UiColor ui_color_lerp(const UiColor x, const UiColor y, const f32 t) {
   return ui_color(

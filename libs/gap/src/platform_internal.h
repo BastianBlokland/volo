@@ -1,5 +1,5 @@
 #pragma once
-#include "ecs_module.h"
+#include "ecs/module.h"
 
 #include "pal_internal.h"
 

@@ -1,8 +1,8 @@
-#include "check_spec.h"
-#include "core_alloc.h"
-#include "core_array.h"
-#include "core_rng.h"
-#include "vfx_warp.h"
+#include "check/spec.h"
+#include "core/alloc.h"
+#include "core/array.h"
+#include "core/rng.h"
+#include "vfx/warp.h"
 
 #define test_vec_eq_threshold 1e-5f
 

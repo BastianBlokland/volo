@@ -1,5 +1,5 @@
-#include "core_compare.h"
-#include "ecs_entity.h"
+#include "core/compare.h"
+#include "ecs/entity.h"
 
 i8 ecs_compare_entity(const void* a, const void* b) {
   /**

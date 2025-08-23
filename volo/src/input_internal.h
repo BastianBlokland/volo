@@ -1,7 +1,7 @@
 #pragma once
-#include "core.h"
-#include "ecs_module.h"
-#include "geo_vector.h"
+#include "core/forward.h"
+#include "ecs/module.h"
+#include "geo/vector.h"
 
 ecs_comp_extern(InputStateComp);
 

@@ -1,5 +1,5 @@
-#include "core_diag.h"
-#include "core_time.h"
+#include "core/diag.h"
+#include "core/time.h"
 
 #include "init_internal.h"
 #include "time_internal.h"

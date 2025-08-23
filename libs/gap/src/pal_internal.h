@@ -1,12 +1,12 @@
 #pragma once
-#include "asset_icon.h"
-#include "core.h"
-#include "core_alloc.h"
-#include "core_string.h"
-#include "core_time.h"
-#include "gap_icon.h"
-#include "gap_native.h"
-#include "gap_vector.h"
+#include "asset/icon.h"
+#include "core/alloc.h"
+#include "core/forward.h"
+#include "core/string.h"
+#include "core/time.h"
+#include "gap/icon.h"
+#include "gap/native.h"
+#include "gap/vector.h"
 
 #include "input_internal.h"
 

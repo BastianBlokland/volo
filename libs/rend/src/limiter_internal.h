@@ -1,6 +1,6 @@
 #pragma once
-#include "core_time.h"
-#include "ecs_module.h"
+#include "core/time.h"
+#include "ecs/module.h"
 
 ecs_comp_extern_public(RendLimiterComp) {
   TimeDuration sleepDur;

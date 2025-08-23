@@ -1,8 +1,8 @@
-#include "check_spec.h"
-#include "core_alloc.h"
-#include "ecs_def.h"
-#include "ecs_entity.h"
-#include "ecs_world.h"
+#include "check/spec.h"
+#include "core/alloc.h"
+#include "ecs/def.h"
+#include "ecs/entity.h"
+#include "ecs/world.h"
 
 spec(entity) {
 

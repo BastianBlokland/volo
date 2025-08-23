@@ -1,5 +1,5 @@
 #pragma once
-#include "core_string.h"
+#include "core/string.h"
 
 #include "forward_internal.h"
 #include "mem_internal.h"

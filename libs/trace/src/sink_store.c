@@ -1,17 +1,17 @@
-#include "core_alloc.h"
-#include "core_array.h"
-#include "core_diag.h"
-#include "core_math.h"
-#include "core_stringtable.h"
-#include "core_thread.h"
-#include "core_time.h"
-#include "trace_sink.h"
-#include "trace_sink_store.h"
+#include "core/alloc.h"
+#include "core/array.h"
+#include "core/diag.h"
+#include "core/math.h"
+#include "core/stringtable.h"
+#include "core/thread.h"
+#include "core/time.h"
+#include "trace/sink.h"
+#include "trace/sink_store.h"
 
 #include "tracer_internal.h"
 
 #ifdef VOLO_SIMD
-#include "core_simd.h"
+#include "core/simd.h"
 #endif
 
 /**

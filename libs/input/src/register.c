@@ -1,5 +1,5 @@
-#include "ecs_def.h"
-#include "input_register.h"
+#include "ecs/def.h"
+#include "input/register.h"
 
 void input_register(EcsDef* def) {
   ecs_register_module(def, input_manager_module);

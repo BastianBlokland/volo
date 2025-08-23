@@ -1,5 +1,5 @@
-#include "core_dynarray.h"
-#include "log_logger.h"
+#include "core/dynarray.h"
+#include "log/logger.h"
 
 #include "cmd_internal.h"
 

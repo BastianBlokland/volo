@@ -1,6 +1,6 @@
-#include "dev_panel.h"
-#include "ecs_world.h"
-#include "ui_canvas.h"
+#include "dev/panel.h"
+#include "ecs/world.h"
+#include "ui/canvas.h"
 
 ecs_comp_define(DevPanelComp) {
   DevPanelType type;

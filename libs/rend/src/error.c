@@ -1,6 +1,6 @@
-#include "ecs_utils.h"
-#include "ecs_world.h"
-#include "rend_error.h"
+#include "ecs/utils.h"
+#include "ecs/world.h"
+#include "rend/error.h"
 
 ecs_comp_define_public(RendErrorComp);
 

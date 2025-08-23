@@ -1,8 +1,8 @@
 #pragma once
-#include "core_alloc.h"
-#include "core_unicode.h"
-#include "ui_canvas.h"
-#include "ui_color.h"
+#include "core/alloc.h"
+#include "core/unicode.h"
+#include "ui/canvas.h"
+#include "ui/color.h"
 
 typedef enum {
   UiCmd_RectPush,

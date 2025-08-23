@@ -1,6 +1,6 @@
-#include "core_array.h"
-#include "core_ascii.h"
-#include "core_diag.h"
+#include "core/array.h"
+#include "core/ascii.h"
+#include "core/diag.h"
 
 #include "escape_internal.h"
 

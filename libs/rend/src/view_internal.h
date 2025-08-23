@@ -1,8 +1,8 @@
 #pragma once
-#include "geo_box.h"
-#include "geo_matrix.h"
-#include "rend_settings.h"
-#include "scene_tag.h"
+#include "geo/box.h"
+#include "geo/matrix.h"
+#include "rend/settings.h"
+#include "scene/tag.h"
 
 typedef struct sRendView {
   EcsEntityId    camera;

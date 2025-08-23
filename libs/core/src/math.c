@@ -1,7 +1,7 @@
-#include "core_array.h"
-#include "core_diag.h"
-#include "core_intrinsic.h"
-#include "core_math.h"
+#include "core/array.h"
+#include "core/diag.h"
+#include "core/intrinsic.h"
+#include "core/math.h"
 
 u64 math_pow10_u64(const u8 val) {
   static const u64 g_table[] = {

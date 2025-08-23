@@ -1,8 +1,8 @@
-#include "core_array.h"
-#include "core_bits.h"
-#include "core_diag.h"
-#include "ecs_world.h"
-#include "scene_tag.h"
+#include "core/array.h"
+#include "core/bits.h"
+#include "core/diag.h"
+#include "ecs/world.h"
+#include "scene/tag.h"
 
 ecs_comp_define_public(SceneTagComp);
 

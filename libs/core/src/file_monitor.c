@@ -1,6 +1,6 @@
-#include "core_array.h"
-#include "core_diag.h"
-#include "core_file_monitor.h"
+#include "core/array.h"
+#include "core/diag.h"
+#include "core/file_monitor.h"
 
 static const String g_fileMonitorResultStrs[] = {
     string_static("FileMonitorSuccess"),

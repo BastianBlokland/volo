@@ -1,10 +1,10 @@
-#include "core_array.h"
-#include "core_bits.h"
-#include "core_diag.h"
-#include "core_sort.h"
+#include "core/array.h"
+#include "core/bits.h"
+#include "core/diag.h"
+#include "core/sort.h"
 
 #ifdef VOLO_SIMD
-#include "core_simd.h"
+#include "core/simd.h"
 #endif
 
 // #define VOLO_SORT_VERIFY

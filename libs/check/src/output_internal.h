@@ -1,5 +1,5 @@
 #pragma once
-#include "check_runner.h"
+#include "check/runner.h"
 
 #include "spec_internal.h"
 

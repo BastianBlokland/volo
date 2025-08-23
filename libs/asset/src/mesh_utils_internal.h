@@ -1,7 +1,7 @@
 #pragma once
-#include "asset_mesh.h"
-#include "core_alloc.h"
-#include "geo.h"
+#include "asset/mesh.h"
+#include "core/alloc.h"
+#include "geo/forward.h"
 
 typedef struct sAssetMeshBuilder AssetMeshBuilder;
 

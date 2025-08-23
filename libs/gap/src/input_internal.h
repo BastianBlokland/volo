@@ -1,6 +1,6 @@
 #pragma once
-#include "core_bits.h"
-#include "gap_input.h"
+#include "core/bits.h"
+#include "gap/input.h"
 
 typedef struct {
   u8 data[bits_to_bytes(GapKey_Count) + 1];
