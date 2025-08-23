@@ -62,7 +62,8 @@ typedef enum {
 } AppMode;
 
 ecs_comp_define(AppComp) {
-  AppMode     mode : 8;
+  AppMode     mode;
+  bool        devSupport;
   EcsEntityId mainWindow;
 };
 
@@ -419,25 +420,28 @@ static void app_action_exit_draw(UiCanvasComp* canvas, const AppActionContext* c
 }
 
 static void app_action_bar_draw(UiCanvasComp* canvas, const AppActionContext* ctx) {
-  static void (*const g_actions[])(UiCanvasComp*, const AppActionContext*) = {
-      app_action_debug_draw,
-      app_action_pause_draw,
-      app_action_restart_draw,
-      app_action_sound_draw,
-      app_action_quality_draw,
-      app_action_fullscreen_draw,
-      app_action_exit_draw,
-  };
-  static const u32      g_actionCount = array_elems(g_actions);
-  static const UiVector g_buttonSize  = {.x = 50.0f, .y = 50.0f};
-  static const f32      g_spacing     = 8.0f;
+  void (*actions[32])(UiCanvasComp*, const AppActionContext*);
+  u32 actionCount = 0;
 
-  const f32 xCenterOffset = (g_actionCount - 1) * (g_buttonSize.x + g_spacing) * -0.5f;
+  if (ctx->app->devSupport) {
+    actions[actionCount++] = app_action_debug_draw;
+  }
+  actions[actionCount++] = app_action_pause_draw;
+  actions[actionCount++] = app_action_restart_draw;
+  actions[actionCount++] = app_action_sound_draw;
+  actions[actionCount++] = app_action_quality_draw;
+  actions[actionCount++] = app_action_fullscreen_draw;
+  actions[actionCount++] = app_action_exit_draw;
+
+  static const UiVector g_buttonSize = {.x = 50.0f, .y = 50.0f};
+  static const f32      g_spacing    = 8.0f;
+
+  const f32 xCenterOffset = (actionCount - 1) * (g_buttonSize.x + g_spacing) * -0.5f;
   ui_layout_inner(canvas, UiBase_Canvas, UiAlign_BottomCenter, g_buttonSize, UiBase_Absolute);
   ui_layout_move(canvas, ui_vector(xCenterOffset, g_spacing), UiBase_Absolute, Ui_XY);
 
-  for (u32 i = 0; i != g_actionCount; ++i) {
-    g_actions[i](canvas, ctx);
+  for (u32 i = 0; i != actionCount; ++i) {
+    actions[i](canvas, ctx);
     ui_layout_next(canvas, Ui_Right, g_spacing);
   }
 }
@@ -728,7 +732,8 @@ bool app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
 
   app_quality_apply(prefs, rendSettingsGlobal, rendSettingsWin);
 
-  ecs_world_add_t(world, ecs_world_global(world), AppComp, .mainWindow = mainWin);
+  ecs_world_add_t(
+      world, ecs_world_global(world), AppComp, .devSupport = devSupport, .mainWindow = mainWin);
 
   InputResourceComp* inputResource = input_resource_init(world);
   input_resource_load_map(inputResource, string_lit("global/app.inputs"));
