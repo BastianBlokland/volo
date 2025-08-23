@@ -57,7 +57,7 @@ ecs_module_init(def_test_module) {
   ecs_register_system(CleanupSys, ecs_view_id(ReadAReadB));
 
   const DefInitContext* ctx = ecs_init_ctx();
-  if (ctx->val == 42) {
+  if (ctx->val != 42) {
     diag_crash_msg("Invalid module init context");
   }
 
