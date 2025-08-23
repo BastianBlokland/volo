@@ -66,6 +66,7 @@ ecs_comp_define(AppComp) {
   bool        devSupport;
   EcsEntityId mainWindow;
 
+  u32         levelMask;
   u32         levelLoadingMask;
   EcsEntityId levelAssets[AppLevelsMax];
   String      levelNames[AppLevelsMax];
@@ -514,6 +515,7 @@ static void app_levels_query_update(EcsWorld* world, AppComp* app) {
       log_e("Invalid level", log_param("entity", ecs_entity_fmt(asset)));
       goto Done;
     }
+    app->levelMask |= 1 << idx;
     app->levelNames[idx] = ecs_view_read_t(levelItr, AssetLevelComp)->level.name;
   Done:
     asset_release(world, asset);
