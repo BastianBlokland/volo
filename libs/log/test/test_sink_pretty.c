@@ -1,10 +1,10 @@
-#include "check_spec.h"
-#include "core_alloc.h"
-#include "core_dynstring.h"
-#include "core_file.h"
-#include "core_time.h"
-#include "log_logger.h"
-#include "log_sink_pretty.h"
+#include "check/spec.h"
+#include "core/alloc.h"
+#include "core/dynstring.h"
+#include "core/file.h"
+#include "core/time.h"
+#include "log/logger.h"
+#include "log/sink_pretty.h"
 
 spec(sink_pretty) {
 

@@ -1,7 +1,7 @@
-#include "check_spec.h"
-#include "core_alloc.h"
-#include "script_binder.h"
-#include "script_val.h"
+#include "check/spec.h"
+#include "core/alloc.h"
+#include "script/binder.h"
+#include "script/val.h"
 
 typedef struct {
   u32 counterA, counterB;

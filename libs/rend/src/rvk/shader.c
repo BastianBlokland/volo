@@ -1,15 +1,15 @@
-#include "asset_graphic.h"
-#include "core_alloc.h"
-#include "core_diag.h"
-#include "core_dynstring.h"
-#include "core_math.h"
-#include "log_logger.h"
-#include "rend_report.h"
+#include "asset/graphic.h"
+#include "core/alloc.h"
+#include "core/diag.h"
+#include "core/dynstring.h"
+#include "core/math.h"
+#include "log/logger.h"
+#include "rend/report.h"
 
-#include "device_internal.h"
-#include "disassembler_internal.h"
-#include "lib_internal.h"
-#include "shader_internal.h"
+#include "device.h"
+#include "disassembler.h"
+#include "lib.h"
+#include "shader.h"
 
 #define VOLO_RVK_SHADER_LOGGING 0
 

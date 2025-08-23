@@ -1,7 +1,7 @@
-#include "core_diag.h"
-#include "core_float.h"
-#include "core_math.h"
-#include "vfx_warp.h"
+#include "core/diag.h"
+#include "core/float.h"
+#include "core/math.h"
+#include "vfx/warp.h"
 
 VfxWarpVec vfx_warp_vec_add(const VfxWarpVec a, const VfxWarpVec b) {
   return (VfxWarpVec){.x = a.x + b.x, .y = a.y + b.y};

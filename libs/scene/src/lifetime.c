@@ -1,10 +1,10 @@
-#include "core_math.h"
-#include "ecs_entity.h"
-#include "ecs_view.h"
-#include "ecs_world.h"
-#include "log_logger.h"
-#include "scene_lifetime.h"
-#include "scene_time.h"
+#include "core/math.h"
+#include "ecs/entity.h"
+#include "ecs/view.h"
+#include "ecs/world.h"
+#include "log/logger.h"
+#include "scene/lifetime.h"
+#include "scene/time.h"
 
 ecs_comp_define_public(SceneLifetimeOwnerComp);
 ecs_comp_define_public(SceneLifetimeDurationComp);

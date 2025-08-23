@@ -1,4 +1,4 @@
-#include "scene_sound.h"
+#include "scene/sound.h"
 
 ecs_comp_define_public(SceneSoundComp);
 ecs_comp_define_public(SceneSoundListenerComp);

@@ -1,9 +1,9 @@
-#include "check_spec.h"
-#include "core_alloc.h"
-#include "core_diag.h"
-#include "core_dynarray.h"
-#include "ecs_def.h"
-#include "ecs_world.h"
+#include "check/spec.h"
+#include "core/alloc.h"
+#include "core/diag.h"
+#include "core/dynarray.h"
+#include "ecs/def.h"
+#include "ecs/world.h"
 
 static THREAD_LOCAL EcsCompId g_destructs[1024];
 static THREAD_LOCAL u32       g_destructCount;

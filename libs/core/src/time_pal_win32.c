@@ -1,7 +1,7 @@
-#include "core.h"
-#include "core_diag.h"
+#include "core/diag.h"
+#include "core/forward.h"
 
-#include "time_internal.h"
+#include "time.h"
 
 #include <Windows.h>
 

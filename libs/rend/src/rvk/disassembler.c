@@ -1,14 +1,14 @@
-#include "core_alloc.h"
-#include "core_bits.h"
-#include "core_diag.h"
-#include "core_dynlib.h"
-#include "core_dynstring.h"
-#include "core_env.h"
-#include "core_path.h"
-#include "core_thread.h"
-#include "log_logger.h"
+#include "core/alloc.h"
+#include "core/bits.h"
+#include "core/diag.h"
+#include "core/dynlib.h"
+#include "core/dynstring.h"
+#include "core/env.h"
+#include "core/path.h"
+#include "core/thread.h"
+#include "log/logger.h"
 
-#include "disassembler_internal.h"
+#include "disassembler.h"
 
 #define spirvtools_names_max 4
 

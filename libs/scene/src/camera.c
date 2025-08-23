@@ -1,8 +1,8 @@
-#include "core_diag.h"
-#include "core_math.h"
-#include "geo_matrix.h"
-#include "scene_camera.h"
-#include "scene_transform.h"
+#include "core/diag.h"
+#include "core/math.h"
+#include "geo/matrix.h"
+#include "scene/camera.h"
+#include "scene/transform.h"
 
 static const f32 g_camOrthoNear = -100.0f;
 static const f32 g_camOrthoFar  = +100.0f;

@@ -1,6 +1,6 @@
-#include "check_spec.h"
-#include "core_alloc.h"
-#include "ecs_def.h"
+#include "check/spec.h"
+#include "core/alloc.h"
+#include "ecs/def.h"
 
 /**
  * Private components can be shared between compilation units using 'ecs_comp_extern' but the other

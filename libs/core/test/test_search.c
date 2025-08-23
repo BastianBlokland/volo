@@ -1,6 +1,6 @@
-#include "check_spec.h"
-#include "core_array.h"
-#include "core_search.h"
+#include "check/spec.h"
+#include "core/array.h"
+#include "core/search.h"
 
 typedef struct {
   i32    key;

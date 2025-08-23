@@ -1,9 +1,9 @@
-#include "check_spec.h"
-#include "core_array.h"
-#include "core_float.h"
+#include "check/spec.h"
+#include "core/array.h"
+#include "core/float.h"
 
 #ifdef VOLO_SIMD
-#include "core_simd.h"
+#include "core/simd.h"
 
 spec(simd) {
 

@@ -1,16 +1,16 @@
-#include "core_array.h"
-#include "core_diag.h"
-#include "core_dynlib.h"
-#include "core_dynstring.h"
-#include "core_math.h"
-#include "core_path.h"
-#include "core_rng.h"
-#include "core_thread.h"
-#include "core_utf8.h"
-#include "core_winutils.h"
-#include "log_logger.h"
+#include "core/array.h"
+#include "core/diag.h"
+#include "core/dynlib.h"
+#include "core/dynstring.h"
+#include "core/math.h"
+#include "core/path.h"
+#include "core/rng.h"
+#include "core/thread.h"
+#include "core/utf8.h"
+#include "core/winutils.h"
+#include "log/logger.h"
 
-#include "pal_internal.h"
+#include "pal.h"
 
 #include <Windows.h>
 

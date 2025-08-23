@@ -1,5 +1,5 @@
-#include "ecs_def.h"
-#include "gap_register.h"
+#include "ecs/def.h"
+#include "gap/register.h"
 
 void gap_register(EcsDef* def) {
   ecs_register_module(def, gap_error_module);

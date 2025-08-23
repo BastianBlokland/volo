@@ -1,11 +1,11 @@
-#include "core_diag.h"
-#include "core_float.h"
-#include "ecs_view.h"
-#include "ecs_world.h"
-#include "geo_matrix.h"
-#include "scene_register.h"
-#include "scene_time.h"
-#include "scene_transform.h"
+#include "core/diag.h"
+#include "core/float.h"
+#include "ecs/view.h"
+#include "ecs/world.h"
+#include "geo/matrix.h"
+#include "scene/register.h"
+#include "scene/time.h"
+#include "scene/transform.h"
 
 #define velocity_update_max_time_step (1.0f / 10)
 #define velocity_update_max_dist 5.0f

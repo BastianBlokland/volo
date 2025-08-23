@@ -1,8 +1,8 @@
-#include "check_spec.h"
-#include "cli_app.h"
-#include "cli_help.h"
-#include "core_alloc.h"
-#include "core_dynstring.h"
+#include "check/spec.h"
+#include "cli/app.h"
+#include "cli/help.h"
+#include "core/alloc.h"
+#include "core/dynstring.h"
 
 spec(help) {
 

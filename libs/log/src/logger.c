@@ -1,11 +1,11 @@
-#include "core_alloc.h"
-#include "core_array.h"
-#include "core_diag.h"
-#include "core_thread.h"
-#include "core_time.h"
-#include "log_sink.h"
+#include "core/alloc.h"
+#include "core/array.h"
+#include "core/diag.h"
+#include "core/thread.h"
+#include "core/time.h"
+#include "log/sink.h"
 
-#include "logger_internal.h"
+#include "logger.h"
 
 #define log_sinks_max 6
 

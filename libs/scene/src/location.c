@@ -1,8 +1,8 @@
-#include "core_array.h"
-#include "core_diag.h"
-#include "geo_box_rotated.h"
-#include "scene_location.h"
-#include "scene_transform.h"
+#include "core/array.h"
+#include "core/diag.h"
+#include "geo/box_rotated.h"
+#include "scene/location.h"
+#include "scene/transform.h"
 
 ecs_comp_define_public(SceneLocationComp);
 

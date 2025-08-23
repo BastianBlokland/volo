@@ -1,5 +1,5 @@
-#include "check_spec.h"
-#include "core_base64.h"
+#include "check/spec.h"
+#include "core/base64.h"
 
 spec(base64) {
 

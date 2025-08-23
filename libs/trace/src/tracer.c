@@ -1,10 +1,10 @@
-#include "core_alloc.h"
-#include "core_diag.h"
-#include "core_dynstring.h"
-#include "core_thread.h"
-#include "trace_sink.h"
+#include "core/alloc.h"
+#include "core/diag.h"
+#include "core/dynstring.h"
+#include "core/thread.h"
+#include "trace/sink.h"
 
-#include "tracer_internal.h"
+#include "tracer.h"
 
 #define trace_sinks_max 4
 #define trace_message_max 256

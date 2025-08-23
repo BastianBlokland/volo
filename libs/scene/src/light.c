@@ -1,4 +1,4 @@
-#include "scene_light.h"
+#include "scene/light.h"
 
 ecs_comp_define_public(SceneLightPointComp);
 ecs_comp_define_public(SceneLightSpotComp);

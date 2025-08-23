@@ -1,11 +1,11 @@
-#include "check_spec.h"
-#include "core_alloc.h"
-#include "core_bits.h"
-#include "core_dynstring.h"
-#include "core_file.h"
-#include "core_path.h"
-#include "core_rng.h"
-#include "core_time.h"
+#include "check/spec.h"
+#include "core/alloc.h"
+#include "core/bits.h"
+#include "core/dynstring.h"
+#include "core/file.h"
+#include "core/path.h"
+#include "core/rng.h"
+#include "core/time.h"
 
 static void test_file_write_data(DynString* str, usize size) {
   for (usize i = 0; i != size; ++i) {

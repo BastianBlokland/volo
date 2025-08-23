@@ -1,15 +1,15 @@
-#include "asset_inputmap.h"
-#include "core_alloc.h"
-#include "core_dynarray.h"
-#include "core_search.h"
-#include "data_read.h"
-#include "data_utils.h"
-#include "ecs_entity.h"
-#include "ecs_view.h"
-#include "ecs_world.h"
+#include "asset/inputmap.h"
+#include "core/alloc.h"
+#include "core/dynarray.h"
+#include "core/search.h"
+#include "data/read.h"
+#include "data/utils.h"
+#include "ecs/entity.h"
+#include "ecs/view.h"
+#include "ecs/world.h"
 
-#include "manager_internal.h"
-#include "repo_internal.h"
+#include "manager.h"
+#include "repo.h"
 
 DataMeta g_assetInputDefMeta;
 

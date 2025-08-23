@@ -1,17 +1,17 @@
-#include "core_alloc.h"
-#include "core_base64.h"
-#include "core_bits.h"
-#include "core_diag.h"
-#include "core_dynstring.h"
-#include "core_float.h"
-#include "core_math.h"
-#include "core_stringtable.h"
-#include "core_time.h"
-#include "data_write.h"
-#include "json_doc.h"
-#include "json_write.h"
+#include "core/alloc.h"
+#include "core/base64.h"
+#include "core/bits.h"
+#include "core/diag.h"
+#include "core/dynstring.h"
+#include "core/float.h"
+#include "core/math.h"
+#include "core/stringtable.h"
+#include "core/time.h"
+#include "data/write.h"
+#include "json/doc.h"
+#include "json/write.h"
 
-#include "registry_internal.h"
+#include "registry.h"
 
 typedef struct {
   const DataWriteJsonOpts* opts;
@@ -96,7 +96,7 @@ static JsonVal data_write_json_number(const WriteCtx* ctx) {
 
 #define RET_ADD_NUM(_T_)                                                                           \
   case DataKind_##_T_:                                                                             \
-    return json_add_number(ctx->doc, (f64)*mem_as_t(ctx->data, _T_))
+    return json_add_number(ctx->doc, (f64) * mem_as_t(ctx->data, _T_))
 
   switch (data_decl(ctx->reg, ctx->meta.type)->kind) {
     RET_ADD_NUM(i8);

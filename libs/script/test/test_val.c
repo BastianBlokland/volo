@@ -1,14 +1,14 @@
-#include "check_spec.h"
-#include "core_array.h"
-#include "core_float.h"
-#include "core_math.h"
-#include "core_stringtable.h"
-#include "core_time.h"
-#include "geo_color.h"
-#include "geo_quat.h"
-#include "script_val.h"
+#include "check/spec.h"
+#include "core/array.h"
+#include "core/float.h"
+#include "core/math.h"
+#include "core/stringtable.h"
+#include "core/time.h"
+#include "geo/color.h"
+#include "geo/quat.h"
+#include "script/val.h"
 
-#include "utils_internal.h"
+#include "utils.h"
 
 static void test_eq_quat(CheckTestContext* ctx, GeoQuat a, const GeoQuat b) {
   if (geo_quat_dot(a, b) < 0) {

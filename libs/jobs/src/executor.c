@@ -1,16 +1,16 @@
-#include "core_array.h"
-#include "core_math.h"
-#include "core_rng.h"
-#include "core_thread.h"
-#include "jobs_graph.h"
-#include "jobs_init.h"
-#include "trace_tracer.h"
+#include "core/array.h"
+#include "core/math.h"
+#include "core/rng.h"
+#include "core/thread.h"
+#include "jobs/graph.h"
+#include "jobs/init.h"
+#include "trace/tracer.h"
 
-#include "affinity_queue_internal.h"
-#include "executor_internal.h"
-#include "graph_internal.h"
-#include "scheduler_internal.h"
-#include "work_queue_internal.h"
+#include "affinity_queue.h"
+#include "executor.h"
+#include "graph.h"
+#include "scheduler.h"
+#include "work_queue.h"
 
 #include <immintrin.h>
 

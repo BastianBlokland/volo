@@ -1,7 +1,7 @@
-#include "check_spec.h"
-#include "core_array.h"
-#include "core_bits.h"
-#include "core_bitset.h"
+#include "check/spec.h"
+#include "core/array.h"
+#include "core/bits.h"
+#include "core/bitset.h"
 
 spec(bitset) {
 

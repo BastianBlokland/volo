@@ -1,4 +1,4 @@
-#include "ui_stats.h"
+#include "ui/stats.h"
 
 ecs_comp_define_public(UiStatsComp);
 

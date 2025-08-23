@@ -1,5 +1,5 @@
-#include "dev_register.h"
-#include "ecs_def.h"
+#include "dev/register.h"
+#include "ecs/def.h"
 
 void dev_register(EcsDef* def) {
   ecs_register_module(def, dev_asset_module);

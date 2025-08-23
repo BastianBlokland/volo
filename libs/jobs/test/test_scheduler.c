@@ -1,7 +1,7 @@
-#include "check_spec.h"
-#include "core_alloc.h"
-#include "core_dynarray.h"
-#include "jobs_scheduler.h"
+#include "check/spec.h"
+#include "core/alloc.h"
+#include "core/dynarray.h"
+#include "jobs/scheduler.h"
 
 #define task_flags JobTaskFlags_None
 

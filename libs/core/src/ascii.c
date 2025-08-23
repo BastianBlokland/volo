@@ -1,5 +1,5 @@
-#include "core_ascii.h"
-#include "core_sentinel.h"
+#include "core/ascii.h"
+#include "core/sentinel.h"
 
 bool ascii_is_valid(const u8 c) { return (c & 0b10000000) == 0; }
 

@@ -1,8 +1,8 @@
-#include "core_diag.h"
-#include "trace_tracer.h"
+#include "core/diag.h"
+#include "trace/tracer.h"
 
-#include "def_internal.h"
-#include "finalizer_internal.h"
+#include "def.h"
+#include "finalizer.h"
 
 // #define VOLO_ECS_TRACE_DESTRUCTORS
 

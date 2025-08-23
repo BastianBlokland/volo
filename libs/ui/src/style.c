@@ -1,6 +1,6 @@
-#include "ui_style.h"
+#include "ui/style.h"
 
-#include "canvas_internal.h"
+#include "canvas.h"
 
 void ui_style_push(UiCanvasComp* canvas) {
   UiCmdBuffer* cmdBuffer = ui_canvas_cmd_buffer(canvas);

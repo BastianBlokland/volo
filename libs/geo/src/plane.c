@@ -1,9 +1,9 @@
-#include "core_diag.h"
-#include "core_math.h"
-#include "geo_plane.h"
+#include "core/diag.h"
+#include "core/math.h"
+#include "geo/plane.h"
 
 #ifdef VOLO_SIMD
-#include "core_simd.h"
+#include "core/simd.h"
 #endif
 
 static void assert_normalized(const GeoVector v) {

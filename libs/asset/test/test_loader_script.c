@@ -1,12 +1,12 @@
-#include "asset_manager.h"
-#include "asset_register.h"
-#include "asset_script.h"
-#include "check_spec.h"
-#include "core_alloc.h"
-#include "ecs_utils.h"
-#include "ecs_world.h"
+#include "asset/manager.h"
+#include "asset/register.h"
+#include "asset/script.h"
+#include "check/spec.h"
+#include "core/alloc.h"
+#include "ecs/utils.h"
+#include "ecs/world.h"
 
-#include "utils_internal.h"
+#include "utils.h"
 
 static const struct {
   String id;

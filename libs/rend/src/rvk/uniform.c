@@ -1,16 +1,16 @@
-#include "core_alloc.h"
-#include "core_array.h"
-#include "core_bits.h"
-#include "core_diag.h"
-#include "core_dynarray.h"
-#include "core_math.h"
-#include "log_logger.h"
+#include "core/alloc.h"
+#include "core/array.h"
+#include "core/bits.h"
+#include "core/diag.h"
+#include "core/dynarray.h"
+#include "core/math.h"
+#include "log/logger.h"
 
-#include "buffer_internal.h"
-#include "desc_internal.h"
-#include "device_internal.h"
-#include "lib_internal.h"
-#include "uniform_internal.h"
+#include "buffer.h"
+#include "desc.h"
+#include "device.h"
+#include "lib.h"
+#include "uniform.h"
 
 /**
  * Maximum amount of data that we can bind to a single uniform.

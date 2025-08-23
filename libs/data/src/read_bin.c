@@ -1,12 +1,12 @@
-#include "core_alloc.h"
-#include "core_bits.h"
-#include "core_diag.h"
-#include "core_math.h"
-#include "core_stringtable.h"
-#include "data_read.h"
-#include "data_utils.h"
+#include "core/alloc.h"
+#include "core/bits.h"
+#include "core/diag.h"
+#include "core/math.h"
+#include "core/stringtable.h"
+#include "data/read.h"
+#include "data/utils.h"
 
-#include "registry_internal.h"
+#include "registry.h"
 
 #define VOLO_DATA_VALIDATE_CHECKSUMS 0
 

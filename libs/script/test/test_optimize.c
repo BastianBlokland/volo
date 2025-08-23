@@ -1,10 +1,10 @@
-#include "check_spec.h"
-#include "core_alloc.h"
-#include "core_array.h"
-#include "script_optimize.h"
-#include "script_read.h"
+#include "check/spec.h"
+#include "core/alloc.h"
+#include "core/array.h"
+#include "script/optimize.h"
+#include "script/read.h"
 
-#include "utils_internal.h"
+#include "utils.h"
 
 spec(optimize) {
   it("can perform basic optimizations") {

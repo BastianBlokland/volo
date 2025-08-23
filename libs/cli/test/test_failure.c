@@ -1,9 +1,9 @@
-#include "check_spec.h"
-#include "cli_app.h"
-#include "cli_failure.h"
-#include "cli_parse.h"
-#include "core_alloc.h"
-#include "core_dynstring.h"
+#include "check/spec.h"
+#include "cli/app.h"
+#include "cli/failure.h"
+#include "cli/parse.h"
+#include "core/alloc.h"
+#include "core/dynstring.h"
 
 spec(failure) {
 

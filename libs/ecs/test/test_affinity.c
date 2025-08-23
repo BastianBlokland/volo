@@ -1,11 +1,11 @@
-#include "check_spec.h"
-#include "core_alloc.h"
-#include "core_diag.h"
-#include "core_thread.h"
-#include "ecs_def.h"
-#include "ecs_runner.h"
-#include "ecs_view.h"
-#include "ecs_world.h"
+#include "check/spec.h"
+#include "core/alloc.h"
+#include "core/diag.h"
+#include "core/thread.h"
+#include "ecs/def.h"
+#include "ecs/runner.h"
+#include "ecs/view.h"
+#include "ecs/world.h"
 
 ecs_comp_define(AffinityComp) { ThreadId tid; };
 

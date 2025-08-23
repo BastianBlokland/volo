@@ -1,10 +1,10 @@
-#include "core_diag.h"
-#include "log_logger.h"
+#include "core/diag.h"
+#include "log/logger.h"
 
-#include "device_internal.h"
-#include "lib_internal.h"
-#include "mesh_internal.h"
-#include "transfer_internal.h"
+#include "device.h"
+#include "lib.h"
+#include "mesh.h"
+#include "transfer.h"
 
 #define VOLO_RVK_MESH_LOGGING 0
 #define VOLO_RVK_MESH_VALIDATE_BIND 0

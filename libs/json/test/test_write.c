@@ -1,11 +1,11 @@
-#include "check_spec.h"
-#include "core_alloc.h"
-#include "core_array.h"
-#include "core_dynstring.h"
-#include "core_float.h"
-#include "core_unicode.h"
-#include "json_doc.h"
-#include "json_write.h"
+#include "check/spec.h"
+#include "core/alloc.h"
+#include "core/array.h"
+#include "core/dynstring.h"
+#include "core/float.h"
+#include "core/unicode.h"
+#include "json/doc.h"
+#include "json/write.h"
 
 spec(write) {
 

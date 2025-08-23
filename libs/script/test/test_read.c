@@ -1,13 +1,13 @@
-#include "check_spec.h"
-#include "core_alloc.h"
-#include "core_array.h"
-#include "core_dynstring.h"
-#include "core_stringtable.h"
-#include "script_binder.h"
-#include "script_diag.h"
-#include "script_read.h"
+#include "check/spec.h"
+#include "core/alloc.h"
+#include "core/array.h"
+#include "core/dynstring.h"
+#include "core/stringtable.h"
+#include "script/binder.h"
+#include "script/diag.h"
+#include "script/read.h"
 
-#include "utils_internal.h"
+#include "utils.h"
 
 spec(read) {
   ScriptDoc*     doc             = null;

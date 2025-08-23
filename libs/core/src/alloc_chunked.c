@@ -1,9 +1,9 @@
-#include "core_alloc.h"
-#include "core_bits.h"
-#include "core_diag.h"
-#include "core_math.h"
+#include "core/alloc.h"
+#include "core/bits.h"
+#include "core/diag.h"
+#include "core/math.h"
 
-#include "alloc_internal.h"
+#include "alloc.h"
 
 #define alloc_chunk_size_min 768
 #define alloc_chunk_align sizeof(void*)

@@ -1,13 +1,13 @@
-#include "app_cli.h"
-#include "cli_app.h"
-#include "cli_parse.h"
-#include "cli_read.h"
-#include "core_alloc.h"
-#include "core_dynstring.h"
-#include "core_file.h"
-#include "core_signal.h"
-#include "core_thread.h"
-#include "core_time.h"
+#include "app/cli.h"
+#include "cli/app.h"
+#include "cli/parse.h"
+#include "cli/read.h"
+#include "core/alloc.h"
+#include "core/dynstring.h"
+#include "core/file.h"
+#include "core/signal.h"
+#include "core/thread.h"
+#include "core/time.h"
 
 /**
  * Helper executable that is used in the process tests.

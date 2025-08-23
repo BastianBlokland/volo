@@ -1,7 +1,7 @@
-#include "core_bits.h"
-#include "core_diag.h"
+#include "core/bits.h"
+#include "core/diag.h"
 
-#include "alloc_internal.h"
+#include "alloc.h"
 
 /**
  * Tag the entire memory region on reset to help detecting 'Use After Free'.

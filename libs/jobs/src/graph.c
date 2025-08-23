@@ -1,11 +1,11 @@
-#include "core_alloc.h"
-#include "core_array.h"
-#include "core_math.h"
-#include "core_sentinel.h"
-#include "jobs_graph.h"
-#include "trace_tracer.h"
+#include "core/alloc.h"
+#include "core/array.h"
+#include "core/math.h"
+#include "core/sentinel.h"
+#include "jobs/graph.h"
+#include "trace/tracer.h"
 
-#include "graph_internal.h"
+#include "graph.h"
 
 #define jobs_graph_aux_chunk_size (4 * usize_kibibyte)
 #define jobs_graph_max_tasks 25000

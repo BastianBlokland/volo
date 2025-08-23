@@ -1,16 +1,16 @@
-#include "core_array.h"
-#include "core_ascii.h"
-#include "core_diag.h"
-#include "core_dynstring.h"
-#include "core_math.h"
-#include "core_sort.h"
-#include "core_time.h"
-#include "core_unicode.h"
-#include "core_utf8.h"
-#include "gap_input.h"
+#include "core/array.h"
+#include "core/ascii.h"
+#include "core/diag.h"
+#include "core/dynstring.h"
+#include "core/math.h"
+#include "core/sort.h"
+#include "core/time.h"
+#include "core/unicode.h"
+#include "core/utf8.h"
+#include "gap/input.h"
 
-#include "editor_internal.h"
-#include "escape_internal.h"
+#include "editor.h"
+#include "escape.h"
 
 #define ui_editor_max_visual_slices 3
 

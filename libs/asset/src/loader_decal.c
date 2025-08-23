@@ -1,15 +1,15 @@
-#include "asset_decal.h"
-#include "core_alloc.h"
-#include "core_float.h"
-#include "core_math.h"
-#include "data_read.h"
-#include "data_utils.h"
-#include "ecs_entity.h"
-#include "ecs_view.h"
-#include "ecs_world.h"
+#include "asset/decal.h"
+#include "core/alloc.h"
+#include "core/float.h"
+#include "core/math.h"
+#include "data/read.h"
+#include "data/utils.h"
+#include "ecs/entity.h"
+#include "ecs/view.h"
+#include "ecs/world.h"
 
-#include "manager_internal.h"
-#include "repo_internal.h"
+#include "manager.h"
+#include "repo.h"
 
 #define decal_default_size 1.0f
 #define decal_default_thickness 0.25f

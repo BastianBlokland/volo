@@ -1,12 +1,12 @@
-#include "core_diag.h"
-#include "ecs_view.h"
-#include "ecs_world.h"
-#include "log_logger.h"
-#include "scene_attachment.h"
-#include "scene_register.h"
-#include "scene_renderable.h"
-#include "scene_skeleton.h"
-#include "scene_transform.h"
+#include "core/diag.h"
+#include "ecs/view.h"
+#include "ecs/world.h"
+#include "log/logger.h"
+#include "scene/attachment.h"
+#include "scene/register.h"
+#include "scene/renderable.h"
+#include "scene/skeleton.h"
+#include "scene/transform.h"
 
 ecs_comp_define_public(SceneAttachmentComp);
 

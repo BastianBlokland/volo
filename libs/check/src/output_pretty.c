@@ -1,11 +1,11 @@
-#include "core_alloc.h"
-#include "core_dynstring.h"
-#include "core_path.h"
-#include "core_thread.h"
-#include "core_tty.h"
-#include "jobs_executor.h"
+#include "core/alloc.h"
+#include "core/dynstring.h"
+#include "core/path.h"
+#include "core/thread.h"
+#include "core/tty.h"
+#include "jobs/executor.h"
 
-#include "output_pretty_internal.h"
+#include "output_pretty.h"
 
 typedef struct {
   CheckOutput   api;

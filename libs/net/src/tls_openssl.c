@@ -1,15 +1,15 @@
-#include "core_alloc.h"
-#include "core_diag.h"
-#include "core_dynlib.h"
-#include "core_dynstring.h"
-#include "core_env.h"
-#include "core_path.h"
-#include "log_logger.h"
-#include "net_result.h"
-#include "net_socket.h"
-#include "net_tls.h"
+#include "core/alloc.h"
+#include "core/diag.h"
+#include "core/dynlib.h"
+#include "core/dynstring.h"
+#include "core/env.h"
+#include "core/path.h"
+#include "log/logger.h"
+#include "net/result.h"
+#include "net/socket.h"
+#include "net/tls.h"
 
-#include "tls_internal.h"
+#include "tls.h"
 
 /**
  * Tls (Transport Layer Security) client implementation using the OpenSSL (libssl) library.

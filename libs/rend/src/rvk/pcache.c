@@ -1,13 +1,13 @@
-#include "core_alloc.h"
-#include "core_file.h"
-#include "core_math.h"
-#include "core_memory.h"
-#include "core_path.h"
-#include "log_logger.h"
+#include "core/alloc.h"
+#include "core/file.h"
+#include "core/math.h"
+#include "core/memory.h"
+#include "core/path.h"
+#include "log/logger.h"
 
-#include "device_internal.h"
-#include "lib_internal.h"
-#include "pcache_internal.h"
+#include "device.h"
+#include "lib.h"
+#include "pcache.h"
 
 #define rvk_pcache_size_max (32 * usize_mebibyte)
 

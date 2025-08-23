@@ -1,7 +1,7 @@
-#include "check_spec.h"
-#include "core_array.h"
-#include "core_dynstring.h"
-#include "core_utf8.h"
+#include "check/spec.h"
+#include "core/array.h"
+#include "core/dynstring.h"
+#include "core/utf8.h"
 
 spec(utf8) {
 

@@ -1,12 +1,12 @@
-#include "core_array.h"
-#include "core_diag.h"
-#include "core_dynlib.h"
-#include "core_dynstring.h"
-#include "core_math.h"
-#include "core_utf8.h"
-#include "log_logger.h"
+#include "core/array.h"
+#include "core/diag.h"
+#include "core/dynlib.h"
+#include "core/dynstring.h"
+#include "core/math.h"
+#include "core/utf8.h"
+#include "log/logger.h"
 
-#include "pal_internal.h"
+#include "pal.h"
 
 /**
  * X11 client implementation using the xcb library.

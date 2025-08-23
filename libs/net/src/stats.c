@@ -1,6 +1,6 @@
-#include "net_stats.h"
+#include "net/stats.h"
 
-#include "pal_internal.h"
+#include "pal.h"
 
 NetStats net_stats_query(void) {
   return (NetStats){

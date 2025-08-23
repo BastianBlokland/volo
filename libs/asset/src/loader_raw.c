@@ -1,10 +1,10 @@
-#include "asset_raw.h"
-#include "ecs_view.h"
-#include "ecs_world.h"
+#include "asset/raw.h"
+#include "ecs/view.h"
+#include "ecs/world.h"
 
-#include "import_internal.h"
-#include "manager_internal.h"
-#include "repo_internal.h"
+#include "import.h"
+#include "manager.h"
+#include "repo.h"
 
 ecs_comp_define_public(AssetRawComp);
 ecs_comp_define(AssetRawSourceComp) { AssetSource* src; };

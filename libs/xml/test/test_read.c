@@ -1,11 +1,11 @@
-#include "check_spec.h"
-#include "core_alloc.h"
-#include "core_array.h"
-#include "core_dynarray.h"
-#include "core_dynstring.h"
-#include "xml_doc.h"
-#include "xml_eq.h"
-#include "xml_read.h"
+#include "check/spec.h"
+#include "core/alloc.h"
+#include "core/array.h"
+#include "core/dynarray.h"
+#include "core/dynstring.h"
+#include "xml/doc.h"
+#include "xml/eq.h"
+#include "xml/read.h"
 
 spec(read) {
 

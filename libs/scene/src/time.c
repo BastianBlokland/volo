@@ -1,10 +1,10 @@
-#include "core_diag.h"
-#include "core_math.h"
-#include "core_time.h"
-#include "ecs_view.h"
-#include "ecs_world.h"
-#include "scene_register.h"
-#include "scene_time.h"
+#include "core/diag.h"
+#include "core/math.h"
+#include "core/time.h"
+#include "ecs/view.h"
+#include "ecs/world.h"
+#include "scene/register.h"
+#include "scene/time.h"
 
 ecs_comp_define_public(SceneTimeComp);
 ecs_comp_define_public(SceneTimeSettingsComp);

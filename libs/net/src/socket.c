@@ -1,6 +1,6 @@
-#include "net_addr.h"
-#include "net_result.h"
-#include "net_socket.h"
+#include "net/addr.h"
+#include "net/result.h"
+#include "net/socket.h"
 
 NetSocket* net_socket_connect_any_sync(
     Allocator* alloc, const NetEndpoint* endpoints, const u32 endpointCount) {

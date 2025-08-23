@@ -1,12 +1,12 @@
-#include "core_alloc.h"
-#include "core_array.h"
-#include "core_diag.h"
-#include "core_file.h"
-#include "core_path.h"
-#include "core_thread.h"
+#include "core/alloc.h"
+#include "core/array.h"
+#include "core/diag.h"
+#include "core/file.h"
+#include "core/path.h"
+#include "core/thread.h"
 
-#include "file_internal.h"
-#include "init_internal.h"
+#include "file.h"
+#include "init.h"
 
 static i64 g_fileCount, g_fileMappingSize;
 

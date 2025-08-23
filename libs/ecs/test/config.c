@@ -1,4 +1,4 @@
-#include "app_check.h"
+#include "app/check.h"
 
 void app_check_init(CheckDef* check) {
   register_spec(check, affinity);

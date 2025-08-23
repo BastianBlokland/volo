@@ -1,9 +1,9 @@
-#include "asset_manager.h"
-#include "ecs_view.h"
-#include "ecs_world.h"
-#include "rend_object.h"
+#include "asset/manager.h"
+#include "ecs/view.h"
+#include "ecs/world.h"
+#include "rend/object.h"
 
-#include "rend_internal.h"
+#include "rend.h"
 
 ecs_comp_define(VfxRendComp) { EcsEntityId rendObjects[VfxRendObj_Count]; };
 

@@ -1,10 +1,10 @@
-#include "core_bits.h"
-#include "core_bitset.h"
-#include "core_diag.h"
+#include "core/bits.h"
+#include "core/bitset.h"
+#include "core/diag.h"
 
-#include "attach_internal.h"
-#include "device_internal.h"
-#include "image_internal.h"
+#include "attach.h"
+#include "device.h"
+#include "image.h"
 
 #define VOLO_RVK_ATTACH_LOGGING 0
 

@@ -1,9 +1,9 @@
-#include "core_array.h"
-#include "core_dynstring.h"
-#include "core_symbol.h"
-#include "core_thread.h"
+#include "core/array.h"
+#include "core/dynstring.h"
+#include "core/symbol.h"
+#include "core/thread.h"
 
-#include "diag_internal.h"
+#include "diag.h"
 
 #include <signal.h>
 #include <sys/syscall.h>

@@ -1,8 +1,8 @@
-#include "core_alloc.h"
-#include "core_array.h"
-#include "core_diag.h"
+#include "core/alloc.h"
+#include "core/array.h"
+#include "core/diag.h"
 
-#include "repository_internal.h"
+#include "repository.h"
 
 typedef enum {
   RvkRepositoryType_None,

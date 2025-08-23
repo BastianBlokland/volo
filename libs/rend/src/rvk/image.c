@@ -1,13 +1,13 @@
-#include "core.h"
-#include "core_array.h"
-#include "core_diag.h"
-#include "core_math.h"
-#include "geo_color.h"
+#include "core/array.h"
+#include "core/diag.h"
+#include "core/forward.h"
+#include "core/math.h"
+#include "geo/color.h"
 
-#include "desc_internal.h"
-#include "device_internal.h"
-#include "image_internal.h"
-#include "lib_internal.h"
+#include "desc.h"
+#include "device.h"
+#include "image.h"
+#include "lib.h"
 
 static VkClearColorValue rvk_rend_clear_color(const GeoColor color) {
   VkClearColorValue result;

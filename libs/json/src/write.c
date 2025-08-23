@@ -1,9 +1,9 @@
-#include "core_diag.h"
-#include "core_dynstring.h"
-#include "core_format.h"
-#include "core_unicode.h"
-#include "json_doc.h"
-#include "json_write.h"
+#include "core/diag.h"
+#include "core/dynstring.h"
+#include "core/format.h"
+#include "core/unicode.h"
+#include "json/doc.h"
+#include "json/write.h"
 
 #define json_compact_array_max_elems 4
 #define json_compact_object_max_fields 4

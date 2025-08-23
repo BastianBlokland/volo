@@ -1,11 +1,11 @@
-#include "core_alloc.h"
-#include "core_path.h"
-#include "core_thread.h"
-#include "core_version.h"
-#include "jobs_executor.h"
-#include "log_logger.h"
+#include "core/alloc.h"
+#include "core/path.h"
+#include "core/thread.h"
+#include "core/version.h"
+#include "jobs/executor.h"
+#include "log/logger.h"
 
-#include "output_log_internal.h"
+#include "output_log.h"
 
 typedef struct {
   CheckOutput api;

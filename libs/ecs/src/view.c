@@ -1,15 +1,15 @@
-#include "core_alloc.h"
-#include "core_bits.h"
-#include "core_bitset.h"
-#include "core_diag.h"
-#include "core_math.h"
-#include "ecs_def.h"
-#include "ecs_entity.h"
-#include "ecs_runner.h"
+#include "core/alloc.h"
+#include "core/bits.h"
+#include "core/bitset.h"
+#include "core/diag.h"
+#include "core/math.h"
+#include "ecs/def.h"
+#include "ecs/entity.h"
+#include "ecs/runner.h"
 
-#include "module_internal.h"
-#include "storage_internal.h"
-#include "view_internal.h"
+#include "module.h"
+#include "storage.h"
+#include "view.h"
 
 MAYBE_UNUSED static bool ecs_iterator_is_stepped(EcsIterator* iterator) {
   return iterator->chunksToSkip || !sentinel_check(iterator->chunksLimitRemaining);

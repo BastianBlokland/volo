@@ -1,7 +1,7 @@
-#include "core.h"
-#include "core_array.h"
-#include "core_string.h"
-#include "snd_result.h"
+#include "core/array.h"
+#include "core/forward.h"
+#include "core/string.h"
+#include "snd/result.h"
 
 String snd_result_str(const SndResult result) {
   static const String g_msgs[] = {

@@ -1,5 +1,5 @@
-#include "check_spec.h"
-#include "core_unicode.h"
+#include "check/spec.h"
+#include "core/unicode.h"
 
 spec(unicode) {
 

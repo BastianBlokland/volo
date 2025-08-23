@@ -1,12 +1,12 @@
-#include "asset_graphic.h"
-#include "asset_manager.h"
-#include "asset_mesh.h"
-#include "core_diag.h"
-#include "ecs_view.h"
-#include "ecs_world.h"
-#include "scene_bounds.h"
-#include "scene_renderable.h"
-#include "scene_transform.h"
+#include "asset/graphic.h"
+#include "asset/manager.h"
+#include "asset/mesh.h"
+#include "core/diag.h"
+#include "ecs/view.h"
+#include "ecs/world.h"
+#include "scene/bounds.h"
+#include "scene/renderable.h"
+#include "scene/transform.h"
 
 #define scene_bounds_max_loads 16
 

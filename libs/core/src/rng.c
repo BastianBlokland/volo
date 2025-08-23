@@ -1,9 +1,9 @@
-#include "core_alloc.h"
-#include "core_diag.h"
-#include "core_math.h"
-#include "core_rng.h"
-#include "core_thread.h"
-#include "core_time.h"
+#include "core/alloc.h"
+#include "core/diag.h"
+#include "core/math.h"
+#include "core/rng.h"
+#include "core/thread.h"
+#include "core/time.h"
 
 struct sRng {
   u32 (*next)(Rng*);

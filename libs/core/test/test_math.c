@@ -1,5 +1,5 @@
-#include "check_spec.h"
-#include "core_math.h"
+#include "check/spec.h"
+#include "core/math.h"
 
 spec(math) {
 

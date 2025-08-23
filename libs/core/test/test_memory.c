@@ -1,9 +1,9 @@
-#include "check_spec.h"
-#include "core_alloc.h"
-#include "core_array.h"
-#include "core_bits.h"
-#include "core_memory.h"
-#include "core_rng.h"
+#include "check/spec.h"
+#include "core/alloc.h"
+#include "core/array.h"
+#include "core/bits.h"
+#include "core/memory.h"
+#include "core/rng.h"
 
 typedef struct {
   u32 a, b;
@@ -102,8 +102,8 @@ spec(memory) {
   it("can read a little-endian encoded 16bit unsigned integer") {
     const u16 val = 1337;
     Mem       mem = array_mem(((u8[]){
-              (u8)val,
-              (u8)(val >> 8),
+        (u8)val,
+        (u8)(val >> 8),
     }));
     u16       out;
     check(mem_consume_le_u16(mem, &out).size == 0);
@@ -113,10 +113,10 @@ spec(memory) {
   it("can read a little-endian encoded 32bit unsigned integer") {
     const u32 val = 1337133742;
     Mem       mem = array_mem(((u8[]){
-              (u8)val,
-              (u8)(val >> 8),
-              (u8)(val >> 16),
-              (u8)(val >> 24),
+        (u8)val,
+        (u8)(val >> 8),
+        (u8)(val >> 16),
+        (u8)(val >> 24),
     }));
     u32       out;
     check(mem_consume_le_u32(mem, &out).size == 0);
@@ -126,14 +126,14 @@ spec(memory) {
   it("can read a little-endian encoded 64bit unsigned integer") {
     const u64 val = u64_lit(12345678987654321234);
     Mem       mem = array_mem(((u8[]){
-              (u8)val,
-              (u8)(val >> 8),
-              (u8)(val >> 16),
-              (u8)(val >> 24),
-              (u8)(val >> 32),
-              (u8)(val >> 40),
-              (u8)(val >> 48),
-              (u8)(val >> 56),
+        (u8)val,
+        (u8)(val >> 8),
+        (u8)(val >> 16),
+        (u8)(val >> 24),
+        (u8)(val >> 32),
+        (u8)(val >> 40),
+        (u8)(val >> 48),
+        (u8)(val >> 56),
     }));
     u64       out;
     check(mem_consume_le_u64(mem, &out).size == 0);
@@ -143,8 +143,8 @@ spec(memory) {
   it("can read a big-endian encoded 16bit unsigned integer") {
     const u16 val = 1337;
     Mem       mem = array_mem(((u8[]){
-              (u8)(val >> 8),
-              (u8)val,
+        (u8)(val >> 8),
+        (u8)val,
     }));
     u16       out;
     check(mem_consume_be_u16(mem, &out).size == 0);
@@ -154,10 +154,10 @@ spec(memory) {
   it("can read a big-endian encoded 32bit unsigned integer") {
     const u32 val = 1337133742;
     Mem       mem = array_mem(((u8[]){
-              (u8)(val >> 24),
-              (u8)(val >> 16),
-              (u8)(val >> 8),
-              (u8)val,
+        (u8)(val >> 24),
+        (u8)(val >> 16),
+        (u8)(val >> 8),
+        (u8)val,
     }));
     u32       out;
     check(mem_consume_be_u32(mem, &out).size == 0);
@@ -167,14 +167,14 @@ spec(memory) {
   it("can read a big-endian encoded 64bit unsigned integer") {
     const u64 val = u64_lit(12345678987654321234);
     Mem       mem = array_mem(((u8[]){
-              (u8)(val >> 56),
-              (u8)(val >> 48),
-              (u8)(val >> 40),
-              (u8)(val >> 32),
-              (u8)(val >> 24),
-              (u8)(val >> 16),
-              (u8)(val >> 8),
-              (u8)val,
+        (u8)(val >> 56),
+        (u8)(val >> 48),
+        (u8)(val >> 40),
+        (u8)(val >> 32),
+        (u8)(val >> 24),
+        (u8)(val >> 16),
+        (u8)(val >> 8),
+        (u8)val,
     }));
     u64       out;
     check(mem_consume_be_u64(mem, &out).size == 0);

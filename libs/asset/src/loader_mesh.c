@@ -1,16 +1,16 @@
-#include "core_alloc.h"
-#include "data_read.h"
-#include "data_utils.h"
-#include "ecs_entity.h"
-#include "ecs_utils.h"
-#include "ecs_view.h"
-#include "ecs_world.h"
+#include "core/alloc.h"
+#include "data/read.h"
+#include "data/utils.h"
+#include "ecs/entity.h"
+#include "ecs/utils.h"
+#include "ecs/view.h"
+#include "ecs/world.h"
 
-#include "data_internal.h"
-#include "import_internal.h"
-#include "loader_mesh_internal.h"
-#include "manager_internal.h"
-#include "repo_internal.h"
+#include "data.h"
+#include "import.h"
+#include "loader_mesh.h"
+#include "manager.h"
+#include "repo.h"
 
 DataMeta g_assetMeshBundleMeta;
 DataMeta g_assetMeshMeta;

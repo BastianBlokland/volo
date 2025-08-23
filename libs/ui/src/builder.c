@@ -1,14 +1,14 @@
-#include "core_array.h"
-#include "core_diag.h"
-#include "core_dynstring.h"
-#include "core_float.h"
-#include "core_math.h"
-#include "ui_canvas.h"
-#include "ui_shape.h"
+#include "core/array.h"
+#include "core/diag.h"
+#include "core/dynstring.h"
+#include "core/float.h"
+#include "core/math.h"
+#include "ui/canvas.h"
+#include "ui/shape.h"
 
-#include "builder_internal.h"
-#include "cmd_internal.h"
-#include "text_internal.h"
+#include "builder.h"
+#include "cmd.h"
+#include "text.h"
 
 #define ui_build_rect_stack_max 10
 #define ui_build_style_stack_max 10

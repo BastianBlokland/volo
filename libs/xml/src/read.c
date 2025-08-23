@@ -1,11 +1,11 @@
-#include "core_array.h"
-#include "core_diag.h"
-#include "core_sentinel.h"
-#include "core_string.h"
-#include "xml_doc.h"
-#include "xml_read.h"
+#include "core/array.h"
+#include "core/diag.h"
+#include "core/sentinel.h"
+#include "core/string.h"
+#include "xml/doc.h"
+#include "xml/read.h"
 
-#include "lex_internal.h"
+#include "lex.h"
 
 #define xml_depth_max 100
 

@@ -1,8 +1,8 @@
-#include "core.h"
-#include "core_math.h"
-#include "rend_settings.h"
+#include "core/forward.h"
+#include "core/math.h"
+#include "rend/settings.h"
 
-#include "view_internal.h"
+#include "view.h"
 
 static bool rend_view_tag_filter(const SceneTagFilter filter, const SceneTags tags) {
   return ((tags & filter.required) == filter.required) && ((tags & filter.illegal) == 0);

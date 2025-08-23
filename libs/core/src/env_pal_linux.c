@@ -1,7 +1,7 @@
-#include "core_alloc.h"
-#include "core_diag.h"
-#include "core_dynstring.h"
-#include "core_env.h"
+#include "core/alloc.h"
+#include "core/diag.h"
+#include "core/dynstring.h"
+#include "core/env.h"
 
 #include <errno.h>
 #include <stdlib.h>

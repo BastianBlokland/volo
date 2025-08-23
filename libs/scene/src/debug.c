@@ -1,9 +1,9 @@
-#include "core_alloc.h"
-#include "core_dynarray.h"
-#include "ecs_view.h"
-#include "ecs_world.h"
-#include "scene_debug.h"
-#include "scene_register.h"
+#include "core/alloc.h"
+#include "core/dynarray.h"
+#include "ecs/view.h"
+#include "ecs/world.h"
+#include "scene/debug.h"
+#include "scene/register.h"
 
 #define scene_debug_transient_chunk_size (4 * usize_kibibyte)
 

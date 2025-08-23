@@ -1,7 +1,7 @@
-#include "core_alloc.h"
-#include "core_diag.h"
+#include "core/alloc.h"
+#include "core/diag.h"
 
-#include "def_internal.h"
+#include "def.h"
 
 /**
  * Trim any leading and or trailing underscores.
@@ -14,8 +14,8 @@ static String check_spec_name_normalize(const String name) {
 CheckDef* check_create(Allocator* alloc) {
   CheckDef* ctx = alloc_alloc_t(alloc, CheckDef);
   *ctx          = (CheckDef){
-      .specs = dynarray_create_t(alloc, CheckSpecDef, 64),
-      .alloc = alloc,
+               .specs = dynarray_create_t(alloc, CheckSpecDef, 64),
+               .alloc = alloc,
   };
   return ctx;
 }

@@ -1,16 +1,16 @@
-#include "core_alloc.h"
-#include "core_array.h"
-#include "core_diag.h"
-#include "core_dynlib.h"
-#include "core_dynstring.h"
-#include "core_thread.h"
-#include "core_winutils.h"
-#include "log_logger.h"
-#include "net_addr.h"
-#include "net_result.h"
-#include "net_types.h"
+#include "core/alloc.h"
+#include "core/array.h"
+#include "core/diag.h"
+#include "core/dynlib.h"
+#include "core/dynstring.h"
+#include "core/thread.h"
+#include "core/winutils.h"
+#include "log/logger.h"
+#include "net/addr.h"
+#include "net/result.h"
+#include "net/types.h"
 
-#include "pal_internal.h"
+#include "pal.h"
 
 #include <Windows.h>
 #include <ws2tcpip.h>

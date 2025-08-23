@@ -1,4 +1,4 @@
-#include "core_search.h"
+#include "core/search.h"
 
 void* search_linear(u8* begin, u8* end, const u16 stride, CompareFunc compare, const void* tgt) {
   /**

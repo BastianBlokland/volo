@@ -1,15 +1,15 @@
-#include "core_alloc.h"
-#include "core_ascii.h"
-#include "core_bits.h"
-#include "core_diag.h"
-#include "core_dynstring.h"
-#include "core_format.h"
-#include "core_utf8.h"
+#include "core/alloc.h"
+#include "core/ascii.h"
+#include "core/bits.h"
+#include "core/diag.h"
+#include "core/dynstring.h"
+#include "core/format.h"
+#include "core/utf8.h"
 
-#include "lex_internal.h"
+#include "lex.h"
 
 #ifdef VOLO_SIMD
-#include "core_simd.h"
+#include "core/simd.h"
 #endif
 
 #define json_token_err(_ERR_)                                                                      \

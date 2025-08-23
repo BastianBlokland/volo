@@ -1,16 +1,16 @@
-#include "core_array.h"
-#include "core_diag.h"
-#include "core_dynlib.h"
-#include "core_env.h"
-#include "core_path.h"
-#include "core_thread.h"
-#include "core_version.h"
-#include "gap_native.h"
-#include "log_logger.h"
+#include "core/array.h"
+#include "core/diag.h"
+#include "core/dynlib.h"
+#include "core/env.h"
+#include "core/path.h"
+#include "core/thread.h"
+#include "core/version.h"
+#include "gap/native.h"
+#include "log/logger.h"
 
-#include "disassembler_internal.h"
-#include "lib_internal.h"
-#include "mem_internal.h"
+#include "disassembler.h"
+#include "lib.h"
+#include "mem.h"
 
 #define rvk_lib_vulkan_names_max 4
 #define rvk_lib_vulkan_api_major 1

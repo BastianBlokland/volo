@@ -1,12 +1,12 @@
-#include "core.h"
-#include "core_alloc.h"
-#include "core_bits.h"
-#include "core_diag.h"
-#include "core_dynarray.h"
-#include "core_math.h"
-#include "core_search.h"
-#include "core_shuffle.h"
-#include "core_sort.h"
+#include "core/alloc.h"
+#include "core/bits.h"
+#include "core/diag.h"
+#include "core/dynarray.h"
+#include "core/forward.h"
+#include "core/math.h"
+#include "core/search.h"
+#include "core/shuffle.h"
+#include "core/sort.h"
 
 INLINE_HINT static Mem dynarray_at_internal(const DynArray* a, const usize idx, const usize count) {
   const usize offset = a->stride * idx;

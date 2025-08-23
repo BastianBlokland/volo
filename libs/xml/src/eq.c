@@ -1,6 +1,6 @@
-#include "core_diag.h"
-#include "xml_doc.h"
-#include "xml_eq.h"
+#include "core/diag.h"
+#include "xml/doc.h"
+#include "xml/eq.h"
 
 static bool xml_eq_elem(XmlDoc* doc, const XmlNode x, const XmlNode y) {
   // Verify node names.

@@ -1,4 +1,4 @@
-#include "scene_creator.h"
+#include "scene/creator.h"
 
 ecs_comp_define_public(SceneCreatorComp);
 

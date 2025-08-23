@@ -1,8 +1,8 @@
-#include "core_diag.h"
+#include "core/diag.h"
 
-#include "comp_internal.h"
-#include "def_internal.h"
-#include "module_internal.h"
+#include "comp.h"
+#include "def.h"
+#include "module.h"
 
 struct sEcsModuleBuilder {
   EcsDef*       def;

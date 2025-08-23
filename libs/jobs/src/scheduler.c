@@ -1,14 +1,14 @@
-#include "core_alloc.h"
-#include "core_diag.h"
-#include "core_dynarray.h"
-#include "core_thread.h"
-#include "core_time.h"
-#include "jobs_scheduler.h"
-#include "trace_tracer.h"
+#include "core/alloc.h"
+#include "core/diag.h"
+#include "core/dynarray.h"
+#include "core/thread.h"
+#include "core/time.h"
+#include "jobs/scheduler.h"
+#include "trace/tracer.h"
 
-#include "executor_internal.h"
-#include "init_internal.h"
-#include "job_internal.h"
+#include "executor.h"
+#include "init.h"
+#include "job.h"
 
 typedef Job* JobPtr;
 

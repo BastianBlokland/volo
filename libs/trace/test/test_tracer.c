@@ -1,8 +1,8 @@
-#include "check_spec.h"
-#include "core_alloc.h"
-#include "core_dynarray.h"
-#include "trace_sink.h"
-#include "trace_tracer.h"
+#include "check/spec.h"
+#include "core/alloc.h"
+#include "core/dynarray.h"
+#include "trace/sink.h"
+#include "trace/tracer.h"
 
 typedef struct {
   String     id;

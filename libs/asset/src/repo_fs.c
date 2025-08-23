@@ -1,15 +1,15 @@
-#include "core_alloc.h"
-#include "core_bits.h"
-#include "core_dynstring.h"
-#include "core_file.h"
-#include "core_file_iterator.h"
-#include "core_file_monitor.h"
-#include "core_path.h"
-#include "log_logger.h"
-#include "trace_tracer.h"
+#include "core/alloc.h"
+#include "core/bits.h"
+#include "core/dynstring.h"
+#include "core/file.h"
+#include "core/file_iterator.h"
+#include "core/file_monitor.h"
+#include "core/path.h"
+#include "log/logger.h"
+#include "trace/tracer.h"
 
-#include "cache_internal.h"
-#include "repo_internal.h"
+#include "cache.h"
+#include "repo.h"
 
 typedef struct {
   AssetRepo    api;

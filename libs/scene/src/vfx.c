@@ -1,4 +1,4 @@
-#include "scene_vfx.h"
+#include "scene/vfx.h"
 
 ecs_comp_define_public(SceneVfxSystemComp);
 ecs_comp_define_public(SceneVfxDecalComp);

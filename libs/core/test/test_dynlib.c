@@ -1,6 +1,6 @@
-#include "check_spec.h"
-#include "core_alloc.h"
-#include "core_dynlib.h"
+#include "check/spec.h"
+#include "core/alloc.h"
+#include "core/dynlib.h"
 
 spec(dynlib) {
 

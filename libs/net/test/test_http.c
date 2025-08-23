@@ -1,9 +1,9 @@
-#include "check_spec.h"
-#include "core_alloc.h"
-#include "core_dynstring.h"
-#include "core_types.h"
-#include "net_http.h"
-#include "net_result.h"
+#include "check/spec.h"
+#include "core/alloc.h"
+#include "core/dynstring.h"
+#include "core/types.h"
+#include "net/http.h"
+#include "net/result.h"
 
 spec(http) {
   skip_it("can get a resource") {

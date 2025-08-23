@@ -1,5 +1,5 @@
-#include "ecs_def.h"
-#include "vfx_register.h"
+#include "ecs/def.h"
+#include "vfx/register.h"
 
 void vfx_register(EcsDef* def) {
   ecs_register_module(def, vfx_atlas_module);

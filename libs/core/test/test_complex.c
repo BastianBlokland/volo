@@ -1,5 +1,5 @@
-#include "check_spec.h"
-#include "core_complex.h"
+#include "check/spec.h"
+#include "core/complex.h"
 
 spec(complex) {
 

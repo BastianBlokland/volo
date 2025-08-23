@@ -1,9 +1,9 @@
-#include "core_array.h"
-#include "core_diag.h"
-#include "core_thread.h"
+#include "core/array.h"
+#include "core/diag.h"
+#include "core/thread.h"
 
-#include "alloc_internal.h"
-#include "dynlib_internal.h"
+#include "alloc.h"
+#include "dynlib.h"
 
 static bool g_dynlibInitialized;
 static i64  g_dynlibCount;

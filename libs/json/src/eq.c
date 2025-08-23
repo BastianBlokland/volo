@@ -1,6 +1,6 @@
-#include "core_diag.h"
-#include "json_doc.h"
-#include "json_eq.h"
+#include "core/diag.h"
+#include "json/doc.h"
+#include "json/eq.h"
 
 static bool json_eq_array(JsonDoc* doc, JsonVal x, JsonVal y) {
   const usize count = json_elem_count(doc, x);

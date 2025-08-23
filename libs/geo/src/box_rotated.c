@@ -1,11 +1,11 @@
-#include "core_array.h"
-#include "core_float.h"
-#include "geo_box.h"
-#include "geo_box_rotated.h"
-#include "geo_sphere.h"
+#include "core/array.h"
+#include "core/float.h"
+#include "geo/box.h"
+#include "geo/box_rotated.h"
+#include "geo/sphere.h"
 
 #ifdef VOLO_SIMD
-#include "core_simd.h"
+#include "core/simd.h"
 #endif
 
 /**

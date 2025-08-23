@@ -1,6 +1,6 @@
-#include "core_math.h"
+#include "core/math.h"
 
-#include "types_internal.h"
+#include "types.h"
 
 RvkSize rvk_size_square(const u16 size) { return (RvkSize){size, size}; }
 

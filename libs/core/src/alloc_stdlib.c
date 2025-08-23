@@ -1,7 +1,7 @@
-#include "core_bits.h"
-#include "core_math.h"
+#include "core/bits.h"
+#include "core/math.h"
 
-#include "alloc_internal.h"
+#include "alloc.h"
 
 #ifdef VOLO_WIN32
 /**

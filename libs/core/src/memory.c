@@ -1,10 +1,10 @@
-#include "core_bits.h"
-#include "core_diag.h"
-#include "core_math.h"
-#include "core_memory.h"
+#include "core/bits.h"
+#include "core/diag.h"
+#include "core/math.h"
+#include "core/memory.h"
 
 #ifdef VOLO_SIMD
-#include "core_simd.h"
+#include "core/simd.h"
 #endif
 
 void mem_set(const Mem dst, const u8 val) {

@@ -80,7 +80,7 @@ if(${VOLO_PLATFORM} STREQUAL "linux")
   target_compile_options(core BEFORE PUBLIC -include "${CMAKE_CURRENT_LIST_DIR}/glibc_symver.h")
 endif()
 
-configure_file("src/version_internal.h.in" "${CMAKE_CURRENT_LIST_DIR}/src/version_internal.h")
+configure_file("src/version.h.in" "${CMAKE_CURRENT_LIST_DIR}/src/version.h")
 
 add_executable(core_test
   test/config.c

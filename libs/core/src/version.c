@@ -1,11 +1,11 @@
-#include "core_alloc.h"
-#include "core_array.h"
-#include "core_dynstring.h"
-#include "core_format.h"
-#include "core_math.h"
-#include "core_version.h"
+#include "core/alloc.h"
+#include "core/array.h"
+#include "core/dynstring.h"
+#include "core/format.h"
+#include "core/math.h"
+#include "core/version.h"
 
-#include "version_internal.h"
+#include "version.h"
 
 static u32 version_label_length(const Version* v) {
   u32 count = 0;

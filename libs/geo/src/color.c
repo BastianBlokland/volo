@@ -1,12 +1,12 @@
-#include "core_bits.h"
-#include "core_diag.h"
-#include "core_float.h"
-#include "core_intrinsic.h"
-#include "core_math.h"
-#include "geo_color.h"
+#include "core/bits.h"
+#include "core/diag.h"
+#include "core/float.h"
+#include "core/intrinsic.h"
+#include "core/math.h"
+#include "geo/color.h"
 
 #ifdef VOLO_SIMD
-#include "core_simd.h"
+#include "core/simd.h"
 #endif
 
 GeoColor geo_color_for(const u32 idx) { return geo_color_for_hash(bits_hash_32_val(idx)); }

@@ -1,10 +1,10 @@
-#include "check_spec.h"
-#include "core_alloc.h"
-#include "core_bits.h"
-#include "core_dynarray.h"
-#include "ecs_def.h"
-#include "ecs_view.h"
-#include "ecs_world.h"
+#include "check/spec.h"
+#include "core/alloc.h"
+#include "core/bits.h"
+#include "core/dynarray.h"
+#include "ecs/def.h"
+#include "ecs/view.h"
+#include "ecs/world.h"
 
 ecs_comp_define(StorageCompA) { u32 f1; };
 ecs_comp_define(StorageCompB) { u32 f1, f2; };

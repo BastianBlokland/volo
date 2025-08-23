@@ -1,12 +1,12 @@
-#include "cli_help.h"
-#include "core_alloc.h"
-#include "core_dynstring.h"
-#include "core_file.h"
-#include "core_format.h"
-#include "core_tty.h"
-#include "core_version.h"
+#include "cli/help.h"
+#include "core/alloc.h"
+#include "core/dynstring.h"
+#include "core/file.h"
+#include "core/format.h"
+#include "core/tty.h"
+#include "core/version.h"
 
-#include "app_internal.h"
+#include "app.h"
 
 #define cli_help_max_width 80
 

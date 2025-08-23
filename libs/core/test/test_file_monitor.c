@@ -1,11 +1,11 @@
-#include "check_spec.h"
-#include "core_alloc.h"
-#include "core_file.h"
-#include "core_file_monitor.h"
-#include "core_path.h"
-#include "core_rng.h"
-#include "core_thread.h"
-#include "core_time.h"
+#include "check/spec.h"
+#include "core/alloc.h"
+#include "core/file.h"
+#include "core/file_monitor.h"
+#include "core/path.h"
+#include "core/rng.h"
+#include "core/thread.h"
+#include "core/time.h"
 
 static String test_random_name(void) {
   return path_name_random_scratch(g_rng, string_lit("volo-test-file-monitor"), string_lit("tmp"));

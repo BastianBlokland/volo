@@ -1,13 +1,13 @@
-#include "core_alloc.h"
-#include "core_array.h"
-#include "core_bits.h"
-#include "core_diag.h"
-#include "core_thread.h"
-#include "log_logger.h"
+#include "core/alloc.h"
+#include "core/array.h"
+#include "core/bits.h"
+#include "core/diag.h"
+#include "core/thread.h"
+#include "log/logger.h"
 
-#include "device_internal.h"
-#include "lib_internal.h"
-#include "sampler_internal.h"
+#include "device.h"
+#include "lib.h"
+#include "sampler.h"
 
 #define VOLO_RVK_SAMPLER_LOGGING 0
 

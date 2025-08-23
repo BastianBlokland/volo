@@ -1,13 +1,13 @@
-#include "core_alloc.h"
-#include "core_array.h"
-#include "core_bits.h"
-#include "core_diag.h"
-#include "core_math.h"
-#include "core_thread.h"
-#include "geo_box_rotated.h"
-#include "geo_capsule.h"
-#include "geo_query.h"
-#include "geo_sphere.h"
+#include "core/alloc.h"
+#include "core/array.h"
+#include "core/bits.h"
+#include "core/diag.h"
+#include "core/math.h"
+#include "core/thread.h"
+#include "geo/box_rotated.h"
+#include "geo/capsule.h"
+#include "geo/query.h"
+#include "geo/sphere.h"
 
 #define geo_query_shape_align 16
 #define geo_query_bvh_node_divide_threshold 8
@@ -130,8 +130,8 @@ static void prim_copy(QueryPrim* dst, const QueryPrim* src, const QueryPrimType 
 
 #define cpy_entry_field(_FIELD_, _SIZE_)                                                           \
   mem_cpy(                                                                                         \
-      mem_create(dst->_FIELD_, (_SIZE_)*dst->capacity),                                            \
-      mem_create(src->_FIELD_, (_SIZE_)*src->count))
+      mem_create(dst->_FIELD_, (_SIZE_) * dst->capacity),                                          \
+      mem_create(src->_FIELD_, (_SIZE_) * src->count))
 
   cpy_entry_field(userIds, sizeof(u64));
   cpy_entry_field(layers, sizeof(GeoQueryLayer));

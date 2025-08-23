@@ -1,8 +1,8 @@
-#include "core_alloc.h"
-#include "core_bits.h"
-#include "core_math.h"
-#include "core_sentinel.h"
-#include "core_string.h"
+#include "core/alloc.h"
+#include "core/bits.h"
+#include "core/math.h"
+#include "core/sentinel.h"
+#include "core/string.h"
 
 static usize string_null_term_length(const char* str) {
   const char* end = str;

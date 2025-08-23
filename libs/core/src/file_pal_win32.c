@@ -1,16 +1,16 @@
-#include "core_alloc.h"
-#include "core_array.h"
-#include "core_bits.h"
-#include "core_diag.h"
-#include "core_dynstring.h"
-#include "core_file.h"
-#include "core_math.h"
-#include "core_sentinel.h"
-#include "core_winutils.h"
+#include "core/alloc.h"
+#include "core/array.h"
+#include "core/bits.h"
+#include "core/diag.h"
+#include "core/dynstring.h"
+#include "core/file.h"
+#include "core/math.h"
+#include "core/sentinel.h"
+#include "core/winutils.h"
 
-#include "file_internal.h"
-#include "path_internal.h"
-#include "time_internal.h"
+#include "file.h"
+#include "path.h"
+#include "time.h"
 
 #include <Windows.h>
 

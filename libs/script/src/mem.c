@@ -1,9 +1,9 @@
-#include "core_alloc.h"
-#include "core_bits.h"
-#include "core_diag.h"
-#include "script_mem.h"
+#include "core/alloc.h"
+#include "core/bits.h"
+#include "core/diag.h"
+#include "script/mem.h"
 
-#include "val_internal.h"
+#include "val.h"
 
 #define script_mem_slots_initial 32
 #define script_mem_slots_loadfactor 0.75f

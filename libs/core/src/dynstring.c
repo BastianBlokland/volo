@@ -1,7 +1,7 @@
-#include "core.h"
-#include "core_dynstring.h"
-#include "core_sentinel.h"
-#include "core_string.h"
+#include "core/dynstring.h"
+#include "core/forward.h"
+#include "core/sentinel.h"
+#include "core/string.h"
 
 DynString dynstring_create(Allocator* alloc, usize capacity) {
   return dynarray_create(alloc, 1, 1, capacity);

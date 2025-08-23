@@ -1,15 +1,15 @@
-#include "core_bits.h"
-#include "core_diag.h"
-#include "core_float.h"
-#include "geo_box.h"
-#include "rend_object.h"
-#include "scene_tag.h"
+#include "core/bits.h"
+#include "core/diag.h"
+#include "core/float.h"
+#include "geo/box.h"
+#include "rend/object.h"
+#include "scene/tag.h"
 
-#include "atlas_internal.h"
-#include "stamp_internal.h"
+#include "atlas.h"
+#include "stamp.h"
 
 #ifdef VOLO_SIMD
-#include "core_simd.h"
+#include "core/simd.h"
 #endif
 
 /**

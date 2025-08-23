@@ -1,13 +1,13 @@
-#include "ecs_utils.h"
-#include "ecs_view.h"
-#include "ecs_world.h"
-#include "log_logger.h"
-#include "rend_register.h"
+#include "ecs/utils.h"
+#include "ecs/view.h"
+#include "ecs/world.h"
+#include "log/logger.h"
+#include "rend/register.h"
 
-#include "painter_internal.h"
-#include "platform_internal.h"
-#include "reset_internal.h"
-#include "resource_internal.h"
+#include "painter.h"
+#include "platform.h"
+#include "reset.h"
+#include "resource.h"
 
 ecs_comp_define(RendResetComp);
 

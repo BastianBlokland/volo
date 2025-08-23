@@ -1,10 +1,10 @@
-#include "core_diag.h"
-#include "core_dynstring.h"
-#include "core_env.h"
-#include "core_sentinel.h"
-#include "core_winutils.h"
+#include "core/diag.h"
+#include "core/dynstring.h"
+#include "core/env.h"
+#include "core/sentinel.h"
+#include "core/winutils.h"
 
-#include "path_internal.h"
+#include "path.h"
 
 #include <Windows.h>
 

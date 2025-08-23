@@ -1,8 +1,8 @@
-#include "check_spec.h"
-#include "core_alloc.h"
-#include "core_array.h"
-#include "script_sig.h"
-#include "script_val.h"
+#include "check/spec.h"
+#include "core/alloc.h"
+#include "core/array.h"
+#include "script/sig.h"
+#include "script/val.h"
 
 spec(sig) {
   it("can store ret type") {

@@ -1,9 +1,9 @@
-#include "ecs_view.h"
-#include "ecs_world.h"
-#include "vfx_decal.h"
-#include "vfx_register.h"
-#include "vfx_stats.h"
-#include "vfx_system.h"
+#include "ecs/view.h"
+#include "ecs/world.h"
+#include "vfx/decal.h"
+#include "vfx/register.h"
+#include "vfx/stats.h"
+#include "vfx/system.h"
 
 ecs_comp_define_public(VfxStatsAnyComp);
 ecs_comp_define_public(VfxStatsGlobalComp);

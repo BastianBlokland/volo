@@ -1,14 +1,14 @@
-#include "core_alloc.h"
-#include "core_array.h"
-#include "core_diag.h"
-#include "core_time.h"
-#include "gap_native.h"
-#include "log_logger.h"
+#include "core/alloc.h"
+#include "core/array.h"
+#include "core/diag.h"
+#include "core/time.h"
+#include "gap/native.h"
+#include "log/logger.h"
 
-#include "device_internal.h"
-#include "image_internal.h"
-#include "lib_internal.h"
-#include "swapchain_internal.h"
+#include "device.h"
+#include "image.h"
+#include "lib.h"
+#include "swapchain.h"
 
 #define swapchain_images_max 5
 

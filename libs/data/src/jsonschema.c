@@ -1,14 +1,14 @@
-#include "core_alloc.h"
-#include "core_base64.h"
-#include "core_bits.h"
-#include "core_diag.h"
-#include "core_dynstring.h"
-#include "core_float.h"
-#include "data_schema.h"
-#include "json_doc.h"
-#include "json_write.h"
+#include "core/alloc.h"
+#include "core/base64.h"
+#include "core/bits.h"
+#include "core/diag.h"
+#include "core/dynstring.h"
+#include "core/float.h"
+#include "data/schema.h"
+#include "json/doc.h"
+#include "json/write.h"
 
-#include "registry_internal.h"
+#include "registry.h"
 
 #define jsonschema_max_types 512
 #define jsonschema_snippet_len_max (8 * usize_kibibyte)

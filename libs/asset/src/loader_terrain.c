@@ -1,15 +1,15 @@
-#include "asset_terrain.h"
-#include "core_alloc.h"
-#include "data_read.h"
-#include "data_utils.h"
-#include "ecs_entity.h"
-#include "ecs_utils.h"
-#include "ecs_view.h"
-#include "ecs_world.h"
+#include "asset/terrain.h"
+#include "core/alloc.h"
+#include "data/read.h"
+#include "data/utils.h"
+#include "ecs/entity.h"
+#include "ecs/utils.h"
+#include "ecs/view.h"
+#include "ecs/world.h"
 
-#include "data_internal.h"
-#include "manager_internal.h"
-#include "repo_internal.h"
+#include "data.h"
+#include "manager.h"
+#include "repo.h"
 
 #define terrain_max_size 1500
 #define terrain_max_height 50.0f

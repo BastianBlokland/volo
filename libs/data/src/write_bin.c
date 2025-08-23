@@ -1,13 +1,13 @@
-#include "core_alloc.h"
-#include "core_bits.h"
-#include "core_diag.h"
-#include "core_dynstring.h"
-#include "core_math.h"
-#include "core_stringtable.h"
-#include "data_utils.h"
-#include "data_write.h"
+#include "core/alloc.h"
+#include "core/bits.h"
+#include "core/diag.h"
+#include "core/dynstring.h"
+#include "core/math.h"
+#include "core/stringtable.h"
+#include "data/utils.h"
+#include "data/write.h"
 
-#include "registry_internal.h"
+#include "registry.h"
 
 static const String g_dataBinMagic           = string_static("VOLO");
 static const u32    g_dataBinProtocolVersion = 4;

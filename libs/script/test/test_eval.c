@@ -1,15 +1,15 @@
-#include "check_spec.h"
-#include "core_alloc.h"
-#include "core_array.h"
-#include "core_math.h"
-#include "geo_color.h"
-#include "geo_quat.h"
-#include "script_binder.h"
-#include "script_eval.h"
-#include "script_mem.h"
-#include "script_read.h"
+#include "check/spec.h"
+#include "core/alloc.h"
+#include "core/array.h"
+#include "core/math.h"
+#include "geo/color.h"
+#include "geo/quat.h"
+#include "script/binder.h"
+#include "script/eval.h"
+#include "script/mem.h"
+#include "script/read.h"
 
-#include "utils_internal.h"
+#include "utils.h"
 
 typedef struct {
   u32 counter;

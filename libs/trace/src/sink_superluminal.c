@@ -1,9 +1,9 @@
-#include "core_alloc.h"
-#include "core_diag.h"
-#include "core_dynlib.h"
-#include "log_logger.h"
-#include "trace_sink.h"
-#include "trace_sink_superluminal.h"
+#include "core/alloc.h"
+#include "core/diag.h"
+#include "core/dynlib.h"
+#include "log/logger.h"
+#include "trace/sink.h"
+#include "trace/sink_superluminal.h"
 
 /**
  * Trace sink implementation that uses the Superluminal PerformanceAPI.

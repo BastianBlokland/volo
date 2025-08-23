@@ -1,5 +1,5 @@
-#include "check_spec.h"
-#include "core_array.h"
+#include "check/spec.h"
+#include "core/array.h"
 
 spec(array) {
 

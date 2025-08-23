@@ -1,8 +1,8 @@
-#include "core_array.h"
-#include "core_bits.h"
-#include "core_thread.h"
+#include "core/array.h"
+#include "core/bits.h"
+#include "core/thread.h"
 
-#include "alloc_internal.h"
+#include "alloc.h"
 
 /**
  * Wrapper around the page allocator that caches allocations that are only a few pages, this avoids

@@ -1,13 +1,13 @@
-#include "core_alloc.h"
-#include "core_array.h"
-#include "core_diag.h"
-#include "core_thread.h"
-#include "log_logger.h"
-#include "trace_tracer.h"
+#include "core/alloc.h"
+#include "core/array.h"
+#include "core/diag.h"
+#include "core/thread.h"
+#include "log/logger.h"
+#include "trace/tracer.h"
 
-#include "device_internal.h"
-#include "lib_internal.h"
-#include "stopwatch_internal.h"
+#include "device.h"
+#include "lib.h"
+#include "stopwatch.h"
 
 #if defined(VOLO_WIN32)
 #include <Windows.h>

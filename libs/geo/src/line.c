@@ -1,8 +1,8 @@
-#include "core_float.h"
-#include "core_math.h"
-#include "geo_line.h"
-#include "geo_quat.h"
-#include "geo_ray.h"
+#include "core/float.h"
+#include "core/math.h"
+#include "geo/line.h"
+#include "geo/quat.h"
+#include "geo/ray.h"
 
 static GeoVector geo_line_point_transform3(
     GeoVector p, const GeoVector offset, const GeoQuat rotation, const f32 scale) {

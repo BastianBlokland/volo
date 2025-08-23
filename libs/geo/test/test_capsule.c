@@ -1,6 +1,6 @@
-#include "check_spec.h"
-#include "geo_capsule.h"
-#include "geo_sphere.h"
+#include "check/spec.h"
+#include "geo/capsule.h"
+#include "geo/sphere.h"
 
 spec(capsule) {
 

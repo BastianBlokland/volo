@@ -1,11 +1,11 @@
-#include "core_diag.h"
-#include "core_math.h"
-#include "ui_canvas.h"
-#include "ui_color.h"
-#include "ui_layout.h"
-#include "ui_scrollview.h"
-#include "ui_shape.h"
-#include "ui_style.h"
+#include "core/diag.h"
+#include "core/math.h"
+#include "ui/canvas.h"
+#include "ui/color.h"
+#include "ui/layout.h"
+#include "ui/scrollview.h"
+#include "ui/shape.h"
+#include "ui/style.h"
 
 #define ui_scrollview_canvas_ids 3
 

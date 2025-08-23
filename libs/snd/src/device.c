@@ -1,6 +1,6 @@
-#include "core_array.h"
+#include "core/array.h"
 
-#include "device_internal.h"
+#include "device.h"
 
 String snd_device_state_str(const SndDeviceState state) {
   static const String g_msgs[] = {

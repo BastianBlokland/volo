@@ -1,14 +1,14 @@
-#include "asset_texture.h"
-#include "core_alloc.h"
-#include "core_array.h"
-#include "core_format.h"
-#include "ecs_entity.h"
-#include "ecs_world.h"
+#include "asset/texture.h"
+#include "core/alloc.h"
+#include "core/array.h"
+#include "core/format.h"
+#include "ecs/entity.h"
+#include "ecs/world.h"
 
-#include "import_texture_internal.h"
-#include "loader_texture_internal.h"
-#include "manager_internal.h"
-#include "repo_internal.h"
+#include "import_texture.h"
+#include "loader_texture.h"
+#include "manager.h"
+#include "repo.h"
 
 /**
  * Portable Pixmap Format.

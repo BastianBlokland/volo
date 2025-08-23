@@ -1,10 +1,10 @@
-#include "core_diag.h"
-#include "ui_canvas.h"
-#include "ui_layout.h"
-#include "ui_panel.h"
-#include "ui_shape.h"
-#include "ui_style.h"
-#include "ui_widget.h"
+#include "core/diag.h"
+#include "ui/canvas.h"
+#include "ui/layout.h"
+#include "ui/panel.h"
+#include "ui/shape.h"
+#include "ui/style.h"
+#include "ui/widget.h"
 
 static const f32 g_panelTopbarHeight = 23;
 static const u32 g_panelOutline      = 3;

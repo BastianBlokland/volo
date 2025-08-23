@@ -1,11 +1,11 @@
-#include "cli_failure.h"
-#include "cli_parse.h"
-#include "core_alloc.h"
-#include "core_array.h"
-#include "core_dynstring.h"
-#include "core_file.h"
-#include "core_format.h"
-#include "core_tty.h"
+#include "cli/failure.h"
+#include "cli/parse.h"
+#include "core/alloc.h"
+#include "core/array.h"
+#include "core/dynstring.h"
+#include "core/file.h"
+#include "core/format.h"
+#include "core/tty.h"
 
 static FormatArg arg_style_red_bg(const CliFailureFlags flags) {
   return flags & CliFailureFlags_Style

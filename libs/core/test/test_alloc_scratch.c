@@ -1,5 +1,5 @@
-#include "check_spec.h"
-#include "core_alloc.h"
+#include "check/spec.h"
+#include "core/alloc.h"
 
 spec(alloc_scratch) {
   it("respects the requested alignment") {

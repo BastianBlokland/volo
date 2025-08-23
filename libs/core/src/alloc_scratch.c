@@ -1,7 +1,7 @@
-#include "core_alloc.h"
-#include "core_diag.h"
+#include "core/alloc.h"
+#include "core/diag.h"
 
-#include "alloc_internal.h"
+#include "alloc.h"
 
 #define scratch_heap_size (usize_mebibyte * 2)
 #define scratch_max_alloc_size (usize_kibibyte * 256)

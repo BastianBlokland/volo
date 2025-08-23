@@ -1,12 +1,12 @@
-#include "core_alloc.h"
-#include "core_diag.h"
-#include "core_dynarray.h"
-#include "core_dynstring.h"
-#include "script_eval.h"
-#include "script_intrinsic.h"
-#include "script_pos.h"
+#include "core/alloc.h"
+#include "core/diag.h"
+#include "core/dynarray.h"
+#include "core/dynstring.h"
+#include "script/eval.h"
+#include "script/intrinsic.h"
+#include "script/pos.h"
 
-#include "doc_internal.h"
+#include "doc.h"
 
 typedef enum {
   ScriptExprFlags_None          = 0,

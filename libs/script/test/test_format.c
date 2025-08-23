@@ -1,7 +1,7 @@
-#include "check_spec.h"
-#include "core_array.h"
-#include "core_dynstring.h"
-#include "script_format.h"
+#include "check/spec.h"
+#include "core/array.h"
+#include "core/dynstring.h"
+#include "script/format.h"
 
 spec(format) {
   Mem                  buffer = mem_stack(4096);

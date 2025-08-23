@@ -1,8 +1,8 @@
-#include "core_alloc.h"
-#include "core_array.h"
-#include "core_diag.h"
+#include "core/alloc.h"
+#include "core/array.h"
+#include "core/diag.h"
 
-#include "repo_internal.h"
+#include "repo.h"
 
 static const String g_assetRepoQueryResultStrs[] = {
     string_static("RepoQuerySuccess"),

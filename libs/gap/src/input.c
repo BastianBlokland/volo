@@ -1,8 +1,8 @@
-#include "core.h"
-#include "core_array.h"
-#include "core_diag.h"
+#include "core/array.h"
+#include "core/diag.h"
+#include "core/forward.h"
 
-#include "input_internal.h"
+#include "input.h"
 
 static const Unicode g_keyChars[GapKey_Count] = {
     [GapKey_Plus] = '+',        [GapKey_Minus] = '-',

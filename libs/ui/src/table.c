@@ -1,11 +1,11 @@
-#include "core_diag.h"
-#include "ui_canvas.h"
-#include "ui_layout.h"
-#include "ui_shape.h"
-#include "ui_style.h"
-#include "ui_table.h"
-#include "ui_units.h"
-#include "ui_widget.h"
+#include "core/diag.h"
+#include "ui/canvas.h"
+#include "ui/layout.h"
+#include "ui/shape.h"
+#include "ui/style.h"
+#include "ui/table.h"
+#include "ui/units.h"
+#include "ui/widget.h"
 
 static UiDir ui_table_column_dir(const UiAlign align) {
   switch (align) {

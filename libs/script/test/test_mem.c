@@ -1,9 +1,9 @@
-#include "check_spec.h"
-#include "core_bits.h"
-#include "script_mem.h"
-#include "script_val.h"
+#include "check/spec.h"
+#include "core/bits.h"
+#include "script/mem.h"
+#include "script/val.h"
 
-#include "utils_internal.h"
+#include "utils.h"
 
 spec(mem) {
   ScriptMem m;

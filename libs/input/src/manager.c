@@ -1,16 +1,16 @@
-#include "asset_inputmap.h"
-#include "core_alloc.h"
-#include "core_array.h"
-#include "core_diag.h"
-#include "core_dynarray.h"
-#include "ecs_utils.h"
-#include "ecs_view.h"
-#include "ecs_world.h"
-#include "gap_window.h"
-#include "input_manager.h"
-#include "input_register.h"
+#include "asset/inputmap.h"
+#include "core/alloc.h"
+#include "core/array.h"
+#include "core/diag.h"
+#include "core/dynarray.h"
+#include "ecs/utils.h"
+#include "ecs/view.h"
+#include "ecs/world.h"
+#include "gap/window.h"
+#include "input/manager.h"
+#include "input/register.h"
 
-#include "resource_internal.h"
+#include "resource.h"
 
 typedef struct {
   StringHash nameHash;

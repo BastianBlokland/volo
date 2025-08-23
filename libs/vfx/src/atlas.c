@@ -1,13 +1,13 @@
-#include "asset_atlas.h"
-#include "asset_manager.h"
-#include "core_array.h"
-#include "core_diag.h"
-#include "core_stringtable.h"
-#include "ecs_view.h"
-#include "ecs_world.h"
-#include "log_logger.h"
+#include "asset/atlas.h"
+#include "asset/manager.h"
+#include "core/array.h"
+#include "core/diag.h"
+#include "core/stringtable.h"
+#include "ecs/view.h"
+#include "ecs/world.h"
+#include "log/logger.h"
 
-#include "atlas_internal.h"
+#include "atlas.h"
 
 static const String g_vfxAtlasAssets[VfxAtlasType_Count] = {
     [VfxAtlasType_Sprite]        = string_static("textures/vfx/sprite.atlas"),

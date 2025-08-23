@@ -1,11 +1,11 @@
-#include "cli_parse.h"
-#include "core.h"
-#include "core_alloc.h"
-#include "core_diag.h"
-#include "core_dynarray.h"
-#include "core_string.h"
+#include "cli/parse.h"
+#include "core/alloc.h"
+#include "core/diag.h"
+#include "core/dynarray.h"
+#include "core/forward.h"
+#include "core/string.h"
 
-#include "app_internal.h"
+#include "app.h"
 
 #define cli_text_chunk_size (8 * usize_kibibyte)
 

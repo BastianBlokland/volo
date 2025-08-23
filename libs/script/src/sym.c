@@ -1,14 +1,14 @@
-#include "core_alloc.h"
-#include "core_array.h"
-#include "core_diag.h"
-#include "core_dynstring.h"
-#include "core_search.h"
-#include "script_intrinsic.h"
-#include "script_sig.h"
-#include "script_sym.h"
-#include "script_val.h"
+#include "core/alloc.h"
+#include "core/array.h"
+#include "core/diag.h"
+#include "core/dynstring.h"
+#include "core/search.h"
+#include "script/intrinsic.h"
+#include "script/sig.h"
+#include "script/sym.h"
+#include "script/val.h"
 
-#include "doc_internal.h"
+#include "doc.h"
 
 #define sym_transient_chunk_size (16 * usize_kibibyte)
 

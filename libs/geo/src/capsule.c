@@ -1,9 +1,9 @@
-#include "geo_capsule.h"
-#include "geo_quat.h"
-#include "geo_sphere.h"
+#include "geo/capsule.h"
+#include "geo/quat.h"
+#include "geo/sphere.h"
 
 #ifdef VOLO_SIMD
-#include "core_simd.h"
+#include "core/simd.h"
 #endif
 
 GeoCapsule geo_capsule_dilate(const GeoCapsule* capsule, const f32 radius) {

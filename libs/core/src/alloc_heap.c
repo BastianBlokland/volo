@@ -1,10 +1,10 @@
-#include "core.h"
-#include "core_alloc.h"
-#include "core_bits.h"
-#include "core_file.h"
-#include "core_thread.h"
+#include "core/alloc.h"
+#include "core/bits.h"
+#include "core/file.h"
+#include "core/forward.h"
+#include "core/thread.h"
 
-#include "alloc_internal.h"
+#include "alloc.h"
 
 #define block_bucket_pow_min 4
 #define block_bucket_pow_max 11

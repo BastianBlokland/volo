@@ -1,8 +1,8 @@
-#include "core_bits.h"
-#include "core_diag.h"
+#include "core/bits.h"
+#include "core/diag.h"
 
-#include "alloc_internal.h"
-#include "init_internal.h"
+#include "alloc.h"
+#include "init.h"
 
 #if defined(VOLO_ASAN)
 #include <sanitizer/asan_interface.h>

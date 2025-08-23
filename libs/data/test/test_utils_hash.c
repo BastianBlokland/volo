@@ -1,8 +1,8 @@
-#include "check_spec.h"
-#include "core_alloc.h"
-#include "data.h"
-#include "data_registry.h"
-#include "data_utils.h"
+#include "check/spec.h"
+#include "core/alloc.h"
+#include "data/forward.h"
+#include "data/registry.h"
+#include "data/utils.h"
 
 spec(utils_hash) {
 

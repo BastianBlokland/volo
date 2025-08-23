@@ -1,11 +1,11 @@
-#include "core_alloc.h"
-#include "core_bits.h"
-#include "core_dynarray.h"
-#include "core_path.h"
-#include "core_time.h"
-#include "log_logger.h"
+#include "core/alloc.h"
+#include "core/bits.h"
+#include "core/dynarray.h"
+#include "core/path.h"
+#include "core/time.h"
+#include "log/logger.h"
 
-#include "repo_internal.h"
+#include "repo.h"
 
 typedef struct {
   u32        checksum; // crc32 (ISO 3309).

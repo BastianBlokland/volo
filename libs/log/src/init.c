@@ -1,8 +1,8 @@
-#include "core_diag.h"
-#include "core_thread.h"
-#include "log_init.h"
+#include "core/diag.h"
+#include "core/thread.h"
+#include "log/init.h"
 
-#include "logger_internal.h"
+#include "logger.h"
 
 static bool g_initalized;
 

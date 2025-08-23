@@ -1,7 +1,7 @@
-#include "core_diag.h"
-#include "core_dynstring.h"
-#include "xml_doc.h"
-#include "xml_write.h"
+#include "core/diag.h"
+#include "core/dynstring.h"
+#include "xml/doc.h"
+#include "xml/write.h"
 
 typedef struct {
   const XmlDoc*       doc;

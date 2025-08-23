@@ -1,6 +1,6 @@
-#include "core_bits.h"
-#include "core_dynbitset.h"
-#include "core_intrinsic.h"
+#include "core/bits.h"
+#include "core/dynbitset.h"
+#include "core/intrinsic.h"
 
 #define dynbitset_align sizeof(u64)
 

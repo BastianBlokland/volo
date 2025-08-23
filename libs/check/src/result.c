@@ -1,7 +1,7 @@
-#include "core_alloc.h"
-#include "core_diag.h"
+#include "core/alloc.h"
+#include "core/diag.h"
 
-#include "result_internal.h"
+#include "result.h"
 
 static const u32 g_checkMaxErrors = 1000;
 

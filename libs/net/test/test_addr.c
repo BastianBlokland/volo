@@ -1,7 +1,7 @@
-#include "check_spec.h"
-#include "core_array.h"
-#include "net_addr.h"
-#include "net_result.h"
+#include "check/spec.h"
+#include "core/array.h"
+#include "net/addr.h"
+#include "net/result.h"
 
 spec(addr) {
   it("fails to resolve an empty host") {

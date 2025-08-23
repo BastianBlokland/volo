@@ -1,11 +1,11 @@
-#include "check_spec.h"
-#include "core_alloc.h"
-#include "core_array.h"
-#include "core_dynbitset.h"
-#include "ecs_def.h"
-#include "ecs_entity.h"
-#include "ecs_view.h"
-#include "ecs_world.h"
+#include "check/spec.h"
+#include "core/alloc.h"
+#include "core/array.h"
+#include "core/dynbitset.h"
+#include "ecs/def.h"
+#include "ecs/entity.h"
+#include "ecs/view.h"
+#include "ecs/world.h"
 
 ecs_comp_define(ViewCompA) { u32 f1; };
 ecs_comp_define(ViewCompB) { String f1; };

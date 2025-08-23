@@ -1,14 +1,14 @@
-#include "core.h"
-#include "core_alloc.h"
-#include "core_array.h"
-#include "core_bitset.h"
-#include "core_diag.h"
-#include "core_thread.h"
-#include "log_logger.h"
+#include "core/alloc.h"
+#include "core/array.h"
+#include "core/bitset.h"
+#include "core/diag.h"
+#include "core/forward.h"
+#include "core/thread.h"
+#include "log/logger.h"
 
-#include "device_internal.h"
-#include "lib_internal.h"
-#include "statrecorder_internal.h"
+#include "device.h"
+#include "lib.h"
+#include "statrecorder.h"
 
 #define rvk_statrecorder_queries_max 64
 

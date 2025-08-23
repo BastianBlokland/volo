@@ -1,6 +1,6 @@
-#include "check_spec.h"
-#include "core_alloc.h"
-#include "core_dynbitset.h"
+#include "check/spec.h"
+#include "core/alloc.h"
+#include "core/dynbitset.h"
 
 spec(dynbitset) {
 

@@ -1,12 +1,12 @@
-#include "core_diag.h"
-#include "core_math.h"
-#include "core_unicode.h"
-#include "core_utf8.h"
-#include "log_logger.h"
-#include "ui_shape.h"
+#include "core/diag.h"
+#include "core/math.h"
+#include "core/unicode.h"
+#include "core/utf8.h"
+#include "log/logger.h"
+#include "ui/shape.h"
 
-#include "escape_internal.h"
-#include "text_internal.h"
+#include "escape.h"
+#include "text.h"
 
 #define ui_text_tab_size 8
 #define ui_text_max_lines 100

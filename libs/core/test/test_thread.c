@@ -1,9 +1,9 @@
-#include "check_spec.h"
-#include "core_alloc.h"
-#include "core_array.h"
-#include "core_diag.h"
-#include "core_thread.h"
-#include "core_time.h"
+#include "check/spec.h"
+#include "core/alloc.h"
+#include "core/array.h"
+#include "core/diag.h"
+#include "core/thread.h"
+#include "core/time.h"
 
 static void test_thread_has_name(void* data) {
   (void)data;

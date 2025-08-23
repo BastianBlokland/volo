@@ -1,7 +1,7 @@
-#include "core_diag.h"
-#include "ecs_def.h"
-#include "ecs_world.h"
-#include "rend_register.h"
+#include "core/diag.h"
+#include "ecs/def.h"
+#include "ecs/world.h"
+#include "rend/register.h"
 
 void rend_register(EcsDef* def) {
   ecs_register_module(def, rend_error_module);

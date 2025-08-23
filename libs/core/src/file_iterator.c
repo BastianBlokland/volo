@@ -1,6 +1,6 @@
-#include "core_array.h"
-#include "core_diag.h"
-#include "core_file_iterator.h"
+#include "core/array.h"
+#include "core/diag.h"
+#include "core/file_iterator.h"
 
 static const String g_fileIteratorResultStrs[] = {
     string_static("FileIteratorFound"),

@@ -1,15 +1,15 @@
-#include "core_alloc.h"
-#include "core_bits.h"
-#include "core_diag.h"
-#include "core_dynarray.h"
-#include "core_file.h"
-#include "core_thread.h"
-#include "data_read.h"
-#include "data_utils.h"
-#include "log_logger.h"
+#include "core/alloc.h"
+#include "core/bits.h"
+#include "core/diag.h"
+#include "core/dynarray.h"
+#include "core/file.h"
+#include "core/thread.h"
+#include "data/read.h"
+#include "data/utils.h"
+#include "log/logger.h"
 
-#include "pack_internal.h"
-#include "repo_internal.h"
+#include "pack.h"
+#include "repo.h"
 
 #define VOLO_ASSET_PACK_LOGGING 0
 #define VOLO_ASSET_PACK_VALIDATE 0

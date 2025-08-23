@@ -1,6 +1,6 @@
-#include "check_spec.h"
-#include "core.h"
-#include "core_symbol.h"
+#include "check/spec.h"
+#include "core/forward.h"
+#include "core/symbol.h"
 
 static volatile i32 g_preserveFunc;
 

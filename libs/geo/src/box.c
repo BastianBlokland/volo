@@ -1,12 +1,12 @@
-#include "core_array.h"
-#include "core_float.h"
-#include "core_math.h"
-#include "geo_box.h"
-#include "geo_quat.h"
-#include "geo_sphere.h"
+#include "core/array.h"
+#include "core/float.h"
+#include "core/math.h"
+#include "geo/box.h"
+#include "geo/quat.h"
+#include "geo/sphere.h"
 
 #ifdef VOLO_SIMD
-#include "core_simd.h"
+#include "core/simd.h"
 #endif
 
 MAYBE_UNUSED static GeoVector

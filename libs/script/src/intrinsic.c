@@ -1,6 +1,6 @@
-#include "core_array.h"
-#include "core_diag.h"
-#include "script_intrinsic.h"
+#include "core/array.h"
+#include "core/diag.h"
+#include "script/intrinsic.h"
 
 u32 script_intrinsic_arg_count(const ScriptIntrinsic i) {
   switch (i) {

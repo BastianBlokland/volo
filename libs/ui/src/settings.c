@@ -1,4 +1,4 @@
-#include "ui_settings.h"
+#include "ui/settings.h"
 
 ecs_comp_define_public(UiSettingsGlobalComp);
 

@@ -1,7 +1,7 @@
 
-#include "asset_data.h"
-#include "asset_register.h"
-#include "ecs_def.h"
+#include "asset/data.h"
+#include "asset/register.h"
+#include "ecs/def.h"
 
 void asset_register(EcsDef* def) {
   asset_data_init();

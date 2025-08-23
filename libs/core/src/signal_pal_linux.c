@@ -1,7 +1,7 @@
-#include "core_diag.h"
-#include "core_thread.h"
+#include "core/diag.h"
+#include "core/thread.h"
 
-#include "signal_internal.h"
+#include "signal.h"
 
 #include <signal.h>
 

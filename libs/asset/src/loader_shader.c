@@ -1,16 +1,16 @@
-#include "core_alloc.h"
-#include "core_diag.h"
-#include "core_dynstring.h"
-#include "data_read.h"
-#include "data_utils.h"
-#include "ecs_entity.h"
-#include "ecs_utils.h"
-#include "ecs_view.h"
-#include "ecs_world.h"
+#include "core/alloc.h"
+#include "core/diag.h"
+#include "core/dynstring.h"
+#include "data/read.h"
+#include "data/utils.h"
+#include "ecs/entity.h"
+#include "ecs/utils.h"
+#include "ecs/view.h"
+#include "ecs/world.h"
 
-#include "import_internal.h"
-#include "loader_shader_internal.h"
-#include "manager_internal.h"
+#include "import.h"
+#include "loader_shader.h"
+#include "manager.h"
 
 ecs_comp_define_public(AssetShaderComp);
 ecs_comp_define_public(AssetShaderSourceComp);

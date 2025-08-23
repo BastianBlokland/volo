@@ -1,14 +1,14 @@
-#include "core_alloc.h"
-#include "core_diag.h"
-#include "core_dynstring.h"
-#include "core_search.h"
-#include "core_stringtable.h"
-#include "script_binder.h"
-#include "script_mem.h"
-#include "script_prog.h"
+#include "core/alloc.h"
+#include "core/diag.h"
+#include "core/dynstring.h"
+#include "core/search.h"
+#include "core/stringtable.h"
+#include "script/binder.h"
+#include "script/mem.h"
+#include "script/prog.h"
 
-#include "panic_internal.h"
-#include "val_internal.h"
+#include "panic.h"
+#include "val.h"
 
 #define script_prog_ops_max 25000
 

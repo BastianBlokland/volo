@@ -1,9 +1,9 @@
-#include "core_alloc.h"
-#include "core_array.h"
-#include "core_diag.h"
-#include "core_dynstring.h"
-#include "core_format.h"
-#include "net_addr.h"
+#include "core/alloc.h"
+#include "core/array.h"
+#include "core/diag.h"
+#include "core/dynstring.h"
+#include "core/format.h"
+#include "net/addr.h"
 
 bool net_is_loopback(const NetAddr addr) {
   switch (addr.type) {

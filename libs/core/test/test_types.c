@@ -1,5 +1,5 @@
-#include "core_annotation.h"
-#include "core_types.h"
+#include "core/annotation.h"
+#include "core/types.h"
 
 ASSERT(sizeof(i8) == 1, "Unexpected sizeof i8 typedef");
 ASSERT(sizeof(u8) == 1, "Unexpected sizeof u8 typedef");

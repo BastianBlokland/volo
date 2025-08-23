@@ -1,9 +1,9 @@
-#include "core_array.h"
-#include "core_bits.h"
-#include "core_file.h"
-#include "core_thread.h"
+#include "core/array.h"
+#include "core/bits.h"
+#include "core/file.h"
+#include "core/thread.h"
 
-#include "alloc_internal.h"
+#include "alloc.h"
 
 #define tracker_slots_initial (16 * 1024)
 #define tracker_slots_loadfactor 0.75f

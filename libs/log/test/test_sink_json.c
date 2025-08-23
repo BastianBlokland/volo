@@ -1,11 +1,11 @@
-#include "check_spec.h"
-#include "core_alloc.h"
-#include "core_dynstring.h"
-#include "core_file.h"
-#include "json_doc.h"
-#include "json_read.h"
-#include "log_logger.h"
-#include "log_sink_json.h"
+#include "check/spec.h"
+#include "core/alloc.h"
+#include "core/dynstring.h"
+#include "core/file.h"
+#include "json/doc.h"
+#include "json/read.h"
+#include "log/logger.h"
+#include "log/sink_json.h"
 
 spec(sink_json) {
 
