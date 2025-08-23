@@ -22,6 +22,6 @@
     "graphics/light/*.graphic",
     "graphics/vfx/*.graphic",
 
-    "levels/*.level"
+    "levels/game/*.level"
   ]
 }
