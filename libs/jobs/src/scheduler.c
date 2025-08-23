@@ -6,9 +6,9 @@
 #include "jobs/scheduler.h"
 #include "trace/tracer.h"
 
-#include "executor_internal.h"
-#include "init_internal.h"
-#include "job_internal.h"
+#include "executor.h"
+#include "init.h"
+#include "job.h"
 
 typedef Job* JobPtr;
 

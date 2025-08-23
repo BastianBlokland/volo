@@ -9,7 +9,7 @@
 #include "net/socket.h"
 #include "net/types.h"
 
-#include "pal_internal.h"
+#include "pal.h"
 
 #include <errno.h>
 #include <ifaddrs.h>

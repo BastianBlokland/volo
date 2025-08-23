@@ -9,10 +9,10 @@
 #include "ecs/world.h"
 #include "geo/matrix.h"
 
-#include "loader_mesh_internal.h"
-#include "manager_internal.h"
-#include "mesh_utils_internal.h"
-#include "repo_internal.h"
+#include "loader_mesh.h"
+#include "manager.h"
+#include "mesh_utils.h"
+#include "repo.h"
 
 /**
  * Procedurally generated mesh.

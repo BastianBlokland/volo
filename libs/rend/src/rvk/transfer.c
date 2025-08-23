@@ -8,11 +8,11 @@
 #include "geo/color.h"
 #include "log/logger.h"
 
-#include "buffer_internal.h"
-#include "device_internal.h"
-#include "image_internal.h"
-#include "lib_internal.h"
-#include "transfer_internal.h"
+#include "buffer.h"
+#include "device.h"
+#include "image.h"
+#include "lib.h"
+#include "transfer.h"
 
 // #define VOLO_RVK_TRANSFER_LOGGING
 

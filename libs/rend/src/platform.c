@@ -4,14 +4,14 @@
 #include "ecs/world.h"
 #include "log/logger.h"
 #include "rend/settings.h"
+#include "rvk/device.h"
+#include "rvk/lib.h"
+#include "rvk/pass.h"
 
-#include "builder_internal.h"
-#include "error_internal.h"
-#include "platform_internal.h"
-#include "reset_internal.h"
-#include "rvk/device_internal.h"
-#include "rvk/lib_internal.h"
-#include "rvk/pass_internal.h"
+#include "builder.h"
+#include "error.h"
+#include "platform.h"
+#include "reset.h"
 
 // clang-format off
 

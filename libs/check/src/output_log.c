@@ -5,7 +5,7 @@
 #include "jobs/executor.h"
 #include "log/logger.h"
 
-#include "output_log_internal.h"
+#include "output_log.h"
 
 typedef struct {
   CheckOutput api;

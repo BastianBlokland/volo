@@ -5,13 +5,13 @@
 #include "core/thread.h"
 #include "geo/color.h"
 
-#include "device_internal.h"
-#include "image_internal.h"
-#include "job_internal.h"
-#include "lib_internal.h"
-#include "statrecorder_internal.h"
-#include "stopwatch_internal.h"
-#include "uniform_internal.h"
+#include "device.h"
+#include "image.h"
+#include "job.h"
+#include "lib.h"
+#include "statrecorder.h"
+#include "stopwatch.h"
+#include "uniform.h"
 
 typedef enum {
   RvkJob_Active = 1 << 0,

@@ -8,9 +8,9 @@
 #include "gap/native.h"
 #include "log/logger.h"
 
-#include "disassembler_internal.h"
-#include "lib_internal.h"
-#include "mem_internal.h"
+#include "disassembler.h"
+#include "lib.h"
+#include "mem.h"
 
 #define rvk_lib_vulkan_names_max 4
 #define rvk_lib_vulkan_api_major 1

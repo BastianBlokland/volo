@@ -5,7 +5,7 @@
 #include "core/dynstring.h"
 #include "core/utf8.h"
 
-#include "lex_internal.h"
+#include "lex.h"
 
 #define xml_token_err(_ERR_)                                                                       \
   (XmlToken) { .type = XmlTokenType_Error, .val_error = (_ERR_) }

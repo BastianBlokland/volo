@@ -6,11 +6,11 @@
 #include "jobs/init.h"
 #include "trace/tracer.h"
 
-#include "affinity_queue_internal.h"
-#include "executor_internal.h"
-#include "graph_internal.h"
-#include "scheduler_internal.h"
-#include "work_queue_internal.h"
+#include "affinity_queue.h"
+#include "executor.h"
+#include "graph.h"
+#include "scheduler.h"
+#include "work_queue.h"
 
 #include <immintrin.h>
 

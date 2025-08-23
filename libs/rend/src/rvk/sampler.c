@@ -5,9 +5,9 @@
 #include "core/thread.h"
 #include "log/logger.h"
 
-#include "device_internal.h"
-#include "lib_internal.h"
-#include "sampler_internal.h"
+#include "device.h"
+#include "lib.h"
+#include "sampler.h"
 
 #define VOLO_RVK_SAMPLER_LOGGING 0
 

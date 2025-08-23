@@ -4,7 +4,7 @@
 #include "core/diag.h"
 #include "data/registry.h"
 
-#include "registry_internal.h"
+#include "registry.h"
 
 static DataId data_id_create(Allocator* alloc, const String name) {
   return (DataId){.name = string_dup(alloc, name), .hash = string_hash(name)};

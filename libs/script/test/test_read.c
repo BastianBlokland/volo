@@ -7,7 +7,7 @@
 #include "script/diag.h"
 #include "script/read.h"
 
-#include "utils_internal.h"
+#include "utils.h"
 
 spec(read) {
   ScriptDoc*     doc             = null;

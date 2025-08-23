@@ -2,9 +2,9 @@
 #include "core/bits.h"
 #include "core/diag.h"
 
-#include "comp_internal.h"
-#include "def_internal.h"
-#include "module_internal.h"
+#include "comp.h"
+#include "def.h"
+#include "module.h"
 
 static const EcsModuleDef* ecs_def_module(const EcsDef* def, const EcsModuleId id) {
   diag_assert_msg(id < def->modules.size, "Invalid module id '{}'", fmt_int(id));

@@ -9,7 +9,7 @@
 #include "net/socket.h"
 #include "net/tls.h"
 
-#include "tls_internal.h"
+#include "tls.h"
 
 /**
  * Tls (Transport Layer Security) client implementation using the OpenSSL (libssl) library.

@@ -5,7 +5,7 @@
 #include "core/forward.h"
 #include "core/string.h"
 
-#include "app_internal.h"
+#include "app.h"
 
 #define cli_text_chunk_size (8 * usize_kibibyte)
 

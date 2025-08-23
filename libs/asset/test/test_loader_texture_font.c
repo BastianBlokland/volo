@@ -9,7 +9,7 @@
 #include "ecs/utils.h"
 #include "ecs/world.h"
 
-#include "utils_internal.h"
+#include "utils.h"
 
 /**
  * Font exported from fontforge (sha: c3468cbd0320c152c0cbf762b9e2b63642d9c65f) and base64 encoded.

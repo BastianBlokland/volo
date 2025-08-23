@@ -4,7 +4,7 @@
 #include "core/dynstring.h"
 #include "core/path.h"
 
-#include "app_internal.h"
+#include "app.h"
 
 #define cli_app_option_name_max_len 64
 #define cli_app_aux_chunk_size (4 * usize_kibibyte)

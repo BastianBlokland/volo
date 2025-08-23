@@ -3,11 +3,11 @@
 #include "ecs/world.h"
 #include "rend/register.h"
 #include "rend/settings.h"
+#include "rvk/canvas.h"
 #include "trace/tracer.h"
 
-#include "limiter_internal.h"
-#include "painter_internal.h"
-#include "rvk/canvas_internal.h"
+#include "limiter.h"
+#include "painter.h"
 
 ecs_comp_define_public(RendLimiterComp);
 

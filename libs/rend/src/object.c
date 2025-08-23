@@ -10,11 +10,11 @@
 #include "rend/register.h"
 #include "trace/tracer.h"
 
-#include "builder_internal.h"
-#include "object_internal.h"
-#include "reset_internal.h"
-#include "resource_internal.h"
-#include "view_internal.h"
+#include "builder.h"
+#include "object.h"
+#include "reset.h"
+#include "resource.h"
+#include "view.h"
 
 #ifdef VOLO_SIMD
 #include "core/simd.h"

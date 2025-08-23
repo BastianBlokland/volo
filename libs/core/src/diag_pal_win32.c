@@ -2,7 +2,7 @@
 #include "core/symbol.h"
 #include "core/thread.h"
 
-#include "diag_internal.h"
+#include "diag.h"
 
 #include <Windows.h>
 

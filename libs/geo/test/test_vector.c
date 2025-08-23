@@ -5,7 +5,7 @@
 #include "core/rng.h"
 #include "geo/vector.h"
 
-#include "utils_internal.h"
+#include "utils.h"
 
 spec(vector) {
 

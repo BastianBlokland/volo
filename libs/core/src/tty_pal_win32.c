@@ -5,8 +5,8 @@
 #include "core/math.h"
 #include "core/winutils.h"
 
-#include "file_internal.h"
-#include "tty_internal.h"
+#include "file.h"
+#include "tty.h"
 
 #include <Windows.h>
 

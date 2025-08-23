@@ -7,9 +7,9 @@
 #include "ecs/entity.h"
 #include "ecs/runner.h"
 
-#include "module_internal.h"
-#include "storage_internal.h"
-#include "view_internal.h"
+#include "module.h"
+#include "storage.h"
+#include "view.h"
 
 MAYBE_UNUSED static bool ecs_iterator_is_stepped(EcsIterator* iterator) {
   return iterator->chunksToSkip || !sentinel_check(iterator->chunksLimitRemaining);

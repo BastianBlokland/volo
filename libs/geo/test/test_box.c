@@ -5,7 +5,7 @@
 #include "geo/quat.h"
 #include "geo/sphere.h"
 
-#include "utils_internal.h"
+#include "utils.h"
 
 spec(box) {
 

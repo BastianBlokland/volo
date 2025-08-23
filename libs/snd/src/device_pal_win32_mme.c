@@ -7,8 +7,8 @@
 #include "log/logger.h"
 #include "snd/channel.h"
 
-#include "constants_internal.h"
-#include "device_internal.h"
+#include "constants.h"
+#include "device.h"
 
 #include <Windows.h>
 

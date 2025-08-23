@@ -12,7 +12,7 @@
 #include "json/doc.h"
 #include "json/read.h"
 
-#include "registry_internal.h"
+#include "registry.h"
 
 #define result_success()                                                                           \
   (DataReadResult) { 0 }

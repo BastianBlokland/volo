@@ -1,7 +1,7 @@
 #include "core/diag.h"
 #include "ecs/entity.h"
 
-#include "entity_allocator_internal.h"
+#include "entity_allocator.h"
 
 // Note: Not a hard limit, will grow beyond this if needed.
 #define ecs_starting_free_indices 1024

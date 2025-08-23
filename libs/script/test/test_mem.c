@@ -3,7 +3,7 @@
 #include "script/mem.h"
 #include "script/val.h"
 
-#include "utils_internal.h"
+#include "utils.h"
 
 spec(mem) {
   ScriptMem m;

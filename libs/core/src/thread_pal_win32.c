@@ -4,7 +4,7 @@
 #include "core/time.h"
 #include "core/winutils.h"
 
-#include "thread_internal.h"
+#include "thread.h"
 
 #include <Windows.h>
 

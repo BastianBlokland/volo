@@ -6,12 +6,12 @@
 #include "log/logger.h"
 #include "trace/tracer.h"
 
-#include "buffer_internal.h"
-#include "def_internal.h"
-#include "finalizer_internal.h"
-#include "storage_internal.h"
-#include "view_internal.h"
-#include "world_internal.h"
+#include "buffer.h"
+#include "def.h"
+#include "finalizer.h"
+#include "storage.h"
+#include "view.h"
+#include "world.h"
 
 // #define VOLO_ECS_WORLD_LOGGING_VERBOSE
 

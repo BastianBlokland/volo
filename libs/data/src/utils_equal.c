@@ -2,7 +2,7 @@
 #include "core/diag.h"
 #include "data/utils.h"
 
-#include "registry_internal.h"
+#include "registry.h"
 
 typedef struct {
   const DataReg* reg;

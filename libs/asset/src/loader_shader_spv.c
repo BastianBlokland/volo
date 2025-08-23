@@ -4,8 +4,8 @@
 #include "ecs/entity.h"
 #include "ecs/world.h"
 
-#include "loader_shader_internal.h"
-#include "manager_internal.h"
+#include "loader_shader.h"
+#include "manager.h"
 
 /**
  * Spir-V (Standard Portable Intermediate Representation 5)

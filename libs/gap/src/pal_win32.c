@@ -10,7 +10,7 @@
 #include "core/winutils.h"
 #include "log/logger.h"
 
-#include "pal_internal.h"
+#include "pal.h"
 
 #include <Windows.h>
 

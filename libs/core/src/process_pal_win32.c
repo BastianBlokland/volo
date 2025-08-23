@@ -6,7 +6,7 @@
 #include "core/signal.h"
 #include "core/winutils.h"
 
-#include "file_internal.h"
+#include "file.h"
 
 #include <Windows.h>
 

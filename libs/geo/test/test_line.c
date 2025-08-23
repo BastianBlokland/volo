@@ -2,7 +2,7 @@
 #include "geo/line.h"
 #include "geo/ray.h"
 
-#include "utils_internal.h"
+#include "utils.h"
 
 spec(line) {
 

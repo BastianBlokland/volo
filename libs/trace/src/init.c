@@ -2,7 +2,7 @@
 #include "core/thread.h"
 #include "trace/init.h"
 
-#include "tracer_internal.h"
+#include "tracer.h"
 
 static bool g_initalized;
 

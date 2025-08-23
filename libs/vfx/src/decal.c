@@ -23,9 +23,9 @@
 #include "vfx/decal.h"
 #include "vfx/register.h"
 
-#include "atlas_internal.h"
-#include "rend_internal.h"
-#include "stamp_internal.h"
+#include "atlas.h"
+#include "rend.h"
+#include "stamp.h"
 
 #define vfx_decal_max_create_per_tick 100
 #define vfx_decal_max_asset_requests 4

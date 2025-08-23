@@ -5,8 +5,8 @@
 #include "gap/register.h"
 #include "log/logger.h"
 
-#include "error_internal.h"
-#include "platform_internal.h"
+#include "error.h"
+#include "platform.h"
 
 static const String g_gapIconAssets[GapIcon_Count] = {
     [GapIcon_Main] = string_static("icons/builtin/window_main.icon"),

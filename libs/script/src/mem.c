@@ -3,7 +3,7 @@
 #include "core/diag.h"
 #include "script/mem.h"
 
-#include "val_internal.h"
+#include "val.h"
 
 #define script_mem_slots_initial 32
 #define script_mem_slots_loadfactor 0.75f

@@ -15,8 +15,8 @@
 #include "geo/sphere.h"
 #include "geo/vector.h"
 
-#include "data_internal.h"
-#include "format_internal.h"
+#include "data.h"
+#include "format.h"
 
 typedef GeoColor GeoColor3;
 typedef GeoColor GeoColor4;

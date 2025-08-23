@@ -2,9 +2,9 @@
 #include "ecs/view.h"
 #include "ecs/world.h"
 
-#include "import_internal.h"
-#include "manager_internal.h"
-#include "repo_internal.h"
+#include "import.h"
+#include "manager.h"
+#include "repo.h"
 
 ecs_comp_define_public(AssetRawComp);
 ecs_comp_define(AssetRawSourceComp) { AssetSource* src; };

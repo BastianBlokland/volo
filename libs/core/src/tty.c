@@ -4,8 +4,8 @@
 #include "core/format.h"
 #include "core/utf8.h"
 
-#include "init_internal.h"
-#include "tty_internal.h"
+#include "init.h"
+#include "tty.h"
 
 void tty_init(void) { tty_pal_init(); }
 void tty_teardown(void) { tty_pal_teardown(); }

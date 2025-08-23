@@ -8,8 +8,8 @@
 #include "ecs/view.h"
 #include "ecs/world.h"
 
-#include "manager_internal.h"
-#include "repo_internal.h"
+#include "manager.h"
+#include "repo.h"
 
 DataMeta g_assetInputDefMeta;
 

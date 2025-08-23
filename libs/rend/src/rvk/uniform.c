@@ -6,11 +6,11 @@
 #include "core/math.h"
 #include "log/logger.h"
 
-#include "buffer_internal.h"
-#include "desc_internal.h"
-#include "device_internal.h"
-#include "lib_internal.h"
-#include "uniform_internal.h"
+#include "buffer.h"
+#include "desc.h"
+#include "device.h"
+#include "lib.h"
+#include "uniform.h"
 
 /**
  * Maximum amount of data that we can bind to a single uniform.

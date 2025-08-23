@@ -1,8 +1,8 @@
 #include "core/array.h"
 #include "core/diag.h"
 
-#include "file_internal.h"
-#include "tty_internal.h"
+#include "file.h"
+#include "tty.h"
 
 #include <errno.h>
 #include <poll.h>

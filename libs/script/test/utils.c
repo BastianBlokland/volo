@@ -1,6 +1,6 @@
 #include "script/val.h"
 
-#include "utils_internal.h"
+#include "utils.h"
 
 void check_eq_tok_impl(
     CheckTestContext* ctx, const ScriptToken* a, const ScriptToken* b, const SourceLoc src) {

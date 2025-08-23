@@ -16,8 +16,8 @@
 #include "script/binder.h"
 #include "script/sig.h"
 
-#include "format_internal.h"
-#include "import_internal.h"
+#include "format.h"
+#include "import.h"
 
 typedef enum {
   AssetImportType_Mesh,

@@ -8,7 +8,7 @@
 #include "script/intrinsic.h"
 #include "script/prog.h"
 
-#include "doc_internal.h"
+#include "doc.h"
 
 ASSERT(script_prog_regs <= 63, "Register allocator only supports up to 63 registers");
 

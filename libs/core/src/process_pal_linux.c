@@ -4,7 +4,7 @@
 #include "core/process.h"
 #include "core/signal.h"
 
-#include "file_internal.h"
+#include "file.h"
 
 #include <errno.h>
 #include <signal.h>

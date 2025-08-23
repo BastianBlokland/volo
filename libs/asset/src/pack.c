@@ -11,10 +11,10 @@
 #include "data/write.h"
 #include "log/logger.h"
 
-#include "data_internal.h"
-#include "manager_internal.h"
-#include "pack_internal.h"
-#include "repo_internal.h"
+#include "data.h"
+#include "manager.h"
+#include "pack.h"
+#include "repo.h"
 
 /**
  * Pack files combine multiple individual assets into a single blob to allow for more efficient

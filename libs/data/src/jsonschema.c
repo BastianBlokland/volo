@@ -8,7 +8,7 @@
 #include "json/doc.h"
 #include "json/write.h"
 
-#include "registry_internal.h"
+#include "registry.h"
 
 #define jsonschema_max_types 512
 #define jsonschema_snippet_len_max (8 * usize_kibibyte)

@@ -5,14 +5,14 @@
 #include "log/logger.h"
 #include "trace/tracer.h"
 
-#include "attach_internal.h"
-#include "canvas_internal.h"
-#include "device_internal.h"
-#include "job_internal.h"
-#include "lib_internal.h"
-#include "pass_internal.h"
-#include "statrecorder_internal.h"
-#include "swapchain_internal.h"
+#include "attach.h"
+#include "canvas.h"
+#include "device.h"
+#include "job.h"
+#include "lib.h"
+#include "pass.h"
+#include "statrecorder.h"
+#include "swapchain.h"
 
 /**
  * Use two frames for double bufferring:

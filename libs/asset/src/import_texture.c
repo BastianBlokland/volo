@@ -10,8 +10,8 @@
 #include "script/sig.h"
 #include "script/val.h"
 
-#include "import_internal.h"
-#include "import_texture_internal.h"
+#include "import.h"
+#include "import_texture.h"
 
 ScriptBinder* g_assetScriptImportTextureBinder;
 

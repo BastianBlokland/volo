@@ -1,7 +1,7 @@
 #include "core/bits.h"
 #include "core/math.h"
 
-#include "mem_internal.h"
+#include "mem.h"
 
 /**
  * Api for Vulkan to allocate host memory.

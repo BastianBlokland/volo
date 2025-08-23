@@ -5,9 +5,9 @@
 #include "core/dynarray.h"
 #include "core/thread.h"
 
-#include "device_internal.h"
-#include "lib_internal.h"
-#include "mem_internal.h"
+#include "device.h"
+#include "lib.h"
+#include "mem.h"
 
 /**
  * Device memory pool.

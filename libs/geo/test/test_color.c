@@ -4,7 +4,7 @@
 #include "core/rng.h"
 #include "geo/color.h"
 
-#include "utils_internal.h"
+#include "utils.h"
 
 spec(color) {
 

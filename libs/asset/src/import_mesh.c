@@ -11,7 +11,7 @@
 #include "script/sig.h"
 #include "script/val.h"
 
-#include "import_mesh_internal.h"
+#include "import_mesh.h"
 
 ScriptBinder* g_assetScriptImportMeshBinder;
 

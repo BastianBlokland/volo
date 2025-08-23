@@ -13,7 +13,7 @@
 #include "scene/transform.h"
 #include "scene/visibility.h"
 
-#include "fog_internal.h"
+#include "fog.h"
 
 static const String g_fogVisionGraphic = string_static("graphics/builtin/fog_vision.graphic");
 static const f32    g_worldHeight      = 100.0f;

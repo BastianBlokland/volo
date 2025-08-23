@@ -1,11 +1,11 @@
 #include "core/diag.h"
 #include "log/logger.h"
 
-#include "desc_internal.h"
-#include "device_internal.h"
-#include "image_internal.h"
-#include "texture_internal.h"
-#include "transfer_internal.h"
+#include "desc.h"
+#include "device.h"
+#include "image.h"
+#include "texture.h"
+#include "transfer.h"
 
 #define VOLO_RVK_TEXTURE_LOGGING 0
 

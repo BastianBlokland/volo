@@ -1,7 +1,7 @@
 #include "core/diag.h"
 #include "ui/layout.h"
 
-#include "canvas_internal.h"
+#include "canvas.h"
 
 void ui_layout_push(UiCanvasComp* canvas) {
   UiCmdBuffer* cmdBuffer = ui_canvas_cmd_buffer(canvas);

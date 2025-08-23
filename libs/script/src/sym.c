@@ -8,7 +8,7 @@
 #include "script/sym.h"
 #include "script/val.h"
 
-#include "doc_internal.h"
+#include "doc.h"
 
 #define sym_transient_chunk_size (16 * usize_kibibyte)
 

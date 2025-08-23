@@ -8,7 +8,7 @@
 #include "core/thread.h"
 #include "log/logger.h"
 
-#include "disassembler_internal.h"
+#include "disassembler.h"
 
 #define spirvtools_names_max 4
 

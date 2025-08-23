@@ -5,7 +5,7 @@
 #include "core/tty.h"
 #include "jobs/executor.h"
 
-#include "output_pretty_internal.h"
+#include "output_pretty.h"
 
 typedef struct {
   CheckOutput   api;

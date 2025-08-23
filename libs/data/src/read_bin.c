@@ -6,7 +6,7 @@
 #include "data/read.h"
 #include "data/utils.h"
 
-#include "registry_internal.h"
+#include "registry.h"
 
 #define VOLO_DATA_VALIDATE_CHECKSUMS 0
 

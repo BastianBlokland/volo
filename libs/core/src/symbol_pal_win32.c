@@ -2,7 +2,7 @@
 #include "core/dynlib.h"
 #include "core/path.h"
 
-#include "symbol_internal.h"
+#include "symbol.h"
 
 #include <Windows.h>
 #include <psapi.h>

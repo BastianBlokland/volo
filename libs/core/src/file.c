@@ -5,8 +5,8 @@
 #include "core/path.h"
 #include "core/thread.h"
 
-#include "file_internal.h"
-#include "init_internal.h"
+#include "file.h"
+#include "init.h"
 
 static i64 g_fileCount, g_fileMappingSize;
 

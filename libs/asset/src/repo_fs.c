@@ -8,8 +8,8 @@
 #include "log/logger.h"
 #include "trace/tracer.h"
 
-#include "cache_internal.h"
-#include "repo_internal.h"
+#include "cache.h"
+#include "repo.h"
 
 typedef struct {
   AssetRepo    api;

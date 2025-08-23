@@ -10,8 +10,8 @@
 #include "core/string.h"
 #include "core/time.h"
 
-#include "init_internal.h"
-#include "path_internal.h"
+#include "init.h"
+#include "path.h"
 
 static String g_pathSeparators = string_static("/\\");
 

@@ -3,7 +3,7 @@
 #include "geo/box_rotated.h"
 #include "geo/sphere.h"
 
-#include "utils_internal.h"
+#include "utils.h"
 
 spec(box_rotated) {
 

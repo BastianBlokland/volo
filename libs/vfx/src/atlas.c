@@ -7,7 +7,7 @@
 #include "ecs/world.h"
 #include "log/logger.h"
 
-#include "atlas_internal.h"
+#include "atlas.h"
 
 static const String g_vfxAtlasAssets[VfxAtlasType_Count] = {
     [VfxAtlasType_Sprite]        = string_static("textures/vfx/sprite.atlas"),

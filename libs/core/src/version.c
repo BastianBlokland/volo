@@ -5,7 +5,7 @@
 #include "core/math.h"
 #include "core/version.h"
 
-#include "version_internal.h"
+#include "version.h"
 
 static u32 version_label_length(const Version* v) {
   u32 count = 0;

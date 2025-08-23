@@ -8,7 +8,7 @@
 #include "ecs/utils.h"
 #include "ecs/world.h"
 
-#include "utils_internal.h"
+#include "utils.h"
 
 /**
  * The test images are exported from gimp 2.10.20 and then base64 encoded.

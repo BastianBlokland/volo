@@ -4,7 +4,7 @@
 #include "core/forward.h"
 #include "core/thread.h"
 
-#include "alloc_internal.h"
+#include "alloc.h"
 
 #define block_bucket_pow_min 4
 #define block_bucket_pow_max 11

@@ -10,7 +10,7 @@
 #include "core/sentinel.h"
 #include "core/thread.h"
 
-#include "symbol_internal.h"
+#include "symbol.h"
 
 #if defined(VOLO_WIN32)
 #include <Windows.h>

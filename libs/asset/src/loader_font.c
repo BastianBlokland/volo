@@ -9,7 +9,7 @@
 #include "ecs/view.h"
 #include "ecs/world.h"
 
-#include "repo_internal.h"
+#include "repo.h"
 
 #if defined(VOLO_MSVC)
 float sqrtf(float);

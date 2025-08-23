@@ -10,7 +10,7 @@
 #include "ecs/world.h"
 #include "log/logger.h"
 
-#include "prefs_internal.h"
+#include "prefs.h"
 
 static const usize g_prefsMaxSize = 32 * usize_kibibyte;
 

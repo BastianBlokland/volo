@@ -8,7 +8,7 @@
 #include "ecs/utils.h"
 #include "ecs/world.h"
 
-#include "utils_internal.h"
+#include "utils.h"
 
 typedef struct {
   String       name;

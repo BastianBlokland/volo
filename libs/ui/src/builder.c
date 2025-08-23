@@ -6,9 +6,9 @@
 #include "ui/canvas.h"
 #include "ui/shape.h"
 
-#include "builder_internal.h"
-#include "cmd_internal.h"
-#include "text_internal.h"
+#include "builder.h"
+#include "cmd.h"
+#include "text.h"
 
 #define ui_build_rect_stack_max 10
 #define ui_build_style_stack_max 10

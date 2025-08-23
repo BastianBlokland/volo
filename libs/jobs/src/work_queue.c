@@ -2,7 +2,7 @@
 #include "core/forward.h"
 #include "core/thread.h"
 
-#include "work_queue_internal.h"
+#include "work_queue.h"
 
 #define item_wrap(_IDX_) ((_IDX_) & (workqueue_max_items - 1))
 

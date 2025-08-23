@@ -15,7 +15,7 @@
 #include "geo/quat.h"
 #include "script/val.h"
 
-#include "val_internal.h"
+#include "val.h"
 
 static StringHash g_valStrEmpty;
 

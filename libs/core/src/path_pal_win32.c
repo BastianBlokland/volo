@@ -4,7 +4,7 @@
 #include "core/sentinel.h"
 #include "core/winutils.h"
 
-#include "path_internal.h"
+#include "path.h"
 
 #include <Windows.h>
 

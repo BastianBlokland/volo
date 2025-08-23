@@ -3,7 +3,7 @@
 #include "core/file.h"
 #include "core/thread.h"
 
-#include "alloc_internal.h"
+#include "alloc.h"
 
 #define tracker_slots_initial (16 * 1024)
 #define tracker_slots_loadfactor 0.75f

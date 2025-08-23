@@ -8,8 +8,8 @@
 #include "ecs/view.h"
 #include "ecs/world.h"
 
-#include "manager_internal.h"
-#include "repo_internal.h"
+#include "manager.h"
+#include "repo.h"
 
 #define decal_default_size 1.0f
 #define decal_default_thickness 0.25f

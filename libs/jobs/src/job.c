@@ -1,7 +1,7 @@
 #include "core/alloc.h"
 #include "jobs/graph.h"
 
-#include "job_internal.h"
+#include "job.h"
 
 usize job_mem_req_size(const JobGraph* graph) {
   return sizeof(Job) + sizeof(JobTaskData) * jobs_graph_task_count(graph);

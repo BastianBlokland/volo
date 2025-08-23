@@ -6,7 +6,7 @@
 #include "script/intrinsic.h"
 #include "script/pos.h"
 
-#include "doc_internal.h"
+#include "doc.h"
 
 typedef enum {
   ScriptExprFlags_None          = 0,

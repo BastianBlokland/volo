@@ -3,8 +3,8 @@
 #include "core/string.h"
 #include "core/thread.h"
 
-#include "init_internal.h"
-#include "thread_internal.h"
+#include "init.h"
+#include "thread.h"
 
 #include <immintrin.h>
 

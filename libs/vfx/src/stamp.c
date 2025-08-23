@@ -5,8 +5,8 @@
 #include "rend/object.h"
 #include "scene/tag.h"
 
-#include "atlas_internal.h"
-#include "stamp_internal.h"
+#include "atlas.h"
+#include "stamp.h"
 
 #ifdef VOLO_SIMD
 #include "core/simd.h"

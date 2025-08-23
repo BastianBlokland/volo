@@ -5,7 +5,7 @@
 #include "jobs/graph.h"
 #include "trace/tracer.h"
 
-#include "graph_internal.h"
+#include "graph.h"
 
 #define jobs_graph_aux_chunk_size (4 * usize_kibibyte)
 #define jobs_graph_max_tasks 25000

@@ -11,7 +11,7 @@
 #include "json/doc.h"
 #include "json/write.h"
 
-#include "registry_internal.h"
+#include "registry.h"
 
 typedef struct {
   const DataWriteJsonOpts* opts;

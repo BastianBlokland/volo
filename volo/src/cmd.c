@@ -12,7 +12,7 @@
 #include "scene/transform.h"
 #include "script/val.h"
 
-#include "cmd_internal.h"
+#include "cmd.h"
 
 static const SceneFaction g_playerFaction = SceneFaction_A;
 static StringHash         g_propMoveTarget, g_propStop, g_propAttackTarget;

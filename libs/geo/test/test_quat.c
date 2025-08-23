@@ -5,7 +5,7 @@
 #include "geo/matrix.h"
 #include "geo/quat.h"
 
-#include "utils_internal.h"
+#include "utils.h"
 
 spec(quat) {
 

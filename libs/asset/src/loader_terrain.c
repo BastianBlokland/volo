@@ -7,9 +7,9 @@
 #include "ecs/view.h"
 #include "ecs/world.h"
 
-#include "data_internal.h"
-#include "manager_internal.h"
-#include "repo_internal.h"
+#include "data.h"
+#include "manager.h"
+#include "repo.h"
 
 #define terrain_max_size 1500
 #define terrain_max_height 50.0f

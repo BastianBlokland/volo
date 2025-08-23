@@ -8,7 +8,7 @@
 #include "geo/quat.h"
 #include "script/val.h"
 
-#include "utils_internal.h"
+#include "utils.h"
 
 static void test_eq_quat(CheckTestContext* ctx, GeoQuat a, const GeoQuat b) {
   if (geo_quat_dot(a, b) < 0) {

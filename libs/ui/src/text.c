@@ -5,8 +5,8 @@
 #include "log/logger.h"
 #include "ui/shape.h"
 
-#include "escape_internal.h"
-#include "text_internal.h"
+#include "escape.h"
+#include "text.h"
 
 #define ui_text_tab_size 8
 #define ui_text_max_lines 100

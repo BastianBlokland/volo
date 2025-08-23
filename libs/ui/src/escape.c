@@ -2,7 +2,7 @@
 #include "core/ascii.h"
 #include "core/diag.h"
 
-#include "escape_internal.h"
+#include "escape.h"
 
 #define ui_escape_invalid                                                                          \
   (UiEscape) { .type = UiEscape_Invalid }

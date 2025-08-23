@@ -17,7 +17,7 @@
 #include "asset/weapon.h"
 #include "core/diag.h"
 
-#include "format_internal.h"
+#include "format.h"
 
 static const String g_assetFormatExtensions[AssetFormat_Count] = {
     [AssetFormat_Decal]          = string_static("decal"),

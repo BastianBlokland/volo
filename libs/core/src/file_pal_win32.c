@@ -8,9 +8,9 @@
 #include "core/sentinel.h"
 #include "core/winutils.h"
 
-#include "file_internal.h"
-#include "path_internal.h"
-#include "time_internal.h"
+#include "file.h"
+#include "path.h"
+#include "time.h"
 
 #include <Windows.h>
 

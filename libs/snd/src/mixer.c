@@ -15,8 +15,8 @@
 #include "snd/mixer.h"
 #include "snd/register.h"
 
-#include "constants_internal.h"
-#include "device_internal.h"
+#include "constants.h"
+#include "device.h"
 
 #ifdef VOLO_SIMD
 #include "core/simd.h"

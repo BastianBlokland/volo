@@ -9,7 +9,7 @@
 #include "script/mem.h"
 #include "script/read.h"
 
-#include "utils_internal.h"
+#include "utils.h"
 
 typedef struct {
   u32 counter;

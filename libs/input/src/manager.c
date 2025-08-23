@@ -10,7 +10,7 @@
 #include "input/manager.h"
 #include "input/register.h"
 
-#include "resource_internal.h"
+#include "resource.h"
 
 typedef struct {
   StringHash nameHash;

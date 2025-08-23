@@ -4,7 +4,7 @@
 #include "script/optimize.h"
 #include "script/read.h"
 
-#include "utils_internal.h"
+#include "utils.h"
 
 spec(optimize) {
   it("can perform basic optimizations") {

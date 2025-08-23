@@ -10,7 +10,7 @@
 #include "net/result.h"
 #include "net/types.h"
 
-#include "pal_internal.h"
+#include "pal.h"
 
 #include <Windows.h>
 #include <ws2tcpip.h>

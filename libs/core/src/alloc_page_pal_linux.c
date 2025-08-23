@@ -1,7 +1,7 @@
 #include "core/bits.h"
 #include "core/thread.h"
 
-#include "alloc_internal.h"
+#include "alloc.h"
 
 #include <errno.h>
 #include <sys/mman.h>

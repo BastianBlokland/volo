@@ -6,7 +6,7 @@
 #include "core/thread.h"
 #include "core/version.h"
 
-#include "diag_internal.h"
+#include "diag.h"
 
 static THREAD_LOCAL AssertHandler g_assertHandler;
 static THREAD_LOCAL void*         g_assertHandlerContext;

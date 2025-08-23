@@ -12,17 +12,17 @@
 #include "log/logger.h"
 #include "rend/register.h"
 #include "rend/report.h"
+#include "rvk/device.h"
+#include "rvk/graphic.h"
+#include "rvk/mesh.h"
+#include "rvk/repository.h"
+#include "rvk/shader.h"
+#include "rvk/texture.h"
 #include "trace/tracer.h"
 
-#include "platform_internal.h"
-#include "reset_internal.h"
-#include "resource_internal.h"
-#include "rvk/device_internal.h"
-#include "rvk/graphic_internal.h"
-#include "rvk/mesh_internal.h"
-#include "rvk/repository_internal.h"
-#include "rvk/shader_internal.h"
-#include "rvk/texture_internal.h"
+#include "platform.h"
+#include "reset.h"
+#include "resource.h"
 
 #define rend_res_max_create_time time_millisecond
 

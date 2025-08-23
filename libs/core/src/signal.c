@@ -1,8 +1,8 @@
 #include "core/diag.h"
 #include "core/thread.h"
 
-#include "init_internal.h"
-#include "signal_internal.h"
+#include "init.h"
+#include "signal.h"
 
 static i32 g_signalIntercept;
 

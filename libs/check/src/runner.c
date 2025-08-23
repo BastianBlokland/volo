@@ -8,10 +8,10 @@
 #include "log/logger.h"
 #include "trace/tracer.h"
 
-#include "output_log_internal.h"
-#include "output_mocha_internal.h"
-#include "output_pretty_internal.h"
-#include "spec_internal.h"
+#include "output_log.h"
+#include "output_mocha.h"
+#include "output_pretty.h"
+#include "spec.h"
 
 typedef CheckOutput* CheckOutputPtr;
 

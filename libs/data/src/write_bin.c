@@ -7,7 +7,7 @@
 #include "data/utils.h"
 #include "data/write.h"
 
-#include "registry_internal.h"
+#include "registry.h"
 
 static const String g_dataBinMagic           = string_static("VOLO");
 static const u32    g_dataBinProtocolVersion = 4;

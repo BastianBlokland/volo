@@ -5,10 +5,10 @@
 #include "gap/native.h"
 #include "log/logger.h"
 
-#include "device_internal.h"
-#include "image_internal.h"
-#include "lib_internal.h"
-#include "swapchain_internal.h"
+#include "device.h"
+#include "image.h"
+#include "lib.h"
+#include "swapchain.h"
 
 #define swapchain_images_max 5
 

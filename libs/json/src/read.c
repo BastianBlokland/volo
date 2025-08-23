@@ -4,7 +4,7 @@
 #include "json/doc.h"
 #include "json/read.h"
 
-#include "lex_internal.h"
+#include "lex.h"
 
 #define json_depth_max 100
 

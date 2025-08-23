@@ -5,7 +5,7 @@
 #include "xml/doc.h"
 #include "xml/read.h"
 
-#include "lex_internal.h"
+#include "lex.h"
 
 #define xml_depth_max 100
 

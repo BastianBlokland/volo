@@ -5,7 +5,7 @@
 #include "core/math.h"
 #include "geo/matrix.h"
 
-#include "mesh_utils_internal.h"
+#include "mesh_utils.h"
 
 struct sAssetMeshBuilder {
   DynArray        vertexData; // AssetMeshVertex[]

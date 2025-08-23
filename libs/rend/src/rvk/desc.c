@@ -5,12 +5,12 @@
 #include "core/thread.h"
 #include "log/logger.h"
 
-#include "buffer_internal.h"
-#include "desc_internal.h"
-#include "device_internal.h"
-#include "image_internal.h"
-#include "lib_internal.h"
-#include "sampler_internal.h"
+#include "buffer.h"
+#include "desc.h"
+#include "device.h"
+#include "image.h"
+#include "lib.h"
+#include "sampler.h"
 
 // #define VOLO_RVK_DESC_LOGGING
 

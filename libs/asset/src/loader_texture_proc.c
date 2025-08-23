@@ -11,9 +11,9 @@
 #include "ecs/world.h"
 #include "geo/vector.h"
 
-#include "loader_texture_internal.h"
-#include "manager_internal.h"
-#include "repo_internal.h"
+#include "loader_texture.h"
+#include "manager.h"
+#include "repo.h"
 
 /**
  * Procedurally generated textures.

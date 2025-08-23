@@ -8,7 +8,7 @@
 #include "log/sink.h"
 #include "log/sink_pretty.h"
 
-#include "logger_internal.h"
+#include "logger.h"
 
 #define log_sink_buffer_size (16 * usize_kibibyte)
 

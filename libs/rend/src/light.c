@@ -21,7 +21,7 @@
 #include "scene/terrain.h"
 #include "scene/transform.h"
 
-#include "light_internal.h"
+#include "light.h"
 
 static const f32 g_lightMinAmbient        = 0.01f; // NOTE: Total black looks pretty bad.
 static const f32 g_lightDirMaxShadowDist  = 250.0f;

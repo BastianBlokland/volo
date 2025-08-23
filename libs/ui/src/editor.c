@@ -9,8 +9,8 @@
 #include "core/utf8.h"
 #include "gap/input.h"
 
-#include "editor_internal.h"
-#include "escape_internal.h"
+#include "editor.h"
+#include "escape.h"
 
 #define ui_editor_max_visual_slices 3
 

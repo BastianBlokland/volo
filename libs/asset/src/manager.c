@@ -15,10 +15,10 @@
 #include "log/logger.h"
 #include "trace/tracer.h"
 
-#include "import_internal.h"
-#include "loader_internal.h"
-#include "manager_internal.h"
-#include "repo_internal.h"
+#include "import.h"
+#include "loader.h"
+#include "manager.h"
+#include "repo.h"
 
 #define VOLO_ASSET_LOGGING 0
 

@@ -1,4 +1,4 @@
-#include "utils_internal.h"
+#include "utils.h"
 
 void asset_test_wait(EcsRunner* runner) {
   static const u32 g_numTicks = 5;

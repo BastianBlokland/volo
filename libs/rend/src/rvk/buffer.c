@@ -1,9 +1,9 @@
 #include "core/array.h"
 #include "core/diag.h"
 
-#include "buffer_internal.h"
-#include "device_internal.h"
-#include "lib_internal.h"
+#include "buffer.h"
+#include "device.h"
+#include "lib.h"
 
 static RvkMemLoc rvk_buffer_type_loc(const RvkBufferType type) {
   switch (type) {

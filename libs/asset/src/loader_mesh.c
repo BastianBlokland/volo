@@ -6,11 +6,11 @@
 #include "ecs/view.h"
 #include "ecs/world.h"
 
-#include "data_internal.h"
-#include "import_internal.h"
-#include "loader_mesh_internal.h"
-#include "manager_internal.h"
-#include "repo_internal.h"
+#include "data.h"
+#include "import.h"
+#include "loader_mesh.h"
+#include "manager.h"
+#include "repo.h"
 
 DataMeta g_assetMeshBundleMeta;
 DataMeta g_assetMeshMeta;

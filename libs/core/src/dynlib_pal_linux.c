@@ -2,7 +2,7 @@
 #include "core/diag.h"
 #include "core/path.h"
 
-#include "dynlib_internal.h"
+#include "dynlib.h"
 
 #include <dlfcn.h>
 #include <limits.h>

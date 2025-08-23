@@ -15,8 +15,8 @@
 #include "log/logger.h"
 #include "trace/tracer.h"
 
-#include "view_internal.h"
-#include "world_internal.h"
+#include "view.h"
+#include "world.h"
 
 // #define VOLO_ECS_RUNNER_VERBOSE
 // #define VOLO_ECS_RUNNER_VALIDATION

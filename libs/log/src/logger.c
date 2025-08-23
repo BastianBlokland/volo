@@ -5,7 +5,7 @@
 #include "core/time.h"
 #include "log/sink.h"
 
-#include "logger_internal.h"
+#include "logger.h"
 
 #define log_sinks_max 6
 

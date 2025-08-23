@@ -2,7 +2,7 @@
 #include "core/array.h"
 #include "script/lex.h"
 
-#include "utils_internal.h"
+#include "utils.h"
 
 spec(lex) {
   it("can equate tokens") {

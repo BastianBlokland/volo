@@ -5,7 +5,7 @@
 #include "geo/color.h"
 #include "geo/matrix.h"
 
-#include "utils_internal.h"
+#include "utils.h"
 
 #define test_geo_threshold_matrix 1e-4f
 #define test_geo_threshold_quat 1e-3f

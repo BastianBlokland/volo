@@ -23,9 +23,9 @@
 #include "vfx/register.h"
 #include "vfx/system.h"
 
-#include "atlas_internal.h"
-#include "rend_internal.h"
-#include "sprite_internal.h"
+#include "atlas.h"
+#include "rend.h"
+#include "sprite.h"
 
 #define vfx_system_max_asset_requests 4
 #define vfx_system_track_stats 1

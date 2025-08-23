@@ -8,8 +8,8 @@
 #include "data/utils.h"
 #include "log/logger.h"
 
-#include "pack_internal.h"
-#include "repo_internal.h"
+#include "pack.h"
+#include "repo.h"
 
 #define VOLO_ASSET_PACK_LOGGING 0
 #define VOLO_ASSET_PACK_VALIDATE 0

@@ -5,8 +5,8 @@
 #include "rend/object.h"
 #include "scene/tag.h"
 
-#include "atlas_internal.h"
-#include "sprite_internal.h"
+#include "atlas.h"
+#include "sprite.h"
 
 typedef struct {
   VfxAtlasDrawData atlas;

@@ -19,10 +19,10 @@
 #include "ui/settings.h"
 #include "ui/stats.h"
 
-#include "builder_internal.h"
-#include "cmd_internal.h"
-#include "editor_internal.h"
-#include "resource_internal.h"
+#include "builder.h"
+#include "cmd.h"
+#include "editor.h"
+#include "resource.h"
 
 #define ui_canvas_clip_rects_max 50
 #define ui_canvas_canvasses_max 100

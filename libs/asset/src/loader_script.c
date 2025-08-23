@@ -19,8 +19,8 @@
 #include "script/read.h"
 #include "script/sym.h"
 
-#include "manager_internal.h"
-#include "repo_internal.h"
+#include "manager.h"
+#include "repo.h"
 
 #define asset_script_input_keys_max 128
 

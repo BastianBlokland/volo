@@ -6,7 +6,7 @@
 #include "core/format.h"
 #include "core/utf8.h"
 
-#include "lex_internal.h"
+#include "lex.h"
 
 #ifdef VOLO_SIMD
 #include "core/simd.h"

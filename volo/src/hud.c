@@ -43,9 +43,9 @@
 #include "ui/style.h"
 #include "ui/widget.h"
 
-#include "cmd_internal.h"
-#include "hud_internal.h"
-#include "input_internal.h"
+#include "cmd.h"
+#include "hud.h"
+#include "input.h"
 
 static const f32      g_hudHealthBarOffsetY = 10.0f;
 static const UiVector g_hudHealthBarSize    = {.x = 50.0f, .y = 7.5f};

@@ -3,7 +3,7 @@
 #include "core/symbol.h"
 #include "core/thread.h"
 
-#include "diag_internal.h"
+#include "diag.h"
 
 #include <signal.h>
 #include <sys/syscall.h>

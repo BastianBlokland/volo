@@ -6,7 +6,7 @@
 #include "core/tty.h"
 #include "core/version.h"
 
-#include "app_internal.h"
+#include "app.h"
 
 #define cli_help_max_width 80
 

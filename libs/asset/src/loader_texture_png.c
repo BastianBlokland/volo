@@ -9,10 +9,10 @@
 #include "ecs/world.h"
 #include "log/logger.h"
 
-#include "import_texture_internal.h"
-#include "loader_texture_internal.h"
-#include "manager_internal.h"
-#include "repo_internal.h"
+#include "import_texture.h"
+#include "loader_texture.h"
+#include "manager.h"
+#include "repo.h"
 
 /**
  * Portable Network Graphics.

@@ -7,7 +7,7 @@
 #include "ecs/utils.h"
 #include "ecs/world.h"
 
-#include "utils_internal.h"
+#include "utils.h"
 
 static const AssetMemRecord g_records[] = {
     {.id = string_static("a.raw"), .data = string_static("Hello World")},

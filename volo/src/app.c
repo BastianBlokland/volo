@@ -49,9 +49,9 @@
 #include "ui/widget.h"
 #include "vfx/register.h"
 
-#include "cmd_internal.h"
-#include "hud_internal.h"
-#include "prefs_internal.h"
+#include "cmd.h"
+#include "hud.h"
+#include "prefs.h"
 
 static const String g_appLevel = string_static("levels/default.level");
 

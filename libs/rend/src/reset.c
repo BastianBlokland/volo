@@ -4,10 +4,10 @@
 #include "log/logger.h"
 #include "rend/register.h"
 
-#include "painter_internal.h"
-#include "platform_internal.h"
-#include "reset_internal.h"
-#include "resource_internal.h"
+#include "painter.h"
+#include "platform.h"
+#include "reset.h"
+#include "resource.h"
 
 ecs_comp_define(RendResetComp);
 

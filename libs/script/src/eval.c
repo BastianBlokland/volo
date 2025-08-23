@@ -6,9 +6,9 @@
 #include "script/mem.h"
 #include "script/val.h"
 
-#include "doc_internal.h"
-#include "panic_internal.h"
-#include "val_internal.h"
+#include "doc.h"
+#include "panic.h"
+#include "val.h"
 
 #define script_executed_ops_max 25000
 

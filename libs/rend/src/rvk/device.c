@@ -7,14 +7,14 @@
 #include "geo/color.h"
 #include "log/logger.h"
 
-#include "desc_internal.h"
-#include "device_internal.h"
-#include "lib_internal.h"
-#include "mem_internal.h"
-#include "pcache_internal.h"
-#include "repository_internal.h"
-#include "sampler_internal.h"
-#include "transfer_internal.h"
+#include "desc.h"
+#include "device.h"
+#include "lib.h"
+#include "mem.h"
+#include "pcache.h"
+#include "repository.h"
+#include "sampler.h"
+#include "transfer.h"
 
 static const String g_requiredExts[] = {
     string_static(VK_KHR_swapchain),

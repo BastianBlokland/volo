@@ -25,8 +25,8 @@
 #include "ui/table.h"
 #include "ui/widget.h"
 
-#include "cmd_internal.h"
-#include "input_internal.h"
+#include "cmd.h"
+#include "input.h"
 
 static const f32  g_inputInteractMinDist       = 1.0f;
 static const f32  g_inputInteractMaxDist       = 250.0f;

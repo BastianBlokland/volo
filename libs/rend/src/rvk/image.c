@@ -4,10 +4,10 @@
 #include "core/math.h"
 #include "geo/color.h"
 
-#include "desc_internal.h"
-#include "device_internal.h"
-#include "image_internal.h"
-#include "lib_internal.h"
+#include "desc.h"
+#include "device.h"
+#include "image.h"
+#include "lib.h"
 
 static VkClearColorValue rvk_rend_clear_color(const GeoColor color) {
   VkClearColorValue result;

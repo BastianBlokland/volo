@@ -2,7 +2,7 @@
 #include "core/bits.h"
 #include "core/diag.h"
 
-#include "archetype_internal.h"
+#include "archetype.h"
 
 /**
  * An archetype is a chunked container, where every chunk contains a tightly packed component-data

@@ -5,7 +5,7 @@
 #include "core/math.h"
 #include "core/time.h"
 
-#include "spec_internal.h"
+#include "spec.h"
 
 typedef struct {
   CheckSpecContext api;

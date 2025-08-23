@@ -8,9 +8,9 @@
 #include "ecs/view.h"
 #include "ecs/world.h"
 
-#include "import_internal.h"
-#include "loader_shader_internal.h"
-#include "manager_internal.h"
+#include "import.h"
+#include "loader_shader.h"
+#include "manager.h"
 
 ecs_comp_define_public(AssetShaderComp);
 ecs_comp_define_public(AssetShaderSourceComp);

@@ -1,8 +1,8 @@
 #include "core/bits.h"
 #include "core/path.h"
 
-#include "import_internal.h"
-#include "loader_internal.h"
+#include "import.h"
+#include "loader.h"
 
 // clang-format off
 

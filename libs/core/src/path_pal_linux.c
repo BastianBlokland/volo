@@ -2,7 +2,7 @@
 #include "core/dynstring.h"
 #include "core/env.h"
 
-#include "path_internal.h"
+#include "path.h"
 
 #include <limits.h>
 #include <stdlib.h>

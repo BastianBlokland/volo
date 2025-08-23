@@ -6,8 +6,8 @@
 #include "core/forward.h"
 #include "core/path.h"
 
-#include "file_internal.h"
-#include "symbol_internal.h"
+#include "file.h"
+#include "symbol.h"
 
 /**
  * To retrieve symbol debug information we parse the DWARF data in the ELF executable.

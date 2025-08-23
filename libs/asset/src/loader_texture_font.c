@@ -13,9 +13,9 @@
 #include "ecs/view.h"
 #include "ecs/world.h"
 
-#include "loader_texture_internal.h"
-#include "manager_internal.h"
-#include "repo_internal.h"
+#include "loader_texture.h"
+#include "manager.h"
+#include "repo.h"
 
 /**
  * FontTexture - Generates a sdf texture atlas and a character mapping based on a font file.

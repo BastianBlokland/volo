@@ -13,8 +13,8 @@
 #include "script/sig.h"
 #include "script/sym.h"
 
-#include "doc_internal.h"
-#include "val_internal.h"
+#include "doc.h"
+#include "val.h"
 
 #define script_depth_max 25
 #define script_block_size_max 128

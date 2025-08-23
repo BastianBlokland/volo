@@ -5,7 +5,7 @@
 #include "core/time.h"
 #include "log/logger.h"
 
-#include "repo_internal.h"
+#include "repo.h"
 
 typedef struct {
   u32        checksum; // crc32 (ISO 3309).

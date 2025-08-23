@@ -3,7 +3,7 @@
 #include "core/diag.h"
 #include "core/math.h"
 
-#include "alloc_internal.h"
+#include "alloc.h"
 
 #define alloc_chunk_size_min 768
 #define alloc_chunk_align sizeof(void*)

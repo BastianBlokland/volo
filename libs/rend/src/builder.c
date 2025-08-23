@@ -3,15 +3,15 @@
 #include "core/dynarray.h"
 #include "geo/color.h"
 #include "jobs/executor.h"
+#include "rvk/attach.h"
+#include "rvk/canvas.h"
+#include "rvk/graphic.h"
+#include "rvk/image.h"
+#include "rvk/job.h"
+#include "rvk/pass.h"
 #include "trace/tracer.h"
 
-#include "builder_internal.h"
-#include "rvk/attach_internal.h"
-#include "rvk/canvas_internal.h"
-#include "rvk/graphic_internal.h"
-#include "rvk/image_internal.h"
-#include "rvk/job_internal.h"
-#include "rvk/pass_internal.h"
+#include "builder.h"
 
 #define rend_builder_workers_max 8
 

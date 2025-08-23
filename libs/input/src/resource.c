@@ -6,7 +6,7 @@
 #include "ecs/world.h"
 #include "log/logger.h"
 
-#include "resource_internal.h"
+#include "resource.h"
 
 typedef enum {
   InputResMap_Acquired  = 1 << 0,

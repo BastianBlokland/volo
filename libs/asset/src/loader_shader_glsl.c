@@ -9,9 +9,9 @@
 #include "log/logger.h"
 #include "trace/tracer.h"
 
-#include "import_internal.h"
-#include "loader_shader_internal.h"
-#include "manager_internal.h"
+#include "import.h"
+#include "loader_shader.h"
+#include "manager.h"
 
 /**
  * Glsl (OpenGL Shading Language) loader using libshaderc (https://github.com/google/shaderc/).

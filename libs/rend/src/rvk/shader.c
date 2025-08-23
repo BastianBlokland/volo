@@ -6,10 +6,10 @@
 #include "log/logger.h"
 #include "rend/report.h"
 
-#include "device_internal.h"
-#include "disassembler_internal.h"
-#include "lib_internal.h"
-#include "shader_internal.h"
+#include "device.h"
+#include "disassembler.h"
+#include "lib.h"
+#include "shader.h"
 
 #define VOLO_RVK_SHADER_LOGGING 0
 

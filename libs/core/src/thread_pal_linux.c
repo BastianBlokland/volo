@@ -2,7 +2,7 @@
 #include "core/diag.h"
 #include "core/time.h"
 
-#include "thread_internal.h"
+#include "thread.h"
 
 #include <dlfcn.h>
 #include <errno.h>

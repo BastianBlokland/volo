@@ -3,7 +3,7 @@
 #include "ecs/world.h"
 #include "rend/object.h"
 
-#include "rend_internal.h"
+#include "rend.h"
 
 ecs_comp_define(VfxRendComp) { EcsEntityId rendObjects[VfxRendObj_Count]; };
 

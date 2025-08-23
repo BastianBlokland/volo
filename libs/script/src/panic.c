@@ -3,7 +3,7 @@
 #include "core/diag.h"
 #include "core/dynstring.h"
 
-#include "panic_internal.h"
+#include "panic.h"
 
 // clang-format off
 static const String g_panicStrs[] = {

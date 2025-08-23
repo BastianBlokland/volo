@@ -14,9 +14,9 @@
 #include "ecs/world.h"
 #include "log/logger.h"
 
-#include "data_internal.h"
-#include "manager_internal.h"
-#include "repo_internal.h"
+#include "data.h"
+#include "manager.h"
+#include "repo.h"
 
 DataMeta g_assetLevelDefMeta;
 

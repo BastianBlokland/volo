@@ -6,7 +6,7 @@
 #include "script/read.h"
 #include "script/val.h"
 
-#include "utils_internal.h"
+#include "utils.h"
 
 typedef struct {
   u32 count;

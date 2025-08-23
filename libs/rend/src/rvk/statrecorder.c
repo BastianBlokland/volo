@@ -6,9 +6,9 @@
 #include "core/thread.h"
 #include "log/logger.h"
 
-#include "device_internal.h"
-#include "lib_internal.h"
-#include "statrecorder_internal.h"
+#include "device.h"
+#include "lib.h"
+#include "statrecorder.h"
 
 #define rvk_statrecorder_queries_max 64
 

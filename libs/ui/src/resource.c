@@ -6,7 +6,7 @@
 #include "log/logger.h"
 #include "snd/mixer.h"
 
-#include "resource_internal.h"
+#include "resource.h"
 
 static const String g_uiAtlasIds[UiAtlasRes_Count] = {
     [UiAtlasRes_Font]  = string_static("fonts/builtin/ui.fonttex"),

@@ -11,7 +11,7 @@
 #include "gap/register.h"
 #include "gap/window.h"
 
-#include "platform_internal.h"
+#include "platform.h"
 
 typedef enum {
   GapWindowRequests_Create              = 1 << 0,

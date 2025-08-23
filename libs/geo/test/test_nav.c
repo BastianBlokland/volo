@@ -5,7 +5,7 @@
 #include "geo/nav.h"
 #include "geo/vector.h"
 
-#include "utils_internal.h"
+#include "utils.h"
 
 spec(nav) {
 

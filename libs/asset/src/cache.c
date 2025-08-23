@@ -13,7 +13,7 @@
 #include "log/logger.h"
 #include "trace/tracer.h"
 
-#include "cache_internal.h"
+#include "cache.h"
 
 static const String g_assetCachePath    = string_static(".cache");
 static const String g_assetCacheRegName = string_static("registry.blob");

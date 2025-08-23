@@ -9,7 +9,7 @@
 #include "json/doc.h"
 #include "json/write.h"
 
-#include "output_mocha_internal.h"
+#include "output_mocha.h"
 
 typedef struct {
   CheckOutput api;

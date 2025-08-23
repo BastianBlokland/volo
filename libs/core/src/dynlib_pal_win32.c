@@ -5,7 +5,7 @@
 #include "core/thread.h"
 #include "core/winutils.h"
 
-#include "dynlib_internal.h"
+#include "dynlib.h"
 
 #include <Windows.h>
 #include <psapi.h>

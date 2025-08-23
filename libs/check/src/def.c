@@ -1,7 +1,7 @@
 #include "core/alloc.h"
 #include "core/diag.h"
 
-#include "def_internal.h"
+#include "def.h"
 
 /**
  * Trim any leading and or trailing underscores.

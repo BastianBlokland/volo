@@ -4,9 +4,9 @@
 #include "core/math.h"
 #include "ecs/entity.h"
 
-#include "buffer_internal.h"
-#include "comp_internal.h"
-#include "def_internal.h"
+#include "buffer.h"
+#include "comp.h"
+#include "def.h"
 
 /**
  * Modifications are stored per entity. Entity data is kept sorted so a binary-search can be

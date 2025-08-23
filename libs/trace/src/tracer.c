@@ -4,7 +4,7 @@
 #include "core/thread.h"
 #include "trace/sink.h"
 
-#include "tracer_internal.h"
+#include "tracer.h"
 
 #define trace_sinks_max 4
 #define trace_message_max 256

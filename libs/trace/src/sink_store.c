@@ -8,7 +8,7 @@
 #include "trace/sink.h"
 #include "trace/sink_store.h"
 
-#include "tracer_internal.h"
+#include "tracer.h"
 
 #ifdef VOLO_SIMD
 #include "core/simd.h"

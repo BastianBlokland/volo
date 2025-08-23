@@ -2,7 +2,7 @@
 #include "core/thread.h"
 #include "jobs/init.h"
 
-#include "init_internal.h"
+#include "init.h"
 
 static bool g_initalized;
 

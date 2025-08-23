@@ -1,7 +1,7 @@
 #include "core/dynarray.h"
 #include "log/logger.h"
 
-#include "cmd_internal.h"
+#include "cmd.h"
 
 #define ui_cmdbuffer_transient_chunk_size (32 * usize_kibibyte)
 #define ui_cmdbuffer_max_text_size (8 * usize_kibibyte)

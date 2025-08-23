@@ -8,10 +8,10 @@
 #include "ecs/world.h"
 #include "log/logger.h"
 
-#include "import_internal.h"
-#include "loader_font_internal.h"
-#include "manager_internal.h"
-#include "repo_internal.h"
+#include "import.h"
+#include "loader_font.h"
+#include "manager.h"
+#include "repo.h"
 
 /**
  * TrueType font.

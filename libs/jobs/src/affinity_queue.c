@@ -1,7 +1,7 @@
 #include "core/forward.h"
 #include "core/thread.h"
 
-#include "affinity_queue_internal.h"
+#include "affinity_queue.h"
 
 #include <immintrin.h>
 

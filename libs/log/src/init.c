@@ -2,7 +2,7 @@
 #include "core/thread.h"
 #include "log/init.h"
 
-#include "logger_internal.h"
+#include "logger.h"
 
 static bool g_initalized;
 

@@ -5,8 +5,8 @@
 #include "core/file.h"
 #include "core/math.h"
 
-#include "file_internal.h"
-#include "time_internal.h"
+#include "file.h"
+#include "time.h"
 
 #include <errno.h>
 #include <fcntl.h>

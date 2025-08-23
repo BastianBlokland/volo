@@ -6,7 +6,7 @@
 #include "script/panic.h"
 #include "script/val.h"
 
-#include "val_internal.h"
+#include "val.h"
 
 NORETURN static void arg_type_error(ScriptBinderCall* c, const u16 i, const ScriptMask mask) {
   script_panic_raise(

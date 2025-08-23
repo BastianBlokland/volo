@@ -1,7 +1,7 @@
 #include "check/spec.h"
 #include "geo/plane.h"
 
-#include "utils_internal.h"
+#include "utils.h"
 
 spec(plane) {
 

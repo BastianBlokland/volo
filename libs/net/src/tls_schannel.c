@@ -11,7 +11,7 @@
 #include "net/socket.h"
 #include "net/tls.h"
 
-#include "tls_internal.h"
+#include "tls.h"
 
 #include <Windows.h>
 
