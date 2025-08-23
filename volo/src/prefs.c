@@ -44,7 +44,7 @@ static void prefs_data_init(void) {
   }
 }
 
-ecs_comp_define_public(GamePrefsComp);
+ecs_comp_define(GamePrefsComp);
 
 static void ecs_destruct_prefs_comp(void* data) {
   GamePrefsComp* comp = data;

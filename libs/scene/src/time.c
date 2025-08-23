@@ -6,8 +6,8 @@
 #include "scene/register.h"
 #include "scene/time.h"
 
-ecs_comp_define_public(SceneTimeComp);
-ecs_comp_define_public(SceneTimeSettingsComp);
+ecs_comp_define(SceneTimeComp);
+ecs_comp_define(SceneTimeSettingsComp);
 ecs_comp_define(SceneTimePrivateComp) { TimeSteady lastTime; };
 
 static f32 time_to_seconds(const TimeDuration dur) {

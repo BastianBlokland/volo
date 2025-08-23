@@ -2,7 +2,7 @@
 #include "ecs/world.h"
 #include "rend/error.h"
 
-ecs_comp_define_public(RendErrorComp);
+ecs_comp_define(RendErrorComp);
 
 static void ecs_combine_rend_error(void* dataA, void* dataB) {
   RendErrorComp* compA = dataA;

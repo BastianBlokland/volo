@@ -37,7 +37,7 @@ ecs_comp_define(SceneLevelManagerComp) {
   GeoVector      levelStartpoint;
 };
 
-ecs_comp_define_public(SceneLevelInstanceComp);
+ecs_comp_define(SceneLevelInstanceComp);
 
 ecs_comp_define(SceneLevelRequestLoadComp) {
   SceneLevelMode levelMode;

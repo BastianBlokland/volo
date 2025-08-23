@@ -1,9 +1,9 @@
 #pragma once
 #include "core/forward.h"
 #include "core/macro.h"
+#include "core/sentinel.h"
 #include "core/string.h"
 #include "ecs/forward.h"
-#include "jobs/forward.h"
 
 typedef u16 EcsModuleId;
 typedef u16 EcsViewId;
@@ -122,7 +122,7 @@ typedef struct {
  */
 #define ecs_comp_define(_NAME_)                                                                    \
   typedef struct s##_NAME_ _NAME_;                                                                 \
-  EcsCompId ecs_comp_id(_NAME_);                                                                   \
+  EcsCompId ecs_comp_id(_NAME_) = sentinel_u16;                                                    \
   struct s##_NAME_
 
 /**
@@ -139,21 +139,6 @@ typedef struct {
   extern EcsCompId ecs_comp_id(_NAME_)
 
 /**
- * Define a public component struct.
- * Should only be used inside compilation-units.
- *
- * Example usage:
- * ```
- * ecs_comp_define_public(PositionComp);
- * ```
- * NOTE: The component body should be declared using ecs_comp_extern_public().
- */
-#define ecs_comp_define_public(_NAME_)                                                             \
-  typedef struct s##_NAME_ _NAME_;                                                                 \
-  EcsCompId ecs_comp_id(_NAME_);                                                                   \
-  struct s##_NAME_
-
-/**
  * Declare a external public component struct
  *
  * Example usage:
@@ -161,7 +146,7 @@ typedef struct {
  * ecs_comp_extern_public(PositionComp) {
  *   f32 x, y;
  * };
- * NOTE: Needs to be defined using ecs_comp_define_public().
+ * NOTE: Needs to be defined using ecs_comp_define().
  * ```
  */
 #define ecs_comp_extern_public(_NAME_)                                                             \
@@ -183,7 +168,7 @@ typedef struct {
  * ```
  */
 #define ecs_view_define(_NAME_)                                                                    \
-  static EcsViewId ecs_view_id(_NAME_);                                                            \
+  static EcsViewId ecs_view_id(_NAME_) = sentinel_u16;                                             \
   static void _ecs_view_init_##_NAME_(MAYBE_UNUSED EcsViewBuilder* _builder)
 
 #define ecs_view_flags(_FLAGS_)         ecs_module_view_flags(_builder, (_FLAGS_))
@@ -214,7 +199,7 @@ typedef struct {
  * ```
  */
 #define ecs_system_define(_NAME_)                                                                  \
-  static EcsSystemId ecs_system_id(_NAME_);                                                        \
+  static EcsSystemId ecs_system_id(_NAME_) = sentinel_u16;                                         \
   static void _ecs_sys_##_NAME_(                                                                   \
     MAYBE_UNUSED EcsWorld* world,                                                                  \
     MAYBE_UNUSED const u16 parCount,                                                               \

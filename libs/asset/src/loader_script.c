@@ -102,7 +102,7 @@ static u32 asset_script_input_keys(
   return count;
 }
 
-ecs_comp_define_public(AssetScriptComp);
+ecs_comp_define(AssetScriptComp);
 ecs_comp_define(AssetScriptSourceComp) { AssetSource* src; };
 
 static void ecs_destruct_script_comp(void* data) {

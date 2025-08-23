@@ -79,8 +79,8 @@ ecs_comp_define(VfxDecalTrailComp) {
 
 ecs_comp_define(VfxDecalAssetComp) { VfxLoadFlags loadFlags; };
 
-ecs_comp_define_public(VfxDecalSingleStatsComp);
-ecs_comp_define_public(VfxDecalTrailStatsComp);
+ecs_comp_define(VfxDecalSingleStatsComp);
+ecs_comp_define(VfxDecalTrailStatsComp);
 
 static void ecs_combine_decal_asset(void* dataA, void* dataB) {
   VfxDecalAssetComp* compA = dataA;

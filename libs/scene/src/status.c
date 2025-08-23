@@ -47,8 +47,8 @@ static const TimeDuration g_sceneStatusTimeout[SceneStatusType_Count] = {
 };
 static const SceneStatusMask g_sceneStatusClearOnFullHealth = 1 << SceneStatusType_Healing;
 
-ecs_comp_define_public(SceneStatusComp);
-ecs_comp_define_public(SceneStatusRequestComp);
+ecs_comp_define(SceneStatusComp);
+ecs_comp_define(SceneStatusRequestComp);
 
 static void ecs_combine_status_request(void* dataA, void* dataB) {
   SceneStatusRequestComp* reqA = dataA;

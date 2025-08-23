@@ -16,7 +16,7 @@
 
 DataMeta g_assetTerrainDefMeta;
 
-ecs_comp_define_public(AssetTerrainComp);
+ecs_comp_define(AssetTerrainComp);
 ecs_comp_define(AssetTerrainInitComp);
 
 static void ecs_destruct_terrain_comp(void* data) {

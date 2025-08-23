@@ -36,7 +36,7 @@ ecs_comp_define(SceneProductResourceComp) {
   EcsEntityId     mapEntity;
 };
 
-ecs_comp_define_public(SceneProductionComp);
+ecs_comp_define(SceneProductionComp);
 
 ecs_comp_define(SceneProductPreviewComp) { EcsEntityId instigator; };
 

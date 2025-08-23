@@ -37,8 +37,8 @@
 #define attack_in_sight_min_dist 1.0f
 #define attack_aim_reset_time time_seconds(5)
 
-ecs_comp_define_public(SceneAttackComp);
-ecs_comp_define_public(SceneAttackAimComp);
+ecs_comp_define(SceneAttackComp);
+ecs_comp_define(SceneAttackAimComp);
 
 ecs_comp_define(SceneAttackTraceComp) {
   DynArray events; // SceneAttackEvent[].

@@ -56,7 +56,7 @@ DataMeta g_assetFontTexBundleMeta;
 DataMeta g_assetFontTexDefMeta;
 DataMeta g_assetFontTexMeta;
 
-ecs_comp_define_public(AssetFontTexComp);
+ecs_comp_define(AssetFontTexComp);
 
 ecs_comp_define(AssetFontTexLoadComp) { FontTexDef def; };
 

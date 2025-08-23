@@ -125,7 +125,7 @@ static const RvkPassConfig g_passConfig[AssetGraphicPass_Count] = {
 
 // clang-format on
 
-ecs_comp_define_public(RendPlatformComp);
+ecs_comp_define(RendPlatformComp);
 ecs_comp_define(RendPlatformInternComp) { RvkDevice* device; };
 
 static void destruct_platform_comp(void* data) {

@@ -25,10 +25,10 @@
 
 static StringHash g_healthHitAnimHash, g_healthDeathAnimHash;
 
-ecs_comp_define_public(SceneHealthComp);
-ecs_comp_define_public(SceneHealthRequestComp);
-ecs_comp_define_public(SceneHealthStatsComp);
-ecs_comp_define_public(SceneDeadComp);
+ecs_comp_define(SceneHealthComp);
+ecs_comp_define(SceneHealthRequestComp);
+ecs_comp_define(SceneHealthStatsComp);
+ecs_comp_define(SceneDeadComp);
 
 static SceneHealthMod* mod_storage_push(SceneHealthModStorage* storage) {
   if (UNLIKELY(storage->count == storage->capacity)) {

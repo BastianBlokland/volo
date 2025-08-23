@@ -47,7 +47,7 @@ ecs_comp_define(GapWindowComp) {
   f32               refreshRate;
 };
 
-ecs_comp_define_public(GapWindowAspectComp);
+ecs_comp_define(GapWindowAspectComp);
 
 static void ecs_destruct_window_comp(void* data) {
   GapWindowComp* comp = data;

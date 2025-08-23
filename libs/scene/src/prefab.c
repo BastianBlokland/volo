@@ -101,7 +101,7 @@ ecs_comp_define(ScenePrefabEnvComp) {
 };
 
 ecs_comp_define(ScenePrefabRequestComp) { ScenePrefabSpec spec; };
-ecs_comp_define_public(ScenePrefabInstanceComp);
+ecs_comp_define(ScenePrefabInstanceComp);
 
 static ScenePrefabSpec prefab_spec_dup(const ScenePrefabSpec* spec, Allocator* alloc) {
   ScenePrefabSpec res = *spec;

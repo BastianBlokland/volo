@@ -179,6 +179,10 @@ EcsEntityId ecs_view_entity(const EcsIterator* itr) {
 const void* ecs_view_read(const EcsIterator* itr, const EcsCompId comp) {
   diag_assert_msg(itr->entity, "Iterator has not been initialized");
 
+  if (UNLIKELY(sentinel_check(comp))) {
+    return null; // Unregistered component.
+  }
+
   MAYBE_UNUSED EcsView* view = itr->context;
 
   diag_assert_msg(
@@ -192,6 +196,10 @@ const void* ecs_view_read(const EcsIterator* itr, const EcsCompId comp) {
 
 void* ecs_view_write(const EcsIterator* itr, const EcsCompId comp) {
   diag_assert_msg(itr->entity, "Iterator has not been initialized");
+
+  if (UNLIKELY(sentinel_check(comp))) {
+    return null; // Unregistered component.
+  }
 
   MAYBE_UNUSED EcsView* view = itr->context;
 

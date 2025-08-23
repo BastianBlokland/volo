@@ -26,8 +26,8 @@
 #define scene_weight_min 0.001f
 #define scene_weight_max 0.999f
 
-ecs_comp_define_public(SceneSkeletonComp);
-ecs_comp_define_public(SceneAnimationComp);
+ecs_comp_define(SceneSkeletonComp);
+ecs_comp_define(SceneAnimationComp);
 ecs_comp_define(SceneSkeletonLoadedComp);
 
 typedef enum {

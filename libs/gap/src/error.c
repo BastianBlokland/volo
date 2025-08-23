@@ -2,7 +2,7 @@
 #include "ecs/world.h"
 #include "gap/error.h"
 
-ecs_comp_define_public(GapErrorComp);
+ecs_comp_define(GapErrorComp);
 
 static void ecs_combine_gap_error(void* dataA, void* dataB) {
   GapErrorComp* compA = dataA;

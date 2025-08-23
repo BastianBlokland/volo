@@ -9,8 +9,8 @@
 #define VOLO_REND_VALIDATION 0
 #define VOLO_REND_PROFILING 1
 
-ecs_comp_define_public(RendSettingsComp);
-ecs_comp_define_public(RendSettingsGlobalComp);
+ecs_comp_define(RendSettingsComp);
+ecs_comp_define(RendSettingsGlobalComp);
 
 static void ecs_destruct_rend_settings_comp(void* data) {
   RendSettingsComp* comp = data;

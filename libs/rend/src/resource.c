@@ -64,11 +64,11 @@ static const RendResGlobalDef g_rendResGlobal[] = {
 };
 // clang-format on
 
-ecs_comp_define_public(RendResGraphicComp);
-ecs_comp_define_public(RendResShaderComp);
-ecs_comp_define_public(RendResMeshComp);
-ecs_comp_define_public(RendResTextureComp);
-ecs_comp_define_public(RendResDebugComp);
+ecs_comp_define(RendResGraphicComp);
+ecs_comp_define(RendResShaderComp);
+ecs_comp_define(RendResMeshComp);
+ecs_comp_define(RendResTextureComp);
+ecs_comp_define(RendResDebugComp);
 
 typedef enum {
   RendResFlags_None               = 0,

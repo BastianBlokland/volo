@@ -6,9 +6,9 @@
 #include "scene/renderable.h"
 #include "scene/time.h"
 
-ecs_comp_define_public(SceneRenderableComp);
-ecs_comp_define_public(SceneRenderableFadeinComp);
-ecs_comp_define_public(SceneRenderableFadeoutComp);
+ecs_comp_define(SceneRenderableComp);
+ecs_comp_define(SceneRenderableFadeinComp);
+ecs_comp_define(SceneRenderableFadeoutComp);
 
 ecs_view_define(FadeinGlobalView) { ecs_access_read(SceneTimeComp); }
 

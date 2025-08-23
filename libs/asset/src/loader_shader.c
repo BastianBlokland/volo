@@ -12,8 +12,8 @@
 #include "loader_shader.h"
 #include "manager.h"
 
-ecs_comp_define_public(AssetShaderComp);
-ecs_comp_define_public(AssetShaderSourceComp);
+ecs_comp_define(AssetShaderComp);
+ecs_comp_define(AssetShaderSourceComp);
 
 DataMeta g_assetShaderMeta;
 

@@ -10,6 +10,7 @@
 ecs_comp_define(ViewCompA) { u32 f1; };
 ecs_comp_define(ViewCompB) { String f1; };
 ecs_comp_define(ViewCompC) { ALIGNAS(64) u32 f1; };
+ecs_comp_define(ViewCompUnregistered) { u32 f1; };
 
 ecs_view_define(ReadAB) {
   ecs_access_read(ViewCompA);
@@ -29,6 +30,11 @@ ecs_view_define(ReadMaybeAMaybeBMaybeC) {
   ecs_access_maybe_read(ViewCompC);
 }
 
+ecs_view_define(ViewReadUnregistered) {
+  ecs_access_read(ViewCompA);
+  ecs_access_maybe_read(ViewCompUnregistered);
+}
+
 ecs_module_init(view_test_module) {
   ecs_register_comp(ViewCompA);
   ecs_register_comp(ViewCompB);
@@ -38,6 +44,7 @@ ecs_module_init(view_test_module) {
   ecs_register_view(WriteC);
   ecs_register_view(ReadAMaybeC);
   ecs_register_view(ReadMaybeAMaybeBMaybeC);
+  ecs_register_view(ViewReadUnregistered);
 }
 
 spec(view) {
@@ -130,6 +137,19 @@ spec(view) {
     ecs_view_jump(itr, entityB);
     check(ecs_view_entity(itr) == entityB);
     check(ecs_view_read_t(itr, ViewCompC) == null);
+  }
+
+  it("can maybe-read unregistered components") {
+    const EcsEntityId entityA = ecs_world_entity_create(world);
+    ecs_world_add_t(world, entityA, ViewCompA, .f1 = 42);
+    ecs_world_flush(world);
+
+    EcsIterator* itr = ecs_view_itr(ecs_world_view_t(world, ViewReadUnregistered));
+
+    ecs_view_jump(itr, entityA);
+    check(ecs_view_entity(itr) == entityA);
+    check_eq_int(ecs_view_read_t(itr, ViewCompA)->f1, 42);
+    check(ecs_view_read_t(itr, ViewCompUnregistered) == null);
   }
 
   it("can optionally jump to entities that exist in the view") {

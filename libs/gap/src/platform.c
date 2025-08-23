@@ -26,7 +26,7 @@ static const String g_gapCursorAssets[GapCursor_Count] = {
     [GapCursor_DragVertical]   = string_static("icons/builtin/cursor_drag-vertical.icon"),
 };
 
-ecs_comp_define_public(GapPlatformComp);
+ecs_comp_define(GapPlatformComp);
 
 static void ecs_destruct_platform_comp(void* data) {
   GapPlatformComp* comp = data;

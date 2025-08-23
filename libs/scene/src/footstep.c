@@ -19,7 +19,7 @@
 
 ASSERT(scene_footstep_feet_max <= 8, "Feet state needs to be representable with 8 bits");
 
-ecs_comp_define_public(SceneFootstepComp);
+ecs_comp_define(SceneFootstepComp);
 
 ecs_comp_define(SceneFootstepStateComp) {
   u8 jointIndices[scene_footstep_feet_max];

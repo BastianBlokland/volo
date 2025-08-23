@@ -5,8 +5,8 @@
 #include "vfx/stats.h"
 #include "vfx/system.h"
 
-ecs_comp_define_public(VfxStatsAnyComp);
-ecs_comp_define_public(VfxStatsGlobalComp);
+ecs_comp_define(VfxStatsAnyComp);
+ecs_comp_define(VfxStatsGlobalComp);
 
 ecs_view_define(GlobalStatsView) { ecs_access_write(VfxStatsGlobalComp); }
 

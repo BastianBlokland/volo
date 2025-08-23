@@ -8,7 +8,7 @@
 #include "scene/skeleton.h"
 #include "scene/transform.h"
 
-ecs_comp_define_public(SceneAttachmentComp);
+ecs_comp_define(SceneAttachmentComp);
 
 ecs_view_define(UpdateView) {
   ecs_access_write(SceneAttachmentComp);

@@ -100,7 +100,7 @@ static void weaponmap_build(
   }
 }
 
-ecs_comp_define_public(AssetWeaponMapComp);
+ecs_comp_define(AssetWeaponMapComp);
 ecs_comp_define(AssetWeaponLoadComp) { AssetWeaponMapDef def; };
 
 static void ecs_destruct_weaponmap_comp(void* data) {

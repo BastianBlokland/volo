@@ -20,7 +20,7 @@
 
 DataMeta g_assetLevelDefMeta;
 
-ecs_comp_define_public(AssetLevelComp);
+ecs_comp_define(AssetLevelComp);
 
 static void ecs_destruct_level_comp(void* data) {
   AssetLevelComp* comp  = data;

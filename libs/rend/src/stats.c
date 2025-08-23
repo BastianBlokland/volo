@@ -18,7 +18,7 @@
 
 ASSERT(rend_stats_max_passes == rvk_canvas_max_passes, "Unexpected pass count");
 
-ecs_comp_define_public(RendStatsComp);
+ecs_comp_define(RendStatsComp);
 
 static void ecs_destruct_rend_stats_comp(void* data) {
   RendStatsComp* comp = data;

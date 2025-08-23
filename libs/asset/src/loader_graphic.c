@@ -13,7 +13,7 @@
 
 DataMeta g_assetGraphicDefMeta;
 
-ecs_comp_define_public(AssetGraphicComp);
+ecs_comp_define(AssetGraphicComp);
 ecs_comp_define(AssetGraphicInitComp);
 
 static void ecs_destruct_graphic_comp(void* data) {

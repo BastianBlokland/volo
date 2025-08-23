@@ -319,7 +319,7 @@ static void prefabmap_build_lookups(
   }
 }
 
-ecs_comp_define_public(AssetPrefabMapComp);
+ecs_comp_define(AssetPrefabMapComp);
 ecs_comp_define(AssetPrefabLoadComp) { AssetPrefabMapDef def; };
 
 static void ecs_destruct_prefabmap_comp(void* data) {

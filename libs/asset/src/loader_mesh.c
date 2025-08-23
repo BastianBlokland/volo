@@ -16,9 +16,9 @@ DataMeta g_assetMeshBundleMeta;
 DataMeta g_assetMeshMeta;
 DataMeta g_assetMeshSkeletonMeta;
 
-ecs_comp_define_public(AssetMeshComp);
-ecs_comp_define_public(AssetMeshSkeletonComp);
-ecs_comp_define_public(AssetMeshSourceComp);
+ecs_comp_define(AssetMeshComp);
+ecs_comp_define(AssetMeshSkeletonComp);
+ecs_comp_define(AssetMeshSourceComp);
 
 static void ecs_destruct_mesh_comp(void* data) {
   AssetMeshComp* comp = data;

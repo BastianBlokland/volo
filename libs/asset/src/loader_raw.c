@@ -6,7 +6,7 @@
 #include "manager.h"
 #include "repo.h"
 
-ecs_comp_define_public(AssetRawComp);
+ecs_comp_define(AssetRawComp);
 ecs_comp_define(AssetRawSourceComp) { AssetSource* src; };
 
 static void ecs_destruct_source_comp(void* data) {

@@ -1,6 +1,6 @@
 #include "ui/settings.h"
 
-ecs_comp_define_public(UiSettingsGlobalComp);
+ecs_comp_define(UiSettingsGlobalComp);
 
 ecs_module_init(ui_settings_module) { ecs_register_comp(UiSettingsGlobalComp); }
 

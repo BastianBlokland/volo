@@ -4,7 +4,7 @@
 #include "ecs/world.h"
 #include "scene/tag.h"
 
-ecs_comp_define_public(SceneTagComp);
+ecs_comp_define(SceneTagComp);
 
 static void ecs_combine_tags(void* dataA, void* dataB) {
   SceneTagComp* compA = dataA;

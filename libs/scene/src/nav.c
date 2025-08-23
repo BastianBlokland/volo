@@ -54,10 +54,10 @@ ecs_comp_define(SceneNavEnvComp) {
   u32         terrainVersion;
 };
 
-ecs_comp_define_public(SceneNavBlockerComp);
-ecs_comp_define_public(SceneNavAgentComp);
-ecs_comp_define_public(SceneNavPathComp);
-ecs_comp_define_public(SceneNavRequestComp);
+ecs_comp_define(SceneNavBlockerComp);
+ecs_comp_define(SceneNavAgentComp);
+ecs_comp_define(SceneNavPathComp);
+ecs_comp_define(SceneNavRequestComp);
 
 static void ecs_destruct_nav_env_comp(void* data) {
   SceneNavEnvComp* comp = data;

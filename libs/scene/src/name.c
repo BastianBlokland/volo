@@ -10,7 +10,7 @@
 #include "scene/sound.h"
 #include "scene/vfx.h"
 
-ecs_comp_define_public(SceneNameComp);
+ecs_comp_define(SceneNameComp);
 
 ecs_view_define(InitDebugView) {
   ecs_access_with(SceneLevelInstanceComp);
