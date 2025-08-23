@@ -44,6 +44,11 @@ typedef struct {
 } DefInitContext;
 
 ecs_module_init(def_test_module) {
+  const DefInitContext* ctx = ecs_init_ctx();
+  if (ctx->val != 42) {
+    diag_crash_msg("Invalid module init context");
+  }
+
   ecs_register_comp(DefCompA);
   ecs_register_comp(DefCompB);
   ecs_register_comp_empty(DefCompEmpty);
@@ -55,11 +60,6 @@ ecs_module_init(def_test_module) {
   ecs_register_system(EmptySys);
   ecs_register_system(UpdateSys, ecs_view_id(ReadAWriteB), ecs_view_id(ReadAReadB));
   ecs_register_system(CleanupSys, ecs_view_id(ReadAReadB));
-
-  const DefInitContext* ctx = ecs_init_ctx();
-  if (ctx->val != 42) {
-    diag_crash_msg("Invalid module init context");
-  }
 
   ecs_order(CleanupSys, 1337);
 
