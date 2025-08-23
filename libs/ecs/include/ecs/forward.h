@@ -1,5 +1,6 @@
 #pragma once
 #include "core/forward.h"
+#include "jobs/forward.h"
 
 /**
  * Forward header for the ecs library.
