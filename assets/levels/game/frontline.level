@@ -1,4 +1,5 @@
 {
+  "name": "Frontline",
   "terrain": "terrains/desert_big.terrain",
   "fogMode": "VisibilityBased",
   "objects": [

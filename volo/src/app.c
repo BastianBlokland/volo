@@ -54,7 +54,7 @@
 #include "hud.h"
 #include "prefs.h"
 
-static const String g_appLevel = string_static("levels/default.level");
+static const String g_appLevel = string_static("levels/game/playground.level");
 
 typedef enum {
   AppMode_Normal,
