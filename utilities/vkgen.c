@@ -1495,7 +1495,7 @@ static bool vkgen_write_header(VkGenContext* ctx) {
   fmt_write(&ctx->out, "// clang-format off\n");
   vkgen_write_prolog(ctx);
 
-  fmt_write(&ctx->out, "#include \"core.h\"\n\n");
+  fmt_write(&ctx->out, "#include \"core/forward.h\"\n\n");
 
   // Write constants.
   dynarray_for_t(&ctx->constants, VkGenConstant, constant) {
@@ -1548,9 +1548,9 @@ static bool vkgen_write_impl(VkGenContext* ctx) {
   vkgen_write_prolog(ctx);
 
   fmt_write(&ctx->out, "#include \"{}.h\"\n\n", fmt_text(ctx->outName));
-  fmt_write(&ctx->out, "#include \"core_dynlib.h\"\n");
-  fmt_write(&ctx->out, "#include \"core_sentinel.h\"\n");
-  fmt_write(&ctx->out, "#include \"core_string.h\"\n\n");
+  fmt_write(&ctx->out, "#include \"core/dynlib.h\"\n");
+  fmt_write(&ctx->out, "#include \"core/sentinel.h\"\n");
+  fmt_write(&ctx->out, "#include \"core/string.h\"\n\n");
 
   // Write stringify definitions.
   array_for_t(g_vkgenStringify, VkGenStringify, entry) { vkgen_write_stringify_def(ctx, entry); }
