@@ -189,6 +189,14 @@ void ui_cmd_push_style_weight(UiCmdBuffer* buffer, const UiWeight weight) {
   };
 }
 
+void ui_cmd_push_style_all_caps(UiCmdBuffer* buffer, const bool allCaps) {
+  UiCmd* cmd        = ui_cmdbuffer_push(buffer);
+  cmd->type         = UiCmd_StyleAllCaps;
+  cmd->styleAllCaps = (UiStyleAllCaps){
+      .value = allCaps,
+  };
+}
+
 void ui_cmd_push_draw_text(
     UiCmdBuffer*  buffer,
     const UiId    id,
