@@ -54,8 +54,6 @@
 #include "hud.h"
 #include "prefs.h"
 
-static const String g_appLevel = string_static("levels/game/playground.level");
-
 typedef enum {
   AppMode_Normal,
   AppMode_Debug,
@@ -616,7 +614,7 @@ ecs_module_init(game_app_module) {
       ecs_view_id(DevLogViewerView));
 }
 
-static CliId g_optAssets, g_optWindow, g_optWidth, g_optHeight, g_optDev;
+static CliId g_optAssets, g_optWindow, g_optWidth, g_optHeight, g_optLevel, g_optDev;
 
 AppType app_ecs_configure(CliApp* app) {
   cli_app_register_desc(app, string_lit("Volo RTS Demo"));
@@ -635,6 +633,9 @@ AppType app_ecs_configure(CliApp* app) {
   g_optHeight = cli_register_flag(app, '\0', string_lit("height"), CliOptionFlags_Value);
   cli_register_desc(app, g_optHeight, string_lit("Game window height in pixels."));
   cli_register_validator(app, g_optHeight, cli_validate_u16);
+
+  g_optLevel = cli_register_flag(app, 'l', string_lit("level"), CliOptionFlags_Value);
+  cli_register_desc(app, g_optLevel, string_lit("Level to load."));
 
   g_optDev = cli_register_flag(app, 'd', string_lit("dev"), CliOptionFlags_None);
   cli_register_desc(app, g_optDev, string_lit("Enable development mode."));
@@ -743,10 +744,14 @@ bool app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
     input_resource_load_map(inputResource, string_lit("global/dev.inputs"));
   }
 
-  scene_level_load(world, SceneLevelMode_Play, asset_lookup(world, assets, g_appLevel));
   scene_prefab_init(world, string_lit("global/game.prefabs"));
   scene_weapon_init(world, string_lit("global/game.weapons"));
   scene_product_init(world, string_lit("global/game.products"));
+
+  const String level = cli_read_string(invoc, g_optLevel, string_empty);
+  if (!string_is_empty(level)) {
+    scene_level_load(world, SceneLevelMode_Play, asset_lookup(world, assets, level));
+  }
 
   return true; // Initialization succeeded.
 }
