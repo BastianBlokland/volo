@@ -7,6 +7,7 @@
 struct sEcsModuleBuilder {
   EcsDef*       def;
   EcsModuleId   id;
+  const void*   initCtx;
   EcsModuleDef* module;
 };
 
@@ -14,14 +15,18 @@ i8 ecs_compare_view(const void* a, const void* b) { return compare_u16(a, b); }
 i8 ecs_compare_system(const void* a, const void* b) { return compare_u16(a, b); }
 
 EcsModuleDef ecs_module_create(
-    EcsDef* def, const EcsModuleId id, const String name, const EcsModuleInit initRoutine) {
+    EcsDef*             def,
+    const EcsModuleId   id,
+    const String        name,
+    const EcsModuleInit initRoutine,
+    const void*         initCtx) {
   EcsModuleDef module = {
       .name         = name, // Name is always persistently allocated, no need to copy.
       .componentIds = dynarray_create_t(def->alloc, EcsCompId, 8),
       .viewIds      = dynarray_create_t(def->alloc, EcsViewId, 8),
       .systemIds    = dynarray_create_t(def->alloc, EcsSystemId, 8),
   };
-  EcsModuleBuilder builder = {.def = def, .id = id, .module = &module};
+  EcsModuleBuilder builder = {.def = def, .id = id, .initCtx = initCtx, .module = &module};
   initRoutine(&builder);
   return module;
 }
@@ -32,6 +37,8 @@ void ecs_module_destroy(EcsDef* def, EcsModuleDef* module) {
   dynarray_destroy(&module->viewIds);
   dynarray_destroy(&module->systemIds);
 }
+
+const void* ecs_module_init_ctx(EcsModuleBuilder* builder) { return builder->initCtx; }
 
 EcsCompId
 ecs_module_register_comp(EcsModuleBuilder* builder, EcsCompId* var, const EcsCompConfig* config) {

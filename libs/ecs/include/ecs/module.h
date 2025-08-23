@@ -155,6 +155,11 @@ typedef struct {
   struct s##_NAME_
 
 /**
+ * Retrieve the module initialization context as provided to 'ecs_register_module_with_context()'.
+ */
+#define ecs_init_ctx() ecs_module_init_ctx(_builder)
+
+/**
  * Define a view initialization routine.
  * Should only be used inside compilation-units.
  *
@@ -298,6 +303,7 @@ i8 ecs_compare_view(const void* a, const void* b);
  */
 i8 ecs_compare_system(const void* a, const void* b);
 
+const void* ecs_module_init_ctx(EcsModuleBuilder*);
 EcsCompId   ecs_module_register_comp(EcsModuleBuilder*, EcsCompId*, const EcsCompConfig*);
 EcsViewId   ecs_module_register_view(EcsModuleBuilder*, EcsViewId*, const EcsViewConfig*);
 EcsSystemId ecs_module_register_system(EcsModuleBuilder*, EcsSystemId*, const EcsSystemConfig*);

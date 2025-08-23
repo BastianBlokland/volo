@@ -76,13 +76,15 @@ void ecs_def_destroy(EcsDef* def) {
   alloc_free_t(def->alloc, def);
 }
 
-EcsModuleId
-ecs_def_register_module(EcsDef* def, const String name, const EcsModuleInit initRoutine) {
+EcsModuleId ecs_def_register_module(
+    EcsDef* def, const String name, const EcsModuleInit initRoutine, const void* initCtx) {
   diag_assert_msg(!(def->flags & EcsDefFlags_Frozen), "Unable to modify a frozen definition");
   diag_assert_msg(!ecs_def_module_by_name(def, name), "Duplicate module name '{}'", fmt_text(name));
 
-  const EcsModuleId id                          = (EcsModuleId)def->modules.size;
-  *dynarray_push_t(&def->modules, EcsModuleDef) = ecs_module_create(def, id, name, initRoutine);
+  const EcsModuleId id = (EcsModuleId)def->modules.size;
+  *dynarray_push_t(&def->modules, EcsModuleDef) =
+      ecs_module_create(def, id, name, initRoutine, initCtx);
+
   return id;
 }
 
