@@ -27,6 +27,7 @@ typedef struct {
   UiLayer  layer : 8;
   UiMode   mode : 8;
   UiWeight weight : 8;
+  bool     allCaps;
 } UiBuildStyle;
 
 typedef struct {
@@ -340,9 +341,14 @@ static void ui_build_draw_text(UiBuildState* state, const UiDrawText* cmd) {
     return;
   }
 
+  UiFlags flags = cmd->flags;
+  if (style.allCaps) {
+    flags |= UiFlags_AllCaps;
+  }
+
   const UiTextBuildResult result = ui_text_build(
       state->atlasFont,
-      cmd->flags,
+      flags,
       rect,
       state->ctx->inputPos,
       mem_create(cmd->textPtr, cmd->textSize),
@@ -358,25 +364,25 @@ static void ui_build_draw_text(UiBuildState* state, const UiDrawText* cmd) {
       &ui_build_atom_text_char,
       &ui_build_atom_text_background);
 
-  if (cmd->flags & UiFlags_TightTextRect) {
+  if (flags & UiFlags_TightTextRect) {
     rect = result.rect;
   }
 
   const bool debugAllInteract = state->ctx->settings->inspectorMode == UiInspectorMode_DebugAll;
-  const bool hoverable        = cmd->flags & UiFlags_Interactable || debugAllInteract;
+  const bool hoverable        = flags & UiFlags_Interactable || debugAllInteract;
 
   if (hoverable && ui_build_is_hovered(state, container, rect, style.layer)) {
     state->hover = (UiBuildHover){
         .id    = cmd->id,
         .layer = style.layer,
-        .flags = cmd->flags,
+        .flags = flags,
     };
   }
 
-  if (cmd->flags & UiFlags_TrackRect) {
+  if (flags & UiFlags_TrackRect) {
     state->ctx->outputRect(state->ctx->userCtx, cmd->id, result.rect);
   }
-  if (cmd->flags & UiFlags_TrackTextInfo) {
+  if (flags & UiFlags_TrackTextInfo) {
     state->ctx->outputTextInfo(
         state->ctx->userCtx,
         cmd->id,
@@ -646,6 +652,9 @@ INLINE_HINT static void ui_build_cmd(UiBuildState* state, const UiCmd* cmd) {
     break;
   case UiCmd_StyleWeight:
     ui_build_style_current(state)->weight = cmd->styleWeight.value;
+    break;
+  case UiCmd_StyleAllCaps:
+    ui_build_style_current(state)->allCaps = cmd->styleAllCaps.value;
     break;
   case UiCmd_DrawText:
     ui_build_draw_text(state, &cmd->drawText);

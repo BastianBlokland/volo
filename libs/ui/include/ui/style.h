@@ -27,3 +27,4 @@ void ui_style_layer(UiCanvasComp*, UiLayer);
 void ui_style_mode(UiCanvasComp*, UiMode);
 void ui_style_variation(UiCanvasComp*, u8 variation);
 void ui_style_weight(UiCanvasComp*, UiWeight);
+void ui_style_all_caps(UiCanvasComp*, bool allCaps);
