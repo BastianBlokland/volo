@@ -28,6 +28,7 @@ typedef struct {
   UiTextBuildCharFunc       buildChar;
   UiTextBuildBackgroundFunc buildBackground;
   f32                       cursor;
+  const UiFlags             flags;
   const UiVector            inputPosition;
   usize                     hoveredCharIndex;
 } UiTextBuildState;
@@ -48,6 +49,13 @@ typedef struct {
   UiTextBackground values[ui_text_max_backgrounds];
   u32              count, active;
 } UiTextBackgroundCollector;
+
+static Unicode ui_text_apply_replacements(Unicode cp, const UiFlags flags) {
+  if (UNLIKELY((flags & UiFlags_AllCaps) && cp >= 'a' && cp <= 'z')) {
+    cp ^= 0x20;
+  }
+  return cp;
+}
 
 static void ui_text_background_start(
     UiTextBackgroundCollector* collector,
@@ -143,6 +151,7 @@ static String ui_text_line(
 
     Unicode cp;
     remainingText = utf8_cp_read(remainingText, &cp);
+    cp            = ui_text_apply_replacements(cp, flags);
 
     const bool isSeparator    = ui_text_is_separator(cp);
     const bool allowWordBreak = firstWord || flags & UiFlags_AllowWordBreak;
@@ -376,6 +385,7 @@ static void ui_text_build_line(UiTextBuildState* state, const UiTextLine* line) 
   while (!string_is_empty(remainingText)) {
     Unicode cp;
     remainingText = utf8_cp_read(remainingText, &cp);
+    cp            = ui_text_apply_replacements(cp, state->flags);
 
     const UiVector pos           = ui_text_char_pos(state, line, state->cursor);
     usize          nextCharIndex = ui_text_byte_index(state, remainingText);
@@ -516,6 +526,7 @@ UiTextBuildResult ui_text_build(
       .userCtx            = userCtx,
       .buildChar          = buildChar,
       .buildBackground    = buildBackground,
+      .flags              = flags,
       .inputPosition      = inputPosition,
       .hoveredCharIndex   = sentinel_usize,
   };
