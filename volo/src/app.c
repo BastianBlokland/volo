@@ -15,6 +15,7 @@
 #include "dev/panel.h"
 #include "dev/register.h"
 #include "dev/stats.h"
+#include "ecs/entity.h"
 #include "ecs/utils.h"
 #include "ecs/view.h"
 #include "ecs/world.h"
@@ -76,6 +77,7 @@ static EcsEntityId app_main_window_create(
     EcsWorld*         world,
     AssetManagerComp* assets,
     const bool        fullscreen,
+    const bool        devSupport,
     const u16         width,
     const u16         height) {
   GapWindowFlags flags = GapWindowFlags_Default;
@@ -88,10 +90,13 @@ static EcsEntityId app_main_window_create(
   const String        titleScratch   = fmt_write_scratch("Volo v{}", fmt_text(versionScratch));
   const EcsEntityId   window = gap_window_create(world, mode, flags, size, icon, titleScratch);
 
-  const EcsEntityId uiCanvas = ui_canvas_create(world, window, UiCanvasCreateFlags_ToFront);
-  const EcsEntityId logView  = dev_log_viewer_create(world, window, LogMask_None);
-
-  ecs_world_add_t(world, window, AppMainWindowComp, .uiCanvas = uiCanvas, .devLogViewer = logView);
+  const EcsEntityId uiCanvas  = ui_canvas_create(world, window, UiCanvasCreateFlags_ToFront);
+  EcsEntityId       logViewer = ecs_entity_invalid;
+  if (devSupport) {
+    logViewer = dev_log_viewer_create(world, window, LogMask_None);
+  }
+  ecs_world_add_t(
+      world, window, AppMainWindowComp, .uiCanvas = uiCanvas, .devLogViewer = logViewer);
 
   ecs_world_add_t(
       world,
@@ -571,7 +576,7 @@ ecs_system_define(AppUpdateSys) {
 }
 
 typedef struct {
-  bool devMode;
+  bool devSupport;
 } AppInitContext;
 
 ecs_module_init(game_app_module) {
@@ -586,7 +591,7 @@ ecs_module_init(game_app_module) {
   ecs_register_view(MainWindowView);
   ecs_register_view(UiCanvasView);
 
-  if (ctx->devMode) {
+  if (ctx->devSupport) {
     ecs_register_view(DevPanelView);
     ecs_register_view(DevLogViewerView);
   }
@@ -640,7 +645,7 @@ void app_ecs_register(EcsDef* def, const CliInvocation* invoc) {
   diag_crash_handler(game_crash_handler, null); // Register a crash handler.
 
   const AppInitContext appInitCtx = {
-      .devMode = cli_parse_provided(invoc, g_optDev),
+      .devSupport = cli_parse_provided(invoc, g_optDev),
   };
 
   asset_register(def);
@@ -651,7 +656,7 @@ void app_ecs_register(EcsDef* def, const CliInvocation* invoc) {
   snd_register(def);
   ui_register(def);
   vfx_register(def);
-  if (appInitCtx.devMode) {
+  if (appInitCtx.devSupport) {
     dev_register(def);
   }
 
@@ -690,7 +695,10 @@ static AssetManagerComp* app_init_assets(EcsWorld* world, const CliInvocation* i
 }
 
 bool app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
-  dev_log_tracker_init(world, g_logger);
+  const bool devSupport = cli_parse_provided(invoc, g_optDev);
+  if (devSupport) {
+    dev_log_tracker_init(world, g_logger);
+  }
 
   AssetManagerComp* assets = app_init_assets(world, invoc);
   if (UNLIKELY(!assets)) {
@@ -707,7 +715,8 @@ bool app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
   SndMixerComp* soundMixer = snd_mixer_init(world);
   snd_mixer_gain_set(soundMixer, prefs->volume * 1e-2f);
 
-  const EcsEntityId mainWin = app_main_window_create(world, assets, fullscreen, width, height);
+  const EcsEntityId mainWin =
+      app_main_window_create(world, assets, fullscreen, devSupport, width, height);
   RendSettingsComp* rendSettingsWin = rend_settings_window_init(world, mainWin);
 
   app_quality_apply(prefs, rendSettingsGlobal, rendSettingsWin);
@@ -717,7 +726,9 @@ bool app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
   InputResourceComp* inputResource = input_resource_init(world);
   input_resource_load_map(inputResource, string_lit("global/app.inputs"));
   input_resource_load_map(inputResource, string_lit("global/game.inputs"));
-  input_resource_load_map(inputResource, string_lit("global/dev.inputs"));
+  if (devSupport) {
+    input_resource_load_map(inputResource, string_lit("global/dev.inputs"));
+  }
 
   scene_level_load(world, SceneLevelMode_Play, asset_lookup(world, assets, g_appLevel));
   scene_prefab_init(world, string_lit("global/game.prefabs"));
