@@ -335,7 +335,7 @@ void* ecs_world_add(
     EcsWorld* world, const EcsEntityId entity, const EcsCompId comp, const Mem data) {
   diag_assert(!ecs_world_busy(world) || g_ecsRunningSystem);
   diag_assert_msg(ecs_entity_valid(entity), "{} is an invalid entity", ecs_entity_fmt(entity));
-  diag_assert(!sentinel_check(comp));
+  diag_assert_msg(!sentinel_check(comp), "Component has not been registered");
 
   diag_assert_msg(
       ecs_storage_entity_exists(&world->storage, entity),
@@ -352,7 +352,7 @@ void* ecs_world_add(
 void ecs_world_remove(EcsWorld* world, const EcsEntityId entity, const EcsCompId comp) {
   diag_assert(!ecs_world_busy(world) || g_ecsRunningSystem);
   diag_assert_msg(ecs_entity_valid(entity), "{} is an invalid entity", ecs_entity_fmt(entity));
-  diag_assert(!sentinel_check(comp));
+  diag_assert_msg(!sentinel_check(comp), "Component has not been registered");
 
   diag_assert_msg(
       ecs_storage_entity_exists(&world->storage, entity),
