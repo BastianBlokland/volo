@@ -34,6 +34,7 @@ ecs_view_define(ReadAReadB) {
 }
 
 ecs_view_define(EmptyView) {}
+ecs_view_define(UnregisteredView) { ecs_access_read(DefCompA); }
 
 ecs_system_define(EmptySys) {}
 ecs_system_define(UpdateSys) {}
@@ -57,7 +58,7 @@ ecs_module_init(def_test_module) {
   ecs_register_view(ReadAReadB);
   ecs_register_view(EmptyView);
 
-  ecs_register_system(EmptySys);
+  ecs_register_system(EmptySys, ecs_view_id(UnregisteredView));
   ecs_register_system(UpdateSys, ecs_view_id(ReadAWriteB), ecs_view_id(ReadAReadB));
   ecs_register_system(CleanupSys, ecs_view_id(ReadAReadB));
 

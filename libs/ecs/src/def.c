@@ -219,6 +219,9 @@ ecs_def_register_system(EcsDef* def, const EcsModuleId modId, const EcsSystemCon
 
   for (usize i = 0; i != cfg->viewCount; ++i) {
     const EcsViewId* idPtr = &cfg->views[i];
+    if (UNLIKELY(sentinel_check(*idPtr))) {
+      continue; // Unregistered view.
+    }
     *dynarray_insert_sorted_t(&systemDef->viewIds, EcsViewId, ecs_compare_view, idPtr) = *idPtr;
   }
 
