@@ -1,7 +1,6 @@
 #include "core/array.h"
 #include "core/format.h"
 #include "core/math.h"
-#include "dev/stats.h"
 #include "ecs/view.h"
 #include "ecs/world.h"
 #include "input/manager.h"
@@ -19,11 +18,8 @@
 #include "ui/canvas.h"
 #include "ui/layout.h"
 #include "ui/panel.h"
-#include "ui/scrollview.h"
 #include "ui/shape.h"
 #include "ui/style.h"
-#include "ui/table.h"
-#include "ui/widget.h"
 
 #include "cmd.h"
 #include "input.h"
@@ -128,34 +124,6 @@ static EcsEntityId input_query_ray(
   return 0;
 }
 
-static void input_report_command(DevStatsGlobalComp* devStats, const String command) {
-  if (devStats) {
-    const String label = string_lit("Command");
-    dev_stats_notify(devStats, label, command);
-  }
-}
-
-static void input_report_selection_count(DevStatsGlobalComp* devStats, const u32 selCount) {
-  if (devStats) {
-    const String label = string_lit("Selected");
-    dev_stats_notify(devStats, label, fmt_write_scratch("{}", fmt_int(selCount)));
-  }
-}
-
-static void input_report_group_assign(DevStatsGlobalComp* devStats, const u32 groupIndex) {
-  if (devStats) {
-    const String label = string_lit("Group assign");
-    dev_stats_notify(devStats, label, fmt_write_scratch("{}", fmt_int(groupIndex + 1)));
-  }
-}
-
-static void input_report_group_select(DevStatsGlobalComp* devStats, const u32 groupIndex) {
-  if (devStats) {
-    const String label = string_lit("Group select");
-    dev_stats_notify(devStats, label, fmt_write_scratch("{}", fmt_int(groupIndex + 1)));
-  }
-}
-
 static void input_indicator_move(EcsWorld* world, const GeoVector pos) {
   scene_prefab_spawn(
       world,
@@ -192,8 +160,7 @@ static void update_group_input(
     CmdControllerComp*     cmdController,
     InputManagerComp*      input,
     const SceneSetEnvComp* setEnv,
-    const SceneTimeComp*   time,
-    DevStatsGlobalComp*    devStats) {
+    const SceneTimeComp*   time) {
   for (u32 i = 0; i != cmd_group_count; ++i) {
     if (!input_triggered_hash(input, g_inputGroupActions[i])) {
       continue;
@@ -212,10 +179,8 @@ static void update_group_input(
       for (const EcsEntityId* e = scene_set_begin(setEnv, s); e != scene_set_end(setEnv, s); ++e) {
         cmd_group_add(cmdController, i, *e);
       }
-      input_report_group_assign(devStats, i);
     } else {
       cmd_push_select_group(cmdController, i);
-      input_report_group_select(devStats, i);
     }
 
     if (doublePress && cmd_group_size(cmdController, i)) {
@@ -455,12 +420,10 @@ static void input_order_attack(
     EcsWorld*              world,
     CmdControllerComp*     cmdController,
     const SceneSetEnvComp* setEnv,
-    DevStatsGlobalComp*    devStats,
     const EcsEntityId      target) {
 
   // Report the attack.
   input_indicator_attack(world, target);
-  input_report_command(devStats, string_lit("Attack"));
 
   // Push attack commands.
   const StringHash s = g_sceneSetSelected;
@@ -474,12 +437,10 @@ static void input_order_move(
     CmdControllerComp*     cmdController,
     const SceneSetEnvComp* setEnv,
     const SceneNavEnvComp* nav,
-    DevStatsGlobalComp*    devStats,
     const GeoVector        targetPos) {
 
   // Report the move.
   input_indicator_move(world, targetPos);
-  input_report_command(devStats, string_lit("Move"));
 
   // NOTE: Always using a single normal nav layer cell per unit, so there potentially too little
   // space for large units.
@@ -512,13 +473,7 @@ static void input_order_move(
   }
 }
 
-static void input_order_stop(
-    CmdControllerComp* cmdController, const SceneSetEnvComp* setEnv, DevStatsGlobalComp* devStats) {
-
-  // Report the stop.
-  input_report_command(devStats, string_lit("Stop"));
-
-  // Push the stop commands.
+static void input_order_stop(CmdControllerComp* cmdController, const SceneSetEnvComp* setEnv) {
   const StringHash s = g_sceneSetSelected;
   for (const EcsEntityId* e = scene_set_begin(setEnv, s); e != scene_set_end(setEnv, s); ++e) {
     cmd_push_stop(cmdController, *e);
@@ -532,14 +487,12 @@ static void input_order(
     const SceneSetEnvComp*  setEnv,
     const SceneTerrainComp* terrain,
     const SceneNavEnvComp*  nav,
-    DevStatsGlobalComp*     devStats,
     const GeoRay*           inputRay) {
   /**
    * Order an attack when clicking an opponent unit or a destructible.
    */
   if (state->hoveredEntity[InputQuery_Attack]) {
-    input_order_attack(
-        world, cmdController, setEnv, devStats, state->hoveredEntity[InputQuery_Attack]);
+    input_order_attack(world, cmdController, setEnv, state->hoveredEntity[InputQuery_Attack]);
     return;
   }
   /**
@@ -554,7 +507,7 @@ static void input_order(
   if (rayT > g_inputInteractMinDist) {
     const GeoVector targetPos        = geo_ray_position(inputRay, rayT);
     const GeoVector targetPosClamped = input_clamp_to_play_area(terrain, targetPos);
-    input_order_move(world, cmdController, setEnv, nav, devStats, targetPosClamped);
+    input_order_move(world, cmdController, setEnv, nav, targetPosClamped);
     return;
   }
 }
@@ -607,7 +560,6 @@ static void update_camera_interact(
     const SceneNavEnvComp*       nav,
     const SceneCameraComp*       camera,
     const SceneTransformComp*    cameraTrans,
-    DevStatsGlobalComp*          devStats,
     EcsView*                     productionView) {
   const GeoVector inputNormPos = geo_vector(input_cursor_x(input), input_cursor_y(input));
   const f32       inputAspect  = input_cursor_aspect(input);
@@ -660,7 +612,7 @@ static void update_camera_interact(
 
   const bool hasSelection = scene_set_count(setEnv, g_sceneSetSelected) != 0;
   if (!placementActive && !selectActive && hasSelection && input_triggered_lit(input, "Order")) {
-    input_order(world, state, cmdController, setEnv, terrain, nav, devStats, &inputRay);
+    input_order(world, state, cmdController, setEnv, terrain, nav, &inputRay);
   }
   const u32 newLevelCounter = scene_level_counter(levelManager);
   if (state->lastLevelCounter != newLevelCounter) {
@@ -669,7 +621,6 @@ static void update_camera_interact(
   }
   if (input_triggered_lit(input, "CameraReset")) {
     input_camera_reset(state, levelManager);
-    input_report_command(devStats, string_lit("Reset camera"));
   }
 }
 
@@ -696,7 +647,6 @@ static void input_state_init(EcsWorld* world, const EcsEntityId windowEntity) {
 }
 
 ecs_view_define(GlobalUpdateView) {
-  ecs_access_maybe_write(DevStatsGlobalComp);
   ecs_access_read(SceneLevelManagerComp);
   ecs_access_read(SceneNavEnvComp);
   ecs_access_read(SceneSetEnvComp);
@@ -727,14 +677,13 @@ ecs_system_define(InputUpdateSys) {
   const SceneSetEnvComp*       setEnv        = ecs_view_read_t(globalItr, SceneSetEnvComp);
   const SceneTerrainComp*      terrain       = ecs_view_read_t(globalItr, SceneTerrainComp);
   const SceneTimeComp*         time          = ecs_view_read_t(globalItr, SceneTimeComp);
-  DevStatsGlobalComp*          devStats      = ecs_view_write_t(globalItr, DevStatsGlobalComp);
   InputManagerComp*            input         = ecs_view_write_t(globalItr, InputManagerComp);
   SceneCollisionEnvComp*       colEnv        = ecs_view_write_t(globalItr, SceneCollisionEnvComp);
 
   input_update_collision_mask(colEnv, input);
 
   if (input_triggered_lit(input, "OrderStop")) {
-    input_order_stop(cmdController, setEnv, devStats);
+    input_order_stop(cmdController, setEnv);
   }
 
   EcsView* cameraView     = ecs_world_view_t(world, CameraView);
@@ -748,12 +697,8 @@ ecs_system_define(InputUpdateSys) {
       input_state_init(world, ecs_view_entity(camItr));
       continue;
     }
-    const bool windowActive = input_active_window(input) == ecs_view_entity(camItr);
-
-    if (scene_set_count(setEnv, g_sceneSetSelected) != state->lastSelectionCount) {
-      state->lastSelectionCount = scene_set_count(setEnv, g_sceneSetSelected);
-      input_report_selection_count(devStats, state->lastSelectionCount);
-    }
+    state->lastSelectionCount = scene_set_count(setEnv, g_sceneSetSelected);
+    const bool windowActive   = input_active_window(input) == ecs_view_entity(camItr);
 
     if (input_layer_active(input, string_hash_lit("Dev"))) {
       update_camera_movement_dev(input, time, cam, camTrans);
@@ -762,7 +707,7 @@ ecs_system_define(InputUpdateSys) {
     }
 
     if (windowActive) {
-      update_group_input(state, cmdController, input, setEnv, time, devStats);
+      update_group_input(state, cmdController, input, setEnv, time);
       update_camera_interact(
           world,
           state,
@@ -776,7 +721,6 @@ ecs_system_define(InputUpdateSys) {
           nav,
           cam,
           camTrans,
-          devStats,
           productionView);
     } else {
       state->selectState = InputSelectState_None;
