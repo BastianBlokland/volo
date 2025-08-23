@@ -23,8 +23,8 @@
 #define loco_face_threshold 0.8f
 #define loco_wheeled_deceleration 15.0f
 
-ecs_comp_define_public(SceneLocomotionComp);
-ecs_comp_define_public(SceneLocomotionWheeledComp);
+ecs_comp_define(SceneLocomotionComp);
+ecs_comp_define(SceneLocomotionWheeledComp);
 
 static void loco_validate_pos(MAYBE_UNUSED const GeoVector vec) {
   diag_assert_msg(

@@ -161,7 +161,7 @@ static void productmap_build(
   *err = ProductError_None;
 }
 
-ecs_comp_define_public(AssetProductMapComp);
+ecs_comp_define(AssetProductMapComp);
 ecs_comp_define(AssetProductLoadComp) { AssetProductMapDef def; };
 
 static void ecs_destruct_productmap_comp(void* data) {

@@ -38,7 +38,7 @@ typedef struct {
   f32              fadeInTime, fadeOutTime;
 } DecalDef;
 
-ecs_comp_define_public(AssetDecalComp);
+ecs_comp_define(AssetDecalComp);
 
 ecs_view_define(DecalUnloadView) {
   ecs_access_with(AssetDecalComp);

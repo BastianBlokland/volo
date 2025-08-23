@@ -3,7 +3,7 @@
 #include "scene/collision.h"
 #include "scene/faction.h"
 
-ecs_comp_define_public(SceneFactionComp);
+ecs_comp_define(SceneFactionComp);
 
 ecs_module_init(scene_faction_module) { ecs_register_comp(SceneFactionComp); }
 

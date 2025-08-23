@@ -86,7 +86,7 @@ static String vfx_error_str(const VfxError err) {
   return g_msgs[err];
 }
 
-ecs_comp_define_public(AssetVfxComp);
+ecs_comp_define(AssetVfxComp);
 
 static void ecs_destruct_vfx_comp(void* data) {
   AssetVfxComp* comp = data;

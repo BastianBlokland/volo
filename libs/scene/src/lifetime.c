@@ -6,8 +6,8 @@
 #include "scene/lifetime.h"
 #include "scene/time.h"
 
-ecs_comp_define_public(SceneLifetimeOwnerComp);
-ecs_comp_define_public(SceneLifetimeDurationComp);
+ecs_comp_define(SceneLifetimeOwnerComp);
+ecs_comp_define(SceneLifetimeDurationComp);
 
 static bool lifetime_has_owner(SceneLifetimeOwnerComp* comp, const EcsEntityId owner) {
   for (u32 ownerIndex = 0; ownerIndex != scene_lifetime_owners_max; ++ownerIndex) {

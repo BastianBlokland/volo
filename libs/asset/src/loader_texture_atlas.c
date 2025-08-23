@@ -40,7 +40,7 @@ DataMeta g_assetAtlasBundleMeta;
 DataMeta g_assetAtlasDefMeta;
 DataMeta g_assetAtlasMeta;
 
-ecs_comp_define_public(AssetAtlasComp);
+ecs_comp_define(AssetAtlasComp);
 
 ecs_comp_define(AssetAtlasLoadComp) {
   AtlasDef def;

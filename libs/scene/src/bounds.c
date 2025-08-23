@@ -10,7 +10,7 @@
 
 #define scene_bounds_max_loads 16
 
-ecs_comp_define_public(SceneBoundsComp);
+ecs_comp_define(SceneBoundsComp);
 
 typedef enum {
   BoundsTemplState_Start,

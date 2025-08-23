@@ -9,7 +9,7 @@
 #include "limiter.h"
 #include "painter.h"
 
-ecs_comp_define_public(RendLimiterComp);
+ecs_comp_define(RendLimiterComp);
 
 ecs_view_define(GlobalView) {
   ecs_access_read(RendSettingsGlobalComp);

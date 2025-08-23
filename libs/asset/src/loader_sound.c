@@ -13,7 +13,7 @@
 
 DataMeta g_assetSoundMeta;
 
-ecs_comp_define_public(AssetSoundComp);
+ecs_comp_define(AssetSoundComp);
 
 ecs_comp_define(AssetSoundSourceComp) { AssetSource* src; };
 

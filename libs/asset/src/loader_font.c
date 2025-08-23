@@ -20,7 +20,7 @@ float sqrtf(float);
 #define intrinsic_sqrt_f32 __builtin_sqrtf
 #endif
 
-ecs_comp_define_public(AssetFontComp);
+ecs_comp_define(AssetFontComp);
 
 static void ecs_destruct_font_comp(void* data) {
   AssetFontComp* comp = data;

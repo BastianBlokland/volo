@@ -26,7 +26,7 @@
 #include "resource.h"
 #include "view.h"
 
-ecs_comp_define_public(RendPainterComp);
+ecs_comp_define(RendPainterComp);
 
 static void ecs_destruct_painter(void* data) {
   RendPainterComp* comp = data;

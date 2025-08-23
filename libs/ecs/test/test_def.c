@@ -18,7 +18,7 @@ ecs_comp_extern_public(DefCompB) {
   u32  fieldA;
   bool fieldB;
 };
-ecs_comp_define_public(DefCompB);
+ecs_comp_define(DefCompB);
 
 ecs_comp_define(DefCompEmpty);
 

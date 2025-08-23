@@ -138,21 +138,6 @@ typedef struct {
   extern EcsCompId ecs_comp_id(_NAME_)
 
 /**
- * Define a public component struct.
- * Should only be used inside compilation-units.
- *
- * Example usage:
- * ```
- * ecs_comp_define_public(PositionComp);
- * ```
- * NOTE: The component body should be declared using ecs_comp_extern_public().
- */
-#define ecs_comp_define_public(_NAME_)                                                             \
-  typedef struct s##_NAME_ _NAME_;                                                                 \
-  EcsCompId ecs_comp_id(_NAME_);                                                                   \
-  struct s##_NAME_
-
-/**
  * Declare a external public component struct
  *
  * Example usage:
@@ -160,7 +145,7 @@ typedef struct {
  * ecs_comp_extern_public(PositionComp) {
  *   f32 x, y;
  * };
- * NOTE: Needs to be defined using ecs_comp_define_public().
+ * NOTE: Needs to be defined using ecs_comp_define().
  * ```
  */
 #define ecs_comp_extern_public(_NAME_)                                                             \

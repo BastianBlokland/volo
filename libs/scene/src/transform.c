@@ -10,9 +10,9 @@
 #define velocity_update_max_time_step (1.0f / 10)
 #define velocity_update_max_dist 5.0f
 
-ecs_comp_define_public(SceneTransformComp);
-ecs_comp_define_public(SceneScaleComp);
-ecs_comp_define_public(SceneVelocityComp);
+ecs_comp_define(SceneTransformComp);
+ecs_comp_define(SceneScaleComp);
+ecs_comp_define(SceneVelocityComp);
 
 static f32 trans_time_to_seconds(const TimeDuration dur) {
   static const f64 g_toSecMul = 1.0 / (f64)time_second;

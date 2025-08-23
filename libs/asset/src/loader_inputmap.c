@@ -74,7 +74,7 @@ static void asset_inputmap_build(
   *err = InputMapError_None;
 }
 
-ecs_comp_define_public(AssetInputMapComp);
+ecs_comp_define(AssetInputMapComp);
 
 static void ecs_destruct_inputmap_comp(void* data) {
   AssetInputMapComp* comp = data;

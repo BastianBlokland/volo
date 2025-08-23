@@ -23,8 +23,8 @@ ecs_comp_define(SceneCollisionEnvComp) {
   SceneLayer   ignoreMask; // Layers to ignore globally.
   GeoQueryEnv* queryEnv;
 };
-ecs_comp_define_public(SceneCollisionStatsComp);
-ecs_comp_define_public(SceneCollisionComp);
+ecs_comp_define(SceneCollisionStatsComp);
+ecs_comp_define(SceneCollisionComp);
 
 static void ecs_destruct_collision_env_comp(void* data) {
   SceneCollisionEnvComp* env = data;

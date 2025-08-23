@@ -26,7 +26,7 @@ static GeoVector cam_world_from_screen_far(const GeoMatrix* invViewProj, const G
   return cam_world_from_ndc(invViewProj, geo_vector(ndcX, ndcY, ndcFar));
 }
 
-ecs_comp_define_public(SceneCameraComp);
+ecs_comp_define(SceneCameraComp);
 
 ecs_module_init(scene_camera_module) { ecs_register_comp(SceneCameraComp); }
 

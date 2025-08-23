@@ -34,8 +34,8 @@ static void ecs_combine_visibility(void* dataA, void* dataB) {
   compA->visibleToFactionsMask |= compB->visibleToFactionsMask;
 }
 
-ecs_comp_define_public(SceneVisibilityComp);
-ecs_comp_define_public(SceneVisionComp);
+ecs_comp_define(SceneVisibilityComp);
+ecs_comp_define(SceneVisionComp);
 
 static void visibility_env_create(EcsWorld* world) {
   const u32 areasMax = scene_vision_areas_max;

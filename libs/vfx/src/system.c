@@ -65,7 +65,7 @@ ecs_comp_define(VfxSystemAssetComp) {
   u16          version;
 };
 
-ecs_comp_define_public(VfxSystemStatsComp);
+ecs_comp_define(VfxSystemStatsComp);
 
 static void ecs_destruct_system_state_comp(void* data) {
   VfxSystemStateComp* comp = data;

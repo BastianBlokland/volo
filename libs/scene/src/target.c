@@ -26,7 +26,7 @@
 #define target_score_dir 0.25f
 #define target_score_random 0.1f
 
-ecs_comp_define_public(SceneTargetFinderComp);
+ecs_comp_define(SceneTargetFinderComp);
 
 ecs_comp_define(SceneTargetTraceComp) {
   DynArray scores; // SceneTargetScore[].

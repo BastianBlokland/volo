@@ -67,8 +67,8 @@ ASSERT(array_elems(g_textureSrgbToFloat) == 256, "Incorrect srgb lut size");
 
 DataMeta g_assetTexMeta;
 
-ecs_comp_define_public(AssetTextureComp);
-ecs_comp_define_public(AssetTextureSourceComp);
+ecs_comp_define(AssetTextureComp);
+ecs_comp_define(AssetTextureSourceComp);
 
 static void ecs_destruct_texture_comp(void* data) {
   AssetTextureComp* comp = data;

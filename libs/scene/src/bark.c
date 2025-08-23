@@ -36,7 +36,7 @@ ecs_comp_define(SceneBarkRegistryComp) {
   TimeDuration nextBarkTime;
 };
 
-ecs_comp_define_public(SceneBarkComp);
+ecs_comp_define(SceneBarkComp);
 
 static void ecs_destruct_registry_comp(void* data) {
   SceneBarkRegistryComp* registry = data;

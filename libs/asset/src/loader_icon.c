@@ -45,7 +45,7 @@ static String icon_error_str(const IconError err) {
   return g_msgs[err];
 }
 
-ecs_comp_define_public(AssetIconComp);
+ecs_comp_define(AssetIconComp);
 
 ecs_comp_define(AssetIconLoadComp) {
   IconDef     def;

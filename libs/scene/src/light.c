@@ -1,10 +1,10 @@
 #include "scene/light.h"
 
-ecs_comp_define_public(SceneLightPointComp);
-ecs_comp_define_public(SceneLightSpotComp);
-ecs_comp_define_public(SceneLightLineComp);
-ecs_comp_define_public(SceneLightDirComp);
-ecs_comp_define_public(SceneLightAmbientComp);
+ecs_comp_define(SceneLightPointComp);
+ecs_comp_define(SceneLightSpotComp);
+ecs_comp_define(SceneLightLineComp);
+ecs_comp_define(SceneLightDirComp);
+ecs_comp_define(SceneLightAmbientComp);
 
 ecs_module_init(scene_light_module) {
   ecs_register_comp(SceneLightPointComp);
