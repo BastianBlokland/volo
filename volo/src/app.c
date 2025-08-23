@@ -709,6 +709,7 @@ bool app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
   const bool devSupport = cli_parse_provided(invoc, g_optDev);
   if (devSupport) {
     dev_log_tracker_init(world, g_logger);
+    log_i("Development support enabled");
   }
 
   AssetManagerComp* assets = app_init_assets(world, invoc);
