@@ -133,7 +133,7 @@ static void ecs_world_queue_finalize_added(EcsWorld* world, EcsBuffer* buffer, c
  * This is not the same as 'ecs_buffer_entity_removed()' as component addition takes precedence
  * over removal and the buffer could contain both for the same component.
  */
-static void ecs_world_removed_comps_mask(EcsBuffer* buffer, const usize idx, BitSet out) {
+static void ecs_world_removed_comps_mask(EcsBuffer* buffer, const usize idx, const BitSet out) {
   bitset_clear_all(out);
   bitset_or(out, ecs_buffer_entity_removed(buffer, idx));
   bitset_xor(out, ecs_buffer_entity_added(buffer, idx));
@@ -143,8 +143,8 @@ static void ecs_world_removed_comps_mask(EcsBuffer* buffer, const usize idx, Bit
 /**
  * Compute the new component mask for the given entry in the buffer.
  */
-static void
-ecs_world_new_comps_mask(EcsBuffer* buffer, const usize idx, const BitSet currentMask, BitSet out) {
+static void ecs_world_new_comps_mask(
+    EcsBuffer* buffer, const usize idx, const BitSet currentMask, const BitSet out) {
   bitset_clear_all(out);
   bitset_or(out, currentMask);
   bitset_xor(out, ecs_buffer_entity_removed(buffer, idx));
@@ -262,6 +262,9 @@ EcsEntityId ecs_world_global(const EcsWorld* world) { return world->globalEntity
 
 EcsView* ecs_world_view(EcsWorld* world, const EcsViewId view) {
   diag_assert(!ecs_world_busy(world) || g_ecsRunningSystem);
+  if (UNLIKELY(sentinel_check(view))) {
+    return null; // Unregistered view.
+  }
   diag_assert_msg(
       !g_ecsRunningSystem || ecs_def_system_has_access(world->def, g_ecsRunningSystemId, view),
       "System {} has not declared access to view {}",
@@ -489,12 +492,18 @@ EcsWorldStats ecs_world_stats_query(const EcsWorld* world) {
 }
 
 u32 ecs_world_view_entities(const EcsWorld* world, const EcsViewId viewId) {
+  if (UNLIKELY(sentinel_check(viewId))) {
+    return 0; // Unregistered view.
+  }
   diag_assert_msg(viewId < world->views.size, "Invalid view id: {}", fmt_int(viewId));
   const EcsView* view = dynarray_at_t(&world->views, viewId, EcsView);
   return ecs_view_entities(view);
 }
 
 u32 ecs_world_view_chunks(const EcsWorld* world, const EcsViewId viewId) {
+  if (UNLIKELY(sentinel_check(viewId))) {
+    return 0; // Unregistered view.
+  }
   diag_assert_msg(viewId < world->views.size, "Invalid view id: {}", fmt_int(viewId));
   const EcsView* view = dynarray_at_t(&world->views, viewId, EcsView);
   return ecs_view_chunks(view);

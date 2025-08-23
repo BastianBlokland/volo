@@ -30,6 +30,8 @@ ecs_view_define(ReadMaybeAMaybeBMaybeC) {
   ecs_access_maybe_read(ViewCompC);
 }
 
+ecs_view_define(ViewUnregistered) { ecs_access_read(ViewCompA); }
+
 ecs_view_define(ViewReadUnregistered) {
   ecs_access_read(ViewCompA);
   ecs_access_maybe_read(ViewCompUnregistered);
@@ -57,6 +59,10 @@ spec(view) {
     ecs_register_module(def, view_test_module);
 
     world = ecs_world_create(g_allocHeap, def);
+  }
+
+  it("returns null when retrieving an unregistered view") {
+    check(ecs_world_view_t(world, ViewUnregistered) == null);
   }
 
   it("can return the count of components it can read") {
