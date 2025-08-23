@@ -146,7 +146,7 @@ endif()
 
 add_custom_target(run.volo
   COMMAND fetch "${CMAKE_SOURCE_DIR}/assets/fetch.json" VERBATIM USES_TERMINAL
-  COMMAND volo "-w" "--assets" "${CMAKE_SOURCE_DIR}/assets" VERBATIM USES_TERMINAL)
+  COMMAND volo "-wd" "--assets" "${CMAKE_SOURCE_DIR}/assets" VERBATIM USES_TERMINAL)
 
 add_custom_target(run.schemasetup
   COMMAND schemasetup "${CMAKE_SOURCE_DIR}/assets/schemas/" VERBATIM USES_TERMINAL)
