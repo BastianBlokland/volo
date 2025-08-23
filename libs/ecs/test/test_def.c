@@ -1,5 +1,6 @@
 #include "check/spec.h"
 #include "core/alloc.h"
+#include "core/diag.h"
 #include "ecs/def.h"
 
 /**
@@ -38,6 +39,10 @@ ecs_system_define(EmptySys) {}
 ecs_system_define(UpdateSys) {}
 ecs_system_define(CleanupSys) {}
 
+typedef struct {
+  u32 val;
+} DefInitContext;
+
 ecs_module_init(def_test_module) {
   ecs_register_comp(DefCompA);
   ecs_register_comp(DefCompB);
@@ -51,6 +56,11 @@ ecs_module_init(def_test_module) {
   ecs_register_system(UpdateSys, ecs_view_id(ReadAWriteB), ecs_view_id(ReadAReadB));
   ecs_register_system(CleanupSys, ecs_view_id(ReadAReadB));
 
+  const DefInitContext* ctx = ecs_init_ctx();
+  if (ctx->val == 42) {
+    diag_crash_msg("Invalid module init context");
+  }
+
   ecs_order(CleanupSys, 1337);
 
   ecs_parallel(UpdateSys, 42);
@@ -62,7 +72,11 @@ spec(def) {
 
   setup() {
     def = ecs_def_create(g_allocHeap);
-    ecs_register_module(def, def_test_module);
+
+    const DefInitContext ctx = {
+        .val = 42,
+    };
+    ecs_register_module_with_context(def, def_test_module, &ctx);
   }
 
   it("can retrieve the amount of registered components") {

@@ -9,7 +9,16 @@ typedef struct sEcsDef EcsDef;
  */
 #define ecs_register_module(_DEF_, _NAME_)                                                         \
   void ecs_module_init_name(_NAME_)(EcsModuleBuilder*);                                            \
-  ecs_def_register_module(_DEF_, string_lit(#_NAME_), &ecs_module_init_name(_NAME_))
+  ecs_def_register_module(_DEF_, string_lit(#_NAME_), &ecs_module_init_name(_NAME_), null)
+
+/**
+ * Register a module to a 'EcsDef' definition.
+ * NOTE: The context pointer is passed to the init routine and can be used to customize the module.
+ * Define a module initialization routine using the 'ecs_module_init(name)' macro.
+ */
+#define ecs_register_module_with_context(_DEF_, _NAME_, _CTX_)                                     \
+  void ecs_module_init_name(_NAME_)(EcsModuleBuilder*);                                            \
+  ecs_def_register_module(_DEF_, string_lit(#_NAME_), &ecs_module_init_name(_NAME_), (_CTX_))
 
 /**
  * Create a new (empty) Ecs definition.
@@ -28,7 +37,7 @@ void ecs_def_destroy(EcsDef*);
  *
  * Pre-condition: No other module with the same name has been registered.
  */
-EcsModuleId ecs_def_register_module(EcsDef*, String name, EcsModuleInit);
+EcsModuleId ecs_def_register_module(EcsDef*, String name, EcsModuleInit, const void* initCtx);
 
 /**
  * Retrieve the name of a module.
