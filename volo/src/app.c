@@ -591,7 +591,7 @@ ecs_module_init(game_app_module) {
       ecs_view_id(DevLogViewerView));
 }
 
-static CliId g_optAssets, g_optWindow, g_optWidth, g_optHeight;
+static CliId g_optAssets, g_optWindow, g_optWidth, g_optHeight, g_optDev;
 
 AppType app_ecs_configure(CliApp* app) {
   cli_app_register_desc(app, string_lit("Volo RTS Demo"));
@@ -611,6 +611,9 @@ AppType app_ecs_configure(CliApp* app) {
   cli_register_desc(app, g_optHeight, string_lit("Game window height in pixels."));
   cli_register_validator(app, g_optHeight, cli_validate_u16);
 
+  g_optDev = cli_register_flag(app, 'd', string_lit("dev"), CliOptionFlags_None);
+  cli_register_desc(app, g_optDev, string_lit("Enable development mode."));
+
   return AppType_Gui;
 }
 
@@ -624,11 +627,10 @@ static void game_crash_handler(const String message, void* ctx) {
   gap_window_modal_error(message);
 }
 
-void app_ecs_register(EcsDef* def, MAYBE_UNUSED const CliInvocation* invoc) {
+void app_ecs_register(EcsDef* def, const CliInvocation* invoc) {
   diag_crash_handler(game_crash_handler, null); // Register a crash handler.
 
   asset_register(def);
-  dev_register(def);
   gap_register(def);
   input_register(def);
   rend_register(def);
@@ -636,6 +638,9 @@ void app_ecs_register(EcsDef* def, MAYBE_UNUSED const CliInvocation* invoc) {
   snd_register(def);
   ui_register(def);
   vfx_register(def);
+  if (cli_parse_provided(invoc, g_optDev)) {
+    dev_register(def);
+  }
 
   ecs_register_module(def, game_app_module);
   ecs_register_module(def, game_cmd_module);
