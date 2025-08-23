@@ -477,6 +477,9 @@ ecs_view_define(DevLogViewerView) { ecs_access_write(DevLogViewerComp); }
 
 static void app_dev_hide(EcsWorld* world, const bool hidden) {
   EcsView* devPanelView = ecs_world_view_t(world, DevPanelView);
+  if (!devPanelView) {
+    return; // Dev support not enabled.
+  }
   for (EcsIterator* itr = ecs_view_itr(devPanelView); ecs_view_walk(itr);) {
     DevPanelComp* panel = ecs_view_write_t(itr, DevPanelComp);
     if (dev_panel_type(panel) != DevPanelType_Detached) {
@@ -501,8 +504,12 @@ ecs_system_define(AppUpdateSys) {
   SceneVisibilityEnvComp* visibilityEnv = ecs_view_write_t(globalItr, SceneVisibilityEnvComp);
   DevStatsGlobalComp*     devStats      = ecs_view_write_t(globalItr, DevStatsGlobalComp);
 
-  EcsIterator* canvasItr       = ecs_view_itr(ecs_world_view_t(world, UiCanvasView));
-  EcsIterator* devLogViewerItr = ecs_view_itr(ecs_world_view_t(world, DevLogViewerView));
+  EcsIterator* canvasItr        = ecs_view_itr(ecs_world_view_t(world, UiCanvasView));
+  EcsIterator* devLogViewerItr  = null;
+  EcsView*     devLogViewerView = ecs_world_view_t(world, DevLogViewerView);
+  if (devLogViewerView) {
+    devLogViewerItr = ecs_view_itr(devLogViewerView);
+  }
 
   EcsView*     mainWinView = ecs_world_view_t(world, MainWindowView);
   EcsIterator* mainWinItr  = ecs_view_maybe_at(mainWinView, app->mainWindow);
@@ -513,7 +520,7 @@ ecs_system_define(AppUpdateSys) {
     DevStatsComp*      stats        = ecs_view_write_t(mainWinItr, DevStatsComp);
     RendSettingsComp*  rendSetWin   = ecs_view_write_t(mainWinItr, RendSettingsComp);
 
-    if (!appWindow->statsEnabled) {
+    if (devStats && !appWindow->statsEnabled) {
       dev_stats_show_set(stats, DevStatShow_Minimal);
       appWindow->statsEnabled = true;
     }
@@ -549,7 +556,7 @@ ecs_system_define(AppUpdateSys) {
     }
 
     DevLogViewerComp* devLogViewer = null;
-    if (ecs_view_maybe_jump(devLogViewerItr, appWindow->devLogViewer)) {
+    if (devLogViewerItr && ecs_view_maybe_jump(devLogViewerItr, appWindow->devLogViewer)) {
       devLogViewer = ecs_view_write_t(devLogViewerItr, DevLogViewerComp);
     }
 
