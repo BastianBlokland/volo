@@ -570,7 +570,13 @@ ecs_system_define(AppUpdateSys) {
   }
 }
 
+typedef struct {
+  bool devMode;
+} AppInitContext;
+
 ecs_module_init(game_app_module) {
+  const AppInitContext* ctx = ecs_init_ctx();
+
   ecs_register_comp(AppComp);
   ecs_register_comp(AppMainWindowComp);
 
@@ -579,8 +585,11 @@ ecs_module_init(game_app_module) {
   ecs_register_view(AppUpdateGlobalView);
   ecs_register_view(MainWindowView);
   ecs_register_view(UiCanvasView);
-  ecs_register_view(DevPanelView);
-  ecs_register_view(DevLogViewerView);
+
+  if (ctx->devMode) {
+    ecs_register_view(DevPanelView);
+    ecs_register_view(DevLogViewerView);
+  }
 
   ecs_register_system(
       AppUpdateSys,
@@ -630,6 +639,10 @@ static void game_crash_handler(const String message, void* ctx) {
 void app_ecs_register(EcsDef* def, const CliInvocation* invoc) {
   diag_crash_handler(game_crash_handler, null); // Register a crash handler.
 
+  const AppInitContext appInitCtx = {
+      .devMode = cli_parse_provided(invoc, g_optDev),
+  };
+
   asset_register(def);
   gap_register(def);
   input_register(def);
@@ -638,11 +651,11 @@ void app_ecs_register(EcsDef* def, const CliInvocation* invoc) {
   snd_register(def);
   ui_register(def);
   vfx_register(def);
-  if (cli_parse_provided(invoc, g_optDev)) {
+  if (appInitCtx.devMode) {
     dev_register(def);
   }
 
-  ecs_register_module(def, game_app_module);
+  ecs_register_module_with_context(def, game_app_module, &appInitCtx);
   ecs_register_module(def, game_cmd_module);
   ecs_register_module(def, game_hud_module);
   ecs_register_module(def, game_input_module);
