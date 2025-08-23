@@ -54,6 +54,8 @@
 #include "hud.h"
 #include "prefs.h"
 
+enum { AppLevelsMax = 8 };
+
 typedef enum {
   AppMode_Normal,
   AppMode_Debug,
@@ -63,6 +65,10 @@ ecs_comp_define(AppComp) {
   AppMode     mode;
   bool        devSupport;
   EcsEntityId mainWindow;
+
+  u32         levelLoadingMask;
+  EcsEntityId levelAssets[AppLevelsMax];
+  String      levelNames[AppLevelsMax];
 };
 
 ecs_comp_define(AppMainWindowComp) {
@@ -469,6 +475,8 @@ ecs_view_define(MainWindowView) {
   ecs_access_write(GapWindowComp);
 }
 
+ecs_view_define(LevelView) { ecs_access_read(AssetLevelComp); }
+
 ecs_view_define(UiCanvasView) {
   ecs_view_flags(EcsViewFlags_Exclusive); // Only access the canvas's we create.
   ecs_access_write(UiCanvasComp);
@@ -476,6 +484,42 @@ ecs_view_define(UiCanvasView) {
 
 ecs_view_define(DevPanelView) { ecs_access_write(DevPanelComp); }
 ecs_view_define(DevLogViewerView) { ecs_access_write(DevLogViewerComp); }
+
+static void app_levels_query_init(EcsWorld* world, AppComp* app, AssetManagerComp* assets) {
+  const String levelPattern = string_lit("levels/game/*.level");
+  EcsEntityId  queryAssets[asset_query_max_results];
+  const u32    queryCount = asset_query(world, assets, levelPattern, queryAssets);
+
+  for (u32 i = 0; i != math_min(queryCount, AppLevelsMax); ++i) {
+    asset_acquire(world, queryAssets[i]);
+    app->levelLoadingMask |= 1 << i;
+    app->levelAssets[i] = queryAssets[i];
+  }
+}
+
+static void app_levels_query_update(EcsWorld* world, AppComp* app) {
+  if (!app->levelLoadingMask) {
+    return; // Loading finished.
+  }
+  EcsIterator* levelItr = ecs_view_itr(ecs_world_view_t(world, LevelView));
+  bitset_for(bitset_from_var(app->levelLoadingMask), idx) {
+    const EcsEntityId asset = app->levelAssets[idx];
+    if (UNLIKELY(ecs_world_has_t(world, asset, AssetFailedComp))) {
+      goto Done;
+    }
+    if (!ecs_world_has_t(world, asset, AssetLoadedComp)) {
+      continue; // Still loading.
+    }
+    if (UNLIKELY(!ecs_view_maybe_jump(levelItr, asset))) {
+      log_e("Invalid level", log_param("entity", ecs_entity_fmt(asset)));
+      goto Done;
+    }
+    app->levelNames[idx] = ecs_view_read_t(levelItr, AssetLevelComp)->level.name;
+  Done:
+    asset_release(world, asset);
+    app->levelLoadingMask &= ~(1 << idx);
+  }
+}
 
 static void app_dev_hide(EcsWorld* world, const bool hidden) {
   EcsView* devPanelView = ecs_world_view_t(world, DevPanelView);
@@ -505,6 +549,8 @@ ecs_system_define(AppUpdateSys) {
   InputManagerComp*       input         = ecs_view_write_t(globalItr, InputManagerComp);
   SceneVisibilityEnvComp* visibilityEnv = ecs_view_write_t(globalItr, SceneVisibilityEnvComp);
   DevStatsGlobalComp*     devStats      = ecs_view_write_t(globalItr, DevStatsGlobalComp);
+
+  app_levels_query_update(world, app);
 
   EcsIterator* canvasItr        = ecs_view_itr(ecs_world_view_t(world, UiCanvasView));
   EcsIterator* devLogViewerItr  = null;
@@ -598,6 +644,7 @@ ecs_module_init(game_app_module) {
   ecs_register_view(AppErrorView);
   ecs_register_view(AppUpdateGlobalView);
   ecs_register_view(MainWindowView);
+  ecs_register_view(LevelView);
   ecs_register_view(UiCanvasView);
 
   if (ctx->devSupport) {
@@ -609,6 +656,7 @@ ecs_module_init(game_app_module) {
       AppUpdateSys,
       ecs_view_id(AppUpdateGlobalView),
       ecs_view_id(MainWindowView),
+      ecs_view_id(LevelView),
       ecs_view_id(UiCanvasView),
       ecs_view_id(DevPanelView),
       ecs_view_id(DevLogViewerView));
@@ -734,8 +782,10 @@ bool app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
 
   app_quality_apply(prefs, rendSettingsGlobal, rendSettingsWin);
 
-  ecs_world_add_t(
+  AppComp* app = ecs_world_add_t(
       world, ecs_world_global(world), AppComp, .devSupport = devSupport, .mainWindow = mainWin);
+
+  app_levels_query_init(world, app, assets);
 
   InputResourceComp* inputResource = input_resource_init(world);
   input_resource_load_map(inputResource, string_lit("global/app.inputs"));
