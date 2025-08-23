@@ -169,7 +169,7 @@ typedef struct {
  */
 #define ecs_view_define(_NAME_)                                                                    \
   static EcsViewId ecs_view_id(_NAME_) = sentinel_u16;                                             \
-  static void _ecs_view_init_##_NAME_(MAYBE_UNUSED EcsViewBuilder* _builder)
+  MAYBE_UNUSED static void _ecs_view_init_##_NAME_(MAYBE_UNUSED EcsViewBuilder* _builder)
 
 #define ecs_view_flags(_FLAGS_)         ecs_module_view_flags(_builder, (_FLAGS_))
 #define ecs_access_with(_COMP_)         ecs_module_access_with(_builder, ecs_comp_id(_COMP_))
