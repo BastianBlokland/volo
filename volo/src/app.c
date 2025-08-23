@@ -191,6 +191,26 @@ static void app_quality_apply(
   }
 }
 
+static void app_level_picker_draw(UiCanvasComp* canvas, EcsWorld* world, AppComp* app) {
+  static const UiVector g_buttonSize = {.x = 250.0f, .y = 50.0f};
+  static const f32      g_spacing    = 8.0f;
+
+  const u32 levelCount    = bits_popcnt(app->levelMask);
+  const f32 yCenterOffset = (levelCount - 1) * (g_buttonSize.y + g_spacing) * 0.5f;
+  ui_layout_inner(canvas, UiBase_Canvas, UiAlign_MiddleCenter, g_buttonSize, UiBase_Absolute);
+  ui_layout_move(canvas, ui_vector(g_spacing, yCenterOffset), UiBase_Absolute, Ui_XY);
+
+  ui_style_push(canvas);
+  ui_style_all_caps(canvas, true);
+  bitset_for(bitset_from_var(app->levelMask), idx) {
+    if (ui_button(canvas, .label = app->levelNames[idx], .fontSize = 25)) {
+      scene_level_load(world, SceneLevelMode_Play, app->levelAssets[idx]);
+    }
+    ui_layout_next(canvas, Ui_Down, g_spacing);
+  }
+  ui_style_pop(canvas);
+}
+
 typedef struct {
   EcsWorld*               world;
   AppComp*                app;
@@ -467,6 +487,7 @@ ecs_view_define(AppErrorView) {
 ecs_view_define(AppTimeView) { ecs_access_write(SceneTimeComp); }
 
 ecs_view_define(AppUpdateGlobalView) {
+  ecs_access_read(SceneLevelManagerComp);
   ecs_access_write(AppComp);
   ecs_access_write(CmdControllerComp);
   ecs_access_write(GamePrefsComp);
@@ -558,15 +579,16 @@ ecs_system_define(AppUpdateSys) {
   if (!globalItr) {
     return;
   }
-  AppComp*                app           = ecs_view_write_t(globalItr, AppComp);
-  GamePrefsComp*          prefs         = ecs_view_write_t(globalItr, GamePrefsComp);
-  CmdControllerComp*      cmd           = ecs_view_write_t(globalItr, CmdControllerComp);
-  RendSettingsGlobalComp* rendSetGlobal = ecs_view_write_t(globalItr, RendSettingsGlobalComp);
-  SndMixerComp*           soundMixer    = ecs_view_write_t(globalItr, SndMixerComp);
-  SceneTimeSettingsComp*  timeSet       = ecs_view_write_t(globalItr, SceneTimeSettingsComp);
-  InputManagerComp*       input         = ecs_view_write_t(globalItr, InputManagerComp);
-  SceneVisibilityEnvComp* visibilityEnv = ecs_view_write_t(globalItr, SceneVisibilityEnvComp);
-  DevStatsGlobalComp*     devStats      = ecs_view_write_t(globalItr, DevStatsGlobalComp);
+  const SceneLevelManagerComp* levelManager  = ecs_view_read_t(globalItr, SceneLevelManagerComp);
+  AppComp*                     app           = ecs_view_write_t(globalItr, AppComp);
+  GamePrefsComp*               prefs         = ecs_view_write_t(globalItr, GamePrefsComp);
+  CmdControllerComp*           cmd           = ecs_view_write_t(globalItr, CmdControllerComp);
+  RendSettingsGlobalComp*      rendSetGlobal = ecs_view_write_t(globalItr, RendSettingsGlobalComp);
+  SndMixerComp*                soundMixer    = ecs_view_write_t(globalItr, SndMixerComp);
+  SceneTimeSettingsComp*       timeSet       = ecs_view_write_t(globalItr, SceneTimeSettingsComp);
+  InputManagerComp*            input         = ecs_view_write_t(globalItr, InputManagerComp);
+  SceneVisibilityEnvComp*      visibilityEnv = ecs_view_write_t(globalItr, SceneVisibilityEnvComp);
+  DevStatsGlobalComp*          devStats      = ecs_view_write_t(globalItr, DevStatsGlobalComp);
 
   app_levels_query_update(world, app);
 
@@ -604,6 +626,9 @@ ecs_system_define(AppUpdateSys) {
     if (ecs_view_maybe_jump(canvasItr, appWindow->uiCanvas)) {
       UiCanvasComp* canvas = ecs_view_write_t(canvasItr, UiCanvasComp);
       ui_canvas_reset(canvas);
+      if (!scene_level_loaded(levelManager)) {
+        app_level_picker_draw(canvas, world, app);
+      }
       app_action_bar_draw(
           canvas,
           &(AppActionContext){
