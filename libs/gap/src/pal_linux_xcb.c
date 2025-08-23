@@ -2595,9 +2595,9 @@ void gap_pal_modal_error(String message) {
   const u16 lineSpacing = math_max(lineHeight / 5, 1);
   textSize.height       = lineCount * lineHeight + (lineCount - 1) * lineSpacing;
 
-  const GapVector textSizeHalf   = gap_vector_div(textSize, 2);
-  GapVector       windowSize     = gap_vector(math_max(textSize.x, 480), math_max(textSize.y, 320));
-  GapVector       windowSizeHalf = gap_vector_div(windowSize, 2);
+  const GapVector textSizeHalf = gap_vector_div(textSize, 2);
+  GapVector windowSize = gap_vector(math_max(textSize.x + 50, 480), math_max(textSize.y + 50, 320));
+  GapVector windowSizeHalf = gap_vector_div(windowSize, 2);
 
   // clang-format off
   const XcbEventMask g_windowEventMask =

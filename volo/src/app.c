@@ -15,6 +15,7 @@
 #include "dev/panel.h"
 #include "dev/register.h"
 #include "dev/stats.h"
+#include "ecs/entity.h"
 #include "ecs/utils.h"
 #include "ecs/view.h"
 #include "ecs/world.h"
@@ -61,7 +62,8 @@ typedef enum {
 } AppMode;
 
 ecs_comp_define(AppComp) {
-  AppMode     mode : 8;
+  AppMode     mode;
+  bool        devSupport;
   EcsEntityId mainWindow;
 };
 
@@ -76,6 +78,7 @@ static EcsEntityId app_main_window_create(
     EcsWorld*         world,
     AssetManagerComp* assets,
     const bool        fullscreen,
+    const bool        devSupport,
     const u16         width,
     const u16         height) {
   GapWindowFlags flags = GapWindowFlags_Default;
@@ -88,10 +91,13 @@ static EcsEntityId app_main_window_create(
   const String        titleScratch   = fmt_write_scratch("Volo v{}", fmt_text(versionScratch));
   const EcsEntityId   window = gap_window_create(world, mode, flags, size, icon, titleScratch);
 
-  const EcsEntityId uiCanvas = ui_canvas_create(world, window, UiCanvasCreateFlags_ToFront);
-  const EcsEntityId logView  = dev_log_viewer_create(world, window, LogMask_None);
-
-  ecs_world_add_t(world, window, AppMainWindowComp, .uiCanvas = uiCanvas, .devLogViewer = logView);
+  const EcsEntityId uiCanvas  = ui_canvas_create(world, window, UiCanvasCreateFlags_ToFront);
+  EcsEntityId       logViewer = ecs_entity_invalid;
+  if (devSupport) {
+    logViewer = dev_log_viewer_create(world, window, LogMask_None);
+  }
+  ecs_world_add_t(
+      world, window, AppMainWindowComp, .uiCanvas = uiCanvas, .devLogViewer = logViewer);
 
   ecs_world_add_t(
       world,
@@ -414,25 +420,28 @@ static void app_action_exit_draw(UiCanvasComp* canvas, const AppActionContext* c
 }
 
 static void app_action_bar_draw(UiCanvasComp* canvas, const AppActionContext* ctx) {
-  static void (*const g_actions[])(UiCanvasComp*, const AppActionContext*) = {
-      app_action_debug_draw,
-      app_action_pause_draw,
-      app_action_restart_draw,
-      app_action_sound_draw,
-      app_action_quality_draw,
-      app_action_fullscreen_draw,
-      app_action_exit_draw,
-  };
-  static const u32      g_actionCount = array_elems(g_actions);
-  static const UiVector g_buttonSize  = {.x = 50.0f, .y = 50.0f};
-  static const f32      g_spacing     = 8.0f;
+  void (*actions[32])(UiCanvasComp*, const AppActionContext*);
+  u32 actionCount = 0;
 
-  const f32 xCenterOffset = (g_actionCount - 1) * (g_buttonSize.x + g_spacing) * -0.5f;
+  if (ctx->app->devSupport) {
+    actions[actionCount++] = app_action_debug_draw;
+  }
+  actions[actionCount++] = app_action_pause_draw;
+  actions[actionCount++] = app_action_restart_draw;
+  actions[actionCount++] = app_action_sound_draw;
+  actions[actionCount++] = app_action_quality_draw;
+  actions[actionCount++] = app_action_fullscreen_draw;
+  actions[actionCount++] = app_action_exit_draw;
+
+  static const UiVector g_buttonSize = {.x = 50.0f, .y = 50.0f};
+  static const f32      g_spacing    = 8.0f;
+
+  const f32 xCenterOffset = (actionCount - 1) * (g_buttonSize.x + g_spacing) * -0.5f;
   ui_layout_inner(canvas, UiBase_Canvas, UiAlign_BottomCenter, g_buttonSize, UiBase_Absolute);
   ui_layout_move(canvas, ui_vector(xCenterOffset, g_spacing), UiBase_Absolute, Ui_XY);
 
-  for (u32 i = 0; i != g_actionCount; ++i) {
-    g_actions[i](canvas, ctx);
+  for (u32 i = 0; i != actionCount; ++i) {
+    actions[i](canvas, ctx);
     ui_layout_next(canvas, Ui_Right, g_spacing);
   }
 }
@@ -472,6 +481,9 @@ ecs_view_define(DevLogViewerView) { ecs_access_write(DevLogViewerComp); }
 
 static void app_dev_hide(EcsWorld* world, const bool hidden) {
   EcsView* devPanelView = ecs_world_view_t(world, DevPanelView);
+  if (!devPanelView) {
+    return; // Dev support not enabled.
+  }
   for (EcsIterator* itr = ecs_view_itr(devPanelView); ecs_view_walk(itr);) {
     DevPanelComp* panel = ecs_view_write_t(itr, DevPanelComp);
     if (dev_panel_type(panel) != DevPanelType_Detached) {
@@ -496,8 +508,12 @@ ecs_system_define(AppUpdateSys) {
   SceneVisibilityEnvComp* visibilityEnv = ecs_view_write_t(globalItr, SceneVisibilityEnvComp);
   DevStatsGlobalComp*     devStats      = ecs_view_write_t(globalItr, DevStatsGlobalComp);
 
-  EcsIterator* canvasItr       = ecs_view_itr(ecs_world_view_t(world, UiCanvasView));
-  EcsIterator* devLogViewerItr = ecs_view_itr(ecs_world_view_t(world, DevLogViewerView));
+  EcsIterator* canvasItr        = ecs_view_itr(ecs_world_view_t(world, UiCanvasView));
+  EcsIterator* devLogViewerItr  = null;
+  EcsView*     devLogViewerView = ecs_world_view_t(world, DevLogViewerView);
+  if (devLogViewerView) {
+    devLogViewerItr = ecs_view_itr(devLogViewerView);
+  }
 
   EcsView*     mainWinView = ecs_world_view_t(world, MainWindowView);
   EcsIterator* mainWinItr  = ecs_view_maybe_at(mainWinView, app->mainWindow);
@@ -508,7 +524,7 @@ ecs_system_define(AppUpdateSys) {
     DevStatsComp*      stats        = ecs_view_write_t(mainWinItr, DevStatsComp);
     RendSettingsComp*  rendSetWin   = ecs_view_write_t(mainWinItr, RendSettingsComp);
 
-    if (!appWindow->statsEnabled) {
+    if (devStats && !appWindow->statsEnabled) {
       dev_stats_show_set(stats, DevStatShow_Minimal);
       appWindow->statsEnabled = true;
     }
@@ -544,7 +560,7 @@ ecs_system_define(AppUpdateSys) {
     }
 
     DevLogViewerComp* devLogViewer = null;
-    if (ecs_view_maybe_jump(devLogViewerItr, appWindow->devLogViewer)) {
+    if (devLogViewerItr && ecs_view_maybe_jump(devLogViewerItr, appWindow->devLogViewer)) {
       devLogViewer = ecs_view_write_t(devLogViewerItr, DevLogViewerComp);
     }
 
@@ -570,7 +586,13 @@ ecs_system_define(AppUpdateSys) {
   }
 }
 
+typedef struct {
+  bool devSupport;
+} AppInitContext;
+
 ecs_module_init(game_app_module) {
+  const AppInitContext* ctx = ecs_init_ctx();
+
   ecs_register_comp(AppComp);
   ecs_register_comp(AppMainWindowComp);
 
@@ -579,8 +601,11 @@ ecs_module_init(game_app_module) {
   ecs_register_view(AppUpdateGlobalView);
   ecs_register_view(MainWindowView);
   ecs_register_view(UiCanvasView);
-  ecs_register_view(DevPanelView);
-  ecs_register_view(DevLogViewerView);
+
+  if (ctx->devSupport) {
+    ecs_register_view(DevPanelView);
+    ecs_register_view(DevLogViewerView);
+  }
 
   ecs_register_system(
       AppUpdateSys,
@@ -591,7 +616,7 @@ ecs_module_init(game_app_module) {
       ecs_view_id(DevLogViewerView));
 }
 
-static CliId g_optAssets, g_optWindow, g_optWidth, g_optHeight;
+static CliId g_optAssets, g_optWindow, g_optWidth, g_optHeight, g_optDev;
 
 AppType app_ecs_configure(CliApp* app) {
   cli_app_register_desc(app, string_lit("Volo RTS Demo"));
@@ -611,6 +636,9 @@ AppType app_ecs_configure(CliApp* app) {
   cli_register_desc(app, g_optHeight, string_lit("Game window height in pixels."));
   cli_register_validator(app, g_optHeight, cli_validate_u16);
 
+  g_optDev = cli_register_flag(app, 'd', string_lit("dev"), CliOptionFlags_None);
+  cli_register_desc(app, g_optDev, string_lit("Enable development mode."));
+
   return AppType_Gui;
 }
 
@@ -624,11 +652,14 @@ static void game_crash_handler(const String message, void* ctx) {
   gap_window_modal_error(message);
 }
 
-void app_ecs_register(EcsDef* def, MAYBE_UNUSED const CliInvocation* invoc) {
+void app_ecs_register(EcsDef* def, const CliInvocation* invoc) {
   diag_crash_handler(game_crash_handler, null); // Register a crash handler.
 
+  const AppInitContext appInitCtx = {
+      .devSupport = cli_parse_provided(invoc, g_optDev),
+  };
+
   asset_register(def);
-  dev_register(def);
   gap_register(def);
   input_register(def);
   rend_register(def);
@@ -636,8 +667,11 @@ void app_ecs_register(EcsDef* def, MAYBE_UNUSED const CliInvocation* invoc) {
   snd_register(def);
   ui_register(def);
   vfx_register(def);
+  if (appInitCtx.devSupport) {
+    dev_register(def);
+  }
 
-  ecs_register_module(def, game_app_module);
+  ecs_register_module_with_context(def, game_app_module, &appInitCtx);
   ecs_register_module(def, game_cmd_module);
   ecs_register_module(def, game_hud_module);
   ecs_register_module(def, game_input_module);
@@ -672,7 +706,11 @@ static AssetManagerComp* app_init_assets(EcsWorld* world, const CliInvocation* i
 }
 
 bool app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
-  dev_log_tracker_init(world, g_logger);
+  const bool devSupport = cli_parse_provided(invoc, g_optDev);
+  if (devSupport) {
+    dev_log_tracker_init(world, g_logger);
+    log_i("Development support enabled");
+  }
 
   AssetManagerComp* assets = app_init_assets(world, invoc);
   if (UNLIKELY(!assets)) {
@@ -689,17 +727,21 @@ bool app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
   SndMixerComp* soundMixer = snd_mixer_init(world);
   snd_mixer_gain_set(soundMixer, prefs->volume * 1e-2f);
 
-  const EcsEntityId mainWin = app_main_window_create(world, assets, fullscreen, width, height);
+  const EcsEntityId mainWin =
+      app_main_window_create(world, assets, fullscreen, devSupport, width, height);
   RendSettingsComp* rendSettingsWin = rend_settings_window_init(world, mainWin);
 
   app_quality_apply(prefs, rendSettingsGlobal, rendSettingsWin);
 
-  ecs_world_add_t(world, ecs_world_global(world), AppComp, .mainWindow = mainWin);
+  ecs_world_add_t(
+      world, ecs_world_global(world), AppComp, .devSupport = devSupport, .mainWindow = mainWin);
 
   InputResourceComp* inputResource = input_resource_init(world);
   input_resource_load_map(inputResource, string_lit("global/app.inputs"));
   input_resource_load_map(inputResource, string_lit("global/game.inputs"));
-  input_resource_load_map(inputResource, string_lit("global/dev.inputs"));
+  if (devSupport) {
+    input_resource_load_map(inputResource, string_lit("global/dev.inputs"));
+  }
 
   scene_level_load(world, SceneLevelMode_Play, asset_lookup(world, assets, g_appLevel));
   scene_prefab_init(world, string_lit("global/game.prefabs"));
