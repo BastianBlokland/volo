@@ -1,6 +1,5 @@
 #include "core/alloc.h"
 #include "core/diag.h"
-#include "core/time.h"
 #include "ecs/entity.h"
 #include "ecs/runner.h"
 #include "log/logger.h"
@@ -325,6 +324,9 @@ bool ecs_world_has(const EcsWorld* world, const EcsEntityId entity, const EcsCom
       fmt_text(ecs_def_comp_name(world->def, comp)),
       ecs_entity_fmt(entity));
 
+  if (UNLIKELY(sentinel_check(comp))) {
+    return false; // Component has not been registered.
+  }
   const BitSet entityMask = ecs_storage_entity_mask(&world->storage, entity);
   return entityMask.size ? ecs_comp_has(entityMask, comp) : false;
 }
@@ -333,6 +335,7 @@ void* ecs_world_add(
     EcsWorld* world, const EcsEntityId entity, const EcsCompId comp, const Mem data) {
   diag_assert(!ecs_world_busy(world) || g_ecsRunningSystem);
   diag_assert_msg(ecs_entity_valid(entity), "{} is an invalid entity", ecs_entity_fmt(entity));
+  diag_assert(!sentinel_check(comp));
 
   diag_assert_msg(
       ecs_storage_entity_exists(&world->storage, entity),
@@ -349,6 +352,7 @@ void* ecs_world_add(
 void ecs_world_remove(EcsWorld* world, const EcsEntityId entity, const EcsCompId comp) {
   diag_assert(!ecs_world_busy(world) || g_ecsRunningSystem);
   diag_assert_msg(ecs_entity_valid(entity), "{} is an invalid entity", ecs_entity_fmt(entity));
+  diag_assert(!sentinel_check(comp));
 
   diag_assert_msg(
       ecs_storage_entity_exists(&world->storage, entity),

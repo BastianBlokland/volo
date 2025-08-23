@@ -19,6 +19,8 @@ ecs_comp_define(WorldCompAligned) {
   ALIGNAS(64) u32 b;
 };
 
+ecs_comp_define(WorldCompUnregistered) { u32 f1; };
+
 ecs_comp_define(WorldCompEmpty);
 
 ecs_module_init(world_test_module) {
@@ -175,6 +177,7 @@ spec(world) {
     check(!ecs_world_has_t(world, entity, WorldCompA));
     check(!ecs_world_has_t(world, entity, WorldCompB));
     check(!ecs_world_has_t(world, entity, WorldCompC));
+    check(!ecs_world_has_t(world, entity, WorldCompUnregistered));
 
     ecs_world_add_t(world, entity, WorldCompA);
     ecs_world_add_t(world, entity, WorldCompB);
@@ -183,12 +186,14 @@ spec(world) {
     check(!ecs_world_has_t(world, entity, WorldCompA));
     check(!ecs_world_has_t(world, entity, WorldCompB));
     check(!ecs_world_has_t(world, entity, WorldCompC));
+    check(!ecs_world_has_t(world, entity, WorldCompUnregistered));
 
     ecs_world_flush(world);
 
     check(ecs_world_has_t(world, entity, WorldCompA));
     check(ecs_world_has_t(world, entity, WorldCompB));
     check(!ecs_world_has_t(world, entity, WorldCompC));
+    check(!ecs_world_has_t(world, entity, WorldCompUnregistered));
 
     ecs_world_remove_t(world, entity, WorldCompA);
     ecs_world_remove_t(world, entity, WorldCompB);
@@ -198,6 +203,7 @@ spec(world) {
     check(!ecs_world_has_t(world, entity, WorldCompA));
     check(!ecs_world_has_t(world, entity, WorldCompB));
     check(!ecs_world_has_t(world, entity, WorldCompC));
+    check(!ecs_world_has_t(world, entity, WorldCompUnregistered));
   }
 
   it("removes all components when resetting") {
