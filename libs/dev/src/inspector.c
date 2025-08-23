@@ -200,6 +200,7 @@ ecs_comp_define(DevInspectorSettingsComp) {
   SceneNavLayer       visNavLayer;
   u32                 visFlags;
   bool                drawVisInGame;
+  u32                 lastSelectionCount;
   DevInspectorTool    toolPickerPrevTool;
   EcsEntityId         toolPickerResult;
   bool                toolPickerClose;
@@ -2078,6 +2079,12 @@ ecs_system_define(DevInspectorToolUpdateSys) {
   DevGizmoComp*                gizmo        = ecs_view_write_t(globalItr, DevGizmoComp);
   DevInspectorSettingsComp*    set          = ecs_view_write_t(globalItr, DevInspectorSettingsComp);
   DevStatsGlobalComp*          stats        = ecs_view_write_t(globalItr, DevStatsGlobalComp);
+
+  if (scene_set_count(setEnv, g_sceneSetSelected) != set->lastSelectionCount) {
+    set->lastSelectionCount = scene_set_count(setEnv, g_sceneSetSelected);
+    dev_stats_notify(
+        stats, string_lit("Selected"), fmt_write_scratch("{}", fmt_int(set->lastSelectionCount)));
+  }
 
   if (!input_layer_active(input, string_hash_lit("Dev"))) {
     if (set->tool == DevInspectorTool_Picker) {
