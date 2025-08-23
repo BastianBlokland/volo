@@ -5,10 +5,12 @@
 #include "cli/parse.h"
 #include "cli/read.h"
 #include "cli/validate.h"
+#include "core/alloc.h"
 #include "core/diag.h"
 #include "core/file.h"
 #include "core/float.h"
 #include "core/math.h"
+#include "core/path.h"
 #include "core/version.h"
 #include "dev/log_viewer.h"
 #include "dev/menu.h"
@@ -54,6 +56,8 @@
 #include "hud.h"
 #include "prefs.h"
 
+enum { AppLevelsMax = 8 };
+
 typedef enum {
   AppMode_Normal,
   AppMode_Debug,
@@ -63,6 +67,11 @@ ecs_comp_define(AppComp) {
   AppMode     mode;
   bool        devSupport;
   EcsEntityId mainWindow;
+
+  u32         levelMask;
+  u32         levelLoadingMask;
+  EcsEntityId levelAssets[AppLevelsMax];
+  String      levelNames[AppLevelsMax];
 };
 
 ecs_comp_define(AppMainWindowComp) {
@@ -71,6 +80,13 @@ ecs_comp_define(AppMainWindowComp) {
   EcsEntityId devLogViewer;
   bool        statsEnabled;
 };
+
+static void ecs_destruct_app_comp(void* data) {
+  AppComp* comp = data;
+  for (u32 i = 0; i != AppLevelsMax; ++i) {
+    string_maybe_free(g_allocHeap, comp->levelNames[i]);
+  }
+}
 
 static EcsEntityId app_main_window_create(
     EcsWorld*         world,
@@ -173,6 +189,26 @@ static void app_quality_apply(
   case GameQuality_Count:
     UNREACHABLE
   }
+}
+
+static void app_level_picker_draw(UiCanvasComp* canvas, EcsWorld* world, AppComp* app) {
+  static const UiVector g_buttonSize = {.x = 250.0f, .y = 50.0f};
+  static const f32      g_spacing    = 8.0f;
+
+  const u32 levelCount    = bits_popcnt(app->levelMask);
+  const f32 yCenterOffset = (levelCount - 1) * (g_buttonSize.y + g_spacing) * 0.5f;
+  ui_layout_inner(canvas, UiBase_Canvas, UiAlign_MiddleCenter, g_buttonSize, UiBase_Absolute);
+  ui_layout_move(canvas, ui_vector(g_spacing, yCenterOffset), UiBase_Absolute, Ui_XY);
+
+  ui_style_push(canvas);
+  ui_style_all_caps(canvas, true);
+  bitset_for(bitset_from_var(app->levelMask), idx) {
+    if (ui_button(canvas, .label = app->levelNames[idx], .fontSize = 25)) {
+      scene_level_load(world, SceneLevelMode_Play, app->levelAssets[idx]);
+    }
+    ui_layout_next(canvas, Ui_Down, g_spacing);
+  }
+  ui_style_pop(canvas);
 }
 
 typedef struct {
@@ -451,6 +487,7 @@ ecs_view_define(AppErrorView) {
 ecs_view_define(AppTimeView) { ecs_access_write(SceneTimeComp); }
 
 ecs_view_define(AppUpdateGlobalView) {
+  ecs_access_read(SceneLevelManagerComp);
   ecs_access_write(AppComp);
   ecs_access_write(CmdControllerComp);
   ecs_access_write(GamePrefsComp);
@@ -469,6 +506,11 @@ ecs_view_define(MainWindowView) {
   ecs_access_write(GapWindowComp);
 }
 
+ecs_view_define(LevelView) {
+  ecs_access_read(AssetComp);
+  ecs_access_read(AssetLevelComp);
+}
+
 ecs_view_define(UiCanvasView) {
   ecs_view_flags(EcsViewFlags_Exclusive); // Only access the canvas's we create.
   ecs_access_write(UiCanvasComp);
@@ -476,6 +518,47 @@ ecs_view_define(UiCanvasView) {
 
 ecs_view_define(DevPanelView) { ecs_access_write(DevPanelComp); }
 ecs_view_define(DevLogViewerView) { ecs_access_write(DevLogViewerComp); }
+
+static void app_levels_query_init(EcsWorld* world, AppComp* app, AssetManagerComp* assets) {
+  const String levelPattern = string_lit("levels/game/*.level");
+  EcsEntityId  queryAssets[asset_query_max_results];
+  const u32    queryCount = asset_query(world, assets, levelPattern, queryAssets);
+
+  for (u32 i = 0; i != math_min(queryCount, AppLevelsMax); ++i) {
+    asset_acquire(world, queryAssets[i]);
+    app->levelLoadingMask |= 1 << i;
+    app->levelAssets[i] = queryAssets[i];
+  }
+}
+
+static void app_levels_query_update(EcsWorld* world, AppComp* app) {
+  if (!app->levelLoadingMask) {
+    return; // Loading finished.
+  }
+  EcsIterator* levelItr = ecs_view_itr(ecs_world_view_t(world, LevelView));
+  bitset_for(bitset_from_var(app->levelLoadingMask), idx) {
+    const EcsEntityId asset = app->levelAssets[idx];
+    if (UNLIKELY(ecs_world_has_t(world, asset, AssetFailedComp))) {
+      goto Done;
+    }
+    if (!ecs_world_has_t(world, asset, AssetLoadedComp)) {
+      continue; // Still loading.
+    }
+    if (UNLIKELY(!ecs_view_maybe_jump(levelItr, asset))) {
+      log_e("Invalid level", log_param("entity", ecs_entity_fmt(asset)));
+      goto Done;
+    }
+    String name = ecs_view_read_t(levelItr, AssetLevelComp)->level.name;
+    if (string_is_empty(name)) {
+      name = path_stem(asset_id(ecs_view_read_t(levelItr, AssetComp)));
+    }
+    app->levelMask |= 1 << idx;
+    app->levelNames[idx] = string_dup(g_allocHeap, name);
+  Done:
+    asset_release(world, asset);
+    app->levelLoadingMask &= ~(1 << idx);
+  }
+}
 
 static void app_dev_hide(EcsWorld* world, const bool hidden) {
   EcsView* devPanelView = ecs_world_view_t(world, DevPanelView);
@@ -496,15 +579,18 @@ ecs_system_define(AppUpdateSys) {
   if (!globalItr) {
     return;
   }
-  AppComp*                app           = ecs_view_write_t(globalItr, AppComp);
-  GamePrefsComp*          prefs         = ecs_view_write_t(globalItr, GamePrefsComp);
-  CmdControllerComp*      cmd           = ecs_view_write_t(globalItr, CmdControllerComp);
-  RendSettingsGlobalComp* rendSetGlobal = ecs_view_write_t(globalItr, RendSettingsGlobalComp);
-  SndMixerComp*           soundMixer    = ecs_view_write_t(globalItr, SndMixerComp);
-  SceneTimeSettingsComp*  timeSet       = ecs_view_write_t(globalItr, SceneTimeSettingsComp);
-  InputManagerComp*       input         = ecs_view_write_t(globalItr, InputManagerComp);
-  SceneVisibilityEnvComp* visibilityEnv = ecs_view_write_t(globalItr, SceneVisibilityEnvComp);
-  DevStatsGlobalComp*     devStats      = ecs_view_write_t(globalItr, DevStatsGlobalComp);
+  const SceneLevelManagerComp* levelManager  = ecs_view_read_t(globalItr, SceneLevelManagerComp);
+  AppComp*                     app           = ecs_view_write_t(globalItr, AppComp);
+  GamePrefsComp*               prefs         = ecs_view_write_t(globalItr, GamePrefsComp);
+  CmdControllerComp*           cmd           = ecs_view_write_t(globalItr, CmdControllerComp);
+  RendSettingsGlobalComp*      rendSetGlobal = ecs_view_write_t(globalItr, RendSettingsGlobalComp);
+  SndMixerComp*                soundMixer    = ecs_view_write_t(globalItr, SndMixerComp);
+  SceneTimeSettingsComp*       timeSet       = ecs_view_write_t(globalItr, SceneTimeSettingsComp);
+  InputManagerComp*            input         = ecs_view_write_t(globalItr, InputManagerComp);
+  SceneVisibilityEnvComp*      visibilityEnv = ecs_view_write_t(globalItr, SceneVisibilityEnvComp);
+  DevStatsGlobalComp*          devStats      = ecs_view_write_t(globalItr, DevStatsGlobalComp);
+
+  app_levels_query_update(world, app);
 
   EcsIterator* canvasItr        = ecs_view_itr(ecs_world_view_t(world, UiCanvasView));
   EcsIterator* devLogViewerItr  = null;
@@ -540,6 +626,9 @@ ecs_system_define(AppUpdateSys) {
     if (ecs_view_maybe_jump(canvasItr, appWindow->uiCanvas)) {
       UiCanvasComp* canvas = ecs_view_write_t(canvasItr, UiCanvasComp);
       ui_canvas_reset(canvas);
+      if (!scene_level_loaded(levelManager)) {
+        app_level_picker_draw(canvas, world, app);
+      }
       app_action_bar_draw(
           canvas,
           &(AppActionContext){
@@ -591,13 +680,14 @@ typedef struct {
 ecs_module_init(game_app_module) {
   const AppInitContext* ctx = ecs_init_ctx();
 
-  ecs_register_comp(AppComp);
+  ecs_register_comp(AppComp, .destructor = ecs_destruct_app_comp);
   ecs_register_comp(AppMainWindowComp);
 
   ecs_register_view(AppTimeView);
   ecs_register_view(AppErrorView);
   ecs_register_view(AppUpdateGlobalView);
   ecs_register_view(MainWindowView);
+  ecs_register_view(LevelView);
   ecs_register_view(UiCanvasView);
 
   if (ctx->devSupport) {
@@ -609,6 +699,7 @@ ecs_module_init(game_app_module) {
       AppUpdateSys,
       ecs_view_id(AppUpdateGlobalView),
       ecs_view_id(MainWindowView),
+      ecs_view_id(LevelView),
       ecs_view_id(UiCanvasView),
       ecs_view_id(DevPanelView),
       ecs_view_id(DevLogViewerView));
@@ -734,8 +825,10 @@ bool app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
 
   app_quality_apply(prefs, rendSettingsGlobal, rendSettingsWin);
 
-  ecs_world_add_t(
+  AppComp* app = ecs_world_add_t(
       world, ecs_world_global(world), AppComp, .devSupport = devSupport, .mainWindow = mainWin);
+
+  app_levels_query_init(world, app, assets);
 
   InputResourceComp* inputResource = input_resource_init(world);
   input_resource_load_map(inputResource, string_lit("global/app.inputs"));
