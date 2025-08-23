@@ -5,10 +5,12 @@
 #include "cli/parse.h"
 #include "cli/read.h"
 #include "cli/validate.h"
+#include "core/alloc.h"
 #include "core/diag.h"
 #include "core/file.h"
 #include "core/float.h"
 #include "core/math.h"
+#include "core/path.h"
 #include "core/version.h"
 #include "dev/log_viewer.h"
 #include "dev/menu.h"
@@ -78,6 +80,13 @@ ecs_comp_define(AppMainWindowComp) {
   EcsEntityId devLogViewer;
   bool        statsEnabled;
 };
+
+static void ecs_destruct_app_comp(void* data) {
+  AppComp* comp = data;
+  for (u32 i = 0; i != AppLevelsMax; ++i) {
+    string_maybe_free(g_allocHeap, comp->levelNames[i]);
+  }
+}
 
 static EcsEntityId app_main_window_create(
     EcsWorld*         world,
@@ -476,7 +485,10 @@ ecs_view_define(MainWindowView) {
   ecs_access_write(GapWindowComp);
 }
 
-ecs_view_define(LevelView) { ecs_access_read(AssetLevelComp); }
+ecs_view_define(LevelView) {
+  ecs_access_read(AssetComp);
+  ecs_access_read(AssetLevelComp);
+}
 
 ecs_view_define(UiCanvasView) {
   ecs_view_flags(EcsViewFlags_Exclusive); // Only access the canvas's we create.
@@ -515,8 +527,12 @@ static void app_levels_query_update(EcsWorld* world, AppComp* app) {
       log_e("Invalid level", log_param("entity", ecs_entity_fmt(asset)));
       goto Done;
     }
+    String name = ecs_view_read_t(levelItr, AssetLevelComp)->level.name;
+    if (string_is_empty(name)) {
+      name = path_stem(asset_id(ecs_view_read_t(levelItr, AssetComp)));
+    }
     app->levelMask |= 1 << idx;
-    app->levelNames[idx] = ecs_view_read_t(levelItr, AssetLevelComp)->level.name;
+    app->levelNames[idx] = string_dup(g_allocHeap, name);
   Done:
     asset_release(world, asset);
     app->levelLoadingMask &= ~(1 << idx);
@@ -639,7 +655,7 @@ typedef struct {
 ecs_module_init(game_app_module) {
   const AppInitContext* ctx = ecs_init_ctx();
 
-  ecs_register_comp(AppComp);
+  ecs_register_comp(AppComp, .destructor = ecs_destruct_app_comp);
   ecs_register_comp(AppMainWindowComp);
 
   ecs_register_view(AppTimeView);
