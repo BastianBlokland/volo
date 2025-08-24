@@ -201,7 +201,7 @@ static void app_level_picker_draw(UiCanvasComp* canvas, EcsWorld* world, AppComp
   ui_layout_move(canvas, ui_vector(g_spacing, yCenterOffset), UiBase_Absolute, Ui_XY);
 
   ui_style_push(canvas);
-  ui_style_all_caps(canvas, true);
+  ui_style_transform(canvas, UiTransform_ToUpper);
   bitset_for(bitset_from_var(app->levelMask), idx) {
     if (ui_button(canvas, .label = app->levelNames[idx], .fontSize = 25)) {
       scene_level_load(world, SceneLevelMode_Play, app->levelAssets[idx]);
