@@ -22,7 +22,6 @@
 
 #define VOLO_ASSET_LOGGING 0
 
-#define asset_max_load_time_per_task time_millisecond
 #define asset_num_load_tasks 2
 #define asset_id_max_size 256
 
@@ -51,7 +50,8 @@ typedef enum {
 ecs_comp_define(AssetManagerComp) {
   AssetRepo*        repo;
   AssetManagerFlags flags;
-  DynArray          lookup; // AssetEntry[], kept sorted on the idHash.
+  TimeDuration      loadingBudget; // Max loading time (per task) for each frame (0 is inf).
+  DynArray          lookup;        // AssetEntry[], kept sorted on the idHash.
 };
 
 ecs_comp_define(AssetComp) {
@@ -371,8 +371,8 @@ ecs_system_define(AssetUpdateDirtySys) {
   const AssetManagerComp*   man       = ecs_view_read_t(globalItr, AssetManagerComp);
   const AssetImportEnvComp* importEnv = ecs_view_read_t(globalItr, AssetImportEnvComp);
 
-  TimeDuration loadTime   = 0;
-  EcsView*     assetsView = ecs_world_view_t(world, DirtyAssetView);
+  TimeDuration loadingBudget = man->loadingBudget > 0 ? man->loadingBudget : time_hour;
+  EcsView*     assetsView    = ecs_world_view_t(world, DirtyAssetView);
 
   for (EcsIterator* itr = ecs_view_itr_step(assetsView, parCount, parIndex); ecs_view_walk(itr);) {
     const EcsEntityId entity    = ecs_view_entity(itr);
@@ -402,7 +402,7 @@ ecs_system_define(AssetUpdateDirtySys) {
        * Asset ref-count is non-zero; start loading.
        * NOTE: Loading can fail to start, for example the asset doesn't exist in the manager's repo.
        */
-      if (asset_import_ready(importEnv, assetComp->id) && loadTime < asset_max_load_time_per_task) {
+      if (asset_import_ready(importEnv, assetComp->id) && loadingBudget > 0) {
         assetComp->flags |= AssetFlags_Loading;
         const TimeSteady loadStart = time_steady_clock();
 
@@ -411,7 +411,7 @@ ecs_system_define(AssetUpdateDirtySys) {
         {
           const AssetLoadResult res = asset_manager_load(world, man, importEnv, assetComp, entity);
           if (res == AssetLoadResult_Started) {
-            loadTime += time_steady_duration(loadStart, time_steady_clock());
+            loadingBudget -= time_steady_duration(loadStart, time_steady_clock());
             ecs_utils_maybe_remove_t(world, entity, AssetInstantUnloadComp);
           } else {
             const String error = asset_manager_load_result_str(res);
@@ -778,6 +778,10 @@ void asset_release(EcsWorld* world, const EcsEntityId asset) {
 
 void asset_reload_request(EcsWorld* world, const EcsEntityId assetEntity) {
   ecs_utils_maybe_add_t(world, assetEntity, AssetReloadRequestComp);
+}
+
+void asset_loading_budget_set(AssetManagerComp* manager, const TimeDuration loadingTimeBudget) {
+  manager->loadingBudget = loadingTimeBudget;
 }
 
 u32  asset_ref_count(const AssetComp* asset) { return asset->refCount; }

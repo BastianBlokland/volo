@@ -121,6 +121,11 @@ u32 asset_query(
     EcsEntityId out[PARAM_ARRAY_SIZE(asset_query_max_results)]);
 
 /**
+ * Set a maximum loading time (per task) for each frame (0 or negative means infinite).
+ */
+void asset_loading_budget_set(AssetManagerComp*, TimeDuration loadingTimeBudget);
+
+/**
  * Debug apis.
  */
 u32  asset_ref_count(const AssetComp*);
