@@ -78,6 +78,15 @@ typedef enum eUiWeight {
 } UiWeight;
 
 /**
+ * Text transform.
+ */
+typedef enum eUiTransform {
+  UiTransform_None,
+  UiTransform_ToUpper,
+  UiTransform_ToLower,
+} UiTransform;
+
+/**
  * Ui Clipping Mode.
  */
 typedef enum eUiClip {

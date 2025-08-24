@@ -22,13 +22,13 @@ typedef struct {
   const UiLayer             fontLayer : 8;
   const UiMode              fontMode : 8;
   const u8                  fontVariation;
+  const UiTransform         fontTransform : 8;
   UiWeight                  fontWeight, fontWeightDefault;
   const UiAlign             align;
   void*                     userCtx;
   UiTextBuildCharFunc       buildChar;
   UiTextBuildBackgroundFunc buildBackground;
   f32                       cursor;
-  const UiFlags             flags;
   const UiVector            inputPosition;
   usize                     hoveredCharIndex;
 } UiTextBuildState;
@@ -50,8 +50,11 @@ typedef struct {
   u32              count, active;
 } UiTextBackgroundCollector;
 
-static Unicode ui_text_apply_replacements(Unicode cp, const UiFlags flags) {
-  if (UNLIKELY((flags & UiFlags_AllCaps) && cp >= 'a' && cp <= 'z')) {
+static Unicode ui_text_apply_transform(Unicode cp, const UiTransform transform) {
+  if (UNLIKELY(transform == UiTransform_ToUpper && cp >= 'a' && cp <= 'z')) {
+    cp ^= 0x20;
+  }
+  if (UNLIKELY(transform == UiTransform_ToLower && cp >= 'A' && cp <= 'Z')) {
     cp ^= 0x20;
   }
   return cp;
@@ -123,6 +126,7 @@ static String ui_text_line(
     const f32                  maxWidth,
     const f32                  fontSize,
     const u8                   fontVariation,
+    const UiTransform          fontTransform,
     UiTextBackgroundCollector* bgCollector,
     UiTextLine*                out) {
 
@@ -151,7 +155,7 @@ static String ui_text_line(
 
     Unicode cp;
     remainingText = utf8_cp_read(remainingText, &cp);
-    cp            = ui_text_apply_replacements(cp, flags);
+    cp            = ui_text_apply_transform(cp, fontTransform);
 
     const bool isSeparator    = ui_text_is_separator(cp);
     const bool allowWordBreak = firstWord || flags & UiFlags_AllowWordBreak;
@@ -385,7 +389,7 @@ static void ui_text_build_line(UiTextBuildState* state, const UiTextLine* line) 
   while (!string_is_empty(remainingText)) {
     Unicode cp;
     remainingText = utf8_cp_read(remainingText, &cp);
-    cp            = ui_text_apply_replacements(cp, state->flags);
+    cp            = ui_text_apply_transform(cp, state->fontTransform);
 
     const UiVector pos           = ui_text_char_pos(state, line, state->cursor);
     usize          nextCharIndex = ui_text_byte_index(state, remainingText);
@@ -459,6 +463,7 @@ UiTextBuildResult ui_text_build(
     const UiLayer                   fontLayer,
     const UiMode                    fontMode,
     const u8                        fontVariation,
+    const UiTransform               fontTransform,
     const UiWeight                  fontWeight,
     const UiAlign                   align,
     void*                           userCtx,
@@ -494,6 +499,7 @@ UiTextBuildResult ui_text_build(
         totalRect.width,
         fontSize,
         fontVariation,
+        fontTransform,
         &bgCollector,
         &lines[lineIndex]);
 
@@ -520,13 +526,13 @@ UiTextBuildResult ui_text_build(
       .fontLayer          = fontLayer,
       .fontMode           = fontMode,
       .fontVariation      = fontVariation,
+      .fontTransform      = fontTransform,
       .fontWeight         = fontWeight,
       .fontWeightDefault  = fontWeight,
       .align              = align,
       .userCtx            = userCtx,
       .buildChar          = buildChar,
       .buildBackground    = buildBackground,
-      .flags              = flags,
       .inputPosition      = inputPosition,
       .hoveredCharIndex   = sentinel_usize,
   };

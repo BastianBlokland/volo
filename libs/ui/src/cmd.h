@@ -22,7 +22,7 @@ typedef enum {
   UiCmd_StyleMode,
   UiCmd_StyleVariation,
   UiCmd_StyleWeight,
-  UiCmd_StyleAllCaps,
+  UiCmd_StyleTransform,
   UiCmd_DrawText,
   UiCmd_DrawGlyph,
   UiCmd_DrawImage,
@@ -88,8 +88,8 @@ typedef struct {
 } UiStyleWeight;
 
 typedef struct {
-  bool value;
-} UiStyleAllCaps;
+  UiTransform value;
+} UiStyleTransform;
 
 typedef struct {
   UiId    id;
@@ -131,7 +131,7 @@ typedef struct {
     UiStyleMode      styleMode;
     UiStyleVariation styleVariation;
     UiStyleWeight    styleWeight;
-    UiStyleAllCaps   styleAllCaps;
+    UiStyleTransform styleTransform;
     UiDrawText       drawText;
     UiDrawGlyph      drawGlyph;
     UiDrawImage      drawImage;
@@ -162,7 +162,7 @@ void ui_cmd_push_style_layer(UiCmdBuffer*, UiLayer);
 void ui_cmd_push_style_mode(UiCmdBuffer*, UiMode);
 void ui_cmd_push_style_variation(UiCmdBuffer*, u8 variation);
 void ui_cmd_push_style_weight(UiCmdBuffer*, UiWeight);
-void ui_cmd_push_style_all_caps(UiCmdBuffer*, bool allCaps);
+void ui_cmd_push_style_transform(UiCmdBuffer*, UiTransform);
 void ui_cmd_push_draw_text(UiCmdBuffer*, UiId, String text, u16 fontSize, UiAlign, UiFlags);
 void ui_cmd_push_draw_glyph(UiCmdBuffer*, UiId, Unicode cp, u16 maxCorner, f32 angleRad, UiFlags);
 void ui_cmd_push_draw_image(UiCmdBuffer*, UiId, StringHash, u16 maxCorner, f32 angleRad, UiFlags);
