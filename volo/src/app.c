@@ -79,7 +79,6 @@ ecs_comp_define(AppComp) {
 ecs_comp_define(AppMainWindowComp) {
   EcsEntityId uiCanvas;
   EcsEntityId devMenu;
-  EcsEntityId devLogViewer;
 };
 
 static void ecs_destruct_app_comp(void* data) {
@@ -106,13 +105,12 @@ static EcsEntityId app_main_window_create(
   const String        titleScratch   = fmt_write_scratch("Volo v{}", fmt_text(versionScratch));
   const EcsEntityId   window = gap_window_create(world, mode, flags, size, icon, titleScratch);
 
-  const EcsEntityId uiCanvas  = ui_canvas_create(world, window, UiCanvasCreateFlags_ToFront);
-  EcsEntityId       logViewer = ecs_entity_invalid;
   if (devSupport) {
-    logViewer = dev_log_viewer_create(world, window, LogMask_None);
+    dev_log_viewer_create(world, window, LogMask_All);
   }
-  ecs_world_add_t(
-      world, window, AppMainWindowComp, .uiCanvas = uiCanvas, .devLogViewer = logViewer);
+
+  const EcsEntityId uiCanvas = ui_canvas_create(world, window, UiCanvasCreateFlags_ToFront);
+  ecs_world_add_t(world, window, AppMainWindowComp, .uiCanvas = uiCanvas);
 
   ecs_world_add_t(
       world,
@@ -514,7 +512,6 @@ ecs_view_define(UiCanvasView) {
 }
 
 ecs_view_define(DevPanelView) { ecs_access_write(DevPanelComp); }
-ecs_view_define(DevLogViewerView) { ecs_access_write(DevLogViewerComp); }
 
 static void app_levels_query_init(EcsWorld* world, AppComp* app, AssetManagerComp* assets) {
   const String levelPattern = string_lit("levels/game/*.level");
@@ -596,12 +593,7 @@ ecs_system_define(AppUpdateSys) {
     asset_loading_budget_set(assets, 0); // Infinite while not in gameplay.
   }
 
-  EcsIterator* canvasItr        = ecs_view_itr(ecs_world_view_t(world, UiCanvasView));
-  EcsIterator* devLogViewerItr  = null;
-  EcsView*     devLogViewerView = ecs_world_view_t(world, DevLogViewerView);
-  if (devLogViewerView) {
-    devLogViewerItr = ecs_view_itr(devLogViewerView);
-  }
+  EcsIterator* canvasItr = ecs_view_itr(ecs_world_view_t(world, UiCanvasView));
 
   EcsView*     mainWinView = ecs_world_view_t(world, MainWindowView);
   EcsIterator* mainWinItr  = ecs_view_maybe_at(mainWinView, app->mainWindow);
@@ -644,15 +636,9 @@ ecs_system_define(AppUpdateSys) {
           });
     }
 
-    DevLogViewerComp* devLogViewer = null;
-    if (devLogViewerItr && ecs_view_maybe_jump(devLogViewerItr, appWindow->devLogViewer)) {
-      devLogViewer = ecs_view_write_t(devLogViewerItr, DevLogViewerComp);
-    }
-
     // clang-format off
     switch (app->mode) {
     case AppMode_Normal:
-      if (devLogViewer) { dev_log_viewer_set_mask(devLogViewer, LogMask_Warn | LogMask_Error); }
       app_dev_hide(world, true);
       input_layer_disable(input, string_hash_lit("Dev"));
       input_layer_enable(input, string_hash_lit("Game"));
@@ -660,7 +646,6 @@ ecs_system_define(AppUpdateSys) {
       break;
     case AppMode_Debug:
       if (!appWindow->devMenu) { appWindow->devMenu = dev_menu_create(world, windowEntity); }
-      if (devLogViewer)        { dev_log_viewer_set_mask(devLogViewer, LogMask_All); }
       app_dev_hide(world, false);
       input_layer_enable(input, string_hash_lit("Dev"));
       input_layer_disable(input, string_hash_lit("Game"));
@@ -690,7 +675,6 @@ ecs_module_init(game_app_module) {
 
   if (ctx->devSupport) {
     ecs_register_view(DevPanelView);
-    ecs_register_view(DevLogViewerView);
   }
 
   ecs_register_system(
@@ -699,8 +683,7 @@ ecs_module_init(game_app_module) {
       ecs_view_id(MainWindowView),
       ecs_view_id(LevelView),
       ecs_view_id(UiCanvasView),
-      ecs_view_id(DevPanelView),
-      ecs_view_id(DevLogViewerView));
+      ecs_view_id(DevPanelView));
 }
 
 static CliId g_optAssets, g_optWindow, g_optWidth, g_optHeight, g_optLevel, g_optDev;
