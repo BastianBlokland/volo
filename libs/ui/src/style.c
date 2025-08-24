@@ -53,7 +53,7 @@ void ui_style_weight(UiCanvasComp* canvas, const UiWeight weight) {
   ui_cmd_push_style_weight(cmdBuffer, weight);
 }
 
-void ui_style_all_caps(UiCanvasComp* canvas, const bool allCaps) {
+void ui_style_transform(UiCanvasComp* canvas, const UiTransform transform) {
   UiCmdBuffer* cmdBuffer = ui_canvas_cmd_buffer(canvas);
-  ui_cmd_push_style_all_caps(cmdBuffer, allCaps);
+  ui_cmd_push_style_transform(cmdBuffer, transform);
 }
