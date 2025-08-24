@@ -158,12 +158,15 @@ RvkJob* rvk_job_create(RvkDevice* dev, const u32 jobId) {
   *job = (RvkJob){
       .dev          = dev,
       .uniformPool  = rvk_uniform_pool_create(dev),
-      .stopwatch    = rvk_stopwatch_create(dev),
-      .statrecorder = rvk_statrecorder_create(dev),
       .jobId        = jobId,
       .fenceJobDone = rvk_fence_create(dev, true),
       .vkCmdPool    = vkCmdPool,
   };
+
+  if (dev->flags & RvkDeviceFlags_RecordStats) {
+    job->stopwatch    = rvk_stopwatch_create(dev);
+    job->statrecorder = rvk_statrecorder_create(dev);
+  }
 
   rvk_commandbuffer_create_batch(dev, vkCmdPool, job->vkCmdBuffers, RvkJobPhase_Count);
 
@@ -176,8 +179,12 @@ void rvk_job_destroy(RvkJob* job) {
   rvk_job_wait_for_done(job);
 
   rvk_uniform_pool_destroy(job->uniformPool);
-  rvk_stopwatch_destroy(job->stopwatch);
-  rvk_statrecorder_destroy(job->statrecorder);
+  if (job->stopwatch) {
+    rvk_stopwatch_destroy(job->stopwatch);
+  }
+  if (job->statrecorder) {
+    rvk_statrecorder_destroy(job->statrecorder);
+  }
 
   RvkDevice* dev = job->dev;
   rvk_call(dev, destroyCommandPool, dev->vkDev, job->vkCmdPool, &dev->vkAlloc);
@@ -201,25 +208,27 @@ void rvk_job_wait_for_done(const RvkJob* job) {
 }
 
 bool rvk_job_calibrated_timestamps(const RvkJob* job) {
-  return rvk_stopwatch_calibrated(job->stopwatch);
+  return job->stopwatch && rvk_stopwatch_calibrated(job->stopwatch);
 }
 
 void rvk_job_stats(const RvkJob* job, RvkJobStats* out) {
   diag_assert(rvk_job_is_done(job));
 
-  out->cpuWaitDur   = job->cpuWaitDur;
-  out->gpuTimeBegin = rvk_stopwatch_query(job->stopwatch, job->gpuTimeBegin);
-  out->gpuTimeEnd   = rvk_stopwatch_query(job->stopwatch, job->gpuTimeEnd);
-  out->gpuWaitBegin = rvk_stopwatch_query(job->stopwatch, job->gpuWaitBegin);
-  out->gpuWaitEnd   = rvk_stopwatch_query(job->stopwatch, job->gpuWaitEnd);
+  out->cpuWaitDur = job->cpuWaitDur;
+  if (job->stopwatch) {
+    out->gpuTimeBegin = rvk_stopwatch_query(job->stopwatch, job->gpuTimeBegin);
+    out->gpuTimeEnd   = rvk_stopwatch_query(job->stopwatch, job->gpuTimeEnd);
+    out->gpuWaitBegin = rvk_stopwatch_query(job->stopwatch, job->gpuWaitBegin);
+    out->gpuWaitEnd   = rvk_stopwatch_query(job->stopwatch, job->gpuWaitEnd);
 
-  out->copyCount = job->copyCount;
-  for (u32 copyIdx = 0; copyIdx != math_min(job->copyCount, rvk_job_copy_stats_max); ++copyIdx) {
-    const TimeSteady begin = rvk_stopwatch_query(job->stopwatch, job->copyGpuTimeBegin[copyIdx]);
-    const TimeSteady end   = rvk_stopwatch_query(job->stopwatch, job->copyGpuTimeEnd[copyIdx]);
+    out->copyCount = job->copyCount;
+    for (u32 copyIdx = 0; copyIdx != math_min(job->copyCount, rvk_job_copy_stats_max); ++copyIdx) {
+      const TimeSteady begin = rvk_stopwatch_query(job->stopwatch, job->copyGpuTimeBegin[copyIdx]);
+      const TimeSteady end   = rvk_stopwatch_query(job->stopwatch, job->copyGpuTimeEnd[copyIdx]);
 
-    out->copyStats[copyIdx].gpuTimeBegin = begin;
-    out->copyStats[copyIdx].gpuTimeEnd   = end;
+      out->copyStats[copyIdx].gpuTimeBegin = begin;
+      out->copyStats[copyIdx].gpuTimeEnd   = end;
+    }
   }
 }
 
@@ -237,10 +246,13 @@ void rvk_job_begin(RvkJob* job, const RvkJobPhase firstPhase) {
 
   rvk_job_phase_begin(job);
 
-  rvk_stopwatch_reset(job->stopwatch, job->vkCmdBuffers[job->phase]);
-  rvk_statrecorder_reset(job->statrecorder, job->vkCmdBuffers[job->phase]);
-
-  job->gpuTimeBegin = rvk_stopwatch_mark(job->stopwatch, job->vkCmdBuffers[job->phase]);
+  if (job->statrecorder) {
+    rvk_statrecorder_reset(job->statrecorder, job->vkCmdBuffers[job->phase]);
+  }
+  if (job->stopwatch) {
+    rvk_stopwatch_reset(job->stopwatch, job->vkCmdBuffers[job->phase]);
+    job->gpuTimeBegin = rvk_stopwatch_mark(job->stopwatch, job->vkCmdBuffers[job->phase]);
+  }
 }
 
 RvkJobPhase rvk_job_phase(const RvkJob* job) { return job->phase; }
@@ -249,7 +261,7 @@ void rvk_job_advance(RvkJob* job) {
   diag_assert(job->phase != RvkJobPhase_Last);
 
   const RvkJobPhase phaseNext = job->phase + 1;
-  if (phaseNext == RvkJobPhase_Last) {
+  if (job->stopwatch && phaseNext == RvkJobPhase_Last) {
     job->gpuWaitBegin = rvk_stopwatch_mark(job->stopwatch, job->vkCmdBuffers[job->phase]);
   }
 
@@ -259,7 +271,9 @@ void rvk_job_advance(RvkJob* job) {
   job->phase = phaseNext;
 
   rvk_job_phase_begin(job);
-  job->gpuWaitEnd = rvk_stopwatch_mark(job->stopwatch, job->vkCmdBuffers[job->phase]);
+  if (job->stopwatch) {
+    job->gpuWaitEnd = rvk_stopwatch_mark(job->stopwatch, job->vkCmdBuffers[job->phase]);
+  }
 }
 
 RvkUniformPool* rvk_job_uniform_pool(RvkJob* job) {
@@ -349,7 +363,7 @@ void rvk_job_img_copy_batch(
   rvk_image_transition_batch(job->dev, transitions, count * 2, cmdBuf);
 
   const u32 copyIdx = job->copyCount++;
-  if (copyIdx < rvk_job_copy_stats_max) {
+  if (job->stopwatch && copyIdx < rvk_job_copy_stats_max) {
     job->copyGpuTimeBegin[copyIdx] = rvk_stopwatch_mark(job->stopwatch, cmdBuf);
   }
 
@@ -357,7 +371,7 @@ void rvk_job_img_copy_batch(
     rvk_image_copy(job->dev, srcImages[i], dstImages[i], cmdBuf);
   }
 
-  if (copyIdx < rvk_job_copy_stats_max) {
+  if (job->stopwatch && copyIdx < rvk_job_copy_stats_max) {
     job->copyGpuTimeEnd[copyIdx] = rvk_stopwatch_mark(job->stopwatch, cmdBuf);
   }
 
@@ -377,13 +391,13 @@ void rvk_job_img_blit(RvkJob* job, RvkImage* src, RvkImage* dst) {
   rvk_image_transition_batch(job->dev, transitions, array_elems(transitions), cmdBuf);
 
   const u32 copyIdx = job->copyCount++;
-  if (copyIdx < rvk_job_copy_stats_max) {
+  if (job->stopwatch && copyIdx < rvk_job_copy_stats_max) {
     job->copyGpuTimeBegin[copyIdx] = rvk_stopwatch_mark(job->stopwatch, cmdBuf);
   }
 
   rvk_image_blit(job->dev, src, dst, cmdBuf);
 
-  if (copyIdx < rvk_job_copy_stats_max) {
+  if (job->stopwatch && copyIdx < rvk_job_copy_stats_max) {
     job->copyGpuTimeEnd[copyIdx] = rvk_stopwatch_mark(job->stopwatch, cmdBuf);
   }
 
@@ -418,7 +432,9 @@ void rvk_job_end(
   diag_assert_msg(job->flags & RvkJob_Active, "job not active");
   diag_assert_msg(job->phase == RvkJobPhase_Last, "job not advanced to the last phase");
 
-  job->gpuTimeEnd = rvk_stopwatch_mark(job->stopwatch, job->vkCmdBuffers[job->phase]);
+  if (job->stopwatch) {
+    job->gpuTimeEnd = rvk_stopwatch_mark(job->stopwatch, job->vkCmdBuffers[job->phase]);
+  }
 
   rvk_job_phase_end(job);
   rvk_uniform_flush(job->uniformPool);

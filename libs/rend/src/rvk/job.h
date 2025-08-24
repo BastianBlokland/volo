@@ -18,13 +18,13 @@ typedef enum eRvkJobPhase {
 } RvkJobPhase;
 
 typedef struct {
-  TimeSteady gpuTimeBegin, gpuTimeEnd;
+  TimeSteady gpuTimeBegin, gpuTimeEnd; // Requires 'RvkDeviceFlags_RecordStats'.
 } RvkJobCopyStats;
 
 typedef struct {
-  TimeDuration cpuWaitDur; // Time the cpu was blocked waiting for the gpu.
-  TimeSteady   gpuTimeBegin, gpuTimeEnd;
-  TimeSteady   gpuWaitBegin, gpuWaitEnd;
+  TimeDuration cpuWaitDur;               // Time the cpu was blocked waiting for the gpu.
+  TimeSteady   gpuTimeBegin, gpuTimeEnd; // Requires 'RvkDeviceFlags_RecordStats'.
+  TimeSteady   gpuWaitBegin, gpuWaitEnd; // Requires 'RvkDeviceFlags_RecordStats'.
 
   u32             copyCount;
   RvkJobCopyStats copyStats[rvk_job_copy_stats_max];
@@ -45,8 +45,8 @@ RvkJobPhase rvk_job_phase(const RvkJob*);
 void        rvk_job_advance(RvkJob*);
 
 RvkUniformPool*  rvk_job_uniform_pool(RvkJob*);
-RvkStopwatch*    rvk_job_stopwatch(RvkJob*);
-RvkStatRecorder* rvk_job_statrecorder(RvkJob*);
+RvkStopwatch*    rvk_job_stopwatch(RvkJob*);    // NOTE: Potentially null depending on device setup.
+RvkStatRecorder* rvk_job_statrecorder(RvkJob*); // NOTE: Potentially null depending on device setup.
 VkCommandBuffer  rvk_job_cmdbuffer(RvkJob*);
 
 Mem              rvk_job_uniform_map(RvkJob*, RvkUniformHandle);

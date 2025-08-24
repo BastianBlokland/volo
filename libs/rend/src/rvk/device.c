@@ -147,7 +147,7 @@ static void rvk_config_features(RvkDevice* d, VkPhysicalDeviceFeatures* f) {
   VkPhysicalDeviceFeatures result = {
       .independentBlend = true, // Required.
   };
-  if (f->pipelineStatisticsQuery) {
+  if ((d->flags & RvkDeviceFlags_RecordStats) && f->pipelineStatisticsQuery) {
     result.pipelineStatisticsQuery = true;
     d->flags |= RvkDeviceFlags_SupportPipelineStatQuery;
   }
@@ -408,10 +408,11 @@ static VkDevice rvk_device_create_internal(RvkLib* lib, RvkDevice* dev) {
   rvk_config_16bit_storage(dev, &feature16BitStorage);
   rvk_config_features(dev, &featureBase.features);
 
+  const bool recordStats = (dev->flags & RvkDeviceFlags_RecordStats) != 0;
   if (rvk_has_ext(supportedExts, string_from_null_term(VK_KHR_maintenance4))) {
     extsToEnable[extsToEnableCount++] = VK_KHR_maintenance4; // For relaxed shader interface rules.
   }
-  if (rvk_has_ext(supportedExts, string_from_null_term(VK_EXT_memory_budget))) {
+  if (recordStats && rvk_has_ext(supportedExts, string_from_null_term(VK_EXT_memory_budget))) {
     dev->flags |= RvkDeviceFlags_SupportMemoryBudget;
     extsToEnable[extsToEnableCount++] = VK_EXT_memory_budget;
   }
@@ -419,7 +420,7 @@ static VkDevice rvk_device_create_internal(RvkLib* lib, RvkDevice* dev) {
     dev->flags |= RvkDeviceFlags_SupportDriverProperties;
     extsToEnable[extsToEnableCount++] = VK_KHR_driver_properties;
   }
-  if (rvk_has_ext(supportedExts, string_lit(VK_EXT_calibrated_timestamps))) {
+  if (recordStats && rvk_has_ext(supportedExts, string_lit(VK_EXT_calibrated_timestamps))) {
     dev->flags |= RvkDeviceFlags_SupportCalibratedTimestamps;
     extsToEnable[extsToEnableCount++] = VK_EXT_calibrated_timestamps;
   }
@@ -455,6 +456,10 @@ RvkDevice* rvk_device_create(RvkLib* lib) {
       .queueSubmitMutex = thread_mutex_create(g_allocHeap),
       .vkPhysDev        = physicalDev,
   };
+
+  if (lib->flags & RvkLibFlags_Profiling) {
+    dev->flags |= RvkDeviceFlags_RecordStats;
+  }
 
   dev->graphicsQueueIndex = rvk_pick_graphics_queue(lib, dev->vkPhysDev);
   dev->transferQueueIndex = rvk_pick_transfer_queue(lib, dev->vkPhysDev);
