@@ -10,7 +10,12 @@ enum {
   RendOrder_Reset        = 3000,
 };
 
+typedef enum {
+  RendRegisterFlags_None        = 0,
+  RendRegisterFlags_EnableStats = 1 << 0,
+} RendRegisterFlags;
+
 /**
  * Register the ecs modules for the Renderer library.
  */
-void rend_register(EcsDef*);
+void rend_register(EcsDef*, RendRegisterFlags);
