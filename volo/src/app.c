@@ -52,6 +52,7 @@
 #include "ui/widget.h"
 #include "vfx/register.h"
 
+#include "app.h"
 #include "cmd.h"
 #include "hud.h"
 #include "prefs.h"
@@ -64,7 +65,8 @@ typedef enum {
 } AppMode;
 
 ecs_comp_define(AppComp) {
-  AppMode     mode;
+  AppMode     mode : 8;
+  AppState    state : 8;
   bool        devSupport;
   EcsEntityId mainWindow;
 
@@ -890,3 +892,5 @@ void app_ecs_set_frame(EcsWorld* world, const u64 frameIdx) {
     time->frameIdx = frameIdx;
   }
 }
+
+AppState app_state(const AppComp* app) { return app->state; }
