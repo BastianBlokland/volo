@@ -106,7 +106,7 @@ static EcsEntityId app_main_window_create(
   const EcsEntityId   window = gap_window_create(world, mode, flags, size, icon, titleScratch);
 
   if (devSupport) {
-    dev_log_viewer_create(world, window, LogMask_All);
+    dev_log_viewer_create(world, window, LogMask_Info | LogMask_Warn | LogMask_Error);
   }
 
   const EcsEntityId uiCanvas = ui_canvas_create(world, window, UiCanvasCreateFlags_ToFront);
