@@ -66,9 +66,8 @@ typedef enum eUiFlags {
   UiFlags_AllowWordBreak      = 1 << 6,  // Allow breaking up text in the middle of words.
   UiFlags_SingleLine          = 1 << 7,  // Only draw the first line of the text.
   UiFlags_NoLineBreaks        = 1 << 8,  // Ignore line breaks.
-  UiFlags_AllCaps             = 1 << 9,  // Draw text using only capital letters.
-  UiFlags_TightTextRect       = 1 << 10, // Clamp the rectangle to the text size.
-  UiFlags_SquareAspect        = 1 << 11, // Fit a square inside the current rectangle.
+  UiFlags_TightTextRect       = 1 << 9,  // Clamp the rectangle to the text size.
+  UiFlags_SquareAspect        = 1 << 10, // Fit a square inside the current rectangle.
 } UiFlags;
 
 typedef enum eUiPersistentFlags {
