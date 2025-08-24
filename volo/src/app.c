@@ -489,6 +489,7 @@ ecs_view_define(AppTimeView) { ecs_access_write(SceneTimeComp); }
 ecs_view_define(AppUpdateGlobalView) {
   ecs_access_read(SceneLevelManagerComp);
   ecs_access_write(AppComp);
+  ecs_access_write(AssetManagerComp);
   ecs_access_write(CmdControllerComp);
   ecs_access_write(GamePrefsComp);
   ecs_access_write(InputManagerComp);
@@ -581,16 +582,23 @@ ecs_system_define(AppUpdateSys) {
   }
   const SceneLevelManagerComp* levelManager  = ecs_view_read_t(globalItr, SceneLevelManagerComp);
   AppComp*                     app           = ecs_view_write_t(globalItr, AppComp);
-  GamePrefsComp*               prefs         = ecs_view_write_t(globalItr, GamePrefsComp);
+  AssetManagerComp*            assets        = ecs_view_write_t(globalItr, AssetManagerComp);
   CmdControllerComp*           cmd           = ecs_view_write_t(globalItr, CmdControllerComp);
-  RendSettingsGlobalComp*      rendSetGlobal = ecs_view_write_t(globalItr, RendSettingsGlobalComp);
-  SndMixerComp*                soundMixer    = ecs_view_write_t(globalItr, SndMixerComp);
-  SceneTimeSettingsComp*       timeSet       = ecs_view_write_t(globalItr, SceneTimeSettingsComp);
-  InputManagerComp*            input         = ecs_view_write_t(globalItr, InputManagerComp);
-  SceneVisibilityEnvComp*      visibilityEnv = ecs_view_write_t(globalItr, SceneVisibilityEnvComp);
   DevStatsGlobalComp*          devStats      = ecs_view_write_t(globalItr, DevStatsGlobalComp);
+  GamePrefsComp*               prefs         = ecs_view_write_t(globalItr, GamePrefsComp);
+  InputManagerComp*            input         = ecs_view_write_t(globalItr, InputManagerComp);
+  RendSettingsGlobalComp*      rendSetGlobal = ecs_view_write_t(globalItr, RendSettingsGlobalComp);
+  SceneTimeSettingsComp*       timeSet       = ecs_view_write_t(globalItr, SceneTimeSettingsComp);
+  SceneVisibilityEnvComp*      visibilityEnv = ecs_view_write_t(globalItr, SceneVisibilityEnvComp);
+  SndMixerComp*                soundMixer    = ecs_view_write_t(globalItr, SndMixerComp);
 
   app_levels_query_update(world, app);
+
+  if (scene_level_loaded(levelManager)) {
+    asset_loading_budget_set(assets, time_milliseconds(2)); // Limit asset loading during gameplay.
+  } else {
+    asset_loading_budget_set(assets, 0); // Infinite while not in gameplay.
+  }
 
   EcsIterator* canvasItr        = ecs_view_itr(ecs_world_view_t(world, UiCanvasView));
   EcsIterator* devLogViewerItr  = null;
