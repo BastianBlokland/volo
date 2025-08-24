@@ -38,7 +38,7 @@ typedef struct {
   u32     instanceCount;
 
   RvkStatRecord      statsRecord;
-  RvkStopwatchRecord timeRecBegin, timeRecEnd;
+  RvkStopwatchRecord timeRecBegin, timeRecEnd; // Requires 'RvkDeviceFlags_RecordStats'.
 } RvkPassInvoc;
 
 static VkClearColorValue rvk_rend_clear_color(const GeoColor color) {
@@ -57,8 +57,8 @@ typedef struct {
   RvkPassFrameState state;
   RvkJob*           job;
   RvkUniformPool*   uniformPool;
-  RvkStopwatch*     stopwatch;
-  RvkStatRecorder*  statrecorder;
+  RvkStopwatch*     stopwatch;    // NOTE: Potentially null depending on device setup.
+  RvkStatRecorder*  statrecorder; // NOTE: Potentially null depending on device setup.
 
   DynArray descSetsVolatile; // RvkDescSet[], allocated on-demand and automatically freed next init.
   DynArray invocations;      // RvkPassInvoc[]
@@ -736,10 +736,11 @@ void rvk_pass_stats(const RvkPass* pass, const RvkPassHandle frameHandle, RvkPas
     out->drawCount += invoc->drawCount;
     out->instanceCount += invoc->instanceCount;
 
-    const TimeSteady timeBegin = rvk_stopwatch_query(frame->stopwatch, invoc->timeRecBegin);
-    const TimeSteady timeEnd   = rvk_stopwatch_query(frame->stopwatch, invoc->timeRecEnd);
-
-    out->duration += time_steady_duration(timeBegin, timeEnd);
+    if (frame->stopwatch) {
+      const TimeSteady timeBegin = rvk_stopwatch_query(frame->stopwatch, invoc->timeRecBegin);
+      const TimeSteady timeEnd   = rvk_stopwatch_query(frame->stopwatch, invoc->timeRecEnd);
+      out->duration += time_steady_duration(timeBegin, timeEnd);
+    }
 
     out->sizeMax.width  = math_max(out->sizeMax.width, invoc->size.width);
     out->sizeMax.height = math_max(out->sizeMax.height, invoc->size.height);
@@ -752,8 +753,10 @@ u64 rvk_pass_stats_pipeline(
   diag_assert_msg(frame->state == RvkPassFrameState_Reserved, "Pass frame already released");
 
   u64 res = 0;
-  dynarray_for_t(&frame->invocations, RvkPassInvoc, invoc) {
-    res += rvk_statrecorder_query(frame->statrecorder, invoc->statsRecord, stat);
+  if (frame->statrecorder) {
+    dynarray_for_t(&frame->invocations, RvkPassInvoc, invoc) {
+      res += rvk_statrecorder_query(frame->statrecorder, invoc->statsRecord, stat);
+    }
   }
   return res;
 }
@@ -767,9 +770,13 @@ void rvk_pass_stats_invoc(
   diag_assert_msg(frame->state == RvkPassFrameState_Reserved, "Pass frame already released");
   diag_assert_msg(invocIdx < frame->invocations.size, "Invalid invocation");
 
-  RvkPassInvoc* invoc = dynarray_at_t(&frame->invocations, invocIdx, RvkPassInvoc);
-  out->gpuTimeBegin   = rvk_stopwatch_query(frame->stopwatch, invoc->timeRecBegin);
-  out->gpuTimeEnd     = rvk_stopwatch_query(frame->stopwatch, invoc->timeRecEnd);
+  if (frame->stopwatch) {
+    RvkPassInvoc* invoc = dynarray_at_t(&frame->invocations, invocIdx, RvkPassInvoc);
+    out->gpuTimeBegin   = rvk_stopwatch_query(frame->stopwatch, invoc->timeRecBegin);
+    out->gpuTimeEnd     = rvk_stopwatch_query(frame->stopwatch, invoc->timeRecEnd);
+  } else {
+    out->gpuTimeBegin = out->gpuTimeEnd = 0;
+  }
 }
 
 u32 rvk_pass_batch_size(RvkPass* pass, const u32 instanceDataSize) {
@@ -840,9 +847,12 @@ void rvk_pass_begin(RvkPass* pass, const RvkPassSetup* setup) {
 
   rvk_pass_vkrenderpass_begin(pass, invoc, setup);
 
-  invoc->statsRecord = rvk_statrecorder_start(frame->statrecorder, invoc->vkCmdBuf);
-
-  invoc->timeRecBegin = rvk_stopwatch_mark(frame->stopwatch, invoc->vkCmdBuf);
+  if (frame->statrecorder) {
+    invoc->statsRecord = rvk_statrecorder_start(frame->statrecorder, invoc->vkCmdBuf);
+  }
+  if (frame->stopwatch) {
+    invoc->timeRecBegin = rvk_stopwatch_mark(frame->stopwatch, invoc->vkCmdBuf);
+  }
   rvk_debug_label_begin(
       pass->dev, invoc->vkCmdBuf, geo_color_blue, "pass_{}", fmt_text(pass->config->name));
 
@@ -970,10 +980,13 @@ void rvk_pass_end(RvkPass* pass, const RvkPassSetup* setup) {
 
   pass->flags &= ~RvkPassFlags_Active;
 
-  rvk_statrecorder_stop(frame->statrecorder, invoc->statsRecord, invoc->vkCmdBuf);
-
+  if (frame->statrecorder) {
+    rvk_statrecorder_stop(frame->statrecorder, invoc->statsRecord, invoc->vkCmdBuf);
+  }
   rvk_debug_label_end(pass->dev, invoc->vkCmdBuf);
-  invoc->timeRecEnd = rvk_stopwatch_mark(frame->stopwatch, invoc->vkCmdBuf);
+  if (frame->stopwatch) {
+    invoc->timeRecEnd = rvk_stopwatch_mark(frame->stopwatch, invoc->vkCmdBuf);
+  }
 
   rvk_call(pass->dev, cmdEndRenderPass, invoc->vkCmdBuf);
 
