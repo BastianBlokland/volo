@@ -5,6 +5,7 @@ typedef enum {
   AppState_MenuMain,
   AppState_MenuLevel,
   AppState_Play,
+  AppState_Debug,
   AppState_Edit,
   AppState_Pause,
 } AppState;
