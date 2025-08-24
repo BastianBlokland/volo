@@ -80,7 +80,6 @@ ecs_comp_define(AppMainWindowComp) {
   EcsEntityId uiCanvas;
   EcsEntityId devMenu;
   EcsEntityId devLogViewer;
-  bool        statsEnabled;
 };
 
 static void ecs_destruct_app_comp(void* data) {
@@ -503,7 +502,6 @@ ecs_view_define(AppUpdateGlobalView) {
 }
 
 ecs_view_define(MainWindowView) {
-  ecs_access_maybe_write(DevStatsComp);
   ecs_access_maybe_write(RendSettingsComp);
   ecs_access_write(AppMainWindowComp);
   ecs_access_write(GapWindowComp);
@@ -615,13 +613,7 @@ ecs_system_define(AppUpdateSys) {
     const EcsEntityId  windowEntity = ecs_view_entity(mainWinItr);
     AppMainWindowComp* appWindow    = ecs_view_write_t(mainWinItr, AppMainWindowComp);
     GapWindowComp*     win          = ecs_view_write_t(mainWinItr, GapWindowComp);
-    DevStatsComp*      stats        = ecs_view_write_t(mainWinItr, DevStatsComp);
     RendSettingsComp*  rendSetWin   = ecs_view_write_t(mainWinItr, RendSettingsComp);
-
-    if (devStats && !appWindow->statsEnabled) {
-      dev_stats_show_set(stats, DevStatShow_Minimal);
-      appWindow->statsEnabled = true;
-    }
 
     // Save last window size.
     if (gap_window_events(win) & GapWindowEvents_Resized) {
