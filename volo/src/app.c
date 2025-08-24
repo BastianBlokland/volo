@@ -131,15 +131,11 @@ static EcsEntityId app_main_window_create(
 
 static void app_window_fullscreen_toggle(GapWindowComp* win) {
   if (gap_window_mode(win) == GapWindowMode_Fullscreen) {
-    // Enter windowed mode.
-    gap_window_resize(
-        win, gap_window_param(win, GapParam_WindowSizePreFullscreen), GapWindowMode_Windowed);
-    // Release cursor confinement.
+    const GapVector size = gap_window_param(win, GapParam_WindowSizePreFullscreen);
+    gap_window_resize(win, size, GapWindowMode_Windowed);
     gap_window_flags_unset(win, GapWindowFlags_CursorConfine);
   } else {
-    // Enter fullscreen mode.
     gap_window_resize(win, gap_vector(0, 0), GapWindowMode_Fullscreen);
-    // Confine the cursor to the window (for multi-monitor setups).
     gap_window_flags_set(win, GapWindowFlags_CursorConfine);
   }
 }
@@ -870,7 +866,7 @@ AppEcsStatus app_ecs_status(EcsWorld* world) {
     return AppEcsStatus_Failed;
   }
   /**
-   * Run until the last window has been closed.
+   * Run until the main window has closed.
    */
   if (!ecs_utils_any(world, MainWindowView)) {
     return AppEcsStatus_Finished;
