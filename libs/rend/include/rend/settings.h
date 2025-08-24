@@ -131,10 +131,10 @@ ecs_comp_extern_public(RendSettingsGlobalComp) {
   f32             fogDilation;
 };
 
-RendSettingsGlobalComp* rend_settings_global_init(EcsWorld*);
+RendSettingsGlobalComp* rend_settings_global_init(EcsWorld*, bool devSupport);
 RendSettingsComp*       rend_settings_window_init(EcsWorld*, EcsEntityId window);
 
 void rend_settings_to_default(RendSettingsComp*);
-void rend_settings_global_to_default(RendSettingsGlobalComp*);
+void rend_settings_global_to_default(RendSettingsGlobalComp*, bool devSupport);
 
 void rend_settings_generate_ao_kernel(RendSettingsComp*);

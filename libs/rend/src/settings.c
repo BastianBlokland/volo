@@ -5,9 +5,7 @@
 #include "geo/vector.h"
 #include "rend/settings.h"
 
-#define VOLO_REND_GPU_DEBUG 1
 #define VOLO_REND_VALIDATION 0
-#define VOLO_REND_PROFILING 1
 
 ecs_comp_define(RendSettingsComp);
 ecs_comp_define(RendSettingsGlobalComp);
@@ -22,10 +20,10 @@ ecs_module_init(rend_settings_module) {
   ecs_register_comp(RendSettingsGlobalComp);
 }
 
-RendSettingsGlobalComp* rend_settings_global_init(EcsWorld* world) {
+RendSettingsGlobalComp* rend_settings_global_init(EcsWorld* world, const bool devSupport) {
   const EcsEntityId       global   = ecs_world_global(world);
   RendSettingsGlobalComp* settings = ecs_world_add_t(world, global, RendSettingsGlobalComp);
-  rend_settings_global_to_default(settings);
+  rend_settings_global_to_default(settings, devSupport);
   return settings;
 }
 
@@ -72,19 +70,17 @@ void rend_settings_to_default(RendSettingsComp* s) {
   rend_settings_generate_ao_kernel(s);
 }
 
-void rend_settings_global_to_default(RendSettingsGlobalComp* s) {
+void rend_settings_global_to_default(RendSettingsGlobalComp* s, const bool devSupport) {
   s->flags       = RendGlobalFlags_Fog;
   s->limiterFreq = 0;
 
-#if VOLO_REND_GPU_DEBUG
-  s->flags |= RendGlobalFlags_DebugGpu;
-#endif
+  if (devSupport) {
+    s->flags |= RendGlobalFlags_DebugGpu;
+    s->flags |= RendGlobalFlags_Profiling;
 #if VOLO_REND_VALIDATION
-  s->flags |= RendGlobalFlags_Validation;
+    s->flags |= RendGlobalFlags_Validation;
 #endif
-#if VOLO_REND_PROFILING
-  s->flags |= RendGlobalFlags_Profiling;
-#endif
+  }
 
   s->shadowFilterSize = 0.1f;
   s->fogDilation      = -3.0f;

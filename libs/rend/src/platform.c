@@ -162,7 +162,7 @@ static const RendSettingsGlobalComp* rend_global_settings(EcsWorld* world) {
   EcsIterator*      settingsItr  = ecs_view_maybe_at(settingsView, global);
   if (!settingsItr) {
     RendSettingsGlobalComp* settings = ecs_world_add_t(world, global, RendSettingsGlobalComp);
-    rend_settings_global_to_default(settings);
+    rend_settings_global_to_default(settings, false /* devSupport */);
     return settings;
   }
   return ecs_view_read_t(settingsItr, RendSettingsGlobalComp);
@@ -182,7 +182,11 @@ ecs_system_define(RendPlatformUpdateSys) {
   const RendSettingsGlobalComp* settings     = rend_global_settings(world);
 
   if (!platformItr) {
-    log_i("Setting up renderer");
+    log_i(
+        "Setting up renderer",
+        log_param("profiling", fmt_bool(settings->flags & RendGlobalFlags_Profiling)),
+        log_param("debug-gpu", fmt_bool(settings->flags & RendGlobalFlags_DebugGpu)),
+        log_param("validation", fmt_bool(settings->flags & RendGlobalFlags_Validation)));
 
     RvkLib* lib = rvk_lib_create(settings);
     if (!lib) {
