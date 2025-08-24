@@ -109,7 +109,9 @@ ecs_comp_define(SndMixerComp) {
 
 static void ecs_destruct_mixer_comp(void* data) {
   SndMixerComp* m = data;
-  snd_device_destroy(m->device);
+  if (m->device) {
+    snd_device_destroy(m->device);
+  }
 
   alloc_free_array_t(g_allocHeap, m->objects, snd_mixer_objects_max);
   alloc_free_array_t(g_allocHeap, m->objectNames, snd_mixer_objects_max);
@@ -215,6 +217,9 @@ ecs_system_define(SndMixerUpdateSys) {
   SndMixerComp* m = snd_mixer_get(world);
   if (UNLIKELY(!m)) {
     return;
+  }
+  if (UNLIKELY(!m->device)) {
+    m->device = snd_device_create(g_allocHeap);
   }
 
   /**
@@ -588,7 +593,7 @@ ecs_system_define(SndMixerRenderBeginSys) {
     --m->warmupTicks;
     return;
   }
-  if (snd_device_state(m->device) == SndDeviceState_Error) {
+  if (!m->device || snd_device_state(m->device) == SndDeviceState_Error) {
     /**
      * The sound device is in an error state, skip the sounds forward so that they are not too far
      * behind when the device potentially recovers in the future and starts playing again.
@@ -737,7 +742,6 @@ SndMixerComp* snd_mixer_init(EcsWorld* world) {
   SndMixerComp* m = ecs_world_add_t(world, ecs_world_global(world), SndMixerComp);
 
   m->warmupTicks = snd_mixer_warmup_ticks;
-  m->device      = snd_device_create(g_allocHeap);
   m->gainSetting = 1.0f;
   m->limiterMult = 1.0f;
 
@@ -947,16 +951,25 @@ SndResult snd_mixer_gain_set(SndMixerComp* m, const f32 gain) {
 
 f32 snd_mixer_limiter_get(const SndMixerComp* m) { return m->limiterMult; }
 
-String snd_mixer_device_id(const SndMixerComp* m) { return snd_device_id(m->device); }
+String snd_mixer_device_id(const SndMixerComp* m) {
+  return m->device ? snd_device_id(m->device) : string_empty;
+}
 
-String snd_mixer_device_backend(const SndMixerComp* m) { return snd_device_backend(m->device); }
+String snd_mixer_device_backend(const SndMixerComp* m) {
+  return m->device ? snd_device_backend(m->device) : string_empty;
+}
 
 String snd_mixer_device_state(const SndMixerComp* m) {
+  if (!m->device) {
+    return string_empty;
+  }
   const SndDeviceState state = snd_device_state(m->device);
   return snd_device_state_str(state);
 }
 
-u64 snd_mixer_device_underruns(const SndMixerComp* m) { return snd_device_underruns(m->device); }
+u64 snd_mixer_device_underruns(const SndMixerComp* m) {
+  return m->device ? snd_device_underruns(m->device) : 0;
+}
 
 u32 snd_mixer_objects_playing(const SndMixerComp* m) {
   return snd_object_count_in_phase(m, SndObjectPhase_Playing);
