@@ -814,7 +814,7 @@ bool app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
   const u16      width      = (u16)cli_read_u64(invoc, g_optWidth, prefs->windowWidth);
   const u16      height     = (u16)cli_read_u64(invoc, g_optHeight, prefs->windowHeight);
 
-  RendSettingsGlobalComp* rendSettingsGlobal = rend_settings_global_init(world);
+  RendSettingsGlobalComp* rendSettingsGlobal = rend_settings_global_init(world, devSupport);
 
   SndMixerComp* soundMixer = snd_mixer_init(world);
   snd_mixer_gain_set(soundMixer, prefs->volume * 1e-2f);

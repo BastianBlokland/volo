@@ -717,7 +717,7 @@ static void rend_settings_tab_draw(
   ui_table_next_row(canvas, &table);
   if (ui_button(canvas, .label = string_lit("Defaults"), .tooltip = g_tooltipDefaults)) {
     rend_settings_to_default(settings);
-    rend_settings_global_to_default(settingsGlobal);
+    rend_settings_global_to_default(settingsGlobal, true /* devSupport */);
   }
   ui_table_next_row(canvas, &table);
   if (ui_button(
