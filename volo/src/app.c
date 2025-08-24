@@ -754,7 +754,7 @@ void app_ecs_register(EcsDef* def, const CliInvocation* invoc) {
   asset_register(def);
   gap_register(def);
   input_register(def);
-  rend_register(def);
+  rend_register(def, appInitCtx.devSupport ? RendRegisterFlags_EnableStats : 0);
   scene_register(def);
   snd_register(def);
   ui_register(def);
