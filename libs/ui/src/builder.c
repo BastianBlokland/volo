@@ -694,6 +694,7 @@ UiBuildResult ui_build(const UiCmdBuffer* cmdBuffer, const UiBuildCtx* ctx) {
               .variation = ctx->settings->defaultVariation,
               .weight    = ctx->settings->defaultWeight,
               .layer     = UiLayer_Normal,
+              .transform = UiTransform_None,
           },
       .styleStackCount = 1,
       .containerStack[0] =
