@@ -565,7 +565,7 @@ static void app_dev_hide(EcsWorld* world, const bool hidden) {
   }
 }
 
-ecs_system_define(AppUpdateSys) {
+ecs_system_define(GameUpdateSys) {
   EcsView*     globalView = ecs_world_view_t(world, AppUpdateGlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   if (!globalItr) {
@@ -676,7 +676,7 @@ ecs_module_init(game_app_module) {
   }
 
   ecs_register_system(
-      AppUpdateSys,
+      GameUpdateSys,
       ecs_view_id(AppUpdateGlobalView),
       ecs_view_id(MainWindowView),
       ecs_view_id(LevelView),

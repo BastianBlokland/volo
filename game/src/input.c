@@ -661,7 +661,7 @@ ecs_view_define(CameraView) {
 
 ecs_view_define(ProductionView) { ecs_access_write(SceneProductionComp); }
 
-ecs_system_define(InputUpdateSys) {
+ecs_system_define(GameInputUpdateSys) {
   EcsView*     globalView = ecs_world_view_t(world, GlobalUpdateView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   if (!globalItr) {
@@ -743,7 +743,7 @@ static UiInteractType input_select_ui_interaction(const InputSelectMode mode) {
   UNREACHABLE
 }
 
-ecs_system_define(InputDrawUiSys) {
+ecs_system_define(GameInputDrawUiSys) {
   EcsIterator* canvasItr  = ecs_view_itr(ecs_world_view_t(world, UiCanvasView));
   EcsView*     cameraView = ecs_world_view_t(world, UiCameraView);
   for (EcsIterator* itr = ecs_view_itr(cameraView); ecs_view_walk(itr);) {
@@ -792,17 +792,17 @@ ecs_module_init(game_input_module) {
   ecs_register_view(ProductionView);
 
   ecs_register_system(
-      InputUpdateSys,
+      GameInputUpdateSys,
       ecs_view_id(GlobalUpdateView),
       ecs_view_id(CameraView),
       ecs_view_id(ProductionView));
-  ecs_register_system(InputDrawUiSys, ecs_view_id(UiCameraView), ecs_view_id(UiCanvasView));
+  ecs_register_system(GameInputDrawUiSys, ecs_view_id(UiCameraView), ecs_view_id(UiCanvasView));
 
   enum {
     Order_Normal      = 0,
     Order_InputDrawUi = 1,
   };
-  ecs_order(InputDrawUiSys, Order_InputDrawUi);
+  ecs_order(GameInputDrawUiSys, Order_InputDrawUi);
 
   // Initialize group action hashes.
   for (u32 i = 0; i != game_cmd_group_count; ++i) {

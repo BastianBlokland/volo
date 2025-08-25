@@ -1010,7 +1010,7 @@ static void hud_production_draw(
   ui_layout_pop(c);
 }
 
-ecs_system_define(HudDrawSys) {
+ecs_system_define(GameHudDrawSys) {
   EcsView*     globalView = ecs_world_view_t(world, GlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   if (!globalItr) {
@@ -1112,7 +1112,7 @@ ecs_module_init(game_hud_module) {
   ecs_register_view(VisionView);
 
   ecs_register_system(
-      HudDrawSys,
+      GameHudDrawSys,
       ecs_view_id(GlobalView),
       ecs_view_id(HudView),
       ecs_view_id(UiCanvasView),
@@ -1124,7 +1124,7 @@ ecs_module_init(game_hud_module) {
       ecs_view_id(ProductionView),
       ecs_view_id(VisionView));
 
-  ecs_order(HudDrawSys, GameOrder_HudDraw);
+  ecs_order(GameHudDrawSys, GameOrder_HudDraw);
 
   // Initialize product queue action hashes.
   for (u32 i = 0; i != array_elems(g_hudProductQueueActions); ++i) {
