@@ -126,6 +126,19 @@ static EcsEntityId game_main_window_create(
   return window;
 }
 
+typedef struct {
+  EcsWorld*               world;
+  GameComp*               game;
+  GamePrefsComp*          prefs;
+  const InputManagerComp* input;
+  SndMixerComp*           soundMixer;
+  SceneTimeSettingsComp*  timeSet;
+  GameCmdComp*            cmd;
+  GapWindowComp*          win;
+  RendSettingsGlobalComp* rendSetGlobal;
+  RendSettingsComp*       rendSetWin;
+} GameUpdateContext;
+
 static void game_window_fullscreen_toggle(GapWindowComp* win) {
   if (gap_window_mode(win) == GapWindowMode_Fullscreen) {
     const GapVector size = gap_window_param(win, GapParam_WindowSizePreFullscreen);
@@ -205,20 +218,7 @@ static void game_level_picker_draw(UiCanvasComp* canvas, EcsWorld* world, GameCo
   ui_style_pop(canvas);
 }
 
-typedef struct {
-  EcsWorld*               world;
-  GameComp*               game;
-  GamePrefsComp*          prefs;
-  const InputManagerComp* input;
-  SndMixerComp*           soundMixer;
-  SceneTimeSettingsComp*  timeSet;
-  GameCmdComp*            cmd;
-  GapWindowComp*          win;
-  RendSettingsGlobalComp* rendSetGlobal;
-  RendSettingsComp*       rendSetWin;
-} GameActionContext;
-
-static void game_action_debug_draw(UiCanvasComp* canvas, const GameActionContext* ctx) {
+static void game_action_debug_draw(UiCanvasComp* canvas, const GameUpdateContext* ctx) {
   const bool isInDebugMode = ctx->game->mode == GameMode_Debug;
   if (ui_button(
           canvas,
@@ -243,7 +243,7 @@ static void game_action_debug_draw(UiCanvasComp* canvas, const GameActionContext
   }
 }
 
-static void game_action_pause_draw(UiCanvasComp* canvas, const GameActionContext* ctx) {
+static void game_action_pause_draw(UiCanvasComp* canvas, const GameUpdateContext* ctx) {
   const bool isPaused = (ctx->timeSet->flags & SceneTimeFlags_Paused) != 0;
   if (ui_button(
           canvas,
@@ -257,7 +257,7 @@ static void game_action_pause_draw(UiCanvasComp* canvas, const GameActionContext
   }
 }
 
-static void game_action_restart_draw(UiCanvasComp* canvas, const GameActionContext* ctx) {
+static void game_action_restart_draw(UiCanvasComp* canvas, const GameUpdateContext* ctx) {
   if (ui_button(
           canvas,
           .label    = ui_shape_scratch(UiShape_Restart),
@@ -270,7 +270,7 @@ static void game_action_restart_draw(UiCanvasComp* canvas, const GameActionConte
   }
 }
 
-static void game_action_sound_draw(UiCanvasComp* canvas, const GameActionContext* ctx) {
+static void game_action_sound_draw(UiCanvasComp* canvas, const GameUpdateContext* ctx) {
   static const UiVector g_popupSize    = {.x = 35.0f, .y = 100.0f};
   static const f32      g_popupSpacing = 8.0f;
   static const UiVector g_popupInset   = {.x = -15.0f, .y = -15.0f};
@@ -328,7 +328,7 @@ static void game_action_sound_draw(UiCanvasComp* canvas, const GameActionContext
   ui_canvas_id_block_next(canvas); // End on an consistent id.
 }
 
-static void game_action_quality_draw(UiCanvasComp* canvas, const GameActionContext* ctx) {
+static void game_action_quality_draw(UiCanvasComp* canvas, const GameUpdateContext* ctx) {
   static const UiVector g_popupSize    = {.x = 250.0f, .y = 70.0f};
   static const f32      g_popupSpacing = 8.0f;
 
@@ -396,7 +396,7 @@ static void game_action_quality_draw(UiCanvasComp* canvas, const GameActionConte
   ui_canvas_id_block_next(canvas); // End on an consistent id.
 }
 
-static void game_action_fullscreen_draw(UiCanvasComp* canvas, const GameActionContext* ctx) {
+static void game_action_fullscreen_draw(UiCanvasComp* canvas, const GameUpdateContext* ctx) {
   if (ui_button(
           canvas,
           .label    = ui_shape_scratch(UiShape_Fullscreen),
@@ -409,7 +409,7 @@ static void game_action_fullscreen_draw(UiCanvasComp* canvas, const GameActionCo
   }
 }
 
-static void game_action_exit_draw(UiCanvasComp* canvas, const GameActionContext* ctx) {
+static void game_action_exit_draw(UiCanvasComp* canvas, const GameUpdateContext* ctx) {
   if (ui_button(
           canvas,
           .label    = ui_shape_scratch(UiShape_Logout),
@@ -421,8 +421,8 @@ static void game_action_exit_draw(UiCanvasComp* canvas, const GameActionContext*
   }
 }
 
-static void game_action_bar_draw(UiCanvasComp* canvas, const GameActionContext* ctx) {
-  void (*actions[32])(UiCanvasComp*, const GameActionContext*);
+static void game_action_bar_draw(UiCanvasComp* canvas, const GameUpdateContext* ctx) {
+  void (*actions[32])(UiCanvasComp*, const GameUpdateContext*);
   u32 actionCount = 0;
 
   if (ctx->game->devSupport) {
@@ -592,7 +592,7 @@ ecs_system_define(GameUpdateSys) {
       }
       game_action_bar_draw(
           canvas,
-          &(GameActionContext){
+          &(GameUpdateContext){
               .world         = world,
               .game          = game,
               .prefs         = prefs,
