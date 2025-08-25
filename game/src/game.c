@@ -52,6 +52,7 @@
 #include "vfx/register.h"
 
 #include "cmd.h"
+#include "game.h"
 #include "hud.h"
 #include "prefs.h"
 
@@ -63,6 +64,7 @@ typedef enum {
 } GameMode;
 
 ecs_comp_define(GameComp) {
+  GameState   state : 8;
   GameMode    mode : 8;
   bool        devSupport;
   EcsEntityId mainWindow;
@@ -831,3 +833,5 @@ void app_ecs_set_frame(EcsWorld* world, const u64 frameIdx) {
     time->frameIdx = frameIdx;
   }
 }
+
+GameState game_state(const GameComp* game) { return game->state; }
