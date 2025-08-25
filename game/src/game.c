@@ -250,7 +250,7 @@ static void game_draw_button_debug(const GameUpdateContext* ctx, MAYBE_UNUSED co
           .fontSize   = 35,
           .tooltip    = string_lit("Enable / disable debug mode."),
           .frameColor = isInDebugMode ? ui_color(178, 0, 0, 192) : ui_color(32, 32, 32, 192),
-          .activate   = input_triggered_lit(ctx->input, "AppDebug"))) {
+          .activate   = input_triggered_lit(ctx->input, "Debug"))) {
 
     log_i("Toggle debug-mode", log_param("debug", fmt_bool(!isInDebugMode)));
 
@@ -287,7 +287,7 @@ static void game_draw_button_restart(const GameUpdateContext* ctx, MAYBE_UNUSED 
           .label    = ui_shape_scratch(UiShape_Restart),
           .fontSize = 35,
           .tooltip  = string_lit("Restart the level."),
-          .activate = input_triggered_lit(ctx->input, "AppReset"))) {
+          .activate = input_triggered_lit(ctx->input, "Reset"))) {
 
     log_i("Restart");
     scene_level_reload(ctx->world, SceneLevelMode_Play);
@@ -301,7 +301,7 @@ game_draw_button_fullscreen(const GameUpdateContext* ctx, MAYBE_UNUSED const u32
           .label    = ui_shape_scratch(UiShape_Fullscreen),
           .fontSize = 35,
           .tooltip  = string_lit("Enter / exit fullscreen."),
-          .activate = input_triggered_lit(ctx->input, "AppWindowFullscreen"))) {
+          .activate = input_triggered_lit(ctx->input, "WindowFullscreen"))) {
 
     log_i("Toggle fullscreen");
     game_fullscreen_toggle(ctx->winComp);
@@ -314,7 +314,7 @@ static void game_draw_button_exit(const GameUpdateContext* ctx, MAYBE_UNUSED con
           .label    = ui_shape_scratch(UiShape_Logout),
           .fontSize = 35,
           .tooltip  = string_lit("Close the window."),
-          .activate = input_triggered_lit(ctx->input, "AppWindowClose"))) {
+          .activate = input_triggered_lit(ctx->input, "WindowClose"))) {
     log_i("Close window");
     gap_window_close(ctx->winComp);
   }
@@ -798,7 +798,7 @@ bool app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
   game_levels_query_init(world, game, assets);
 
   InputResourceComp* inputResource = input_resource_init(world);
-  input_resource_load_map(inputResource, string_lit("global/app.inputs"));
+  input_resource_load_map(inputResource, string_lit("global/global.inputs"));
   input_resource_load_map(inputResource, string_lit("global/game.inputs"));
   if (devSupport) {
     input_resource_load_map(inputResource, string_lit("global/dev.inputs"));
