@@ -66,7 +66,7 @@ typedef enum {
   InputQuery_Count
 } InputQueryType;
 
-ecs_comp_define(InputStateComp) {
+ecs_comp_define(GameInputComp) {
   EcsEntityId      uiCanvas;
   InputFlags       flags : 8;
   InputSelectState selectState : 8;
@@ -156,7 +156,7 @@ static GeoVector input_clamp_to_play_area(const SceneTerrainComp* terrain, const
 }
 
 static void update_group_input(
-    InputStateComp*        state,
+    GameInputComp*         state,
     CmdControllerComp*     cmdController,
     InputManagerComp*      input,
     const SceneSetEnvComp* setEnv,
@@ -190,7 +190,7 @@ static void update_group_input(
 }
 
 static void update_camera_movement(
-    InputStateComp*         state,
+    GameInputComp*          state,
     InputManagerComp*       input,
     const SceneTimeComp*    time,
     const SceneTerrainComp* terrain,
@@ -347,16 +347,16 @@ static bool placement_update(
   return placementActive;
 }
 
-static void select_start(InputStateComp* state, InputManagerComp* input) {
+static void select_start(GameInputComp* state, InputManagerComp* input) {
   state->selectState = InputSelectState_Down;
   state->selectStart = (GeoVector){.x = input_cursor_x(input), .y = input_cursor_y(input)};
 }
 
-static void select_start_drag(InputStateComp* state) {
+static void select_start_drag(GameInputComp* state) {
   state->selectState = InputSelectState_Dragging;
 }
 
-static void select_end_click(InputStateComp* state, CmdControllerComp* cmdController) {
+static void select_end_click(GameInputComp* state, CmdControllerComp* cmdController) {
   state->selectState = InputSelectState_None;
 
   if (state->hoveredEntity[InputQuery_Select]) {
@@ -377,7 +377,7 @@ static void select_end_click(InputStateComp* state, CmdControllerComp* cmdContro
 }
 
 static void select_update_drag(
-    InputStateComp*              state,
+    GameInputComp*               state,
     InputManagerComp*            input,
     CmdControllerComp*           cmdController,
     const SceneCollisionEnvComp* collisionEnv,
@@ -414,7 +414,7 @@ static void select_update_drag(
   }
 }
 
-static void select_end_drag(InputStateComp* state) { state->selectState = InputSelectState_None; }
+static void select_end_drag(GameInputComp* state) { state->selectState = InputSelectState_None; }
 
 static void input_order_attack(
     EcsWorld*              world,
@@ -482,7 +482,7 @@ static void input_order_stop(CmdControllerComp* cmdController, const SceneSetEnv
 
 static void input_order(
     EcsWorld*               world,
-    InputStateComp*         state,
+    GameInputComp*          state,
     CmdControllerComp*      cmdController,
     const SceneSetEnvComp*  setEnv,
     const SceneTerrainComp* terrain,
@@ -512,7 +512,7 @@ static void input_order(
   }
 }
 
-static void input_camera_reset(InputStateComp* state, const SceneLevelManagerComp* levelManager) {
+static void input_camera_reset(GameInputComp* state, const SceneLevelManagerComp* levelManager) {
   if (scene_level_loaded(levelManager)) {
     state->camPosTgt = scene_level_startpoint(levelManager);
   } else {
@@ -523,7 +523,7 @@ static void input_camera_reset(InputStateComp* state, const SceneLevelManagerCom
 }
 
 static void update_camera_hover(
-    InputStateComp*              state,
+    GameInputComp*               state,
     InputManagerComp*            input,
     const SceneCollisionEnvComp* collisionEnv,
     const SceneTimeComp*         time,
@@ -549,7 +549,7 @@ static void update_camera_hover(
 
 static void update_camera_interact(
     EcsWorld*                    world,
-    InputStateComp*              state,
+    GameInputComp*               state,
     CmdControllerComp*           cmdController,
     InputManagerComp*            input,
     const SceneLevelManagerComp* levelManager,
@@ -642,7 +642,7 @@ static void input_state_init(EcsWorld* world, const EcsEntityId windowEntity) {
   ecs_world_add_t(
       world,
       windowEntity,
-      InputStateComp,
+      GameInputComp,
       .uiCanvas = ui_canvas_create(world, windowEntity, UiCanvasCreateFlags_ToBack));
 }
 
@@ -658,7 +658,7 @@ ecs_view_define(GlobalUpdateView) {
 }
 
 ecs_view_define(CameraView) {
-  ecs_access_maybe_write(InputStateComp);
+  ecs_access_maybe_write(GameInputComp);
   ecs_access_read(SceneCameraComp);
   ecs_access_write(SceneTransformComp);
 }
@@ -692,7 +692,7 @@ ecs_system_define(InputUpdateSys) {
   for (EcsIterator* camItr = ecs_view_itr(cameraView); ecs_view_walk(camItr);) {
     const SceneCameraComp* cam      = ecs_view_read_t(camItr, SceneCameraComp);
     SceneTransformComp*    camTrans = ecs_view_write_t(camItr, SceneTransformComp);
-    InputStateComp*        state    = ecs_view_write_t(camItr, InputStateComp);
+    GameInputComp*         state    = ecs_view_write_t(camItr, GameInputComp);
     if (!state) {
       input_state_init(world, ecs_view_entity(camItr));
       continue;
@@ -728,7 +728,7 @@ ecs_system_define(InputUpdateSys) {
   }
 }
 
-ecs_view_define(UiCameraView) { ecs_access_write(InputStateComp); }
+ecs_view_define(UiCameraView) { ecs_access_write(GameInputComp); }
 
 ecs_view_define(UiCanvasView) {
   ecs_view_flags(EcsViewFlags_Exclusive); // Only access the canvas's we create.
@@ -751,7 +751,7 @@ ecs_system_define(InputDrawUiSys) {
   EcsIterator* canvasItr  = ecs_view_itr(ecs_world_view_t(world, UiCanvasView));
   EcsView*     cameraView = ecs_world_view_t(world, UiCameraView);
   for (EcsIterator* itr = ecs_view_itr(cameraView); ecs_view_walk(itr);) {
-    InputStateComp* state = ecs_view_write_t(itr, InputStateComp);
+    GameInputComp* state = ecs_view_write_t(itr, GameInputComp);
     if (!ecs_view_maybe_jump(canvasItr, state->uiCanvas)) {
       continue;
     }
@@ -787,7 +787,7 @@ ecs_system_define(InputDrawUiSys) {
 }
 
 ecs_module_init(game_input_module) {
-  ecs_register_comp(InputStateComp);
+  ecs_register_comp(GameInputComp);
 
   ecs_register_view(GlobalUpdateView);
   ecs_register_view(CameraView);
@@ -814,11 +814,11 @@ ecs_module_init(game_input_module) {
   }
 }
 
-void input_camera_center(InputStateComp* state, const GeoVector worldPos) {
+void game_input_camera_center(GameInputComp* state, const GeoVector worldPos) {
   state->camPosTgt = worldPos;
 }
 
-void input_set_allow_zoom_over_ui(InputStateComp* state, const bool allowZoomOverUI) {
+void game_input_set_allow_zoom_over_ui(GameInputComp* state, const bool allowZoomOverUI) {
   if (allowZoomOverUI) {
     state->flags |= InputFlags_AllowZoomOverUi;
   } else {
@@ -826,8 +826,8 @@ void input_set_allow_zoom_over_ui(InputStateComp* state, const bool allowZoomOve
   }
 }
 
-bool input_hovered_entity(
-    const InputStateComp* state, EcsEntityId* outEntity, TimeDuration* outTime) {
+bool game_input_hovered_entity(
+    const GameInputComp* state, EcsEntityId* outEntity, TimeDuration* outTime) {
   if (state->selectState >= InputSelectState_Down) {
     return false; // Disallow hovering UI when actively selecting a unit.
   }

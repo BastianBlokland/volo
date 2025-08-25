@@ -92,7 +92,7 @@ ecs_view_define(HudView) {
   ecs_access_read(SceneCameraComp);
   ecs_access_read(SceneTransformComp);
   ecs_access_write(HudComp);
-  ecs_access_write(InputStateComp);
+  ecs_access_write(GameInputComp);
 }
 
 ecs_view_define(UiCanvasView) {
@@ -649,7 +649,7 @@ static u32 hud_minimap_marker_collect(
 static void hud_minimap_draw(
     UiCanvasComp*             c,
     HudComp*                  hud,
-    InputStateComp*           inputState,
+    GameInputComp*            inputState,
     const SceneTerrainComp*   terrain,
     const SceneCameraComp*    cam,
     const SceneTransformComp* camTrans,
@@ -674,7 +674,7 @@ static void hud_minimap_draw(
   const UiStatus frameStatus = ui_canvas_elem_status(c, frameId);
 
   // Handle input.
-  input_set_allow_zoom_over_ui(inputState, frameStatus >= UiStatus_Hovered);
+  game_input_set_allow_zoom_over_ui(inputState, frameStatus >= UiStatus_Hovered);
   if (frameStatus >= UiStatus_Hovered) {
     ui_canvas_interact_type(c, UiInteractType_Action);
   }
@@ -682,7 +682,7 @@ static void hud_minimap_draw(
     const UiVector uiPos = ui_canvas_input_pos(c);
     const f32 x = ((uiPos.x - hud->minimapRect.x) / hud->minimapRect.width - 0.5f) * areaSize.x;
     const f32 z = ((uiPos.y - hud->minimapRect.y) / hud->minimapRect.height - 0.5f) * areaSize.z;
-    input_camera_center(inputState, geo_vector(x, 0, z));
+    game_input_camera_center(inputState, geo_vector(x, 0, z));
   }
 
   const UiCircleOpts circleOpts = {.base = UiBase_Container, .radius = g_hudMinimapDotRadius};
@@ -1041,7 +1041,7 @@ ecs_system_define(HudDrawSys) {
   EcsIterator* weaponMapItr  = ecs_view_maybe_at(weaponMapView, scene_weapon_map(weaponRes));
 
   for (EcsIterator* itr = ecs_view_itr(hudView); ecs_view_walk(itr);) {
-    InputStateComp*           inputState = ecs_view_write_t(itr, InputStateComp);
+    GameInputComp*            inputState = ecs_view_write_t(itr, GameInputComp);
     const SceneCameraComp*    cam        = ecs_view_read_t(itr, SceneCameraComp);
     const SceneTransformComp* camTrans   = ecs_view_read_t(itr, SceneTransformComp);
     HudComp*                  hud        = ecs_view_write_t(itr, HudComp);
@@ -1089,7 +1089,7 @@ ecs_system_define(HudDrawSys) {
 
     EcsEntityId  hoveredEntity;
     TimeDuration hoveredTime;
-    const bool   hovered = input_hovered_entity(inputState, &hoveredEntity, &hoveredTime);
+    const bool   hovered = game_input_hovered_entity(inputState, &hoveredEntity, &hoveredTime);
     if (hovered && hoveredTime >= time_second && ecs_view_maybe_jump(infoItr, hoveredEntity)) {
       hud_info_draw(c, infoItr, weaponMapItr);
     }
