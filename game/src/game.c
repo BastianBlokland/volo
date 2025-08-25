@@ -87,7 +87,7 @@ static void ecs_destruct_game_comp(void* data) {
   }
 }
 
-static EcsEntityId game_main_window_create(
+static EcsEntityId game_window_create(
     EcsWorld*         world,
     AssetManagerComp* assets,
     const bool        fullscreen,
@@ -126,28 +126,7 @@ static EcsEntityId game_main_window_create(
   return window;
 }
 
-typedef struct {
-  EcsWorld*                    world;
-  GameComp*                    game;
-  GamePrefsComp*               prefs;
-  const SceneLevelManagerComp* levelManager;
-  InputManagerComp*            input;
-  SndMixerComp*                soundMixer;
-  SceneTimeSettingsComp*       timeSet;
-  GameCmdComp*                 cmd;
-  AssetManagerComp*            assets;
-  SceneVisibilityEnvComp*      visibilityEnv;
-  RendSettingsGlobalComp*      rendSetGlobal;
-
-  EcsEntityId         winEntity;
-  GameMainWindowComp* winGame;
-  GapWindowComp*      winComp;
-  RendSettingsComp*   winRendSet;
-
-  EcsView* devPanelView; // Null if dev-support is not enabled.
-} GameUpdateContext;
-
-static void game_window_fullscreen_toggle(GapWindowComp* win) {
+static void game_fullscreen_toggle(GapWindowComp* win) {
   if (gap_window_mode(win) == GapWindowMode_Fullscreen) {
     const GapVector size = gap_window_param(win, GapParam_WindowSizePreFullscreen);
     gap_window_resize(win, size, GapWindowMode_Windowed);
@@ -206,30 +185,67 @@ static void game_quality_apply(
   }
 }
 
-static void game_level_picker_draw(const GameUpdateContext* ctx, UiCanvasComp* canvas) {
-  static const UiVector g_buttonSize = {.x = 250.0f, .y = 50.0f};
-  static const f32      g_spacing    = 8.0f;
+typedef struct {
+  EcsWorld*                    world;
+  GameComp*                    game;
+  GamePrefsComp*               prefs;
+  const SceneLevelManagerComp* levelManager;
+  InputManagerComp*            input;
+  SndMixerComp*                soundMixer;
+  SceneTimeSettingsComp*       timeSet;
+  GameCmdComp*                 cmd;
+  AssetManagerComp*            assets;
+  SceneVisibilityEnvComp*      visibilityEnv;
+  RendSettingsGlobalComp*      rendSetGlobal;
 
-  const u32 levelCount    = bits_popcnt(ctx->game->levelMask);
-  const f32 yCenterOffset = (levelCount - 1) * (g_buttonSize.y + g_spacing) * 0.5f;
-  ui_layout_inner(canvas, UiBase_Canvas, UiAlign_MiddleCenter, g_buttonSize, UiBase_Absolute);
-  ui_layout_move(canvas, ui_vector(g_spacing, yCenterOffset), UiBase_Absolute, Ui_XY);
+  EcsEntityId         winEntity;
+  GameMainWindowComp* winGame;
+  GapWindowComp*      winComp;
+  RendSettingsComp*   winRendSet;
+  UiCanvasComp*       winCanvas;
 
-  ui_style_push(canvas);
-  ui_style_transform(canvas, UiTransform_ToUpper);
-  bitset_for(bitset_from_var(ctx->game->levelMask), idx) {
-    if (ui_button(canvas, .label = ctx->game->levelNames[idx], .fontSize = 25)) {
-      scene_level_load(ctx->world, SceneLevelMode_Play, ctx->game->levelAssets[idx]);
-    }
-    ui_layout_next(canvas, Ui_Down, g_spacing);
+  EcsView* devPanelView; // Null if dev-support is not enabled.
+} GameUpdateContext;
+
+typedef void (*GameUiDrawer)(const GameUpdateContext*, u32 index);
+
+static void game_draw_list(const GameUpdateContext* ctx, const GameUiDrawer val[], const u32 cnt) {
+  static const UiVector g_entrySize = {.x = 250.0f, .y = 50.0f};
+  static const f32      g_spacing   = 8.0f;
+
+  const f32 yCenterOffset = (cnt - 1) * (g_entrySize.y + g_spacing) * 0.5f;
+  ui_layout_inner(
+      ctx->winCanvas, UiBase_Canvas, UiAlign_MiddleCenter, g_entrySize, UiBase_Absolute);
+  ui_layout_move(ctx->winCanvas, ui_vector(g_spacing, yCenterOffset), UiBase_Absolute, Ui_XY);
+
+  ui_style_push(ctx->winCanvas);
+  ui_style_transform(ctx->winCanvas, UiTransform_ToUpper);
+  for (u32 i = 0; i != cnt; ++i) {
+    val[i](ctx, i);
+    ui_layout_next(ctx->winCanvas, Ui_Down, g_spacing);
   }
-  ui_style_pop(canvas);
+  ui_style_pop(ctx->winCanvas);
 }
 
-static void game_action_debug_draw(UiCanvasComp* canvas, const GameUpdateContext* ctx) {
+static void game_draw_button_level(const GameUpdateContext* ctx, const u32 index) {
+  if (ui_button(ctx->winCanvas, .label = ctx->game->levelNames[index], .fontSize = 25)) {
+    scene_level_load(ctx->world, SceneLevelMode_Play, ctx->game->levelAssets[index]);
+  }
+}
+
+static void game_draw_level_picker(const GameUpdateContext* ctx) {
+  GameUiDrawer levelButtons[GameLevelsMax];
+  const u32    levelButtonCount = bits_popcnt(ctx->game->levelMask);
+  for (u32 i = 0; i != levelButtonCount; ++i) {
+    levelButtons[i] = &game_draw_button_level;
+  }
+  game_draw_list(ctx, levelButtons, levelButtonCount);
+}
+
+static void game_draw_button_debug(const GameUpdateContext* ctx, MAYBE_UNUSED const u32 index) {
   const bool isInDebugMode = ctx->game->mode == GameMode_Debug;
   if (ui_button(
-          canvas,
+          ctx->winCanvas,
           .label      = ui_shape_scratch(UiShape_Bug),
           .fontSize   = 35,
           .tooltip    = string_lit("Enable / disable debug mode."),
@@ -251,10 +267,10 @@ static void game_action_debug_draw(UiCanvasComp* canvas, const GameUpdateContext
   }
 }
 
-static void game_action_pause_draw(UiCanvasComp* canvas, const GameUpdateContext* ctx) {
+static void game_draw_button_pause(const GameUpdateContext* ctx, MAYBE_UNUSED const u32 index) {
   const bool isPaused = (ctx->timeSet->flags & SceneTimeFlags_Paused) != 0;
   if (ui_button(
-          canvas,
+          ctx->winCanvas,
           .label      = ui_shape_scratch(UiShape_Pause),
           .fontSize   = 35,
           .tooltip    = string_lit("Pause / Resume."),
@@ -265,9 +281,9 @@ static void game_action_pause_draw(UiCanvasComp* canvas, const GameUpdateContext
   }
 }
 
-static void game_action_restart_draw(UiCanvasComp* canvas, const GameUpdateContext* ctx) {
+static void game_draw_button_restart(const GameUpdateContext* ctx, MAYBE_UNUSED const u32 index) {
   if (ui_button(
-          canvas,
+          ctx->winCanvas,
           .label    = ui_shape_scratch(UiShape_Restart),
           .fontSize = 35,
           .tooltip  = string_lit("Restart the level."),
@@ -278,148 +294,23 @@ static void game_action_restart_draw(UiCanvasComp* canvas, const GameUpdateConte
   }
 }
 
-static void game_action_sound_draw(UiCanvasComp* canvas, const GameUpdateContext* ctx) {
-  static const UiVector g_popupSize    = {.x = 35.0f, .y = 100.0f};
-  static const f32      g_popupSpacing = 8.0f;
-  static const UiVector g_popupInset   = {.x = -15.0f, .y = -15.0f};
-
-  const bool              muted       = ctx->prefs->volume <= f32_epsilon;
-  const UiId              popupId     = ui_canvas_id_peek(canvas);
-  const UiPersistentFlags popupFlags  = ui_canvas_persistent_flags(canvas, popupId);
-  const bool              popupActive = (popupFlags & UiPersistentFlags_Open) != 0;
-
-  ui_canvas_id_block_next(canvas);
-
+static void
+game_draw_button_fullscreen(const GameUpdateContext* ctx, MAYBE_UNUSED const u32 index) {
   if (ui_button(
-          canvas,
-          .label      = ui_shape_scratch(muted ? UiShape_VolumeOff : UiShape_VolumeUp),
-          .fontSize   = 35,
-          .frameColor = popupActive ? ui_color(128, 128, 128, 192) : ui_color(32, 32, 32, 192),
-          .tooltip    = string_lit("Open / Close the sound volume controls."))) {
-    ui_canvas_persistent_flags_toggle(canvas, popupId, UiPersistentFlags_Open);
-  }
-
-  if (popupActive) {
-    ui_layout_push(canvas);
-    ui_layout_move(canvas, ui_vector(0.5f, 1.0f), UiBase_Current, Ui_XY);
-    ui_layout_move_dir(canvas, Ui_Up, g_popupSpacing, UiBase_Absolute);
-    ui_layout_resize(canvas, UiAlign_BottomCenter, g_popupSize, UiBase_Absolute, Ui_XY);
-
-    // Popup background.
-    ui_style_push(canvas);
-    ui_style_outline(canvas, 2);
-    ui_style_color(canvas, ui_color(128, 128, 128, 192));
-    ui_canvas_draw_glyph(canvas, UiShape_Circle, 5, UiFlags_Interactable);
-    ui_style_pop(canvas);
-
-    // Volume slider.
-    ui_layout_grow(canvas, UiAlign_MiddleCenter, g_popupInset, UiBase_Absolute, Ui_XY);
-    if (ui_slider(
-            canvas,
-            &ctx->prefs->volume,
-            .vertical = true,
-            .max      = 1e2f,
-            .step     = 1,
-            .tooltip  = string_lit("Sound volume."))) {
-
-      ctx->prefs->dirty = true;
-      snd_mixer_gain_set(ctx->soundMixer, ctx->prefs->volume * 1e-2f);
-    }
-    ui_layout_pop(canvas);
-
-    // Close when pressing outside.
-    if (ui_canvas_input_any(canvas) && ui_canvas_group_block_inactive(canvas)) {
-      ui_canvas_persistent_flags_unset(canvas, popupId, UiPersistentFlags_Open);
-    }
-  }
-
-  ui_canvas_id_block_next(canvas); // End on an consistent id.
-}
-
-static void game_action_quality_draw(UiCanvasComp* canvas, const GameUpdateContext* ctx) {
-  static const UiVector g_popupSize    = {.x = 250.0f, .y = 70.0f};
-  static const f32      g_popupSpacing = 8.0f;
-
-  const UiId              popupId     = ui_canvas_id_peek(canvas);
-  const UiPersistentFlags popupFlags  = ui_canvas_persistent_flags(canvas, popupId);
-  const bool              popupActive = (popupFlags & UiPersistentFlags_Open) != 0;
-
-  ui_canvas_id_block_next(canvas);
-
-  if (ui_button(
-          canvas,
-          .label      = ui_shape_scratch(UiShape_Image),
-          .fontSize   = 35,
-          .frameColor = popupActive ? ui_color(128, 128, 128, 192) : ui_color(32, 32, 32, 192),
-          .tooltip    = string_lit("Open / Close the quality controls."))) {
-    ui_canvas_persistent_flags_toggle(canvas, popupId, UiPersistentFlags_Open);
-  }
-
-  if (popupActive && ctx->rendSetGlobal && ctx->winRendSet) {
-    ui_layout_push(canvas);
-    ui_layout_move(canvas, ui_vector(0.5f, 1.0f), UiBase_Current, Ui_XY);
-    ui_layout_move_dir(canvas, Ui_Up, g_popupSpacing, UiBase_Absolute);
-    ui_layout_resize(canvas, UiAlign_BottomCenter, g_popupSize, UiBase_Absolute, Ui_XY);
-
-    // Popup background.
-    ui_style_push(canvas);
-    ui_style_outline(canvas, 2);
-    ui_style_color(canvas, ui_color(128, 128, 128, 192));
-    ui_canvas_draw_glyph(canvas, UiShape_Circle, 5, UiFlags_Interactable);
-    ui_style_pop(canvas);
-
-    // Settings.
-    ui_layout_container_push(canvas, UiClip_None, UiLayer_Normal);
-
-    UiTable table = ui_table();
-    ui_table_add_column(&table, UiTableColumn_Fixed, 125);
-    ui_table_add_column(&table, UiTableColumn_Fixed, 110);
-
-    ui_table_next_row(canvas, &table);
-    ui_label(canvas, string_lit("PowerSaving"));
-    ui_table_next_column(canvas, &table);
-    if (ui_toggle(canvas, &ctx->prefs->powerSaving)) {
-      ctx->prefs->dirty = true;
-      game_quality_apply(ctx->prefs, ctx->rendSetGlobal, ctx->winRendSet);
-    }
-
-    ui_table_next_row(canvas, &table);
-    ui_label(canvas, string_lit("Quality"));
-    ui_table_next_column(canvas, &table);
-    i32* quality = (i32*)&ctx->prefs->quality;
-    if (ui_select(canvas, quality, g_gameQualityLabels, GameQuality_Count)) {
-      ctx->prefs->dirty = true;
-      game_quality_apply(ctx->prefs, ctx->rendSetGlobal, ctx->winRendSet);
-    }
-
-    ui_layout_container_pop(canvas);
-    ui_layout_pop(canvas);
-
-    // Close when pressing outside.
-    if (ui_canvas_input_any(canvas) && ui_canvas_group_block_inactive(canvas)) {
-      ui_canvas_persistent_flags_unset(canvas, popupId, UiPersistentFlags_Open);
-    }
-  }
-
-  ui_canvas_id_block_next(canvas); // End on an consistent id.
-}
-
-static void game_action_fullscreen_draw(UiCanvasComp* canvas, const GameUpdateContext* ctx) {
-  if (ui_button(
-          canvas,
+          ctx->winCanvas,
           .label    = ui_shape_scratch(UiShape_Fullscreen),
           .fontSize = 35,
           .tooltip  = string_lit("Enter / exit fullscreen."),
           .activate = input_triggered_lit(ctx->input, "AppWindowFullscreen"))) {
 
     log_i("Toggle fullscreen");
-    game_window_fullscreen_toggle(ctx->winComp);
+    game_fullscreen_toggle(ctx->winComp);
   }
 }
 
-static void game_action_exit_draw(UiCanvasComp* canvas, const GameUpdateContext* ctx) {
+static void game_draw_button_exit(const GameUpdateContext* ctx, MAYBE_UNUSED const u32 index) {
   if (ui_button(
-          canvas,
+          ctx->winCanvas,
           .label    = ui_shape_scratch(UiShape_Logout),
           .fontSize = 35,
           .tooltip  = string_lit("Close the window."),
@@ -429,30 +320,157 @@ static void game_action_exit_draw(UiCanvasComp* canvas, const GameUpdateContext*
   }
 }
 
-static void game_action_bar_draw(UiCanvasComp* canvas, const GameUpdateContext* ctx) {
-  void (*actions[32])(UiCanvasComp*, const GameUpdateContext*);
-  u32 actionCount = 0;
+static void game_draw_settings_sound(const GameUpdateContext* ctx, MAYBE_UNUSED const u32 index) {
+  static const UiVector g_popupSize    = {.x = 35.0f, .y = 100.0f};
+  static const f32      g_popupSpacing = 8.0f;
+  static const UiVector g_popupInset   = {.x = -15.0f, .y = -15.0f};
+
+  const bool              muted       = ctx->prefs->volume <= f32_epsilon;
+  const UiId              popupId     = ui_canvas_id_peek(ctx->winCanvas);
+  const UiPersistentFlags popupFlags  = ui_canvas_persistent_flags(ctx->winCanvas, popupId);
+  const bool              popupActive = (popupFlags & UiPersistentFlags_Open) != 0;
+
+  ui_canvas_id_block_next(ctx->winCanvas);
+
+  if (ui_button(
+          ctx->winCanvas,
+          .label      = ui_shape_scratch(muted ? UiShape_VolumeOff : UiShape_VolumeUp),
+          .fontSize   = 35,
+          .frameColor = popupActive ? ui_color(128, 128, 128, 192) : ui_color(32, 32, 32, 192),
+          .tooltip    = string_lit("Open / Close the sound volume controls."))) {
+    ui_canvas_persistent_flags_toggle(ctx->winCanvas, popupId, UiPersistentFlags_Open);
+  }
+
+  if (popupActive) {
+    ui_layout_push(ctx->winCanvas);
+    ui_layout_move(ctx->winCanvas, ui_vector(0.5f, 1.0f), UiBase_Current, Ui_XY);
+    ui_layout_move_dir(ctx->winCanvas, Ui_Up, g_popupSpacing, UiBase_Absolute);
+    ui_layout_resize(ctx->winCanvas, UiAlign_BottomCenter, g_popupSize, UiBase_Absolute, Ui_XY);
+
+    // Popup background.
+    ui_style_push(ctx->winCanvas);
+    ui_style_outline(ctx->winCanvas, 2);
+    ui_style_color(ctx->winCanvas, ui_color(128, 128, 128, 192));
+    ui_canvas_draw_glyph(ctx->winCanvas, UiShape_Circle, 5, UiFlags_Interactable);
+    ui_style_pop(ctx->winCanvas);
+
+    // Volume slider.
+    ui_layout_grow(ctx->winCanvas, UiAlign_MiddleCenter, g_popupInset, UiBase_Absolute, Ui_XY);
+    if (ui_slider(
+            ctx->winCanvas,
+            &ctx->prefs->volume,
+            .vertical = true,
+            .max      = 1e2f,
+            .step     = 1,
+            .tooltip  = string_lit("Sound volume."))) {
+
+      ctx->prefs->dirty = true;
+      snd_mixer_gain_set(ctx->soundMixer, ctx->prefs->volume * 1e-2f);
+    }
+    ui_layout_pop(ctx->winCanvas);
+
+    // Close when pressing outside.
+    if (ui_canvas_input_any(ctx->winCanvas) && ui_canvas_group_block_inactive(ctx->winCanvas)) {
+      ui_canvas_persistent_flags_unset(ctx->winCanvas, popupId, UiPersistentFlags_Open);
+    }
+  }
+
+  ui_canvas_id_block_next(ctx->winCanvas); // End on an consistent id.
+}
+
+static void game_draw_settings_quality(const GameUpdateContext* ctx, MAYBE_UNUSED const u32 index) {
+  static const UiVector g_popupSize    = {.x = 250.0f, .y = 70.0f};
+  static const f32      g_popupSpacing = 8.0f;
+
+  const UiId              popupId     = ui_canvas_id_peek(ctx->winCanvas);
+  const UiPersistentFlags popupFlags  = ui_canvas_persistent_flags(ctx->winCanvas, popupId);
+  const bool              popupActive = (popupFlags & UiPersistentFlags_Open) != 0;
+
+  ui_canvas_id_block_next(ctx->winCanvas);
+
+  if (ui_button(
+          ctx->winCanvas,
+          .label      = ui_shape_scratch(UiShape_Image),
+          .fontSize   = 35,
+          .frameColor = popupActive ? ui_color(128, 128, 128, 192) : ui_color(32, 32, 32, 192),
+          .tooltip    = string_lit("Open / Close the quality controls."))) {
+    ui_canvas_persistent_flags_toggle(ctx->winCanvas, popupId, UiPersistentFlags_Open);
+  }
+
+  if (popupActive && ctx->rendSetGlobal && ctx->winRendSet) {
+    ui_layout_push(ctx->winCanvas);
+    ui_layout_move(ctx->winCanvas, ui_vector(0.5f, 1.0f), UiBase_Current, Ui_XY);
+    ui_layout_move_dir(ctx->winCanvas, Ui_Up, g_popupSpacing, UiBase_Absolute);
+    ui_layout_resize(ctx->winCanvas, UiAlign_BottomCenter, g_popupSize, UiBase_Absolute, Ui_XY);
+
+    // Popup background.
+    ui_style_push(ctx->winCanvas);
+    ui_style_outline(ctx->winCanvas, 2);
+    ui_style_color(ctx->winCanvas, ui_color(128, 128, 128, 192));
+    ui_canvas_draw_glyph(ctx->winCanvas, UiShape_Circle, 5, UiFlags_Interactable);
+    ui_style_pop(ctx->winCanvas);
+
+    // Settings.
+    ui_layout_container_push(ctx->winCanvas, UiClip_None, UiLayer_Normal);
+
+    UiTable table = ui_table();
+    ui_table_add_column(&table, UiTableColumn_Fixed, 125);
+    ui_table_add_column(&table, UiTableColumn_Fixed, 110);
+
+    ui_table_next_row(ctx->winCanvas, &table);
+    ui_label(ctx->winCanvas, string_lit("PowerSaving"));
+    ui_table_next_column(ctx->winCanvas, &table);
+    if (ui_toggle(ctx->winCanvas, &ctx->prefs->powerSaving)) {
+      ctx->prefs->dirty = true;
+      game_quality_apply(ctx->prefs, ctx->rendSetGlobal, ctx->winRendSet);
+    }
+
+    ui_table_next_row(ctx->winCanvas, &table);
+    ui_label(ctx->winCanvas, string_lit("Quality"));
+    ui_table_next_column(ctx->winCanvas, &table);
+    i32* quality = (i32*)&ctx->prefs->quality;
+    if (ui_select(ctx->winCanvas, quality, g_gameQualityLabels, GameQuality_Count)) {
+      ctx->prefs->dirty = true;
+      game_quality_apply(ctx->prefs, ctx->rendSetGlobal, ctx->winRendSet);
+    }
+
+    ui_layout_container_pop(ctx->winCanvas);
+    ui_layout_pop(ctx->winCanvas);
+
+    // Close when pressing outside.
+    if (ui_canvas_input_any(ctx->winCanvas) && ui_canvas_group_block_inactive(ctx->winCanvas)) {
+      ui_canvas_persistent_flags_unset(ctx->winCanvas, popupId, UiPersistentFlags_Open);
+    }
+  }
+
+  ui_canvas_id_block_next(ctx->winCanvas); // End on an consistent id.
+}
+
+static void game_action_bar_draw(const GameUpdateContext* ctx) {
+  GameUiDrawer actions[32];
+  u32          actionCount = 0;
 
   if (ctx->game->devSupport) {
-    actions[actionCount++] = game_action_debug_draw;
+    actions[actionCount++] = game_draw_button_debug;
   }
-  actions[actionCount++] = game_action_pause_draw;
-  actions[actionCount++] = game_action_restart_draw;
-  actions[actionCount++] = game_action_sound_draw;
-  actions[actionCount++] = game_action_quality_draw;
-  actions[actionCount++] = game_action_fullscreen_draw;
-  actions[actionCount++] = game_action_exit_draw;
+  actions[actionCount++] = game_draw_button_pause;
+  actions[actionCount++] = game_draw_button_restart;
+  actions[actionCount++] = game_draw_settings_sound;
+  actions[actionCount++] = game_draw_settings_quality;
+  actions[actionCount++] = game_draw_button_fullscreen;
+  actions[actionCount++] = game_draw_button_exit;
 
   static const UiVector g_buttonSize = {.x = 50.0f, .y = 50.0f};
   static const f32      g_spacing    = 8.0f;
 
   const f32 xCenterOffset = (actionCount - 1) * (g_buttonSize.x + g_spacing) * -0.5f;
-  ui_layout_inner(canvas, UiBase_Canvas, UiAlign_BottomCenter, g_buttonSize, UiBase_Absolute);
-  ui_layout_move(canvas, ui_vector(xCenterOffset, g_spacing), UiBase_Absolute, Ui_XY);
+  ui_layout_inner(
+      ctx->winCanvas, UiBase_Canvas, UiAlign_BottomCenter, g_buttonSize, UiBase_Absolute);
+  ui_layout_move(ctx->winCanvas, ui_vector(xCenterOffset, g_spacing), UiBase_Absolute, Ui_XY);
 
   for (u32 i = 0; i != actionCount; ++i) {
-    actions[i](canvas, ctx);
-    ui_layout_next(canvas, Ui_Right, g_spacing);
+    actions[i](ctx, i);
+    ui_layout_next(ctx->winCanvas, Ui_Right, g_spacing);
   }
 }
 
@@ -576,8 +594,7 @@ ecs_system_define(GameUpdateSys) {
     asset_loading_budget_set(ctx.assets, 0); // Infinite while not in gameplay.
   }
 
-  EcsIterator* canvasItr = ecs_view_itr(ecs_world_view_t(world, UiCanvasView));
-
+  EcsIterator* canvasItr   = ecs_view_itr(ecs_world_view_t(world, UiCanvasView));
   EcsView*     mainWinView = ecs_world_view_t(world, MainWindowView);
   EcsIterator* mainWinItr  = ecs_view_maybe_at(mainWinView, ctx.game->mainWindow);
   if (mainWinItr) {
@@ -597,12 +614,12 @@ ecs_system_define(GameUpdateSys) {
     }
 
     if (ecs_view_maybe_jump(canvasItr, ctx.winGame->uiCanvas)) {
-      UiCanvasComp* canvas = ecs_view_write_t(canvasItr, UiCanvasComp);
-      ui_canvas_reset(canvas);
+      ctx.winCanvas = ecs_view_write_t(canvasItr, UiCanvasComp);
+      ui_canvas_reset(ctx.winCanvas);
       if (!scene_level_loaded(ctx.levelManager)) {
-        game_level_picker_draw(&ctx, canvas);
+        game_draw_level_picker(&ctx);
       }
-      game_action_bar_draw(canvas, &ctx);
+      game_action_bar_draw(&ctx);
     }
 
     // clang-format off
@@ -770,7 +787,7 @@ bool app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
   snd_mixer_gain_set(soundMixer, prefs->volume * 1e-2f);
 
   const EcsEntityId mainWin =
-      game_main_window_create(world, assets, fullscreen, devSupport, width, height);
+      game_window_create(world, assets, fullscreen, devSupport, width, height);
   RendSettingsComp* rendSettingsWin = rend_settings_window_init(world, mainWin);
 
   game_quality_apply(prefs, rendSettingsGlobal, rendSettingsWin);
