@@ -9,7 +9,6 @@
 #include "core/bitset.h"
 #include "core/diag.h"
 #include "core/file.h"
-#include "core/float.h"
 #include "core/math.h"
 #include "core/path.h"
 #include "core/version.h"
@@ -46,9 +45,7 @@
 #include "ui/canvas.h"
 #include "ui/layout.h"
 #include "ui/register.h"
-#include "ui/shape.h"
 #include "ui/style.h"
-#include "ui/table.h"
 #include "ui/widget.h"
 #include "vfx/register.h"
 
@@ -61,6 +58,7 @@ enum { GameLevelsMax = 8 };
 
 ecs_comp_define(GameComp) {
   GameState   state : 8;
+  GameState   statePrev : 8;
   bool        devSupport;
   EcsEntityId mainWindow;
 
@@ -80,6 +78,11 @@ static void ecs_destruct_game_comp(void* data) {
   for (u32 i = 0; i != GameLevelsMax; ++i) {
     string_maybe_free(g_allocHeap, comp->levelNames[i]);
   }
+}
+
+static void game_state_set(GameComp* game, const GameState state) {
+  game->statePrev = game->state;
+  game->state     = state;
 }
 
 static EcsEntityId game_window_create(
@@ -222,9 +225,29 @@ static void game_draw_list(const GameUpdateContext* ctx, const GameUiDrawer val[
   ui_style_pop(ctx->winCanvas);
 }
 
+static void game_draw_button_play(const GameUpdateContext* ctx, MAYBE_UNUSED const u32 index) {
+  if (ui_button(ctx->winCanvas, .label = string_lit("Play"), .fontSize = 25)) {
+    game_state_set(ctx->game, GameState_MenuLevel);
+  }
+}
+
+static void game_draw_button_quit(const GameUpdateContext* ctx, MAYBE_UNUSED const u32 index) {
+  if (ui_button(ctx->winCanvas, .label = string_lit("Quit"), .fontSize = 25)) {
+    log_i("Close window");
+    gap_window_close(ctx->winComp);
+  }
+}
+
+static void game_draw_button_back(const GameUpdateContext* ctx, MAYBE_UNUSED const u32 index) {
+  if (ui_button(ctx->winCanvas, .label = string_lit("Back"), .fontSize = 25)) {
+    game_state_set(ctx->game, ctx->game->statePrev);
+  }
+}
+
 static void game_draw_button_level(const GameUpdateContext* ctx, const u32 index) {
   const u32 levelIndex = (u32)bitset_index(bitset_from_var(ctx->game->levelMask), index);
   if (ui_button(ctx->winCanvas, .label = ctx->game->levelNames[levelIndex], .fontSize = 25)) {
+    game_state_set(ctx->game, GameState_Loading);
     scene_level_load(ctx->world, SceneLevelMode_Play, ctx->game->levelAssets[levelIndex]);
   }
 }
@@ -358,8 +381,8 @@ ecs_system_define(GameUpdateSys) {
     ctx.winComp    = ecs_view_write_t(mainWinItr, GapWindowComp);
     ctx.winRendSet = ecs_view_write_t(mainWinItr, RendSettingsComp);
 
-    // Save last window size.
     if (gap_window_events(ctx.winComp) & GapWindowEvents_Resized) {
+      // Save last window size.
       ctx.prefs->fullscreen = gap_window_mode(ctx.winComp) == GapWindowMode_Fullscreen;
       if (!ctx.prefs->fullscreen) {
         ctx.prefs->windowWidth  = gap_window_param(ctx.winComp, GapParam_WindowSize).width;
@@ -401,15 +424,21 @@ ecs_system_define(GameUpdateSys) {
     u32          drawCount = 0;
     switch (ctx.game->state) {
     case GameState_MenuMain:
+      drawEntries[drawCount++] = &game_draw_button_play;
+      drawEntries[drawCount++] = &game_draw_button_quit;
       break;
     case GameState_MenuLevel: {
       const u32 levelCount = bits_popcnt(ctx.game->levelMask);
       for (u32 i = 0; i != levelCount; ++i) {
         drawEntries[drawCount++] = &game_draw_button_level;
       }
+      drawEntries[drawCount++] = &game_draw_button_back;
       break;
     }
     case GameState_Loading:
+      if (scene_level_loaded(ctx.levelManager)) {
+        game_state_set(ctx.game, GameState_Play);
+      }
       break;
     case GameState_Play:
       break;
@@ -592,6 +621,7 @@ bool app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
 
   const String level = cli_read_string(invoc, g_optLevel, string_empty);
   if (!string_is_empty(level)) {
+    game_state_set(game, GameState_Loading);
     scene_level_load(world, SceneLevelMode_Play, asset_lookup(world, assets, level));
   }
 
