@@ -788,7 +788,7 @@ bool app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
     gap_window_modal_error(string_lit("No (valid) assets found"));
     return false; // Initialization failed.
   }
-  GamePrefsComp* prefs      = prefs_init(world);
+  GamePrefsComp* prefs      = game_prefs_init(world);
   const bool     fullscreen = prefs->fullscreen && !cli_parse_provided(invoc, g_optWindow);
   const u16      width      = (u16)cli_read_u64(invoc, g_optWidth, prefs->windowWidth);
   const u16      height     = (u16)cli_read_u64(invoc, g_optHeight, prefs->windowHeight);
