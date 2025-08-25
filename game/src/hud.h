@@ -3,7 +3,7 @@
 #include "ecs/forward.h"
 
 enum {
-  AppOrder_HudDraw = 725,
+  GameOrder_HudDraw = 725,
 };
 
-void hud_init(EcsWorld*, AssetManagerComp*, EcsEntityId cameraEntity);
+void game_hud_init(EcsWorld*, AssetManagerComp*, EcsEntityId cameraEntity);

@@ -1124,7 +1124,7 @@ ecs_module_init(game_hud_module) {
       ecs_view_id(ProductionView),
       ecs_view_id(VisionView));
 
-  ecs_order(HudDrawSys, AppOrder_HudDraw);
+  ecs_order(HudDrawSys, GameOrder_HudDraw);
 
   // Initialize product queue action hashes.
   for (u32 i = 0; i != array_elems(g_hudProductQueueActions); ++i) {
@@ -1132,7 +1132,7 @@ ecs_module_init(game_hud_module) {
   }
 }
 
-void hud_init(EcsWorld* world, AssetManagerComp* assets, const EcsEntityId cameraEntity) {
+void game_hud_init(EcsWorld* world, AssetManagerComp* assets, const EcsEntityId cameraEntity) {
   diag_assert_msg(!ecs_world_has_t(world, cameraEntity, HudComp), "HUD already active");
 
   const EcsEntityId rendObjMinimap =

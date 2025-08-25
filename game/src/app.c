@@ -120,7 +120,7 @@ static EcsEntityId app_main_window_create(
 
   ecs_world_add_empty_t(world, window, SceneSoundListenerComp);
   ecs_world_add_t(world, window, SceneTransformComp, .position = {0}, .rotation = geo_quat_ident);
-  hud_init(world, assets, window);
+  game_hud_init(world, assets, window);
 
   return window;
 }
