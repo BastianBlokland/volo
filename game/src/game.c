@@ -368,6 +368,15 @@ ecs_system_define(GameUpdateSys) {
       ctx.prefs->dirty = true;
     }
 
+    if (input_triggered_lit(ctx.input, "WindowClose")) {
+      log_i("Close window");
+      gap_window_close(ctx.winComp);
+    }
+    if (input_triggered_lit(ctx.input, "WindowFullscreen")) {
+      log_i("Toggle fullscreen");
+      game_fullscreen_toggle(ctx.winComp);
+    }
+
     if (ecs_view_maybe_jump(canvasItr, ctx.winGame->uiCanvas)) {
       ctx.winCanvas = ecs_view_write_t(canvasItr, UiCanvasComp);
       ui_canvas_reset(ctx.winCanvas);
