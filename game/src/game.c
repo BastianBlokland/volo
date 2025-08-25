@@ -16,7 +16,6 @@
 #include "dev/menu.h"
 #include "dev/panel.h"
 #include "dev/register.h"
-#include "dev/stats.h"
 #include "ecs/entity.h"
 #include "ecs/utils.h"
 #include "ecs/view.h"
@@ -215,14 +214,7 @@ typedef struct {
   GapWindowComp*          win;
   RendSettingsGlobalComp* rendSetGlobal;
   RendSettingsComp*       rendSetWin;
-  DevStatsGlobalComp*     devStats;
 } GameActionContext;
-
-static void game_action_notify(const GameActionContext* ctx, const String action) {
-  if (ctx->devStats) {
-    dev_stats_notify(ctx->devStats, string_lit("Action"), action);
-  }
-}
 
 static void game_action_debug_draw(UiCanvasComp* canvas, const GameActionContext* ctx) {
   const bool isInDebugMode = ctx->game->mode == GameMode_Debug;
@@ -234,7 +226,6 @@ static void game_action_debug_draw(UiCanvasComp* canvas, const GameActionContext
           .frameColor = isInDebugMode ? ui_color(178, 0, 0, 192) : ui_color(32, 32, 32, 192),
           .activate   = input_triggered_lit(ctx->input, "AppDebug"))) {
 
-    game_action_notify(ctx, isInDebugMode ? string_lit("Game mode") : string_lit("Debug mode"));
     log_i("Toggle debug-mode", log_param("debug", fmt_bool(!isInDebugMode)));
 
     ctx->game->mode ^= GameMode_Debug;
@@ -259,9 +250,7 @@ static void game_action_pause_draw(UiCanvasComp* canvas, const GameActionContext
           .tooltip    = string_lit("Pause / Resume."),
           .frameColor = isPaused ? ui_color(0, 178, 0, 192) : ui_color(32, 32, 32, 192))) {
 
-    game_action_notify(ctx, isPaused ? string_lit("Resume") : string_lit("Pause"));
     log_i("Toggle pause", log_param("paused", fmt_bool(!isPaused)));
-
     ctx->timeSet->flags ^= SceneTimeFlags_Paused;
   }
 }
@@ -274,9 +263,7 @@ static void game_action_restart_draw(UiCanvasComp* canvas, const GameActionConte
           .tooltip  = string_lit("Restart the level."),
           .activate = input_triggered_lit(ctx->input, "AppReset"))) {
 
-    game_action_notify(ctx, string_lit("Restart"));
     log_i("Restart");
-
     scene_level_reload(ctx->world, SceneLevelMode_Play);
   }
 }
@@ -324,8 +311,6 @@ static void game_action_sound_draw(UiCanvasComp* canvas, const GameActionContext
             .max      = 1e2f,
             .step     = 1,
             .tooltip  = string_lit("Sound volume."))) {
-      game_action_notify(
-          ctx, fmt_write_scratch("Volume: {}", fmt_float(ctx->prefs->volume, .maxDecDigits = 0)));
 
       ctx->prefs->dirty = true;
       snd_mixer_gain_set(ctx->soundMixer, ctx->prefs->volume * 1e-2f);
@@ -384,9 +369,6 @@ static void game_action_quality_draw(UiCanvasComp* canvas, const GameActionConte
     ui_label(canvas, string_lit("PowerSaving"));
     ui_table_next_column(canvas, &table);
     if (ui_toggle(canvas, &ctx->prefs->powerSaving)) {
-      game_action_notify(
-          ctx, ctx->prefs->powerSaving ? string_lit("Power saving") : string_lit("Power normal"));
-
       ctx->prefs->dirty = true;
       game_quality_apply(ctx->prefs, ctx->rendSetGlobal, ctx->rendSetWin);
     }
@@ -396,9 +378,6 @@ static void game_action_quality_draw(UiCanvasComp* canvas, const GameActionConte
     ui_table_next_column(canvas, &table);
     i32* quality = (i32*)&ctx->prefs->quality;
     if (ui_select(canvas, quality, g_gameQualityLabels, GameQuality_Count)) {
-      game_action_notify(
-          ctx, fmt_write_scratch("Quality {}", fmt_text(g_gameQualityLabels[*quality])));
-
       ctx->prefs->dirty = true;
       game_quality_apply(ctx->prefs, ctx->rendSetGlobal, ctx->rendSetWin);
     }
@@ -423,13 +402,7 @@ static void game_action_fullscreen_draw(UiCanvasComp* canvas, const GameActionCo
           .tooltip  = string_lit("Enter / exit fullscreen."),
           .activate = input_triggered_lit(ctx->input, "AppWindowFullscreen"))) {
 
-    if (gap_window_mode(ctx->win) == GapWindowMode_Fullscreen) {
-      game_action_notify(ctx, string_lit("Windowed"));
-    } else {
-      game_action_notify(ctx, string_lit("Fullscreen"));
-    }
     log_i("Toggle fullscreen");
-
     game_window_fullscreen_toggle(ctx->win);
   }
 }
@@ -490,7 +463,6 @@ ecs_view_define(UpdateGlobalView) {
   ecs_access_write(SceneTimeSettingsComp);
   ecs_access_write(SceneVisibilityEnvComp);
   ecs_access_write(SndMixerComp);
-  ecs_access_maybe_write(DevStatsGlobalComp);
 }
 
 ecs_view_define(MainWindowView) {
@@ -575,7 +547,6 @@ ecs_system_define(GameUpdateSys) {
   GameComp*                    game          = ecs_view_write_t(globalItr, GameComp);
   AssetManagerComp*            assets        = ecs_view_write_t(globalItr, AssetManagerComp);
   GameCmdComp*                 cmd           = ecs_view_write_t(globalItr, GameCmdComp);
-  DevStatsGlobalComp*          devStats      = ecs_view_write_t(globalItr, DevStatsGlobalComp);
   GamePrefsComp*               prefs         = ecs_view_write_t(globalItr, GamePrefsComp);
   InputManagerComp*            input         = ecs_view_write_t(globalItr, InputManagerComp);
   RendSettingsGlobalComp*      rendSetGlobal = ecs_view_write_t(globalItr, RendSettingsGlobalComp);
@@ -630,7 +601,6 @@ ecs_system_define(GameUpdateSys) {
               .win           = win,
               .rendSetGlobal = rendSetGlobal,
               .rendSetWin    = rendSetWin,
-              .devStats      = devStats,
           });
     }
 
