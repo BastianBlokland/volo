@@ -127,16 +127,24 @@ static EcsEntityId game_main_window_create(
 }
 
 typedef struct {
-  EcsWorld*               world;
-  GameComp*               game;
-  GamePrefsComp*          prefs;
-  const InputManagerComp* input;
-  SndMixerComp*           soundMixer;
-  SceneTimeSettingsComp*  timeSet;
-  GameCmdComp*            cmd;
-  GapWindowComp*          win;
-  RendSettingsGlobalComp* rendSetGlobal;
-  RendSettingsComp*       rendSetWin;
+  EcsWorld*                    world;
+  GameComp*                    game;
+  GamePrefsComp*               prefs;
+  const SceneLevelManagerComp* levelManager;
+  InputManagerComp*            input;
+  SndMixerComp*                soundMixer;
+  SceneTimeSettingsComp*       timeSet;
+  GameCmdComp*                 cmd;
+  AssetManagerComp*            assets;
+  SceneVisibilityEnvComp*      visibilityEnv;
+  RendSettingsGlobalComp*      rendSetGlobal;
+
+  EcsEntityId         winEntity;
+  GameMainWindowComp* winGame;
+  GapWindowComp*      winComp;
+  RendSettingsComp*   winRendSet;
+
+  EcsView* devPanelView; // Null if dev-support is not enabled.
 } GameUpdateContext;
 
 static void game_window_fullscreen_toggle(GapWindowComp* win) {
@@ -198,20 +206,20 @@ static void game_quality_apply(
   }
 }
 
-static void game_level_picker_draw(UiCanvasComp* canvas, EcsWorld* world, GameComp* game) {
+static void game_level_picker_draw(const GameUpdateContext* ctx, UiCanvasComp* canvas) {
   static const UiVector g_buttonSize = {.x = 250.0f, .y = 50.0f};
   static const f32      g_spacing    = 8.0f;
 
-  const u32 levelCount    = bits_popcnt(game->levelMask);
+  const u32 levelCount    = bits_popcnt(ctx->game->levelMask);
   const f32 yCenterOffset = (levelCount - 1) * (g_buttonSize.y + g_spacing) * 0.5f;
   ui_layout_inner(canvas, UiBase_Canvas, UiAlign_MiddleCenter, g_buttonSize, UiBase_Absolute);
   ui_layout_move(canvas, ui_vector(g_spacing, yCenterOffset), UiBase_Absolute, Ui_XY);
 
   ui_style_push(canvas);
   ui_style_transform(canvas, UiTransform_ToUpper);
-  bitset_for(bitset_from_var(game->levelMask), idx) {
-    if (ui_button(canvas, .label = game->levelNames[idx], .fontSize = 25)) {
-      scene_level_load(world, SceneLevelMode_Play, game->levelAssets[idx]);
+  bitset_for(bitset_from_var(ctx->game->levelMask), idx) {
+    if (ui_button(canvas, .label = ctx->game->levelNames[idx], .fontSize = 25)) {
+      scene_level_load(ctx->world, SceneLevelMode_Play, ctx->game->levelAssets[idx]);
     }
     ui_layout_next(canvas, Ui_Down, g_spacing);
   }
@@ -235,10 +243,10 @@ static void game_action_debug_draw(UiCanvasComp* canvas, const GameUpdateContext
 
     if (ctx->game->mode == GameMode_Debug) {
       ctx->timeSet->flags |= SceneTimeFlags_Paused;
-      ctx->rendSetWin->skyMode = RendSkyMode_Gradient;
+      ctx->winRendSet->skyMode = RendSkyMode_Gradient;
     } else {
       ctx->timeSet->flags &= ~SceneTimeFlags_Paused;
-      ctx->rendSetWin->skyMode = RendSkyMode_None;
+      ctx->winRendSet->skyMode = RendSkyMode_None;
     }
   }
 }
@@ -347,7 +355,7 @@ static void game_action_quality_draw(UiCanvasComp* canvas, const GameUpdateConte
     ui_canvas_persistent_flags_toggle(canvas, popupId, UiPersistentFlags_Open);
   }
 
-  if (popupActive && ctx->rendSetGlobal && ctx->rendSetWin) {
+  if (popupActive && ctx->rendSetGlobal && ctx->winRendSet) {
     ui_layout_push(canvas);
     ui_layout_move(canvas, ui_vector(0.5f, 1.0f), UiBase_Current, Ui_XY);
     ui_layout_move_dir(canvas, Ui_Up, g_popupSpacing, UiBase_Absolute);
@@ -372,7 +380,7 @@ static void game_action_quality_draw(UiCanvasComp* canvas, const GameUpdateConte
     ui_table_next_column(canvas, &table);
     if (ui_toggle(canvas, &ctx->prefs->powerSaving)) {
       ctx->prefs->dirty = true;
-      game_quality_apply(ctx->prefs, ctx->rendSetGlobal, ctx->rendSetWin);
+      game_quality_apply(ctx->prefs, ctx->rendSetGlobal, ctx->winRendSet);
     }
 
     ui_table_next_row(canvas, &table);
@@ -381,7 +389,7 @@ static void game_action_quality_draw(UiCanvasComp* canvas, const GameUpdateConte
     i32* quality = (i32*)&ctx->prefs->quality;
     if (ui_select(canvas, quality, g_gameQualityLabels, GameQuality_Count)) {
       ctx->prefs->dirty = true;
-      game_quality_apply(ctx->prefs, ctx->rendSetGlobal, ctx->rendSetWin);
+      game_quality_apply(ctx->prefs, ctx->rendSetGlobal, ctx->winRendSet);
     }
 
     ui_layout_container_pop(canvas);
@@ -405,7 +413,7 @@ static void game_action_fullscreen_draw(UiCanvasComp* canvas, const GameUpdateCo
           .activate = input_triggered_lit(ctx->input, "AppWindowFullscreen"))) {
 
     log_i("Toggle fullscreen");
-    game_window_fullscreen_toggle(ctx->win);
+    game_window_fullscreen_toggle(ctx->winComp);
   }
 }
 
@@ -417,7 +425,7 @@ static void game_action_exit_draw(UiCanvasComp* canvas, const GameUpdateContext*
           .tooltip  = string_lit("Close the window."),
           .activate = input_triggered_lit(ctx->input, "AppWindowClose"))) {
     log_i("Close window");
-    gap_window_close(ctx->win);
+    gap_window_close(ctx->winComp);
   }
 }
 
@@ -497,17 +505,17 @@ static void game_levels_query_init(EcsWorld* world, GameComp* game, AssetManager
   }
 }
 
-static void game_levels_query_update(EcsWorld* world, GameComp* game) {
-  if (!game->levelLoadingMask) {
+static void game_levels_query_update(const GameUpdateContext* ctx) {
+  if (!ctx->game->levelLoadingMask) {
     return; // Loading finished.
   }
-  EcsIterator* levelItr = ecs_view_itr(ecs_world_view_t(world, LevelView));
-  bitset_for(bitset_from_var(game->levelLoadingMask), idx) {
-    const EcsEntityId asset = game->levelAssets[idx];
-    if (UNLIKELY(ecs_world_has_t(world, asset, AssetFailedComp))) {
+  EcsIterator* levelItr = ecs_view_itr(ecs_world_view_t(ctx->world, LevelView));
+  bitset_for(bitset_from_var(ctx->game->levelLoadingMask), idx) {
+    const EcsEntityId asset = ctx->game->levelAssets[idx];
+    if (UNLIKELY(ecs_world_has_t(ctx->world, asset, AssetFailedComp))) {
       goto Done;
     }
-    if (!ecs_world_has_t(world, asset, AssetLoadedComp)) {
+    if (!ecs_world_has_t(ctx->world, asset, AssetLoadedComp)) {
       continue; // Still loading.
     }
     if (UNLIKELY(!ecs_view_maybe_jump(levelItr, asset))) {
@@ -518,20 +526,19 @@ static void game_levels_query_update(EcsWorld* world, GameComp* game) {
     if (string_is_empty(name)) {
       name = path_stem(asset_id(ecs_view_read_t(levelItr, AssetComp)));
     }
-    game->levelMask |= 1 << idx;
-    game->levelNames[idx] = string_dup(g_allocHeap, name);
+    ctx->game->levelMask |= 1 << idx;
+    ctx->game->levelNames[idx] = string_dup(g_allocHeap, name);
   Done:
-    asset_release(world, asset);
-    game->levelLoadingMask &= ~(1 << idx);
+    asset_release(ctx->world, asset);
+    ctx->game->levelLoadingMask &= ~(1 << idx);
   }
 }
 
-static void game_dev_hide(EcsWorld* world, const bool hidden) {
-  EcsView* devPanelView = ecs_world_view_t(world, DevPanelView);
-  if (!devPanelView) {
+static void game_dev_panels_hide(const GameUpdateContext* ctx, const bool hidden) {
+  if (!ctx->devPanelView) {
     return; // Dev support not enabled.
   }
-  for (EcsIterator* itr = ecs_view_itr(devPanelView); ecs_view_walk(itr);) {
+  for (EcsIterator* itr = ecs_view_itr(ctx->devPanelView); ecs_view_walk(itr);) {
     DevPanelComp* panel = ecs_view_write_t(itr, DevPanelComp);
     if (dev_panel_type(panel) != DevPanelType_Detached) {
       dev_panel_hide(panel, hidden);
@@ -545,81 +552,73 @@ ecs_system_define(GameUpdateSys) {
   if (!globalItr) {
     return;
   }
-  const SceneLevelManagerComp* levelManager  = ecs_view_read_t(globalItr, SceneLevelManagerComp);
-  GameComp*                    game          = ecs_view_write_t(globalItr, GameComp);
-  AssetManagerComp*            assets        = ecs_view_write_t(globalItr, AssetManagerComp);
-  GameCmdComp*                 cmd           = ecs_view_write_t(globalItr, GameCmdComp);
-  GamePrefsComp*               prefs         = ecs_view_write_t(globalItr, GamePrefsComp);
-  InputManagerComp*            input         = ecs_view_write_t(globalItr, InputManagerComp);
-  RendSettingsGlobalComp*      rendSetGlobal = ecs_view_write_t(globalItr, RendSettingsGlobalComp);
-  SceneTimeSettingsComp*       timeSet       = ecs_view_write_t(globalItr, SceneTimeSettingsComp);
-  SceneVisibilityEnvComp*      visibilityEnv = ecs_view_write_t(globalItr, SceneVisibilityEnvComp);
-  SndMixerComp*                soundMixer    = ecs_view_write_t(globalItr, SndMixerComp);
 
-  game_levels_query_update(world, game);
+  GameUpdateContext ctx = {
+      .world         = world,
+      .game          = ecs_view_write_t(globalItr, GameComp),
+      .prefs         = ecs_view_write_t(globalItr, GamePrefsComp),
+      .levelManager  = ecs_view_read_t(globalItr, SceneLevelManagerComp),
+      .input         = ecs_view_write_t(globalItr, InputManagerComp),
+      .soundMixer    = ecs_view_write_t(globalItr, SndMixerComp),
+      .timeSet       = ecs_view_write_t(globalItr, SceneTimeSettingsComp),
+      .cmd           = ecs_view_write_t(globalItr, GameCmdComp),
+      .assets        = ecs_view_write_t(globalItr, AssetManagerComp),
+      .visibilityEnv = ecs_view_write_t(globalItr, SceneVisibilityEnvComp),
+      .rendSetGlobal = ecs_view_write_t(globalItr, RendSettingsGlobalComp),
+      .devPanelView  = ecs_world_view_t(world, DevPanelView),
+  };
 
-  if (scene_level_loaded(levelManager)) {
-    asset_loading_budget_set(assets, time_milliseconds(2)); // Limit asset loading during gameplay.
+  game_levels_query_update(&ctx);
+
+  if (scene_level_loaded(ctx.levelManager)) {
+    asset_loading_budget_set(ctx.assets, time_milliseconds(2)); // Limit loading during gameplay.
   } else {
-    asset_loading_budget_set(assets, 0); // Infinite while not in gameplay.
+    asset_loading_budget_set(ctx.assets, 0); // Infinite while not in gameplay.
   }
 
   EcsIterator* canvasItr = ecs_view_itr(ecs_world_view_t(world, UiCanvasView));
 
   EcsView*     mainWinView = ecs_world_view_t(world, MainWindowView);
-  EcsIterator* mainWinItr  = ecs_view_maybe_at(mainWinView, game->mainWindow);
+  EcsIterator* mainWinItr  = ecs_view_maybe_at(mainWinView, ctx.game->mainWindow);
   if (mainWinItr) {
-    const EcsEntityId   windowEntity = ecs_view_entity(mainWinItr);
-    GameMainWindowComp* gameWindow   = ecs_view_write_t(mainWinItr, GameMainWindowComp);
-    GapWindowComp*      win          = ecs_view_write_t(mainWinItr, GapWindowComp);
-    RendSettingsComp*   rendSetWin   = ecs_view_write_t(mainWinItr, RendSettingsComp);
+    ctx.winEntity  = ecs_view_entity(mainWinItr);
+    ctx.winGame    = ecs_view_write_t(mainWinItr, GameMainWindowComp);
+    ctx.winComp    = ecs_view_write_t(mainWinItr, GapWindowComp);
+    ctx.winRendSet = ecs_view_write_t(mainWinItr, RendSettingsComp);
 
     // Save last window size.
-    if (gap_window_events(win) & GapWindowEvents_Resized) {
-      prefs->fullscreen = gap_window_mode(win) == GapWindowMode_Fullscreen;
-      if (!prefs->fullscreen) {
-        prefs->windowWidth  = gap_window_param(win, GapParam_WindowSize).width;
-        prefs->windowHeight = gap_window_param(win, GapParam_WindowSize).height;
+    if (gap_window_events(ctx.winComp) & GapWindowEvents_Resized) {
+      ctx.prefs->fullscreen = gap_window_mode(ctx.winComp) == GapWindowMode_Fullscreen;
+      if (!ctx.prefs->fullscreen) {
+        ctx.prefs->windowWidth  = gap_window_param(ctx.winComp, GapParam_WindowSize).width;
+        ctx.prefs->windowHeight = gap_window_param(ctx.winComp, GapParam_WindowSize).height;
       }
-      prefs->dirty = true;
+      ctx.prefs->dirty = true;
     }
 
-    if (ecs_view_maybe_jump(canvasItr, gameWindow->uiCanvas)) {
+    if (ecs_view_maybe_jump(canvasItr, ctx.winGame->uiCanvas)) {
       UiCanvasComp* canvas = ecs_view_write_t(canvasItr, UiCanvasComp);
       ui_canvas_reset(canvas);
-      if (!scene_level_loaded(levelManager)) {
-        game_level_picker_draw(canvas, world, game);
+      if (!scene_level_loaded(ctx.levelManager)) {
+        game_level_picker_draw(&ctx, canvas);
       }
-      game_action_bar_draw(
-          canvas,
-          &(GameUpdateContext){
-              .world         = world,
-              .game          = game,
-              .prefs         = prefs,
-              .input         = input,
-              .soundMixer    = soundMixer,
-              .timeSet       = timeSet,
-              .cmd           = cmd,
-              .win           = win,
-              .rendSetGlobal = rendSetGlobal,
-              .rendSetWin    = rendSetWin,
-          });
+      game_action_bar_draw(canvas, &ctx);
     }
 
     // clang-format off
-    switch (game->mode) {
+    switch (ctx.game->mode) {
     case GameMode_Normal:
-      game_dev_hide(world, true);
-      input_layer_disable(input, string_hash_lit("Dev"));
-      input_layer_enable(input, string_hash_lit("Game"));
-      scene_visibility_flags_clear(visibilityEnv, SceneVisibilityFlags_ForceRender);
+      game_dev_panels_hide(&ctx, true);
+      input_layer_disable(ctx.input, string_hash_lit("Dev"));
+      input_layer_enable(ctx.input, string_hash_lit("Game"));
+      scene_visibility_flags_clear(ctx.visibilityEnv, SceneVisibilityFlags_ForceRender);
       break;
     case GameMode_Debug:
-      if (!gameWindow->devMenu) { gameWindow->devMenu = dev_menu_create(world, windowEntity); }
-      game_dev_hide(world, false);
-      input_layer_enable(input, string_hash_lit("Dev"));
-      input_layer_disable(input, string_hash_lit("Game"));
-      scene_visibility_flags_set(visibilityEnv, SceneVisibilityFlags_ForceRender);
+      if (!ctx.winGame->devMenu) { ctx.winGame->devMenu = dev_menu_create(world, ctx.winEntity); }
+      game_dev_panels_hide(&ctx, false);
+      input_layer_enable(ctx.input, string_hash_lit("Dev"));
+      input_layer_disable(ctx.input, string_hash_lit("Game"));
+      scene_visibility_flags_set(ctx.visibilityEnv, SceneVisibilityFlags_ForceRender);
       break;
     }
     // clang-format on
