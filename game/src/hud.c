@@ -85,7 +85,7 @@ ecs_view_define(GlobalView) {
   ecs_access_read(SceneSetEnvComp);
   ecs_access_read(SceneTerrainComp);
   ecs_access_read(SceneWeaponResourceComp);
-  ecs_access_write(CmdControllerComp);
+  ecs_access_write(GameCmdComp);
 }
 
 ecs_view_define(HudView) {
@@ -380,7 +380,7 @@ static void hud_health_draw(
   ui_canvas_id_block_next(c); // End on an consistent id.
 }
 
-static void hud_groups_draw(UiCanvasComp* c, CmdControllerComp* cmd) {
+static void hud_groups_draw(UiCanvasComp* c, GameCmdComp* cmd) {
   static const UiVector g_size    = {50, 25};
   static const f32      g_spacing = 8.0f;
 
@@ -388,8 +388,8 @@ static void hud_groups_draw(UiCanvasComp* c, CmdControllerComp* cmd) {
   ui_layout_move(c, ui_vector(-g_spacing, g_spacing), UiBase_Absolute, Ui_XY);
   ui_layout_resize(c, UiAlign_BottomRight, g_size, UiBase_Absolute, Ui_XY);
 
-  for (u32 i = cmd_group_count; i-- != 0;) {
-    const u32 size = cmd_group_size(cmd, i);
+  for (u32 i = game_cmd_group_count; i-- != 0;) {
+    const u32 size = game_cmd_group_size(cmd, i);
     if (!size) {
       continue;
     }
@@ -399,7 +399,7 @@ static void hud_groups_draw(UiCanvasComp* c, CmdControllerComp* cmd) {
             .fontSize   = 20,
             .frameColor = ui_color(32, 32, 32, 192),
             .tooltip    = fmt_write_scratch("Size: {}", fmt_int(size)))) {
-      cmd_push_select_group(cmd, i);
+      game_cmd_push_select_group(cmd, i);
     }
     ui_layout_next(c, Ui_Up, g_spacing);
   }
@@ -1016,7 +1016,7 @@ ecs_system_define(HudDrawSys) {
   if (!globalItr) {
     return;
   }
-  CmdControllerComp*             cmd       = ecs_view_write_t(globalItr, CmdControllerComp);
+  GameCmdComp*                   cmd       = ecs_view_write_t(globalItr, GameCmdComp);
   const InputManagerComp*        input     = ecs_view_read_t(globalItr, InputManagerComp);
   const SceneLevelManagerComp*   level     = ecs_view_read_t(globalItr, SceneLevelManagerComp);
   const SceneSetEnvComp*         setEnv    = ecs_view_read_t(globalItr, SceneSetEnvComp);

@@ -211,7 +211,7 @@ typedef struct {
   const InputManagerComp* input;
   SndMixerComp*           soundMixer;
   SceneTimeSettingsComp*  timeSet;
-  CmdControllerComp*      cmd;
+  GameCmdComp*            cmd;
   GapWindowComp*          win;
   RendSettingsGlobalComp* rendSetGlobal;
   RendSettingsComp*       rendSetWin;
@@ -238,7 +238,7 @@ static void app_action_debug_draw(UiCanvasComp* canvas, const AppActionContext* 
     log_i("Toggle debug-mode", log_param("debug", fmt_bool(!isInDebugMode)));
 
     ctx->app->mode ^= AppMode_Debug;
-    cmd_push_deselect_all(ctx->cmd);
+    game_cmd_push_deselect_all(ctx->cmd);
 
     if (ctx->app->mode == AppMode_Debug) {
       ctx->timeSet->flags |= SceneTimeFlags_Paused;
@@ -483,7 +483,7 @@ ecs_view_define(AppUpdateGlobalView) {
   ecs_access_read(SceneLevelManagerComp);
   ecs_access_write(AppComp);
   ecs_access_write(AssetManagerComp);
-  ecs_access_write(CmdControllerComp);
+  ecs_access_write(GameCmdComp);
   ecs_access_write(GamePrefsComp);
   ecs_access_write(InputManagerComp);
   ecs_access_write(RendSettingsGlobalComp);
@@ -574,7 +574,7 @@ ecs_system_define(AppUpdateSys) {
   const SceneLevelManagerComp* levelManager  = ecs_view_read_t(globalItr, SceneLevelManagerComp);
   AppComp*                     app           = ecs_view_write_t(globalItr, AppComp);
   AssetManagerComp*            assets        = ecs_view_write_t(globalItr, AssetManagerComp);
-  CmdControllerComp*           cmd           = ecs_view_write_t(globalItr, CmdControllerComp);
+  GameCmdComp*                 cmd           = ecs_view_write_t(globalItr, GameCmdComp);
   DevStatsGlobalComp*          devStats      = ecs_view_write_t(globalItr, DevStatsGlobalComp);
   GamePrefsComp*               prefs         = ecs_view_write_t(globalItr, GamePrefsComp);
   InputManagerComp*            input         = ecs_view_write_t(globalItr, InputManagerComp);
