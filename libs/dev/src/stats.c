@@ -948,6 +948,7 @@ ecs_system_define(DevStatsCreateSys) {
         world,
         ecs_view_entity(itr),
         DevStatsComp,
+        .show           = DevStatShow_Default,
         .frameDurPlot   = dev_plot_alloc(g_allocHeap),
         .gpuExecDurPlot = dev_plot_alloc(g_allocHeap));
   }
@@ -1043,5 +1044,4 @@ void dev_stats_notify(DevStatsGlobalComp* comp, const String key, const String v
 }
 
 DevStatShow dev_stats_show(const DevStatsComp* comp) { return comp->show; }
-
-void dev_stats_show_set(DevStatsComp* comp, const DevStatShow show) { comp->show = show; }
+void        dev_stats_show_set(DevStatsComp* comp, const DevStatShow show) { comp->show = show; }

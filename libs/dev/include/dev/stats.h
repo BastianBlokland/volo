@@ -8,6 +8,8 @@ typedef enum {
   DevStatShow_None,
   DevStatShow_Minimal,
   DevStatShow_Full,
+
+  DevStatShow_Default = DevStatShow_Minimal,
 } DevStatShow;
 
 /**

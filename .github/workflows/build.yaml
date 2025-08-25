@@ -128,10 +128,10 @@ jobs:
       with:
         sparse-checkout: |
           cmake
+          game
           libs
           shell
           utilities
-          volo
 
     - name: build-linux
       if: matrix.config.os == 'linux'

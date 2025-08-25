@@ -77,23 +77,23 @@ static void cmd_group_init(CmdGroup* group) {
 
 static void cmd_group_destroy(CmdGroup* group) { dynarray_destroy(&group->entities); }
 
-ecs_comp_define(CmdControllerComp) {
+ecs_comp_define(GameCmdComp) {
   DynArray  commands; // Cmd[];
-  CmdGroup* groups;   // CmdGroup[cmd_group_count];
+  CmdGroup* groups;   // CmdGroup[game_cmd_group_count];
 };
 
-static void ecs_destruct_controller(void* data) {
-  CmdControllerComp* comp = data;
+static void ecs_destruct_cmd_comp(void* data) {
+  GameCmdComp* comp = data;
   dynarray_destroy(&comp->commands);
 
-  for (u32 groupIdx = 0; groupIdx != cmd_group_count; ++groupIdx) {
+  for (u32 groupIdx = 0; groupIdx != game_cmd_group_count; ++groupIdx) {
     cmd_group_destroy(&comp->groups[groupIdx]);
   }
-  alloc_free_array_t(g_allocHeap, comp->groups, cmd_group_count);
+  alloc_free_array_t(g_allocHeap, comp->groups, game_cmd_group_count);
 }
 
 ecs_view_define(GlobalUpdateView) {
-  ecs_access_maybe_write(CmdControllerComp);
+  ecs_access_maybe_write(GameCmdComp);
   ecs_access_write(SceneSetEnvComp);
 }
 
@@ -205,8 +205,8 @@ static void cmd_execute_attack(EcsWorld* world, const CmdAttack* cmdAttack) {
   }
 }
 
-static void cmd_execute(
-    EcsWorld* world, const CmdControllerComp* controller, SceneSetEnvComp* setEnv, const Cmd* cmd) {
+static void
+cmd_execute(EcsWorld* world, const GameCmdComp* comp, SceneSetEnvComp* setEnv, const Cmd* cmd) {
   switch (cmd->type) {
   case Cmd_Select:
     if (ecs_world_exists(world, cmd->select.object)) {
@@ -219,7 +219,7 @@ static void cmd_execute(
     break;
   case Cmd_SelectGroup:
     scene_set_clear(setEnv, g_sceneSetSelected);
-    dynarray_for_t(&controller->groups[cmd->selectGroup.groupIndex].entities, EcsEntityId, entity) {
+    dynarray_for_t(&comp->groups[cmd->selectGroup.groupIndex].entities, EcsEntityId, entity) {
       scene_set_add(setEnv, g_sceneSetSelected, *entity, SceneSetFlags_None);
     }
     break;
@@ -241,32 +241,32 @@ static void cmd_execute(
   }
 }
 
-ecs_system_define(CmdControllerUpdateSys) {
+ecs_system_define(GameCmdUpdateSys) {
   EcsView*     globalView = ecs_world_view_t(world, GlobalUpdateView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   if (!globalItr) {
     return;
   }
-  SceneSetEnvComp*   setEnv     = ecs_view_write_t(globalItr, SceneSetEnvComp);
-  CmdControllerComp* controller = ecs_view_write_t(globalItr, CmdControllerComp);
-  if (!controller) {
-    controller           = ecs_world_add_t(world, ecs_world_global(world), CmdControllerComp);
-    controller->commands = dynarray_create_t(g_allocHeap, Cmd, 512);
-    controller->groups   = alloc_array_t(g_allocHeap, CmdGroup, cmd_group_count);
-    for (u32 groupIdx = 0; groupIdx != cmd_group_count; ++groupIdx) {
-      cmd_group_init(&controller->groups[groupIdx]);
+  SceneSetEnvComp* setEnv = ecs_view_write_t(globalItr, SceneSetEnvComp);
+  GameCmdComp*     comp   = ecs_view_write_t(globalItr, GameCmdComp);
+  if (!comp) {
+    comp           = ecs_world_add_t(world, ecs_world_global(world), GameCmdComp);
+    comp->commands = dynarray_create_t(g_allocHeap, Cmd, 512);
+    comp->groups   = alloc_array_t(g_allocHeap, CmdGroup, game_cmd_group_count);
+    for (u32 groupIdx = 0; groupIdx != game_cmd_group_count; ++groupIdx) {
+      cmd_group_init(&comp->groups[groupIdx]);
     }
   }
 
   // Update all groups.
-  for (u32 groupIdx = 0; groupIdx != cmd_group_count; ++groupIdx) {
-    cmd_group_prune_destroyed_entities(&controller->groups[groupIdx], world);
-    cmd_group_update_position(&controller->groups[groupIdx], world);
+  for (u32 groupIdx = 0; groupIdx != game_cmd_group_count; ++groupIdx) {
+    cmd_group_prune_destroyed_entities(&comp->groups[groupIdx], world);
+    cmd_group_update_position(&comp->groups[groupIdx], world);
   }
 
   // Execute all commands.
-  dynarray_for_t(&controller->commands, Cmd, cmd) { cmd_execute(world, controller, setEnv, cmd); }
-  dynarray_clear(&controller->commands);
+  dynarray_for_t(&comp->commands, Cmd, cmd) { cmd_execute(world, comp, setEnv, cmd); }
+  dynarray_clear(&comp->commands);
 }
 
 ecs_module_init(game_cmd_module) {
@@ -274,7 +274,7 @@ ecs_module_init(game_cmd_module) {
   g_propStop         = stringtable_add(g_stringtable, string_lit("cmdStop"));
   g_propAttackTarget = stringtable_add(g_stringtable, string_lit("cmdAttackTarget"));
 
-  ecs_register_comp(CmdControllerComp, .destructor = ecs_destruct_controller);
+  ecs_register_comp(GameCmdComp, .destructor = ecs_destruct_cmd_comp);
 
   ecs_register_view(GlobalUpdateView);
   ecs_register_view(UnitView);
@@ -282,119 +282,116 @@ ecs_module_init(game_cmd_module) {
   ecs_register_view(TransformView);
 
   ecs_register_system(
-      CmdControllerUpdateSys,
+      GameCmdUpdateSys,
       ecs_view_id(GlobalUpdateView),
       ecs_view_id(UnitView),
       ecs_view_id(ProdView),
       ecs_view_id(TransformView));
 
-  ecs_order(CmdControllerUpdateSys, AppOrder_CommandUpdate);
+  ecs_order(GameCmdUpdateSys, GameOrder_CommandUpdate);
 }
 
-void cmd_push_select(CmdControllerComp* controller, const EcsEntityId object, const bool mainObj) {
+void game_cmd_push_select(GameCmdComp* comp, const EcsEntityId object, const bool mainObj) {
   diag_assert(ecs_entity_valid(object));
 
-  *dynarray_push_t(&controller->commands, Cmd) = (Cmd){
+  *dynarray_push_t(&comp->commands, Cmd) = (Cmd){
       .type   = Cmd_Select,
       .select = {.object = object, .mainObject = mainObj},
   };
 }
 
-void cmd_push_select_group(CmdControllerComp* controller, const u8 groupIndex) {
-  diag_assert(groupIndex < cmd_group_count);
+void game_cmd_push_select_group(GameCmdComp* comp, const u8 groupIndex) {
+  diag_assert(groupIndex < game_cmd_group_count);
 
-  *dynarray_push_t(&controller->commands, Cmd) = (Cmd){
+  *dynarray_push_t(&comp->commands, Cmd) = (Cmd){
       .type        = Cmd_SelectGroup,
       .selectGroup = {.groupIndex = groupIndex},
   };
 }
 
-void cmd_push_deselect(CmdControllerComp* controller, const EcsEntityId object) {
+void game_cmd_push_deselect(GameCmdComp* comp, const EcsEntityId object) {
   diag_assert(ecs_entity_valid(object));
 
-  *dynarray_push_t(&controller->commands, Cmd) = (Cmd){
+  *dynarray_push_t(&comp->commands, Cmd) = (Cmd){
       .type     = Cmd_Deselect,
       .deselect = {.object = object},
   };
 }
 
-void cmd_push_deselect_all(CmdControllerComp* controller) {
-  *dynarray_push_t(&controller->commands, Cmd) = (Cmd){
+void game_cmd_push_deselect_all(GameCmdComp* comp) {
+  *dynarray_push_t(&comp->commands, Cmd) = (Cmd){
       .type = Cmd_DeselectAll,
   };
 }
 
-void cmd_push_move(
-    CmdControllerComp* controller, const EcsEntityId object, const GeoVector position) {
+void game_cmd_push_move(GameCmdComp* comp, const EcsEntityId object, const GeoVector position) {
   diag_assert(ecs_entity_valid(object));
 
-  *dynarray_push_t(&controller->commands, Cmd) = (Cmd){
+  *dynarray_push_t(&comp->commands, Cmd) = (Cmd){
       .type = Cmd_Move,
       .move = {.object = object, .position = position},
   };
 }
 
-void cmd_push_stop(CmdControllerComp* controller, const EcsEntityId object) {
+void game_cmd_push_stop(GameCmdComp* comp, const EcsEntityId object) {
   diag_assert(ecs_entity_valid(object));
 
-  *dynarray_push_t(&controller->commands, Cmd) = (Cmd){
+  *dynarray_push_t(&comp->commands, Cmd) = (Cmd){
       .type = Cmd_Stop,
       .stop = {.object = object},
   };
 }
 
-void cmd_push_attack(
-    CmdControllerComp* controller, const EcsEntityId object, const EcsEntityId target) {
+void game_cmd_push_attack(GameCmdComp* comp, const EcsEntityId object, const EcsEntityId target) {
   diag_assert(ecs_entity_valid(object));
   diag_assert(ecs_entity_valid(target));
 
-  *dynarray_push_t(&controller->commands, Cmd) = (Cmd){
+  *dynarray_push_t(&comp->commands, Cmd) = (Cmd){
       .type   = Cmd_Attack,
       .attack = {.object = object, .target = target},
   };
 }
 
-void cmd_group_clear(CmdControllerComp* controller, const u8 groupIndex) {
-  diag_assert(groupIndex < cmd_group_count);
+void game_cmd_group_clear(GameCmdComp* comp, const u8 groupIndex) {
+  diag_assert(groupIndex < game_cmd_group_count);
 
-  dynarray_clear(&controller->groups[groupIndex].entities);
+  dynarray_clear(&comp->groups[groupIndex].entities);
 }
 
-void cmd_group_add(CmdControllerComp* controller, const u8 groupIndex, const EcsEntityId object) {
-  diag_assert(groupIndex < cmd_group_count);
+void game_cmd_group_add(GameCmdComp* comp, const u8 groupIndex, const EcsEntityId object) {
+  diag_assert(groupIndex < game_cmd_group_count);
   diag_assert(ecs_entity_valid(object));
 
-  cmd_group_add_internal(&controller->groups[groupIndex], object);
+  cmd_group_add_internal(&comp->groups[groupIndex], object);
 }
 
-void cmd_group_remove(
-    CmdControllerComp* controller, const u8 groupIndex, const EcsEntityId object) {
-  diag_assert(groupIndex < cmd_group_count);
+void game_cmd_group_remove(GameCmdComp* comp, const u8 groupIndex, const EcsEntityId object) {
+  diag_assert(groupIndex < game_cmd_group_count);
   diag_assert(ecs_entity_valid(object));
 
-  cmd_group_remove_internal(&controller->groups[groupIndex], object);
+  cmd_group_remove_internal(&comp->groups[groupIndex], object);
 }
 
-u32 cmd_group_size(const CmdControllerComp* controller, const u8 groupIndex) {
-  diag_assert(groupIndex < cmd_group_count);
+u32 game_cmd_group_size(const GameCmdComp* comp, const u8 groupIndex) {
+  diag_assert(groupIndex < game_cmd_group_count);
 
-  return cmd_group_size_internal(&controller->groups[groupIndex]);
+  return cmd_group_size_internal(&comp->groups[groupIndex]);
 }
 
-GeoVector cmd_group_position(const CmdControllerComp* controller, const u8 groupIndex) {
-  diag_assert(groupIndex < cmd_group_count);
+GeoVector game_cmd_group_position(const GameCmdComp* comp, const u8 groupIndex) {
+  diag_assert(groupIndex < game_cmd_group_count);
 
-  return controller->groups[groupIndex].position;
+  return comp->groups[groupIndex].position;
 }
 
-const EcsEntityId* cmd_group_begin(const CmdControllerComp* controller, const u8 groupIndex) {
-  diag_assert(groupIndex < cmd_group_count);
+const EcsEntityId* game_cmd_group_begin(const GameCmdComp* comp, const u8 groupIndex) {
+  diag_assert(groupIndex < game_cmd_group_count);
 
-  return cmd_group_begin_internal(&controller->groups[groupIndex]);
+  return cmd_group_begin_internal(&comp->groups[groupIndex]);
 }
 
-const EcsEntityId* cmd_group_end(const CmdControllerComp* controller, const u8 groupIndex) {
-  diag_assert(groupIndex < cmd_group_count);
+const EcsEntityId* game_cmd_group_end(const GameCmdComp* comp, const u8 groupIndex) {
+  diag_assert(groupIndex < game_cmd_group_count);
 
-  return cmd_group_end_internal(&controller->groups[groupIndex]);
+  return cmd_group_end_internal(&comp->groups[groupIndex]);
 }

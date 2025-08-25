@@ -85,14 +85,14 @@ ecs_view_define(GlobalView) {
   ecs_access_read(SceneSetEnvComp);
   ecs_access_read(SceneTerrainComp);
   ecs_access_read(SceneWeaponResourceComp);
-  ecs_access_write(CmdControllerComp);
+  ecs_access_write(GameCmdComp);
 }
 
 ecs_view_define(HudView) {
   ecs_access_read(SceneCameraComp);
   ecs_access_read(SceneTransformComp);
   ecs_access_write(HudComp);
-  ecs_access_write(InputStateComp);
+  ecs_access_write(GameInputComp);
 }
 
 ecs_view_define(UiCanvasView) {
@@ -380,7 +380,7 @@ static void hud_health_draw(
   ui_canvas_id_block_next(c); // End on an consistent id.
 }
 
-static void hud_groups_draw(UiCanvasComp* c, CmdControllerComp* cmd) {
+static void hud_groups_draw(UiCanvasComp* c, GameCmdComp* cmd) {
   static const UiVector g_size    = {50, 25};
   static const f32      g_spacing = 8.0f;
 
@@ -388,8 +388,8 @@ static void hud_groups_draw(UiCanvasComp* c, CmdControllerComp* cmd) {
   ui_layout_move(c, ui_vector(-g_spacing, g_spacing), UiBase_Absolute, Ui_XY);
   ui_layout_resize(c, UiAlign_BottomRight, g_size, UiBase_Absolute, Ui_XY);
 
-  for (u32 i = cmd_group_count; i-- != 0;) {
-    const u32 size = cmd_group_size(cmd, i);
+  for (u32 i = game_cmd_group_count; i-- != 0;) {
+    const u32 size = game_cmd_group_size(cmd, i);
     if (!size) {
       continue;
     }
@@ -399,7 +399,7 @@ static void hud_groups_draw(UiCanvasComp* c, CmdControllerComp* cmd) {
             .fontSize   = 20,
             .frameColor = ui_color(32, 32, 32, 192),
             .tooltip    = fmt_write_scratch("Size: {}", fmt_int(size)))) {
-      cmd_push_select_group(cmd, i);
+      game_cmd_push_select_group(cmd, i);
     }
     ui_layout_next(c, Ui_Up, g_spacing);
   }
@@ -649,7 +649,7 @@ static u32 hud_minimap_marker_collect(
 static void hud_minimap_draw(
     UiCanvasComp*             c,
     HudComp*                  hud,
-    InputStateComp*           inputState,
+    GameInputComp*            inputState,
     const SceneTerrainComp*   terrain,
     const SceneCameraComp*    cam,
     const SceneTransformComp* camTrans,
@@ -674,7 +674,7 @@ static void hud_minimap_draw(
   const UiStatus frameStatus = ui_canvas_elem_status(c, frameId);
 
   // Handle input.
-  input_set_allow_zoom_over_ui(inputState, frameStatus >= UiStatus_Hovered);
+  game_input_set_allow_zoom_over_ui(inputState, frameStatus >= UiStatus_Hovered);
   if (frameStatus >= UiStatus_Hovered) {
     ui_canvas_interact_type(c, UiInteractType_Action);
   }
@@ -682,7 +682,7 @@ static void hud_minimap_draw(
     const UiVector uiPos = ui_canvas_input_pos(c);
     const f32 x = ((uiPos.x - hud->minimapRect.x) / hud->minimapRect.width - 0.5f) * areaSize.x;
     const f32 z = ((uiPos.y - hud->minimapRect.y) / hud->minimapRect.height - 0.5f) * areaSize.z;
-    input_camera_center(inputState, geo_vector(x, 0, z));
+    game_input_camera_center(inputState, geo_vector(x, 0, z));
   }
 
   const UiCircleOpts circleOpts = {.base = UiBase_Container, .radius = g_hudMinimapDotRadius};
@@ -1010,13 +1010,13 @@ static void hud_production_draw(
   ui_layout_pop(c);
 }
 
-ecs_system_define(HudDrawSys) {
+ecs_system_define(GameHudDrawSys) {
   EcsView*     globalView = ecs_world_view_t(world, GlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   if (!globalItr) {
     return;
   }
-  CmdControllerComp*             cmd       = ecs_view_write_t(globalItr, CmdControllerComp);
+  GameCmdComp*                   cmd       = ecs_view_write_t(globalItr, GameCmdComp);
   const InputManagerComp*        input     = ecs_view_read_t(globalItr, InputManagerComp);
   const SceneLevelManagerComp*   level     = ecs_view_read_t(globalItr, SceneLevelManagerComp);
   const SceneSetEnvComp*         setEnv    = ecs_view_read_t(globalItr, SceneSetEnvComp);
@@ -1041,7 +1041,7 @@ ecs_system_define(HudDrawSys) {
   EcsIterator* weaponMapItr  = ecs_view_maybe_at(weaponMapView, scene_weapon_map(weaponRes));
 
   for (EcsIterator* itr = ecs_view_itr(hudView); ecs_view_walk(itr);) {
-    InputStateComp*           inputState = ecs_view_write_t(itr, InputStateComp);
+    GameInputComp*            inputState = ecs_view_write_t(itr, GameInputComp);
     const SceneCameraComp*    cam        = ecs_view_read_t(itr, SceneCameraComp);
     const SceneTransformComp* camTrans   = ecs_view_read_t(itr, SceneTransformComp);
     HudComp*                  hud        = ecs_view_write_t(itr, HudComp);
@@ -1089,7 +1089,7 @@ ecs_system_define(HudDrawSys) {
 
     EcsEntityId  hoveredEntity;
     TimeDuration hoveredTime;
-    const bool   hovered = input_hovered_entity(inputState, &hoveredEntity, &hoveredTime);
+    const bool   hovered = game_input_hovered_entity(inputState, &hoveredEntity, &hoveredTime);
     if (hovered && hoveredTime >= time_second && ecs_view_maybe_jump(infoItr, hoveredEntity)) {
       hud_info_draw(c, infoItr, weaponMapItr);
     }
@@ -1112,7 +1112,7 @@ ecs_module_init(game_hud_module) {
   ecs_register_view(VisionView);
 
   ecs_register_system(
-      HudDrawSys,
+      GameHudDrawSys,
       ecs_view_id(GlobalView),
       ecs_view_id(HudView),
       ecs_view_id(UiCanvasView),
@@ -1124,7 +1124,7 @@ ecs_module_init(game_hud_module) {
       ecs_view_id(ProductionView),
       ecs_view_id(VisionView));
 
-  ecs_order(HudDrawSys, AppOrder_HudDraw);
+  ecs_order(GameHudDrawSys, GameOrder_HudDraw);
 
   // Initialize product queue action hashes.
   for (u32 i = 0; i != array_elems(g_hudProductQueueActions); ++i) {
@@ -1132,7 +1132,7 @@ ecs_module_init(game_hud_module) {
   }
 }
 
-void hud_init(EcsWorld* world, AssetManagerComp* assets, const EcsEntityId cameraEntity) {
+void game_hud_init(EcsWorld* world, AssetManagerComp* assets, const EcsEntityId cameraEntity) {
   diag_assert_msg(!ecs_world_has_t(world, cameraEntity, HudComp), "HUD already active");
 
   const EcsEntityId rendObjMinimap =

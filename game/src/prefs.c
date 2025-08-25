@@ -102,7 +102,7 @@ ecs_module_init(game_prefs_module) {
   ecs_register_system(GamePrefsSaveSys, ecs_view_id(PrefsView));
 }
 
-GamePrefsComp* prefs_init(EcsWorld* world) {
+GamePrefsComp* game_prefs_init(EcsWorld* world) {
   prefs_data_init();
 
   GamePrefsComp* prefs = ecs_world_add_t(world, ecs_world_global(world), GamePrefsComp);

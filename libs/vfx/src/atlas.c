@@ -65,13 +65,13 @@ ecs_system_define(VfxAtlasLoadSys) {
 
     if (isFailed) {
       log_e(
-          "Failed to load vfx {} atlas",
+          "Failed to load vfx atlas",
           log_param("type", fmt_text(g_vfxAtlasTypeNames[type])),
           log_param("id", fmt_text(g_vfxAtlasAssets[type])));
     }
     if (!(atlas->flags & (VfxAtlas_Acquired | VfxAtlas_Unloading))) {
       log_i(
-          "Acquiring vfx {} atlas",
+          "Acquiring vfx atlas",
           log_param("type", fmt_text(g_vfxAtlasTypeNames[type])),
           log_param("id", fmt_text(g_vfxAtlasAssets[type])));
       asset_acquire(world, atlas->entity);

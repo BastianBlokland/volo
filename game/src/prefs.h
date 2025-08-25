@@ -21,4 +21,4 @@ ecs_comp_extern_public(GamePrefsComp) {
   GameQuality quality;
 };
 
-GamePrefsComp* prefs_init(EcsWorld*);
+GamePrefsComp* game_prefs_init(EcsWorld*);

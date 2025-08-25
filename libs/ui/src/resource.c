@@ -82,13 +82,13 @@ ecs_system_define(UiResourceUpdateSys) {
 
     if (isFailed) {
       log_e(
-          "Failed to load ui {} atlas",
+          "Failed to load ui atlas",
           log_param("type", fmt_text(g_uiAtlasResNames[res])),
           log_param("id", fmt_text(g_uiAtlasIds[res])));
     }
     if (!isAcquired && !isUnloading) {
       log_i(
-          "Acquiring ui {} atlas",
+          "Acquiring ui atlas",
           log_param("type", fmt_text(g_uiAtlasResNames[res])),
           log_param("id", fmt_text(g_uiAtlasIds[res])));
       asset_acquire(world, globalResources->atlases[res]);

@@ -34,8 +34,7 @@ typedef enum eGapWindowFlags {
   GapWindowFlags_CursorConfine    = 1 << 4,
   GapWindowFlags_DefaultTitle     = 1 << 5,
 
-  GapWindowFlags_Default =
-      GapWindowFlags_CloseOnInterrupt | GapWindowFlags_CloseOnRequest | GapWindowFlags_DefaultTitle,
+  GapWindowFlags_Default = GapWindowFlags_CloseOnInterrupt | GapWindowFlags_CloseOnRequest,
 } GapWindowFlags;
 
 typedef enum eGapWindowMode {

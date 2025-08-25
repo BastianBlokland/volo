@@ -16,7 +16,6 @@
 #include "dev/menu.h"
 #include "dev/panel.h"
 #include "dev/register.h"
-#include "dev/stats.h"
 #include "ecs/entity.h"
 #include "ecs/utils.h"
 #include "ecs/view.h"
@@ -56,39 +55,37 @@
 #include "hud.h"
 #include "prefs.h"
 
-enum { AppLevelsMax = 8 };
+enum { GameLevelsMax = 8 };
 
 typedef enum {
-  AppMode_Normal,
-  AppMode_Debug,
-} AppMode;
+  GameMode_Normal,
+  GameMode_Debug,
+} GameMode;
 
-ecs_comp_define(AppComp) {
-  AppMode     mode;
+ecs_comp_define(GameComp) {
+  GameMode    mode : 8;
   bool        devSupport;
   EcsEntityId mainWindow;
 
   u32         levelMask;
   u32         levelLoadingMask;
-  EcsEntityId levelAssets[AppLevelsMax];
-  String      levelNames[AppLevelsMax];
+  EcsEntityId levelAssets[GameLevelsMax];
+  String      levelNames[GameLevelsMax];
 };
 
-ecs_comp_define(AppMainWindowComp) {
+ecs_comp_define(GameMainWindowComp) {
   EcsEntityId uiCanvas;
   EcsEntityId devMenu;
-  EcsEntityId devLogViewer;
-  bool        statsEnabled;
 };
 
-static void ecs_destruct_app_comp(void* data) {
-  AppComp* comp = data;
-  for (u32 i = 0; i != AppLevelsMax; ++i) {
+static void ecs_destruct_game_comp(void* data) {
+  GameComp* comp = data;
+  for (u32 i = 0; i != GameLevelsMax; ++i) {
     string_maybe_free(g_allocHeap, comp->levelNames[i]);
   }
 }
 
-static EcsEntityId app_main_window_create(
+static EcsEntityId game_main_window_create(
     EcsWorld*         world,
     AssetManagerComp* assets,
     const bool        fullscreen,
@@ -105,13 +102,12 @@ static EcsEntityId app_main_window_create(
   const String        titleScratch   = fmt_write_scratch("Volo v{}", fmt_text(versionScratch));
   const EcsEntityId   window = gap_window_create(world, mode, flags, size, icon, titleScratch);
 
-  const EcsEntityId uiCanvas  = ui_canvas_create(world, window, UiCanvasCreateFlags_ToFront);
-  EcsEntityId       logViewer = ecs_entity_invalid;
   if (devSupport) {
-    logViewer = dev_log_viewer_create(world, window, LogMask_None);
+    dev_log_viewer_create(world, window, LogMask_Info | LogMask_Warn | LogMask_Error);
   }
-  ecs_world_add_t(
-      world, window, AppMainWindowComp, .uiCanvas = uiCanvas, .devLogViewer = logViewer);
+
+  const EcsEntityId uiCanvas = ui_canvas_create(world, window, UiCanvasCreateFlags_ToFront);
+  ecs_world_add_t(world, window, GameMainWindowComp, .uiCanvas = uiCanvas);
 
   ecs_world_add_t(
       world,
@@ -123,27 +119,23 @@ static EcsEntityId app_main_window_create(
 
   ecs_world_add_empty_t(world, window, SceneSoundListenerComp);
   ecs_world_add_t(world, window, SceneTransformComp, .position = {0}, .rotation = geo_quat_ident);
-  hud_init(world, assets, window);
+  game_hud_init(world, assets, window);
 
   return window;
 }
 
-static void app_window_fullscreen_toggle(GapWindowComp* win) {
+static void game_window_fullscreen_toggle(GapWindowComp* win) {
   if (gap_window_mode(win) == GapWindowMode_Fullscreen) {
-    // Enter windowed mode.
-    gap_window_resize(
-        win, gap_window_param(win, GapParam_WindowSizePreFullscreen), GapWindowMode_Windowed);
-    // Release cursor confinement.
+    const GapVector size = gap_window_param(win, GapParam_WindowSizePreFullscreen);
+    gap_window_resize(win, size, GapWindowMode_Windowed);
     gap_window_flags_unset(win, GapWindowFlags_CursorConfine);
   } else {
-    // Enter fullscreen mode.
     gap_window_resize(win, gap_vector(0, 0), GapWindowMode_Fullscreen);
-    // Confine the cursor to the window (for multi-monitor setups).
     gap_window_flags_set(win, GapWindowFlags_CursorConfine);
   }
 }
 
-static void app_quality_apply(
+static void game_quality_apply(
     const GamePrefsComp*    prefs,
     RendSettingsGlobalComp* rendSetGlobal,
     RendSettingsComp*       rendSetWin) {
@@ -191,20 +183,20 @@ static void app_quality_apply(
   }
 }
 
-static void app_level_picker_draw(UiCanvasComp* canvas, EcsWorld* world, AppComp* app) {
+static void game_level_picker_draw(UiCanvasComp* canvas, EcsWorld* world, GameComp* game) {
   static const UiVector g_buttonSize = {.x = 250.0f, .y = 50.0f};
   static const f32      g_spacing    = 8.0f;
 
-  const u32 levelCount    = bits_popcnt(app->levelMask);
+  const u32 levelCount    = bits_popcnt(game->levelMask);
   const f32 yCenterOffset = (levelCount - 1) * (g_buttonSize.y + g_spacing) * 0.5f;
   ui_layout_inner(canvas, UiBase_Canvas, UiAlign_MiddleCenter, g_buttonSize, UiBase_Absolute);
   ui_layout_move(canvas, ui_vector(g_spacing, yCenterOffset), UiBase_Absolute, Ui_XY);
 
   ui_style_push(canvas);
   ui_style_transform(canvas, UiTransform_ToUpper);
-  bitset_for(bitset_from_var(app->levelMask), idx) {
-    if (ui_button(canvas, .label = app->levelNames[idx], .fontSize = 25)) {
-      scene_level_load(world, SceneLevelMode_Play, app->levelAssets[idx]);
+  bitset_for(bitset_from_var(game->levelMask), idx) {
+    if (ui_button(canvas, .label = game->levelNames[idx], .fontSize = 25)) {
+      scene_level_load(world, SceneLevelMode_Play, game->levelAssets[idx]);
     }
     ui_layout_next(canvas, Ui_Down, g_spacing);
   }
@@ -213,26 +205,19 @@ static void app_level_picker_draw(UiCanvasComp* canvas, EcsWorld* world, AppComp
 
 typedef struct {
   EcsWorld*               world;
-  AppComp*                app;
+  GameComp*               game;
   GamePrefsComp*          prefs;
   const InputManagerComp* input;
   SndMixerComp*           soundMixer;
   SceneTimeSettingsComp*  timeSet;
-  CmdControllerComp*      cmd;
+  GameCmdComp*            cmd;
   GapWindowComp*          win;
   RendSettingsGlobalComp* rendSetGlobal;
   RendSettingsComp*       rendSetWin;
-  DevStatsGlobalComp*     devStats;
-} AppActionContext;
+} GameActionContext;
 
-static void app_action_notify(const AppActionContext* ctx, const String action) {
-  if (ctx->devStats) {
-    dev_stats_notify(ctx->devStats, string_lit("Action"), action);
-  }
-}
-
-static void app_action_debug_draw(UiCanvasComp* canvas, const AppActionContext* ctx) {
-  const bool isInDebugMode = ctx->app->mode == AppMode_Debug;
+static void game_action_debug_draw(UiCanvasComp* canvas, const GameActionContext* ctx) {
+  const bool isInDebugMode = ctx->game->mode == GameMode_Debug;
   if (ui_button(
           canvas,
           .label      = ui_shape_scratch(UiShape_Bug),
@@ -241,13 +226,12 @@ static void app_action_debug_draw(UiCanvasComp* canvas, const AppActionContext* 
           .frameColor = isInDebugMode ? ui_color(178, 0, 0, 192) : ui_color(32, 32, 32, 192),
           .activate   = input_triggered_lit(ctx->input, "AppDebug"))) {
 
-    app_action_notify(ctx, isInDebugMode ? string_lit("Game mode") : string_lit("Debug mode"));
     log_i("Toggle debug-mode", log_param("debug", fmt_bool(!isInDebugMode)));
 
-    ctx->app->mode ^= AppMode_Debug;
-    cmd_push_deselect_all(ctx->cmd);
+    ctx->game->mode ^= GameMode_Debug;
+    game_cmd_push_deselect_all(ctx->cmd);
 
-    if (ctx->app->mode == AppMode_Debug) {
+    if (ctx->game->mode == GameMode_Debug) {
       ctx->timeSet->flags |= SceneTimeFlags_Paused;
       ctx->rendSetWin->skyMode = RendSkyMode_Gradient;
     } else {
@@ -257,7 +241,7 @@ static void app_action_debug_draw(UiCanvasComp* canvas, const AppActionContext* 
   }
 }
 
-static void app_action_pause_draw(UiCanvasComp* canvas, const AppActionContext* ctx) {
+static void game_action_pause_draw(UiCanvasComp* canvas, const GameActionContext* ctx) {
   const bool isPaused = (ctx->timeSet->flags & SceneTimeFlags_Paused) != 0;
   if (ui_button(
           canvas,
@@ -266,14 +250,12 @@ static void app_action_pause_draw(UiCanvasComp* canvas, const AppActionContext* 
           .tooltip    = string_lit("Pause / Resume."),
           .frameColor = isPaused ? ui_color(0, 178, 0, 192) : ui_color(32, 32, 32, 192))) {
 
-    app_action_notify(ctx, isPaused ? string_lit("Resume") : string_lit("Pause"));
     log_i("Toggle pause", log_param("paused", fmt_bool(!isPaused)));
-
     ctx->timeSet->flags ^= SceneTimeFlags_Paused;
   }
 }
 
-static void app_action_restart_draw(UiCanvasComp* canvas, const AppActionContext* ctx) {
+static void game_action_restart_draw(UiCanvasComp* canvas, const GameActionContext* ctx) {
   if (ui_button(
           canvas,
           .label    = ui_shape_scratch(UiShape_Restart),
@@ -281,14 +263,12 @@ static void app_action_restart_draw(UiCanvasComp* canvas, const AppActionContext
           .tooltip  = string_lit("Restart the level."),
           .activate = input_triggered_lit(ctx->input, "AppReset"))) {
 
-    app_action_notify(ctx, string_lit("Restart"));
     log_i("Restart");
-
     scene_level_reload(ctx->world, SceneLevelMode_Play);
   }
 }
 
-static void app_action_sound_draw(UiCanvasComp* canvas, const AppActionContext* ctx) {
+static void game_action_sound_draw(UiCanvasComp* canvas, const GameActionContext* ctx) {
   static const UiVector g_popupSize    = {.x = 35.0f, .y = 100.0f};
   static const f32      g_popupSpacing = 8.0f;
   static const UiVector g_popupInset   = {.x = -15.0f, .y = -15.0f};
@@ -331,8 +311,6 @@ static void app_action_sound_draw(UiCanvasComp* canvas, const AppActionContext* 
             .max      = 1e2f,
             .step     = 1,
             .tooltip  = string_lit("Sound volume."))) {
-      app_action_notify(
-          ctx, fmt_write_scratch("Volume: {}", fmt_float(ctx->prefs->volume, .maxDecDigits = 0)));
 
       ctx->prefs->dirty = true;
       snd_mixer_gain_set(ctx->soundMixer, ctx->prefs->volume * 1e-2f);
@@ -348,7 +326,7 @@ static void app_action_sound_draw(UiCanvasComp* canvas, const AppActionContext* 
   ui_canvas_id_block_next(canvas); // End on an consistent id.
 }
 
-static void app_action_quality_draw(UiCanvasComp* canvas, const AppActionContext* ctx) {
+static void game_action_quality_draw(UiCanvasComp* canvas, const GameActionContext* ctx) {
   static const UiVector g_popupSize    = {.x = 250.0f, .y = 70.0f};
   static const f32      g_popupSpacing = 8.0f;
 
@@ -391,11 +369,8 @@ static void app_action_quality_draw(UiCanvasComp* canvas, const AppActionContext
     ui_label(canvas, string_lit("PowerSaving"));
     ui_table_next_column(canvas, &table);
     if (ui_toggle(canvas, &ctx->prefs->powerSaving)) {
-      app_action_notify(
-          ctx, ctx->prefs->powerSaving ? string_lit("Power saving") : string_lit("Power normal"));
-
       ctx->prefs->dirty = true;
-      app_quality_apply(ctx->prefs, ctx->rendSetGlobal, ctx->rendSetWin);
+      game_quality_apply(ctx->prefs, ctx->rendSetGlobal, ctx->rendSetWin);
     }
 
     ui_table_next_row(canvas, &table);
@@ -403,11 +378,8 @@ static void app_action_quality_draw(UiCanvasComp* canvas, const AppActionContext
     ui_table_next_column(canvas, &table);
     i32* quality = (i32*)&ctx->prefs->quality;
     if (ui_select(canvas, quality, g_gameQualityLabels, GameQuality_Count)) {
-      app_action_notify(
-          ctx, fmt_write_scratch("Quality {}", fmt_text(g_gameQualityLabels[*quality])));
-
       ctx->prefs->dirty = true;
-      app_quality_apply(ctx->prefs, ctx->rendSetGlobal, ctx->rendSetWin);
+      game_quality_apply(ctx->prefs, ctx->rendSetGlobal, ctx->rendSetWin);
     }
 
     ui_layout_container_pop(canvas);
@@ -422,7 +394,7 @@ static void app_action_quality_draw(UiCanvasComp* canvas, const AppActionContext
   ui_canvas_id_block_next(canvas); // End on an consistent id.
 }
 
-static void app_action_fullscreen_draw(UiCanvasComp* canvas, const AppActionContext* ctx) {
+static void game_action_fullscreen_draw(UiCanvasComp* canvas, const GameActionContext* ctx) {
   if (ui_button(
           canvas,
           .label    = ui_shape_scratch(UiShape_Fullscreen),
@@ -430,18 +402,12 @@ static void app_action_fullscreen_draw(UiCanvasComp* canvas, const AppActionCont
           .tooltip  = string_lit("Enter / exit fullscreen."),
           .activate = input_triggered_lit(ctx->input, "AppWindowFullscreen"))) {
 
-    if (gap_window_mode(ctx->win) == GapWindowMode_Fullscreen) {
-      app_action_notify(ctx, string_lit("Windowed"));
-    } else {
-      app_action_notify(ctx, string_lit("Fullscreen"));
-    }
     log_i("Toggle fullscreen");
-
-    app_window_fullscreen_toggle(ctx->win);
+    game_window_fullscreen_toggle(ctx->win);
   }
 }
 
-static void app_action_exit_draw(UiCanvasComp* canvas, const AppActionContext* ctx) {
+static void game_action_exit_draw(UiCanvasComp* canvas, const GameActionContext* ctx) {
   if (ui_button(
           canvas,
           .label    = ui_shape_scratch(UiShape_Logout),
@@ -453,19 +419,19 @@ static void app_action_exit_draw(UiCanvasComp* canvas, const AppActionContext* c
   }
 }
 
-static void app_action_bar_draw(UiCanvasComp* canvas, const AppActionContext* ctx) {
-  void (*actions[32])(UiCanvasComp*, const AppActionContext*);
+static void game_action_bar_draw(UiCanvasComp* canvas, const GameActionContext* ctx) {
+  void (*actions[32])(UiCanvasComp*, const GameActionContext*);
   u32 actionCount = 0;
 
-  if (ctx->app->devSupport) {
-    actions[actionCount++] = app_action_debug_draw;
+  if (ctx->game->devSupport) {
+    actions[actionCount++] = game_action_debug_draw;
   }
-  actions[actionCount++] = app_action_pause_draw;
-  actions[actionCount++] = app_action_restart_draw;
-  actions[actionCount++] = app_action_sound_draw;
-  actions[actionCount++] = app_action_quality_draw;
-  actions[actionCount++] = app_action_fullscreen_draw;
-  actions[actionCount++] = app_action_exit_draw;
+  actions[actionCount++] = game_action_pause_draw;
+  actions[actionCount++] = game_action_restart_draw;
+  actions[actionCount++] = game_action_sound_draw;
+  actions[actionCount++] = game_action_quality_draw;
+  actions[actionCount++] = game_action_fullscreen_draw;
+  actions[actionCount++] = game_action_exit_draw;
 
   static const UiVector g_buttonSize = {.x = 50.0f, .y = 50.0f};
   static const f32      g_spacing    = 8.0f;
@@ -480,30 +446,28 @@ static void app_action_bar_draw(UiCanvasComp* canvas, const AppActionContext* ct
   }
 }
 
-ecs_view_define(AppErrorView) {
+ecs_view_define(ErrorView) {
   ecs_access_maybe_read(GapErrorComp);
   ecs_access_maybe_read(RendErrorComp);
 }
-ecs_view_define(AppTimeView) { ecs_access_write(SceneTimeComp); }
+ecs_view_define(TimeView) { ecs_access_write(SceneTimeComp); }
 
-ecs_view_define(AppUpdateGlobalView) {
+ecs_view_define(UpdateGlobalView) {
   ecs_access_read(SceneLevelManagerComp);
-  ecs_access_write(AppComp);
+  ecs_access_write(GameComp);
   ecs_access_write(AssetManagerComp);
-  ecs_access_write(CmdControllerComp);
+  ecs_access_write(GameCmdComp);
   ecs_access_write(GamePrefsComp);
   ecs_access_write(InputManagerComp);
   ecs_access_write(RendSettingsGlobalComp);
   ecs_access_write(SceneTimeSettingsComp);
   ecs_access_write(SceneVisibilityEnvComp);
   ecs_access_write(SndMixerComp);
-  ecs_access_maybe_write(DevStatsGlobalComp);
 }
 
 ecs_view_define(MainWindowView) {
-  ecs_access_maybe_write(DevStatsComp);
   ecs_access_maybe_write(RendSettingsComp);
-  ecs_access_write(AppMainWindowComp);
+  ecs_access_write(GameMainWindowComp);
   ecs_access_write(GapWindowComp);
 }
 
@@ -518,27 +482,26 @@ ecs_view_define(UiCanvasView) {
 }
 
 ecs_view_define(DevPanelView) { ecs_access_write(DevPanelComp); }
-ecs_view_define(DevLogViewerView) { ecs_access_write(DevLogViewerComp); }
 
-static void app_levels_query_init(EcsWorld* world, AppComp* app, AssetManagerComp* assets) {
+static void game_levels_query_init(EcsWorld* world, GameComp* game, AssetManagerComp* assets) {
   const String levelPattern = string_lit("levels/game/*.level");
   EcsEntityId  queryAssets[asset_query_max_results];
   const u32    queryCount = asset_query(world, assets, levelPattern, queryAssets);
 
-  for (u32 i = 0; i != math_min(queryCount, AppLevelsMax); ++i) {
+  for (u32 i = 0; i != math_min(queryCount, GameLevelsMax); ++i) {
     asset_acquire(world, queryAssets[i]);
-    app->levelLoadingMask |= 1 << i;
-    app->levelAssets[i] = queryAssets[i];
+    game->levelLoadingMask |= 1 << i;
+    game->levelAssets[i] = queryAssets[i];
   }
 }
 
-static void app_levels_query_update(EcsWorld* world, AppComp* app) {
-  if (!app->levelLoadingMask) {
+static void game_levels_query_update(EcsWorld* world, GameComp* game) {
+  if (!game->levelLoadingMask) {
     return; // Loading finished.
   }
   EcsIterator* levelItr = ecs_view_itr(ecs_world_view_t(world, LevelView));
-  bitset_for(bitset_from_var(app->levelLoadingMask), idx) {
-    const EcsEntityId asset = app->levelAssets[idx];
+  bitset_for(bitset_from_var(game->levelLoadingMask), idx) {
+    const EcsEntityId asset = game->levelAssets[idx];
     if (UNLIKELY(ecs_world_has_t(world, asset, AssetFailedComp))) {
       goto Done;
     }
@@ -553,15 +516,15 @@ static void app_levels_query_update(EcsWorld* world, AppComp* app) {
     if (string_is_empty(name)) {
       name = path_stem(asset_id(ecs_view_read_t(levelItr, AssetComp)));
     }
-    app->levelMask |= 1 << idx;
-    app->levelNames[idx] = string_dup(g_allocHeap, name);
+    game->levelMask |= 1 << idx;
+    game->levelNames[idx] = string_dup(g_allocHeap, name);
   Done:
     asset_release(world, asset);
-    app->levelLoadingMask &= ~(1 << idx);
+    game->levelLoadingMask &= ~(1 << idx);
   }
 }
 
-static void app_dev_hide(EcsWorld* world, const bool hidden) {
+static void game_dev_hide(EcsWorld* world, const bool hidden) {
   EcsView* devPanelView = ecs_world_view_t(world, DevPanelView);
   if (!devPanelView) {
     return; // Dev support not enabled.
@@ -574,17 +537,16 @@ static void app_dev_hide(EcsWorld* world, const bool hidden) {
   }
 }
 
-ecs_system_define(AppUpdateSys) {
-  EcsView*     globalView = ecs_world_view_t(world, AppUpdateGlobalView);
+ecs_system_define(GameUpdateSys) {
+  EcsView*     globalView = ecs_world_view_t(world, UpdateGlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   if (!globalItr) {
     return;
   }
   const SceneLevelManagerComp* levelManager  = ecs_view_read_t(globalItr, SceneLevelManagerComp);
-  AppComp*                     app           = ecs_view_write_t(globalItr, AppComp);
+  GameComp*                    game          = ecs_view_write_t(globalItr, GameComp);
   AssetManagerComp*            assets        = ecs_view_write_t(globalItr, AssetManagerComp);
-  CmdControllerComp*           cmd           = ecs_view_write_t(globalItr, CmdControllerComp);
-  DevStatsGlobalComp*          devStats      = ecs_view_write_t(globalItr, DevStatsGlobalComp);
+  GameCmdComp*                 cmd           = ecs_view_write_t(globalItr, GameCmdComp);
   GamePrefsComp*               prefs         = ecs_view_write_t(globalItr, GamePrefsComp);
   InputManagerComp*            input         = ecs_view_write_t(globalItr, InputManagerComp);
   RendSettingsGlobalComp*      rendSetGlobal = ecs_view_write_t(globalItr, RendSettingsGlobalComp);
@@ -592,7 +554,7 @@ ecs_system_define(AppUpdateSys) {
   SceneVisibilityEnvComp*      visibilityEnv = ecs_view_write_t(globalItr, SceneVisibilityEnvComp);
   SndMixerComp*                soundMixer    = ecs_view_write_t(globalItr, SndMixerComp);
 
-  app_levels_query_update(world, app);
+  game_levels_query_update(world, game);
 
   if (scene_level_loaded(levelManager)) {
     asset_loading_budget_set(assets, time_milliseconds(2)); // Limit asset loading during gameplay.
@@ -600,26 +562,15 @@ ecs_system_define(AppUpdateSys) {
     asset_loading_budget_set(assets, 0); // Infinite while not in gameplay.
   }
 
-  EcsIterator* canvasItr        = ecs_view_itr(ecs_world_view_t(world, UiCanvasView));
-  EcsIterator* devLogViewerItr  = null;
-  EcsView*     devLogViewerView = ecs_world_view_t(world, DevLogViewerView);
-  if (devLogViewerView) {
-    devLogViewerItr = ecs_view_itr(devLogViewerView);
-  }
+  EcsIterator* canvasItr = ecs_view_itr(ecs_world_view_t(world, UiCanvasView));
 
   EcsView*     mainWinView = ecs_world_view_t(world, MainWindowView);
-  EcsIterator* mainWinItr  = ecs_view_maybe_at(mainWinView, app->mainWindow);
+  EcsIterator* mainWinItr  = ecs_view_maybe_at(mainWinView, game->mainWindow);
   if (mainWinItr) {
-    const EcsEntityId  windowEntity = ecs_view_entity(mainWinItr);
-    AppMainWindowComp* appWindow    = ecs_view_write_t(mainWinItr, AppMainWindowComp);
-    GapWindowComp*     win          = ecs_view_write_t(mainWinItr, GapWindowComp);
-    DevStatsComp*      stats        = ecs_view_write_t(mainWinItr, DevStatsComp);
-    RendSettingsComp*  rendSetWin   = ecs_view_write_t(mainWinItr, RendSettingsComp);
-
-    if (devStats && !appWindow->statsEnabled) {
-      dev_stats_show_set(stats, DevStatShow_Minimal);
-      appWindow->statsEnabled = true;
-    }
+    const EcsEntityId   windowEntity = ecs_view_entity(mainWinItr);
+    GameMainWindowComp* gameWindow   = ecs_view_write_t(mainWinItr, GameMainWindowComp);
+    GapWindowComp*      win          = ecs_view_write_t(mainWinItr, GapWindowComp);
+    RendSettingsComp*   rendSetWin   = ecs_view_write_t(mainWinItr, RendSettingsComp);
 
     // Save last window size.
     if (gap_window_events(win) & GapWindowEvents_Resized) {
@@ -631,17 +582,17 @@ ecs_system_define(AppUpdateSys) {
       prefs->dirty = true;
     }
 
-    if (ecs_view_maybe_jump(canvasItr, appWindow->uiCanvas)) {
+    if (ecs_view_maybe_jump(canvasItr, gameWindow->uiCanvas)) {
       UiCanvasComp* canvas = ecs_view_write_t(canvasItr, UiCanvasComp);
       ui_canvas_reset(canvas);
       if (!scene_level_loaded(levelManager)) {
-        app_level_picker_draw(canvas, world, app);
+        game_level_picker_draw(canvas, world, game);
       }
-      app_action_bar_draw(
+      game_action_bar_draw(
           canvas,
-          &(AppActionContext){
+          &(GameActionContext){
               .world         = world,
-              .app           = app,
+              .game          = game,
               .prefs         = prefs,
               .input         = input,
               .soundMixer    = soundMixer,
@@ -650,28 +601,20 @@ ecs_system_define(AppUpdateSys) {
               .win           = win,
               .rendSetGlobal = rendSetGlobal,
               .rendSetWin    = rendSetWin,
-              .devStats      = devStats,
           });
     }
 
-    DevLogViewerComp* devLogViewer = null;
-    if (devLogViewerItr && ecs_view_maybe_jump(devLogViewerItr, appWindow->devLogViewer)) {
-      devLogViewer = ecs_view_write_t(devLogViewerItr, DevLogViewerComp);
-    }
-
     // clang-format off
-    switch (app->mode) {
-    case AppMode_Normal:
-      if (devLogViewer) { dev_log_viewer_set_mask(devLogViewer, LogMask_Warn | LogMask_Error); }
-      app_dev_hide(world, true);
+    switch (game->mode) {
+    case GameMode_Normal:
+      game_dev_hide(world, true);
       input_layer_disable(input, string_hash_lit("Dev"));
       input_layer_enable(input, string_hash_lit("Game"));
       scene_visibility_flags_clear(visibilityEnv, SceneVisibilityFlags_ForceRender);
       break;
-    case AppMode_Debug:
-      if (!appWindow->devMenu) { appWindow->devMenu = dev_menu_create(world, windowEntity); }
-      if (devLogViewer)        { dev_log_viewer_set_mask(devLogViewer, LogMask_All); }
-      app_dev_hide(world, false);
+    case GameMode_Debug:
+      if (!gameWindow->devMenu) { gameWindow->devMenu = dev_menu_create(world, windowEntity); }
+      game_dev_hide(world, false);
       input_layer_enable(input, string_hash_lit("Dev"));
       input_layer_disable(input, string_hash_lit("Game"));
       scene_visibility_flags_set(visibilityEnv, SceneVisibilityFlags_ForceRender);
@@ -683,34 +626,32 @@ ecs_system_define(AppUpdateSys) {
 
 typedef struct {
   bool devSupport;
-} AppInitContext;
+} GameInitContext;
 
-ecs_module_init(game_app_module) {
-  const AppInitContext* ctx = ecs_init_ctx();
+ecs_module_init(game_module) {
+  const GameInitContext* ctx = ecs_init_ctx();
 
-  ecs_register_comp(AppComp, .destructor = ecs_destruct_app_comp);
-  ecs_register_comp(AppMainWindowComp);
+  ecs_register_comp(GameComp, .destructor = ecs_destruct_game_comp);
+  ecs_register_comp(GameMainWindowComp);
 
-  ecs_register_view(AppTimeView);
-  ecs_register_view(AppErrorView);
-  ecs_register_view(AppUpdateGlobalView);
+  ecs_register_view(TimeView);
+  ecs_register_view(ErrorView);
+  ecs_register_view(UpdateGlobalView);
   ecs_register_view(MainWindowView);
   ecs_register_view(LevelView);
   ecs_register_view(UiCanvasView);
 
   if (ctx->devSupport) {
     ecs_register_view(DevPanelView);
-    ecs_register_view(DevLogViewerView);
   }
 
   ecs_register_system(
-      AppUpdateSys,
-      ecs_view_id(AppUpdateGlobalView),
+      GameUpdateSys,
+      ecs_view_id(UpdateGlobalView),
       ecs_view_id(MainWindowView),
       ecs_view_id(LevelView),
       ecs_view_id(UiCanvasView),
-      ecs_view_id(DevPanelView),
-      ecs_view_id(DevLogViewerView));
+      ecs_view_id(DevPanelView));
 }
 
 static CliId g_optAssets, g_optWindow, g_optWidth, g_optHeight, g_optLevel, g_optDev;
@@ -755,30 +696,30 @@ static void game_crash_handler(const String message, void* ctx) {
 void app_ecs_register(EcsDef* def, const CliInvocation* invoc) {
   diag_crash_handler(game_crash_handler, null); // Register a crash handler.
 
-  const AppInitContext appInitCtx = {
+  const GameInitContext gameInitCtx = {
       .devSupport = cli_parse_provided(invoc, g_optDev),
   };
 
   asset_register(def);
   gap_register(def);
   input_register(def);
-  rend_register(def, appInitCtx.devSupport ? RendRegisterFlags_EnableStats : 0);
+  rend_register(def, gameInitCtx.devSupport ? RendRegisterFlags_EnableStats : 0);
   scene_register(def);
   snd_register(def);
   ui_register(def);
   vfx_register(def);
-  if (appInitCtx.devSupport) {
+  if (gameInitCtx.devSupport) {
     dev_register(def);
   }
 
-  ecs_register_module_with_context(def, game_app_module, &appInitCtx);
+  ecs_register_module_with_context(def, game_module, &gameInitCtx);
   ecs_register_module(def, game_cmd_module);
   ecs_register_module(def, game_hud_module);
   ecs_register_module(def, game_input_module);
   ecs_register_module(def, game_prefs_module);
 }
 
-static AssetManagerComp* app_init_assets(EcsWorld* world, const CliInvocation* invoc) {
+static AssetManagerComp* game_init_assets(EcsWorld* world, const CliInvocation* invoc) {
   const AssetManagerFlags flags        = AssetManagerFlags_DelayUnload;
   const String            overridePath = cli_read_string(invoc, g_optAssets, string_empty);
   if (!string_is_empty(overridePath)) {
@@ -812,12 +753,12 @@ bool app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
     log_i("Development support enabled");
   }
 
-  AssetManagerComp* assets = app_init_assets(world, invoc);
+  AssetManagerComp* assets = game_init_assets(world, invoc);
   if (UNLIKELY(!assets)) {
     gap_window_modal_error(string_lit("No (valid) assets found"));
     return false; // Initialization failed.
   }
-  GamePrefsComp* prefs      = prefs_init(world);
+  GamePrefsComp* prefs      = game_prefs_init(world);
   const bool     fullscreen = prefs->fullscreen && !cli_parse_provided(invoc, g_optWindow);
   const u16      width      = (u16)cli_read_u64(invoc, g_optWidth, prefs->windowWidth);
   const u16      height     = (u16)cli_read_u64(invoc, g_optHeight, prefs->windowHeight);
@@ -828,15 +769,15 @@ bool app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
   snd_mixer_gain_set(soundMixer, prefs->volume * 1e-2f);
 
   const EcsEntityId mainWin =
-      app_main_window_create(world, assets, fullscreen, devSupport, width, height);
+      game_main_window_create(world, assets, fullscreen, devSupport, width, height);
   RendSettingsComp* rendSettingsWin = rend_settings_window_init(world, mainWin);
 
-  app_quality_apply(prefs, rendSettingsGlobal, rendSettingsWin);
+  game_quality_apply(prefs, rendSettingsGlobal, rendSettingsWin);
 
-  AppComp* app = ecs_world_add_t(
-      world, ecs_world_global(world), AppComp, .devSupport = devSupport, .mainWindow = mainWin);
+  GameComp* game = ecs_world_add_t(
+      world, ecs_world_global(world), GameComp, .devSupport = devSupport, .mainWindow = mainWin);
 
-  app_levels_query_init(world, app, assets);
+  game_levels_query_init(world, game, assets);
 
   InputResourceComp* inputResource = input_resource_init(world);
   input_resource_load_map(inputResource, string_lit("global/app.inputs"));
@@ -861,7 +802,7 @@ AppEcsStatus app_ecs_status(EcsWorld* world) {
   /**
    * Detect any fatal errors.
    */
-  EcsView*            errView    = ecs_world_view_t(world, AppErrorView);
+  EcsView*            errView    = ecs_world_view_t(world, ErrorView);
   EcsIterator*        errItr     = ecs_view_at(errView, ecs_world_global(world));
   const GapErrorComp* errGapComp = ecs_view_read_t(errItr, GapErrorComp);
   if (errGapComp) {
@@ -876,7 +817,7 @@ AppEcsStatus app_ecs_status(EcsWorld* world) {
     return AppEcsStatus_Failed;
   }
   /**
-   * Run until the last window has been closed.
+   * Run until the main window has closed.
    */
   if (!ecs_utils_any(world, MainWindowView)) {
     return AppEcsStatus_Finished;
@@ -885,7 +826,7 @@ AppEcsStatus app_ecs_status(EcsWorld* world) {
 }
 
 void app_ecs_set_frame(EcsWorld* world, const u64 frameIdx) {
-  SceneTimeComp* time = ecs_utils_write_first_t(world, AppTimeView, SceneTimeComp);
+  SceneTimeComp* time = ecs_utils_write_first_t(world, TimeView, SceneTimeComp);
   if (LIKELY(time)) {
     time->frameIdx = frameIdx;
   }
