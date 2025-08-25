@@ -3,8 +3,8 @@
 # --------------------------------------------------------------------------------------------------
 
 add_executable(volo
-  src/app.c
   src/cmd.c
+  src/game.c
   src/hud.c
   src/input.c
   src/prefs.c
