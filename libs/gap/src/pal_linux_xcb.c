@@ -1221,7 +1221,8 @@ static bool pal_init_xkb(Xcb* xcb, Allocator* alloc, XkbCommon* out) {
   const String layoutName    = layoutNameRaw ? string_from_null_term(layoutNameRaw) : string_empty;
 
   log_i(
-      "Initialized XkbCommon",
+      "Xcb extension initialized",
+      log_param("ext", fmt_text_lit("XkbCommon")),
       log_param("path", fmt_path(dynlib_path(out->lib))),
       log_param("version", fmt_list_lit(fmt_int(versionMajor), fmt_int(versionMinor))),
       log_param("device-id", fmt_int(out->deviceId)),
@@ -1267,7 +1268,10 @@ static bool pal_init_xfixes(Xcb* xcb, Allocator* alloc, XFixes* out) {
     return false;
   }
 
-  log_i("Initialized XFixes", log_param("path", fmt_path(dynlib_path(out->lib))));
+  log_i(
+      "Xcb extension initialized",
+      log_param("ext", fmt_text_lit("XFixes")),
+      log_param("path", fmt_path(dynlib_path(out->lib))));
   return true;
 }
 
@@ -1327,7 +1331,10 @@ static bool pal_init_randr(Xcb* xcb, Allocator* alloc, XRandr* out) {
   }
 
   out->firstEvent = data->first_event;
-  log_i("Initialized XRandR", log_param("path", fmt_path(dynlib_path(out->lib))));
+  log_i(
+      "Xcb extension initialized",
+      log_param("ext", fmt_text_lit("XRandR")),
+      log_param("path", fmt_path(dynlib_path(out->lib))));
   return true;
 }
 
@@ -1416,7 +1423,10 @@ static bool pal_init_xrender(Xcb* xcb, Allocator* alloc, XRender* out) {
     return false;
   }
 
-  log_i("Initialized XRender", log_param("path", fmt_path(dynlib_path(out->lib))));
+  log_i(
+      "Xcb extension initialized",
+      log_param("ext", fmt_text_lit("XRender")),
+      log_param("path", fmt_path(dynlib_path(out->lib))));
   return true;
 }
 
