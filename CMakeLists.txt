@@ -55,7 +55,7 @@ include(cmake/compiler.cmake)
 # Setup targets.
 # --------------------------------------------------------------------------------------------------
 
-add_subdirectory(volo)
+add_subdirectory(game)
 add_subdirectory(utilities)
 add_subdirectory(libs/app)
 add_subdirectory(libs/asset)
