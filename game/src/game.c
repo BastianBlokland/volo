@@ -11,6 +11,7 @@
 #include "core/file.h"
 #include "core/math.h"
 #include "core/path.h"
+#include "core/rng.h"
 #include "core/version.h"
 #include "dev/log_viewer.h"
 #include "dev/menu.h"
@@ -57,10 +58,12 @@
 enum { GameLevelsMax = 8 };
 
 ecs_comp_define(GameComp) {
-  GameState   state : 8;
-  GameState   statePrev : 8;
-  bool        devSupport;
+  GameState state : 8;
+  GameState statePrev : 8;
+  bool      devSupport;
+
   EcsEntityId mainWindow;
+  SndObjectId musicHandle;
 
   u32         levelMask;
   u32         levelLoadingMask;
@@ -132,6 +135,27 @@ static void game_fullscreen_toggle(GapWindowComp* win) {
   } else {
     gap_window_resize(win, gap_vector(0, 0), GapWindowMode_Fullscreen);
     gap_window_flags_set(win, GapWindowFlags_CursorConfine);
+  }
+}
+
+static void game_music_stop(GameComp* game, SndMixerComp* soundMixer) {
+  if (!sentinel_check(game->musicHandle)) {
+    snd_object_stop(soundMixer, game->musicHandle);
+    game->musicHandle = sentinel_u32;
+  }
+}
+
+static void game_music_play(
+    EcsWorld* world, GameComp* game, SndMixerComp* soundMixer, AssetManagerComp* assets) {
+  const String assetPattern = string_lit("external/music/*.wav");
+  EcsEntityId  assetEntities[asset_query_max_results];
+  const u32    assetCount = asset_query(world, assets, assetPattern, assetEntities);
+
+  game_music_stop(game, soundMixer);
+  if (assetCount && snd_object_new(soundMixer, &game->musicHandle) == SndResult_Success) {
+    const u32 assetIndex = (u32)rng_sample_range(g_rng, 0, assetCount);
+    snd_object_set_asset(soundMixer, game->musicHandle, assetEntities[assetIndex]);
+    snd_object_set_looping(soundMixer, game->musicHandle);
   }
 }
 
@@ -442,6 +466,7 @@ ecs_system_define(GameUpdateSys) {
     case GameState_Loading:
       if (scene_level_loaded(ctx.levelManager)) {
         game_state_set(ctx.game, GameState_Play);
+        game_music_stop(ctx.game, ctx.soundMixer);
       }
       if (scene_level_error(ctx.levelManager)) {
         scene_level_error_clear(ctx.levelManager);
@@ -612,8 +637,14 @@ bool app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
   game_quality_apply(prefs, rendSettingsGlobal, rendSettingsWin);
 
   GameComp* game = ecs_world_add_t(
-      world, ecs_world_global(world), GameComp, .devSupport = devSupport, .mainWindow = mainWin);
+      world,
+      ecs_world_global(world),
+      GameComp,
+      .devSupport  = devSupport,
+      .mainWindow  = mainWin,
+      .musicHandle = sentinel_u32);
 
+  game_music_play(world, game, soundMixer, assets);
   game_levels_query_init(world, game, assets);
 
   InputResourceComp* inputResource = input_resource_init(world);
