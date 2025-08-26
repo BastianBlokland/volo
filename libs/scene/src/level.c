@@ -28,6 +28,7 @@ typedef enum {
 
 ecs_comp_define(SceneLevelManagerComp) {
   bool           isLoading;
+  bool           isError;
   u32            loadCounter;
   SceneLevelMode levelMode;
   EcsEntityId    levelAsset;
@@ -293,6 +294,7 @@ ecs_system_define(SceneLevelLoadSys) {
         req->levelAsset = manager->levelAsset;
       }
       manager->isLoading = true;
+      manager->isError   = false;
       ++req->state;
       // Fallthrough.
     case LevelLoadState_Unload:
@@ -309,6 +311,7 @@ ecs_system_define(SceneLevelLoadSys) {
         const String assetId = asset_id(ecs_view_read_t(assetItr, AssetComp));
         log_e("Failed to load level asset", log_param("id", fmt_text(assetId)));
         manager->isLoading = false;
+        manager->isError   = true;
         goto Done;
       }
       if (!ecs_world_has_t(world, req->levelAsset, AssetLoadedComp)) {
@@ -323,6 +326,7 @@ ecs_system_define(SceneLevelLoadSys) {
         const String assetId = asset_id(ecs_view_read_t(assetItr, AssetComp));
         log_e("Invalid level asset", log_param("id", fmt_text(assetId)));
         manager->isLoading = false;
+        manager->isError   = true;
         goto Done;
       }
       level_process_load(
@@ -704,7 +708,11 @@ bool scene_level_loaded(const SceneLevelManagerComp* m) {
 SceneLevelMode scene_level_mode(const SceneLevelManagerComp* m) { return m->levelMode; }
 EcsEntityId    scene_level_asset(const SceneLevelManagerComp* m) { return m->levelAsset; }
 u32            scene_level_counter(const SceneLevelManagerComp* m) { return m->loadCounter; }
-String         scene_level_name(const SceneLevelManagerComp* m) { return m->levelName; }
+
+bool scene_level_error(const SceneLevelManagerComp* m) { return m->isError; }
+void scene_level_error_clear(SceneLevelManagerComp* m) { m->isError = false; }
+
+String scene_level_name(const SceneLevelManagerComp* m) { return m->levelName; }
 
 void scene_level_name_update(SceneLevelManagerComp* manager, const String name) {
   diag_assert_msg(manager->levelAsset, "Unable to update name: No level loaded");

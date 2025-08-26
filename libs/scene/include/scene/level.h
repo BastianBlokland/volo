@@ -22,6 +22,9 @@ SceneLevelMode scene_level_mode(const SceneLevelManagerComp*);
 EcsEntityId    scene_level_asset(const SceneLevelManagerComp*);
 u32            scene_level_counter(const SceneLevelManagerComp*);
 
+bool scene_level_error(const SceneLevelManagerComp*);
+void scene_level_error_clear(SceneLevelManagerComp*);
+
 String scene_level_name(const SceneLevelManagerComp*);
 void   scene_level_name_update(SceneLevelManagerComp*, String name);
 
