@@ -277,7 +277,7 @@ static u32 rvk_lib_names(String outPaths[PARAM_ARRAY_SIZE(rvk_lib_vulkan_names_m
 }
 
 static void rvk_lib_profile_init(RvkLib* lib) {
-  (void)lib;
+  lib->flags |= RvkLibFlags_Profiling;
 
 #if VOLO_LINUX
   /**
@@ -295,7 +295,6 @@ static void rvk_lib_profile_init(RvkLib* lib) {
   env_var_set(string_lit("RADV_THREAD_TRACE_INSTRUCTION_TIMING"), string_lit("true"));
   env_var_set(string_lit("RADV_THREAD_TRACE_QUEUE_EVENTS"), string_lit("true"));
   env_var_set(string_lit("RADV_PROFILE_PSTATE"), string_lit("standard"));
-  lib->flags |= RvkLibFlags_Profiling;
 #endif
 }
 
