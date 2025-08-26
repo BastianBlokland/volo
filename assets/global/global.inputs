@@ -1,10 +1,10 @@
 {
   "actions": [
     {
-      "name": "Debug",
+      "name": "Back",
       "blockers": [ "TextInput" ],
       "bindings": [
-        { "type": "Pressed", "key": "Tilde" }
+        { "type": "Pressed", "key": "Escape" }
       ]
     },
     {
@@ -12,6 +12,13 @@
       "blockers": [ "TextInput" ],
       "bindings": [
         { "type": "Pressed", "key": "R" }
+      ]
+    },
+    {
+      "name": "Debug",
+      "blockers": [ "TextInput" ],
+      "bindings": [
+        { "type": "Pressed", "key": "Tilde" }
       ]
     },
     {

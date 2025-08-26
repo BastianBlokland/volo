@@ -239,7 +239,11 @@ static void game_draw_button_quit(const GameUpdateContext* ctx, MAYBE_UNUSED con
 }
 
 static void game_draw_button_back(const GameUpdateContext* ctx, MAYBE_UNUSED const u32 index) {
-  if (ui_button(ctx->winCanvas, .label = string_lit("Back"), .fontSize = 25)) {
+  if (ui_button(
+          ctx->winCanvas,
+          .label    = string_lit("Back"),
+          .fontSize = 25,
+          .activate = input_triggered_lit(ctx->input, "Back"))) {
     game_state_set(ctx->game, ctx->game->statePrev);
   }
 }
