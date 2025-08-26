@@ -112,7 +112,7 @@ buildDir="build"
 buildTarget="run.volo"
 buildSystem="ninja"
 buildType="Release"
-traceMode="Off"
+traceMode="On"
 ltoMode="Off"
 sanitizeMode="Off"
 
@@ -123,7 +123,7 @@ printUsage() {
   echo "-t,--target   Build target, default: '${buildTarget}'"
   echo "-s,--system   Build system, default: '${buildSystem}'"
   echo "--type        Build type (Debug/Release), default: '${buildType}'"
-  echo "--trace       Trace mode, enables runtime performance tracing, default: '${traceMode}'"
+  echo "--no-trace    Disables runtime performance tracing, default: '${traceMode}'"
   echo "--lto         Link time optimization, default: '${ltoMode}'"
   echo "--sanitize    Santiser instrumentation, default: '${sanitizeMode}'"
 }
@@ -153,8 +153,8 @@ do
       buildType="${2}"
       shift 1
       ;;
-    --trace)
-      traceMode="On"
+    --no-trace)
+      traceMode="Off"
       shift 1
       ;;
     --lto)
