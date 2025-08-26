@@ -229,6 +229,12 @@ void rvk_job_stats(const RvkJob* job, RvkJobStats* out) {
       out->copyStats[copyIdx].gpuTimeBegin = begin;
       out->copyStats[copyIdx].gpuTimeEnd   = end;
     }
+  } else {
+    out->gpuTimeBegin = 0;
+    out->gpuTimeEnd   = 0;
+    out->gpuWaitBegin = 0;
+    out->gpuWaitEnd   = 0;
+    out->copyCount    = 0;
   }
 }
 
