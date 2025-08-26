@@ -184,17 +184,17 @@ static void game_quality_apply(
 }
 
 typedef struct {
-  EcsWorld*                    world;
-  GameComp*                    game;
-  GamePrefsComp*               prefs;
-  const SceneLevelManagerComp* levelManager;
-  InputManagerComp*            input;
-  SndMixerComp*                soundMixer;
-  SceneTimeSettingsComp*       timeSet;
-  GameCmdComp*                 cmd;
-  AssetManagerComp*            assets;
-  SceneVisibilityEnvComp*      visibilityEnv;
-  RendSettingsGlobalComp*      rendSetGlobal;
+  EcsWorld*               world;
+  GameComp*               game;
+  GamePrefsComp*          prefs;
+  SceneLevelManagerComp*  levelManager;
+  InputManagerComp*       input;
+  SndMixerComp*           soundMixer;
+  SceneTimeSettingsComp*  timeSet;
+  GameCmdComp*            cmd;
+  AssetManagerComp*       assets;
+  SceneVisibilityEnvComp* visibilityEnv;
+  RendSettingsGlobalComp* rendSetGlobal;
 
   EcsEntityId         winEntity;
   GameMainWindowComp* winGame;
@@ -259,13 +259,13 @@ ecs_view_define(ErrorView) {
 ecs_view_define(TimeView) { ecs_access_write(SceneTimeComp); }
 
 ecs_view_define(UpdateGlobalView) {
-  ecs_access_read(SceneLevelManagerComp);
-  ecs_access_write(GameComp);
   ecs_access_write(AssetManagerComp);
   ecs_access_write(GameCmdComp);
+  ecs_access_write(GameComp);
   ecs_access_write(GamePrefsComp);
   ecs_access_write(InputManagerComp);
   ecs_access_write(RendSettingsGlobalComp);
+  ecs_access_write(SceneLevelManagerComp);
   ecs_access_write(SceneTimeSettingsComp);
   ecs_access_write(SceneVisibilityEnvComp);
   ecs_access_write(SndMixerComp);
@@ -353,7 +353,7 @@ ecs_system_define(GameUpdateSys) {
       .world         = world,
       .game          = ecs_view_write_t(globalItr, GameComp),
       .prefs         = ecs_view_write_t(globalItr, GamePrefsComp),
-      .levelManager  = ecs_view_read_t(globalItr, SceneLevelManagerComp),
+      .levelManager  = ecs_view_write_t(globalItr, SceneLevelManagerComp),
       .input         = ecs_view_write_t(globalItr, InputManagerComp),
       .soundMixer    = ecs_view_write_t(globalItr, SndMixerComp),
       .timeSet       = ecs_view_write_t(globalItr, SceneTimeSettingsComp),
@@ -438,6 +438,10 @@ ecs_system_define(GameUpdateSys) {
     case GameState_Loading:
       if (scene_level_loaded(ctx.levelManager)) {
         game_state_set(ctx.game, GameState_Play);
+      }
+      if (scene_level_error(ctx.levelManager)) {
+        scene_level_error_clear(ctx.levelManager);
+        game_state_set(ctx.game, GameState_MenuMain);
       }
       break;
     case GameState_Play:
