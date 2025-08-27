@@ -110,7 +110,7 @@ static EcsEntityId game_window_create(
     dev_log_viewer_create(world, window, LogMask_Info | LogMask_Warn | LogMask_Error);
   }
 
-  const EcsEntityId uiCanvas = ui_canvas_create(world, window, UiCanvasCreateFlags_ToFront);
+  const EcsEntityId uiCanvas = ui_canvas_create(world, window, UiCanvasCreateFlags_ToBack);
   ecs_world_add_t(world, window, GameMainWindowComp, .uiCanvas = uiCanvas);
 
   ecs_world_add_t(
