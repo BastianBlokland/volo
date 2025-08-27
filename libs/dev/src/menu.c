@@ -248,7 +248,7 @@ static void menu_child_open_detached(
   RendSettingsComp*    rendSettings   = rend_settings_window_init(world, detachedWindow);
 
   // No vsync on the detached window to reduce impact on the rendering of the main window.
-  rendSettings->flags       = 0;
+  rendSettings->flags       = RendFlags_2D;
   rendSettings->presentMode = RendPresentMode_Immediate;
 
   const DevPanelType type  = DevPanelType_Detached;
