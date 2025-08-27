@@ -987,7 +987,7 @@ ecs_system_define(DevStatsUpdateSys) {
 
     // Create or destroy the interface canvas as needed.
     if (stats->show != DevStatShow_None && !stats->canvas) {
-      stats->canvas = ui_canvas_create(world, ecs_view_entity(itr), UiCanvasCreateFlags_ToBack);
+      stats->canvas = ui_canvas_create(world, ecs_view_entity(itr), UiCanvasCreateFlags_ToFront);
     } else if (stats->show == DevStatShow_None && stats->canvas) {
       ecs_world_entity_destroy(world, stats->canvas);
       stats->canvas = 0;
