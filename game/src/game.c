@@ -248,7 +248,7 @@ static void menu_draw_entry_frame(const GameUpdateContext* ctx) {
 typedef void (*MenuEntry)(const GameUpdateContext*, u32 index);
 
 static void menu_draw(const GameUpdateContext* ctx, const MenuEntry entries[], const u32 count) {
-  static const UiVector g_entrySize = {.x = 250.0f, .y = 50.0f};
+  static const UiVector g_entrySize = {.x = 300.0f, .y = 50.0f};
   static const f32      g_spacing   = 8.0f;
 
   const f32 yCenterOffset = (count - 1) * (g_entrySize.y + g_spacing) * 0.5f;
@@ -269,6 +269,66 @@ static void menu_entry_play(const GameUpdateContext* ctx, MAYBE_UNUSED const u32
   if (ui_button(ctx->winCanvas, .label = string_lit("Play"), .fontSize = 25)) {
     game_state_set(ctx->game, GameState_MenuLevel);
   }
+}
+
+static void menu_entry_volume(const GameUpdateContext* ctx, MAYBE_UNUSED const u32 index) {
+  menu_draw_entry_frame(ctx);
+
+  ui_layout_push(ctx->winCanvas);
+  static const UiVector g_frameInset = {-40, -10};
+  ui_layout_grow(ctx->winCanvas, UiAlign_MiddleCenter, g_frameInset, UiBase_Absolute, Ui_XY);
+  ui_label(ctx->winCanvas, string_lit("Volume"));
+  ui_layout_inner(
+      ctx->winCanvas, UiBase_Current, UiAlign_MiddleRight, ui_vector(0.4f, 1), UiBase_Current);
+  if (ui_slider(
+          ctx->winCanvas,
+          &ctx->prefs->volume,
+          .max        = 1e2f,
+          .step       = 1,
+          .handleSize = 25,
+          .thickness  = 10)) {
+    ctx->prefs->dirty = true;
+    snd_mixer_gain_set(ctx->soundMixer, ctx->prefs->volume * 1e-2f);
+  }
+  ui_layout_pop(ctx->winCanvas);
+}
+
+static void menu_entry_powersaving(const GameUpdateContext* ctx, MAYBE_UNUSED const u32 index) {
+  menu_draw_entry_frame(ctx);
+
+  ui_layout_push(ctx->winCanvas);
+  static const UiVector g_frameInset = {-40, -10};
+  ui_layout_grow(ctx->winCanvas, UiAlign_MiddleCenter, g_frameInset, UiBase_Absolute, Ui_XY);
+  ui_label(ctx->winCanvas, string_lit("Power saving"));
+  if (ui_toggle(
+          ctx->winCanvas, &ctx->prefs->powerSaving, .align = UiAlign_MiddleRight, .size = 25)) {
+    ctx->prefs->dirty = true;
+    game_quality_apply(ctx->prefs, ctx->rendSetGlobal, ctx->winRendSet);
+  }
+  ui_layout_pop(ctx->winCanvas);
+}
+
+static void menu_entry_quality(const GameUpdateContext* ctx, MAYBE_UNUSED const u32 index) {
+  menu_draw_entry_frame(ctx);
+
+  ui_layout_push(ctx->winCanvas);
+  static const UiVector g_frameInset = {-40, -10};
+  ui_layout_grow(ctx->winCanvas, UiAlign_MiddleCenter, g_frameInset, UiBase_Absolute, Ui_XY);
+  ui_label(ctx->winCanvas, string_lit("Quality"));
+  ui_layout_inner(
+      ctx->winCanvas, UiBase_Current, UiAlign_MiddleRight, ui_vector(0.4f, 0.6f), UiBase_Current);
+
+  ui_style_push(ctx->winCanvas);
+  ui_style_transform(ctx->winCanvas, UiTransform_None);
+
+  i32* quality = (i32*)&ctx->prefs->quality;
+  if (ui_select(ctx->winCanvas, quality, g_gameQualityLabels, GameQuality_Count)) {
+    ctx->prefs->dirty = true;
+    game_quality_apply(ctx->prefs, ctx->rendSetGlobal, ctx->winRendSet);
+  }
+
+  ui_style_pop(ctx->winCanvas);
+  ui_layout_pop(ctx->winCanvas);
 }
 
 static void menu_entry_fullscreen(const GameUpdateContext* ctx, MAYBE_UNUSED const u32 index) {
@@ -480,6 +540,9 @@ ecs_system_define(GameUpdateSys) {
     switch (ctx.game->state) {
     case GameState_MenuMain:
       menuEntries[menuEntriesCount++] = &menu_entry_play;
+      menuEntries[menuEntriesCount++] = &menu_entry_volume;
+      menuEntries[menuEntriesCount++] = &menu_entry_powersaving;
+      menuEntries[menuEntriesCount++] = &menu_entry_quality;
       menuEntries[menuEntriesCount++] = &menu_entry_fullscreen;
       menuEntries[menuEntriesCount++] = &menu_entry_quit;
       break;
