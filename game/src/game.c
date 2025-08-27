@@ -307,7 +307,8 @@ static void menu_entry_volume(const GameUpdateContext* ctx, MAYBE_UNUSED const u
           .max        = 1e2f,
           .step       = 1,
           .handleSize = 25,
-          .thickness  = 10)) {
+          .thickness  = 10,
+          .tooltip    = string_lit("Change the sound volume."))) {
     ctx->prefs->dirty = true;
     snd_mixer_gain_set(ctx->soundMixer, ctx->prefs->volume * 1e-2f);
   }
@@ -322,7 +323,11 @@ static void menu_entry_powersaving(const GameUpdateContext* ctx, MAYBE_UNUSED co
   ui_layout_grow(ctx->winCanvas, UiAlign_MiddleCenter, g_frameInset, UiBase_Absolute, Ui_XY);
   ui_label(ctx->winCanvas, string_lit("Power saving"));
   if (ui_toggle(
-          ctx->winCanvas, &ctx->prefs->powerSaving, .align = UiAlign_MiddleRight, .size = 25)) {
+          ctx->winCanvas,
+          &ctx->prefs->powerSaving,
+          .align   = UiAlign_MiddleRight,
+          .size    = 25,
+          .tooltip = string_lit("Save power by limiting the frame-rate to 30hz."))) {
     ctx->prefs->dirty = true;
     game_quality_apply(ctx->prefs, ctx->rendSetGlobal, ctx->winRendSet);
   }
@@ -343,7 +348,12 @@ static void menu_entry_quality(const GameUpdateContext* ctx, MAYBE_UNUSED const 
   ui_style_transform(ctx->winCanvas, UiTransform_None);
 
   i32* quality = (i32*)&ctx->prefs->quality;
-  if (ui_select(ctx->winCanvas, quality, g_gameQualityLabels, GameQuality_Count)) {
+  if (ui_select(
+          ctx->winCanvas,
+          quality,
+          g_gameQualityLabels,
+          GameQuality_Count,
+          .tooltip = string_lit("Select the rendering quality."))) {
     ctx->prefs->dirty = true;
     game_quality_apply(ctx->prefs, ctx->rendSetGlobal, ctx->winRendSet);
   }
@@ -360,14 +370,23 @@ static void menu_entry_fullscreen(const GameUpdateContext* ctx, MAYBE_UNUSED con
   ui_layout_grow(ctx->winCanvas, UiAlign_MiddleCenter, g_frameInset, UiBase_Absolute, Ui_XY);
   ui_label(ctx->winCanvas, string_lit("Fullscreen"));
   bool isFullscreen = gap_window_mode(ctx->winComp) == GapWindowMode_Fullscreen;
-  if (ui_toggle(ctx->winCanvas, &isFullscreen, .align = UiAlign_MiddleRight, .size = 25)) {
+  if (ui_toggle(
+          ctx->winCanvas,
+          &isFullscreen,
+          .align   = UiAlign_MiddleRight,
+          .size    = 25,
+          .tooltip = string_lit("Switch between fullscreen and windowed modes."))) {
     game_fullscreen_toggle(ctx->winComp);
   }
   ui_layout_pop(ctx->winCanvas);
 }
 
 static void menu_entry_quit(const GameUpdateContext* ctx, MAYBE_UNUSED const u32 index) {
-  if (ui_button(ctx->winCanvas, .label = string_lit("Quit"), .fontSize = 25)) {
+  if (ui_button(
+          ctx->winCanvas,
+          .label    = string_lit("Quit"),
+          .fontSize = 25,
+          .tooltip  = string_lit("Quit to desktop."))) {
     game_quit(ctx->winComp);
   }
 }
