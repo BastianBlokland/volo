@@ -535,6 +535,17 @@ ecs_system_define(GameUpdateSys) {
       scene_visibility_flags_clear(ctx.visibilityEnv, SceneVisibilityFlags_ForceRender);
     }
 
+    switch (ctx.game->state) {
+    case GameState_MenuMain:
+    case GameState_MenuLevel:
+    case GameState_Loading:
+      ctx.winRendSet->flags |= RendFlags_2D;
+      break;
+    default:
+      ctx.winRendSet->flags &= ~RendFlags_2D;
+      break;
+    }
+
     MenuEntry menuEntries[32];
     u32       menuEntriesCount = 0;
     switch (ctx.game->state) {
