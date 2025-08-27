@@ -874,6 +874,7 @@ bool ui_tooltip_with_opts(
 
   ui_layout_push(canvas);
   ui_style_push(canvas);
+  ui_style_transform(canvas, UiTransform_None);
   ui_style_weight(canvas, UiWeight_Normal);
 
   /**
