@@ -46,6 +46,7 @@
 #include "ui/canvas.h"
 #include "ui/layout.h"
 #include "ui/register.h"
+#include "ui/shape.h"
 #include "ui/style.h"
 #include "ui/widget.h"
 #include "vfx/register.h"
@@ -129,13 +130,20 @@ static EcsEntityId game_window_create(
 
 static void game_fullscreen_toggle(GapWindowComp* win) {
   if (gap_window_mode(win) == GapWindowMode_Fullscreen) {
+    log_i("Enter windowed mode");
     const GapVector size = gap_window_param(win, GapParam_WindowSizePreFullscreen);
     gap_window_resize(win, size, GapWindowMode_Windowed);
     gap_window_flags_unset(win, GapWindowFlags_CursorConfine);
   } else {
+    log_i("Enter fullscreen mode");
     gap_window_resize(win, gap_vector(0, 0), GapWindowMode_Fullscreen);
     gap_window_flags_set(win, GapWindowFlags_CursorConfine);
   }
+}
+
+static void game_quit(GapWindowComp* window) {
+  log_i("Quit");
+  gap_window_close(window);
 }
 
 static void game_music_stop(GameComp* game, SndMixerComp* soundMixer) {
@@ -229,40 +237,61 @@ typedef struct {
   EcsView* devPanelView; // Null if dev-support is not enabled.
 } GameUpdateContext;
 
-typedef void (*GameUiDrawer)(const GameUpdateContext*, u32 index);
+static void menu_draw_entry_frame(const GameUpdateContext* ctx) {
+  ui_style_push(ctx->winCanvas);
+  ui_style_outline(ctx->winCanvas, 5);
+  ui_style_color(ctx->winCanvas, ui_color_clear);
+  ui_canvas_draw_glyph(ctx->winCanvas, UiShape_Circle, 10, UiFlags_None);
+  ui_style_pop(ctx->winCanvas);
+}
 
-static void game_draw_list(const GameUpdateContext* ctx, const GameUiDrawer val[], const u32 cnt) {
+typedef void (*MenuEntry)(const GameUpdateContext*, u32 index);
+
+static void menu_draw(const GameUpdateContext* ctx, const MenuEntry entries[], const u32 count) {
   static const UiVector g_entrySize = {.x = 250.0f, .y = 50.0f};
   static const f32      g_spacing   = 8.0f;
 
-  const f32 yCenterOffset = (cnt - 1) * (g_entrySize.y + g_spacing) * 0.5f;
+  const f32 yCenterOffset = (count - 1) * (g_entrySize.y + g_spacing) * 0.5f;
   ui_layout_inner(
       ctx->winCanvas, UiBase_Canvas, UiAlign_MiddleCenter, g_entrySize, UiBase_Absolute);
   ui_layout_move(ctx->winCanvas, ui_vector(g_spacing, yCenterOffset), UiBase_Absolute, Ui_XY);
 
   ui_style_push(ctx->winCanvas);
   ui_style_transform(ctx->winCanvas, UiTransform_ToUpper);
-  for (u32 i = 0; i != cnt; ++i) {
-    val[i](ctx, i);
+  for (u32 i = 0; i != count; ++i) {
+    entries[i](ctx, i);
     ui_layout_next(ctx->winCanvas, Ui_Down, g_spacing);
   }
   ui_style_pop(ctx->winCanvas);
 }
 
-static void game_draw_button_play(const GameUpdateContext* ctx, MAYBE_UNUSED const u32 index) {
+static void menu_entry_play(const GameUpdateContext* ctx, MAYBE_UNUSED const u32 index) {
   if (ui_button(ctx->winCanvas, .label = string_lit("Play"), .fontSize = 25)) {
     game_state_set(ctx->game, GameState_MenuLevel);
   }
 }
 
-static void game_draw_button_quit(const GameUpdateContext* ctx, MAYBE_UNUSED const u32 index) {
+static void menu_entry_fullscreen(const GameUpdateContext* ctx, MAYBE_UNUSED const u32 index) {
+  menu_draw_entry_frame(ctx);
+
+  ui_layout_push(ctx->winCanvas);
+  static const UiVector g_frameInset = {-40, -10};
+  ui_layout_grow(ctx->winCanvas, UiAlign_MiddleCenter, g_frameInset, UiBase_Absolute, Ui_XY);
+  ui_label(ctx->winCanvas, string_lit("Fullscreen"));
+  bool isFullscreen = gap_window_mode(ctx->winComp) == GapWindowMode_Fullscreen;
+  if (ui_toggle(ctx->winCanvas, &isFullscreen, .align = UiAlign_MiddleRight, .size = 25)) {
+    game_fullscreen_toggle(ctx->winComp);
+  }
+  ui_layout_pop(ctx->winCanvas);
+}
+
+static void menu_entry_quit(const GameUpdateContext* ctx, MAYBE_UNUSED const u32 index) {
   if (ui_button(ctx->winCanvas, .label = string_lit("Quit"), .fontSize = 25)) {
-    log_i("Close window");
-    gap_window_close(ctx->winComp);
+    game_quit(ctx->winComp);
   }
 }
 
-static void game_draw_button_back(const GameUpdateContext* ctx, MAYBE_UNUSED const u32 index) {
+static void menu_entry_back(const GameUpdateContext* ctx, MAYBE_UNUSED const u32 index) {
   if (ui_button(
           ctx->winCanvas,
           .label    = string_lit("Back"),
@@ -272,7 +301,7 @@ static void game_draw_button_back(const GameUpdateContext* ctx, MAYBE_UNUSED con
   }
 }
 
-static void game_draw_button_level(const GameUpdateContext* ctx, const u32 index) {
+static void menu_entry_level(const GameUpdateContext* ctx, const u32 index) {
   const u32 levelIndex = (u32)bitset_index(bitset_from_var(ctx->game->levelMask), index);
   if (ui_button(ctx->winCanvas, .label = ctx->game->levelNames[levelIndex], .fontSize = 25)) {
     game_state_set(ctx->game, GameState_Loading);
@@ -419,12 +448,10 @@ ecs_system_define(GameUpdateSys) {
       ctx.prefs->dirty = true;
     }
 
-    if (input_triggered_lit(ctx.input, "WindowClose")) {
-      log_i("Close window");
-      gap_window_close(ctx.winComp);
+    if (input_triggered_lit(ctx.input, "Quit")) {
+      game_quit(ctx.winComp);
     }
-    if (input_triggered_lit(ctx.input, "WindowFullscreen")) {
-      log_i("Toggle fullscreen");
+    if (input_triggered_lit(ctx.input, "ToggleFullscreen")) {
       game_fullscreen_toggle(ctx.winComp);
     }
 
@@ -448,19 +475,20 @@ ecs_system_define(GameUpdateSys) {
       scene_visibility_flags_clear(ctx.visibilityEnv, SceneVisibilityFlags_ForceRender);
     }
 
-    GameUiDrawer drawEntries[32];
-    u32          drawCount = 0;
+    MenuEntry menuEntries[32];
+    u32       menuEntriesCount = 0;
     switch (ctx.game->state) {
     case GameState_MenuMain:
-      drawEntries[drawCount++] = &game_draw_button_play;
-      drawEntries[drawCount++] = &game_draw_button_quit;
+      menuEntries[menuEntriesCount++] = &menu_entry_play;
+      menuEntries[menuEntriesCount++] = &menu_entry_fullscreen;
+      menuEntries[menuEntriesCount++] = &menu_entry_quit;
       break;
     case GameState_MenuLevel: {
       const u32 levelCount = bits_popcnt(ctx.game->levelMask);
       for (u32 i = 0; i != levelCount; ++i) {
-        drawEntries[drawCount++] = &game_draw_button_level;
+        menuEntries[menuEntriesCount++] = &menu_entry_level;
       }
-      drawEntries[drawCount++] = &game_draw_button_back;
+      menuEntries[menuEntriesCount++] = &menu_entry_back;
       break;
     }
     case GameState_Loading:
@@ -482,7 +510,9 @@ ecs_system_define(GameUpdateSys) {
     case GameState_Pause:
       break;
     }
-    game_draw_list(&ctx, drawEntries, drawCount);
+    if (menuEntriesCount) {
+      menu_draw(&ctx, menuEntries, menuEntriesCount);
+    }
   }
 }
 

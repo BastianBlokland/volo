@@ -22,14 +22,14 @@
       ]
     },
     {
-      "name": "WindowClose",
+      "name": "Quit",
       "blockers": [ "TextInput" ],
       "bindings": [
         { "type": "Pressed", "key": "F4", "requiredModifiers": [ "Alt" ] }
       ]
     },
     {
-      "name": "WindowFullscreen",
+      "name": "ToggleFullscreen",
       "blockers": [ "TextInput" ],
       "bindings": [
         { "type": "Pressed", "key": "Return", "requiredModifiers": [ "Alt" ] }
