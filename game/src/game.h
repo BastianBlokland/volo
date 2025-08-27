@@ -3,7 +3,7 @@
 
 typedef enum {
   GameState_MenuMain,
-  GameState_MenuLevel,
+  GameState_MenuSelect,
   GameState_Loading,
   GameState_Play,
   GameState_Debug,

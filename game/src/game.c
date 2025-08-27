@@ -247,17 +247,38 @@ static void menu_draw_entry_frame(const GameUpdateContext* ctx) {
 
 typedef void (*MenuEntry)(const GameUpdateContext*, u32 index);
 
-static void menu_draw(const GameUpdateContext* ctx, const MenuEntry entries[], const u32 count) {
-  static const UiVector g_entrySize = {.x = 300.0f, .y = 50.0f};
-  static const f32      g_spacing   = 8.0f;
-
-  const f32 yCenterOffset = (count - 1) * (g_entrySize.y + g_spacing) * 0.5f;
-  ui_layout_inner(
-      ctx->winCanvas, UiBase_Canvas, UiAlign_MiddleCenter, g_entrySize, UiBase_Absolute);
-  ui_layout_move(ctx->winCanvas, ui_vector(g_spacing, yCenterOffset), UiBase_Absolute, Ui_XY);
+static void menu_draw(
+    const GameUpdateContext* ctx, const String header, const MenuEntry entries[], const u32 count) {
+  static const UiVector g_headerSize = {.x = 300.0f, .y = 75.0f};
+  static const UiVector g_entrySize  = {.x = 300.0f, .y = 50.0f};
+  static const f32      g_spacing    = 8.0f;
 
   ui_style_push(ctx->winCanvas);
   ui_style_transform(ctx->winCanvas, UiTransform_ToUpper);
+
+  f32 totalHeight = (count - 1) * (g_entrySize.y + g_spacing);
+  if (!string_is_empty(header)) {
+    totalHeight += g_headerSize.y;
+  }
+  ui_layout_move_to(ctx->winCanvas, UiBase_Container, UiAlign_MiddleCenter, Ui_XY);
+  ui_layout_move(ctx->winCanvas, ui_vector(0, totalHeight * 0.5f), UiBase_Absolute, Ui_Y);
+
+  if (!string_is_empty(header)) {
+    ui_layout_push(ctx->winCanvas);
+    ui_layout_resize(ctx->winCanvas, UiAlign_MiddleCenter, g_headerSize, UiBase_Absolute, Ui_XY);
+
+    ui_style_push(ctx->winCanvas);
+    ui_style_outline(ctx->winCanvas, 5);
+    ui_style_weight(ctx->winCanvas, UiWeight_Heavy);
+    ui_style_color(ctx->winCanvas, ui_color(255, 173, 10, 255));
+    ui_label(ctx->winCanvas, header, .align = UiAlign_MiddleCenter, .fontSize = 60);
+    ui_style_pop(ctx->winCanvas);
+
+    ui_layout_pop(ctx->winCanvas);
+    ui_layout_move(ctx->winCanvas, ui_vector(0, -g_headerSize.y), UiBase_Absolute, Ui_Y);
+  }
+
+  ui_layout_resize(ctx->winCanvas, UiAlign_MiddleCenter, g_entrySize, UiBase_Absolute, Ui_XY);
   for (u32 i = 0; i != count; ++i) {
     entries[i](ctx, i);
     ui_layout_next(ctx->winCanvas, Ui_Down, g_spacing);
@@ -267,7 +288,7 @@ static void menu_draw(const GameUpdateContext* ctx, const MenuEntry entries[], c
 
 static void menu_entry_play(const GameUpdateContext* ctx, MAYBE_UNUSED const u32 index) {
   if (ui_button(ctx->winCanvas, .label = string_lit("Play"), .fontSize = 25)) {
-    game_state_set(ctx->game, GameState_MenuLevel);
+    game_state_set(ctx->game, GameState_MenuSelect);
   }
 }
 
@@ -537,7 +558,7 @@ ecs_system_define(GameUpdateSys) {
 
     switch (ctx.game->state) {
     case GameState_MenuMain:
-    case GameState_MenuLevel:
+    case GameState_MenuSelect:
     case GameState_Loading:
       ctx.winRendSet->flags |= RendFlags_2D;
       break;
@@ -549,22 +570,23 @@ ecs_system_define(GameUpdateSys) {
     MenuEntry menuEntries[32];
     u32       menuEntriesCount = 0;
     switch (ctx.game->state) {
-    case GameState_MenuMain:
+    case GameState_MenuMain: {
       menuEntries[menuEntriesCount++] = &menu_entry_play;
       menuEntries[menuEntriesCount++] = &menu_entry_volume;
       menuEntries[menuEntriesCount++] = &menu_entry_powersaving;
       menuEntries[menuEntriesCount++] = &menu_entry_quality;
       menuEntries[menuEntriesCount++] = &menu_entry_fullscreen;
       menuEntries[menuEntriesCount++] = &menu_entry_quit;
-      break;
-    case GameState_MenuLevel: {
+      menu_draw(&ctx, string_lit("Volo"), menuEntries, menuEntriesCount);
+    } break;
+    case GameState_MenuSelect: {
       const u32 levelCount = bits_popcnt(ctx.game->levelMask);
       for (u32 i = 0; i != levelCount; ++i) {
         menuEntries[menuEntriesCount++] = &menu_entry_level;
       }
       menuEntries[menuEntriesCount++] = &menu_entry_back;
-      break;
-    }
+      menu_draw(&ctx, string_lit("Play"), menuEntries, menuEntriesCount);
+    } break;
     case GameState_Loading:
       if (scene_level_loaded(ctx.levelManager)) {
         game_state_set(ctx.game, GameState_Play);
@@ -583,9 +605,6 @@ ecs_system_define(GameUpdateSys) {
       break;
     case GameState_Pause:
       break;
-    }
-    if (menuEntriesCount) {
-      menu_draw(&ctx, menuEntries, menuEntriesCount);
     }
   }
 }
