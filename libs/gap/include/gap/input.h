@@ -95,6 +95,7 @@ typedef enum eGapKey {
 typedef enum eGapParam {
   GapParam_None       = -1,
   GapParam_WindowSize = 0,
+  GapParam_WindowSizeRequested,     // Size as was requested in the last resize / window creation.
   GapParam_WindowSizePreFullscreen, // Last window-size before entering fullscreen.
   GapParam_CursorPos,
   GapParam_CursorPosPreLock, // Last cursor position before locking the cursor.

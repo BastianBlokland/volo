@@ -126,6 +126,7 @@ String gap_key_str(const GapKey key) {
 
 static const String g_paramStrs[] = {
     string_static("window-size"),
+    string_static("window-size-requested"),
     string_static("window-size-pre-fullscreen"),
     string_static("cursor-pos"),
     string_static("cursor-pos-pre-lock"),

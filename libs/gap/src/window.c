@@ -108,7 +108,7 @@ static void window_update(
   win->events = 0;
 
   if (win->requests & GapWindowRequests_Create) {
-    win->id          = gap_pal_window_create(pal, win->params[GapParam_WindowSize]);
+    win->id          = gap_pal_window_create(pal, win->params[GapParam_WindowSizeRequested]);
     win->displayName = string_maybe_dup(g_allocHeap, gap_pal_window_display_name(pal, win->id));
     win->refreshRate = gap_pal_window_refresh_rate(pal, win->id);
     win->dpi         = gap_pal_window_dpi(pal, win->id);
@@ -133,7 +133,7 @@ static void window_update(
   }
   if (win->requests & GapWindowRequests_Resize) {
     const bool fullscreen = win->mode == GapWindowMode_Fullscreen;
-    gap_pal_window_resize(pal, win->id, win->params[GapParam_WindowSize], fullscreen);
+    gap_pal_window_resize(pal, win->id, win->params[GapParam_WindowSizeRequested], fullscreen);
   }
   if (win->requests & GapWindowRequests_UpdateIconType) {
     gap_pal_window_icon_set(pal, win->id, win->icon);
@@ -320,12 +320,12 @@ EcsEntityId gap_window_create(
       world,
       windowEntity,
       GapWindowComp,
-      .id                          = sentinel_u32,
-      .events                      = GapWindowEvents_Initializing,
-      .mode                        = mode,
-      .requests                    = GapWindowRequests_Create,
-      .params[GapParam_WindowSize] = size,
-      .inputText                   = dynstring_create(g_allocHeap, 64));
+      .id                                   = sentinel_u32,
+      .events                               = GapWindowEvents_Initializing,
+      .mode                                 = mode,
+      .requests                             = GapWindowRequests_Create,
+      .params[GapParam_WindowSizeRequested] = size,
+      .inputText                            = dynstring_create(g_allocHeap, 64));
 
   gap_window_flags_set(comp, flags);
   gap_window_icon_set(comp, icon);
@@ -376,8 +376,8 @@ void gap_window_resize(GapWindowComp* comp, const GapVector size, const GapWindo
   if (comp->mode != GapWindowMode_Fullscreen && mode == GapWindowMode_Fullscreen) {
     comp->params[GapParam_WindowSizePreFullscreen] = comp->params[GapParam_WindowSize];
   }
-  comp->params[GapParam_WindowSize] = size;
-  comp->mode                        = mode;
+  comp->params[GapParam_WindowSizeRequested] = size;
+  comp->mode                                 = mode;
   comp->requests |= GapWindowRequests_Resize;
 }
 
