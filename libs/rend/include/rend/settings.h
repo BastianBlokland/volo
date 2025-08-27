@@ -13,12 +13,13 @@ typedef enum eRendFlags {
   RendFlags_Distortion           = 1 << 5,
   RendFlags_Decals               = 1 << 6,
   RendFlags_VfxShadows           = 1 << 7,
-  RendFlags_DebugWireframe       = 1 << 8,
-  RendFlags_DebugCamera          = 1 << 9,
-  RendFlags_DebugSkinning        = 1 << 10,
-  RendFlags_DebugFog             = 1 << 11,
-  RendFlags_DebugShadow          = 1 << 12,
-  RendFlags_DebugDistortion      = 1 << 13,
+  RendFlags_2D                   = 1 << 8, // Disable 3d rendering.
+  RendFlags_DebugWireframe       = 1 << 9,
+  RendFlags_DebugCamera          = 1 << 10,
+  RendFlags_DebugSkinning        = 1 << 11,
+  RendFlags_DebugFog             = 1 << 12,
+  RendFlags_DebugShadow          = 1 << 13,
+  RendFlags_DebugDistortion      = 1 << 14,
 
   RendFlags_DebugOverlay = RendFlags_DebugFog | RendFlags_DebugShadow | RendFlags_DebugDistortion,
 } RendFlags;
