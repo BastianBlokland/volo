@@ -137,11 +137,14 @@ static void game_music_stop(GameComp* game, SndMixerComp* soundMixer) {
 
 static void game_music_play(
     EcsWorld* world, GameComp* game, SndMixerComp* soundMixer, AssetManagerComp* assets) {
+
+  if (!sentinel_check(game->musicHandle)) {
+    return; // Already playing.
+  }
   const String assetPattern = string_lit("external/music/*.wav");
   EcsEntityId  assetEntities[asset_query_max_results];
   const u32    assetCount = asset_query(world, assets, assetPattern, assetEntities);
 
-  game_music_stop(game, soundMixer);
   if (assetCount && snd_object_new(soundMixer, &game->musicHandle) == SndResult_Success) {
     const u32 assetIndex = (u32)rng_sample_range(g_rng, 0, assetCount);
     snd_object_set_asset(soundMixer, game->musicHandle, assetEntities[assetIndex]);
