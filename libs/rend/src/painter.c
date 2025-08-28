@@ -386,11 +386,13 @@ static void painter_push_tonemapping(RendPaintContext* ctx) {
     f32 exposure;
     u32 mode;
     f32 bloomIntensity;
+    f32 grayscaleFrac;
   } data;
 
   data.exposure       = ctx->settings->exposure;
   data.mode           = ctx->settings->tonemapper;
   data.bloomIntensity = ctx->settings->flags & RendFlags_Bloom ? ctx->settings->bloomIntensity : 0;
+  data.grayscaleFrac  = ctx->settings->grayscaleFrac;
 
   painter_push_simple(ctx, RvkRepositoryId_TonemapperGraphic, mem_var(data));
 }

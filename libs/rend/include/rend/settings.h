@@ -108,6 +108,7 @@ ecs_comp_extern_public(RendSettingsComp) {
   f32                  bloomIntensity;
   u32                  bloomSteps;
   f32                  bloomRadius;
+  f32                  grayscaleFrac;
   f32                  distortionResolutionScale;
   EcsEntityId          debugViewerResource; // Resource entity to visualize for debug purposes.
   f32                  debugViewerLod;      // Level-of-detail to use for the debug-viewer.

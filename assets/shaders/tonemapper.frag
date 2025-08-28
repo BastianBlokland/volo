@@ -5,6 +5,7 @@ struct TonemapperData {
   f32 exposure;
   u32 mode;
   f32 bloomIntensity;
+  f32 grayscaleFrac;
 };
 
 const u32 c_modeLinear        = 0;
@@ -98,6 +99,9 @@ void main() {
     colorSdr = tonemap_aces_approx(colorHdr);
     break;
   }
+
+  const f32 luma = luminance(colorSdr);
+  colorSdr = mix(colorSdr, f32v3(luma, luma, luma), u_draw.grayscaleFrac);
 
   out_color = f32v4(colorSdr, 1.0);
 }
