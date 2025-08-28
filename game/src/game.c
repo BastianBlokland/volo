@@ -307,6 +307,17 @@ static void menu_entry_resume(const GameUpdateContext* ctx, MAYBE_UNUSED const u
   }
 }
 
+static void menu_entry_menu_main(const GameUpdateContext* ctx, MAYBE_UNUSED const u32 index) {
+  if (ui_button(
+          ctx->winCanvas,
+          .label    = string_lit("Main-menu"),
+          .fontSize = 25,
+          .tooltip  = string_lit("Go back to the main-menu."))) {
+    game_state_set(ctx->game, GameState_MenuMain);
+    scene_level_unload(ctx->world);
+  }
+}
+
 static void menu_entry_volume(const GameUpdateContext* ctx, MAYBE_UNUSED const u32 index) {
   menu_draw_entry_frame(ctx);
 
@@ -667,6 +678,8 @@ ecs_system_define(GameUpdateSys) {
       menuEntries[menuEntriesCount++] = &menu_entry_powersaving;
       menuEntries[menuEntriesCount++] = &menu_entry_quality;
       menuEntries[menuEntriesCount++] = &menu_entry_fullscreen;
+      menuEntries[menuEntriesCount++] = &menu_entry_menu_main;
+      menuEntries[menuEntriesCount++] = &menu_entry_quit;
       menu_draw(&ctx, string_lit("Pause"), menuEntries, menuEntriesCount);
       break;
     }
