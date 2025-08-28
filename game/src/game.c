@@ -237,6 +237,23 @@ typedef struct {
   EcsView* devPanelView; // Null if dev-support is not enabled.
 } GameUpdateContext;
 
+static void menu_draw_version(const GameUpdateContext* ctx) {
+  ui_layout_push(ctx->winCanvas);
+  ui_layout_set(ctx->winCanvas, ui_rect(ui_vector(0, 0), ui_vector(1, 1)), UiBase_Canvas);
+  ui_layout_grow(ctx->winCanvas, UiAlign_MiddleCenter, ui_vector(-10, -5), UiBase_Absolute, Ui_XY);
+
+  ui_style_push(ctx->winCanvas);
+  ui_style_color(ctx->winCanvas, ui_color(255, 255, 255, 128));
+  ui_style_outline(ctx->winCanvas, 1);
+  ui_label(
+      ctx->winCanvas,
+      version_str_scratch(g_versionExecutable),
+      .align    = UiAlign_BottomLeft,
+      .fontSize = 12);
+  ui_style_pop(ctx->winCanvas);
+  ui_layout_pop(ctx->winCanvas);
+}
+
 static void menu_draw_entry_frame(const GameUpdateContext* ctx) {
   ui_style_push(ctx->winCanvas);
   ui_style_outline(ctx->winCanvas, 5);
@@ -644,6 +661,7 @@ ecs_system_define(GameUpdateSys) {
       menuEntries[menuEntriesCount++] = &menu_entry_fullscreen;
       menuEntries[menuEntriesCount++] = &menu_entry_quit;
       menu_draw(&ctx, string_lit("Volo"), menuEntries, menuEntriesCount);
+      menu_draw_version(&ctx);
     } break;
     case GameState_MenuSelect: {
       const u32 levelCount = bits_popcnt(ctx.game->levelMask);
@@ -652,6 +670,7 @@ ecs_system_define(GameUpdateSys) {
       }
       menuEntries[menuEntriesCount++] = &menu_entry_back;
       menu_draw(&ctx, string_lit("Play"), menuEntries, menuEntriesCount);
+      menu_draw_version(&ctx);
     } break;
     case GameState_Loading:
       if (scene_level_loaded(ctx.levelManager)) {
@@ -681,6 +700,7 @@ ecs_system_define(GameUpdateSys) {
       menuEntries[menuEntriesCount++] = &menu_entry_menu_main;
       menuEntries[menuEntriesCount++] = &menu_entry_quit;
       menu_draw(&ctx, string_lit("Pause"), menuEntries, menuEntriesCount);
+      menu_draw_version(&ctx);
       break;
     }
   }
