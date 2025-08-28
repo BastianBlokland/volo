@@ -85,8 +85,10 @@ static void ecs_destruct_game_comp(void* data) {
 }
 
 static void game_state_set(GameComp* game, const GameState state) {
-  game->statePrev = game->state;
-  game->state     = state;
+  if (game->state != state) {
+    game->statePrev = game->state;
+    game->state     = state;
+  }
 }
 
 static EcsEntityId game_window_create(
