@@ -266,9 +266,13 @@ static void game_transition(const GameUpdateContext* ctx, const GameState state)
   case GameState_MenuMain:
     game_music_play(ctx->world, ctx->game, ctx->soundMixer, ctx->assets);
     scene_level_unload(ctx->world);
+    ctx->winRendSet->flags |= RendFlags_2D;
     break;
   case GameState_Loading:
     ctx->timeSet->flags |= SceneTimeFlags_Paused;
+    break;
+  case GameState_Play:
+    ctx->winRendSet->flags &= ~RendFlags_2D;
     break;
   case GameState_Pause:
     ctx->timeSet->flags |= SceneTimeFlags_Paused;
@@ -687,17 +691,6 @@ ecs_system_define(GameUpdateSys) {
       scene_visibility_flags_clear(ctx.visibilityEnv, SceneVisibilityFlags_ForceRender);
     }
 
-    switch (ctx.game->state) {
-    case GameState_MenuMain:
-    case GameState_MenuSelect:
-    case GameState_Loading:
-      ctx.winRendSet->flags |= RendFlags_2D;
-      break;
-    default:
-      ctx.winRendSet->flags &= ~RendFlags_2D;
-      break;
-    }
-
     MenuEntry menuEntries[32];
     u32       menuEntriesCount = 0;
     switch (ctx.game->state) {
@@ -900,6 +893,7 @@ bool app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
   const EcsEntityId mainWin =
       game_window_create(world, assets, fullscreen, devSupport, width, height);
   RendSettingsComp* rendSettingsWin = rend_settings_window_init(world, mainWin);
+  rendSettingsWin->flags |= RendFlags_2D;
 
   game_quality_apply(prefs, rendSettingsGlobal, rendSettingsWin);
 
