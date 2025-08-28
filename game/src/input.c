@@ -16,12 +16,13 @@
 #include "scene/time.h"
 #include "scene/transform.h"
 #include "ui/canvas.h"
+#include "ui/color.h"
 #include "ui/layout.h"
-#include "ui/panel.h"
 #include "ui/shape.h"
 #include "ui/style.h"
 
 #include "cmd.h"
+#include "game.h"
 #include "input.h"
 
 static const f32  g_inputInteractMinDist       = 1.0f;
@@ -643,6 +644,7 @@ static void input_state_init(EcsWorld* world, const EcsEntityId windowEntity) {
 }
 
 ecs_view_define(GlobalUpdateView) {
+  ecs_access_read(GameComp);
   ecs_access_read(SceneLevelManagerComp);
   ecs_access_read(SceneNavEnvComp);
   ecs_access_read(SceneSetEnvComp);
@@ -667,6 +669,7 @@ ecs_system_define(GameInputUpdateSys) {
   if (!globalItr) {
     return;
   }
+  GameComp*                    game         = ecs_view_write_t(globalItr, GameComp);
   GameCmdComp*                 cmd          = ecs_view_write_t(globalItr, GameCmdComp);
   const SceneLevelManagerComp* levelManager = ecs_view_read_t(globalItr, SceneLevelManagerComp);
   const SceneNavEnvComp*       nav          = ecs_view_read_t(globalItr, SceneNavEnvComp);
@@ -694,12 +697,18 @@ ecs_system_define(GameInputUpdateSys) {
       continue;
     }
     state->lastSelectionCount = scene_set_count(setEnv, g_sceneSetSelected);
-    const bool windowActive   = input_active_window(input) == ecs_view_entity(camItr);
 
-    if (input_layer_active(input, string_hash_lit("Dev"))) {
-      update_camera_movement_dev(input, time, cam, camTrans);
-    } else {
+    bool windowActive = input_active_window(input) == ecs_view_entity(camItr);
+    switch (game_state(game)) {
+    case GameState_Play:
       update_camera_movement(state, input, time, terrain, camTrans, windowActive);
+      break;
+    case GameState_Debug:
+    case GameState_Edit:
+      update_camera_movement_dev(input, time, cam, camTrans);
+    default:
+      windowActive = false;
+      break;
     }
 
     if (windowActive) {
