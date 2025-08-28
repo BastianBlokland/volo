@@ -287,7 +287,11 @@ static void menu_draw(
 }
 
 static void menu_entry_play(const GameUpdateContext* ctx, MAYBE_UNUSED const u32 index) {
-  if (ui_button(ctx->winCanvas, .label = string_lit("Play"), .fontSize = 25)) {
+  if (ui_button(
+          ctx->winCanvas,
+          .label    = string_lit("Play"),
+          .fontSize = 25,
+          .tooltip  = string_lit("Go to level-select menu."))) {
     game_state_set(ctx->game, GameState_MenuSelect);
   }
 }
@@ -392,18 +396,25 @@ static void menu_entry_quit(const GameUpdateContext* ctx, MAYBE_UNUSED const u32
 }
 
 static void menu_entry_back(const GameUpdateContext* ctx, MAYBE_UNUSED const u32 index) {
+  ui_layout_push(ctx->winCanvas);
+  ui_style_outline(ctx->winCanvas, 4);
   if (ui_button(
           ctx->winCanvas,
-          .label    = string_lit("Back"),
-          .fontSize = 25,
-          .activate = input_triggered_lit(ctx->input, "Back"))) {
+          .label      = ui_shape_scratch(UiShape_ArrowLeft),
+          .fontSize   = 35,
+          .frameColor = ui_color_clear,
+          .activate   = input_triggered_lit(ctx->input, "Back"),
+          .tooltip    = string_lit("Back to previous menu."))) {
     game_state_set(ctx->game, ctx->game->statePrev);
   }
+  ui_layout_pop(ctx->winCanvas);
 }
 
 static void menu_entry_level(const GameUpdateContext* ctx, const u32 index) {
-  const u32 levelIndex = (u32)bitset_index(bitset_from_var(ctx->game->levelMask), index);
-  if (ui_button(ctx->winCanvas, .label = ctx->game->levelNames[levelIndex], .fontSize = 25)) {
+  const u32    levelIndex = (u32)bitset_index(bitset_from_var(ctx->game->levelMask), index);
+  const String levelName  = ctx->game->levelNames[levelIndex];
+  const String tooltip    = fmt_write_scratch("Play the '{}' level.", fmt_text(levelName));
+  if (ui_button(ctx->winCanvas, .label = levelName, .fontSize = 25, .tooltip = tooltip)) {
     game_state_set(ctx->game, GameState_Loading);
     scene_level_load(ctx->world, SceneLevelMode_Play, ctx->game->levelAssets[levelIndex]);
   }
