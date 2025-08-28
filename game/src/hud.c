@@ -290,23 +290,6 @@ static UiColor hud_faction_color(const SceneFaction faction) {
   }
 }
 
-static void hud_level_draw(UiCanvasComp* c, const SceneLevelManagerComp* level) {
-  const String name = scene_level_name(level);
-  if (!string_is_empty(name)) {
-    ui_layout_push(c);
-    ui_layout_inner(c, UiBase_Canvas, UiAlign_TopCenter, ui_vector(500, 100), UiBase_Absolute);
-
-    ui_style_push(c);
-    ui_style_color(c, ui_color_white);
-    ui_style_outline(c, 5);
-
-    ui_label(c, name, .align = UiAlign_MiddleCenter, .fontSize = 40);
-
-    ui_style_pop(c);
-    ui_layout_pop(c);
-  }
-}
-
 static void hud_health_draw(
     UiCanvasComp*    c,
     HudComp*         hud,
@@ -1068,7 +1051,6 @@ ecs_system_define(GameHudDrawSys) {
     }
 
     hud_minimap_update(hud, rendObjItr, terrain, res);
-    hud_level_draw(c, level);
 
     trace_begin("game_hud_health", TraceColor_White);
     hud_health_draw(c, hud, &viewProj, healthView, res);
