@@ -296,6 +296,17 @@ static void menu_entry_play(const GameUpdateContext* ctx, MAYBE_UNUSED const u32
   }
 }
 
+static void menu_entry_resume(const GameUpdateContext* ctx, MAYBE_UNUSED const u32 index) {
+  if (ui_button(
+          ctx->winCanvas,
+          .label    = string_lit("Resume"),
+          .fontSize = 25,
+          .tooltip  = string_lit("Resume playing."),
+          .activate = input_triggered_lit(ctx->input, "Pause"), )) {
+    game_state_set(ctx->game, GameState_Play);
+  }
+}
+
 static void menu_entry_volume(const GameUpdateContext* ctx, MAYBE_UNUSED const u32 index) {
   menu_draw_entry_frame(ctx);
 
@@ -651,6 +662,12 @@ ecs_system_define(GameUpdateSys) {
     case GameState_Edit:
       break;
     case GameState_Pause:
+      menuEntries[menuEntriesCount++] = &menu_entry_resume;
+      menuEntries[menuEntriesCount++] = &menu_entry_volume;
+      menuEntries[menuEntriesCount++] = &menu_entry_powersaving;
+      menuEntries[menuEntriesCount++] = &menu_entry_quality;
+      menuEntries[menuEntriesCount++] = &menu_entry_fullscreen;
+      menu_draw(&ctx, string_lit("Pause"), menuEntries, menuEntriesCount);
       break;
     }
   }
