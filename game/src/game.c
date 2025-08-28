@@ -247,7 +247,7 @@ static void menu_draw_version(const GameUpdateContext* ctx) {
   ui_style_outline(ctx->winCanvas, 1);
   ui_label(
       ctx->winCanvas,
-      version_str_scratch(g_versionExecutable),
+      fmt_write_scratch("v{}", fmt_text(version_str_scratch(g_versionExecutable))),
       .align    = UiAlign_BottomLeft,
       .fontSize = 12);
   ui_style_pop(ctx->winCanvas);
