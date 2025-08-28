@@ -669,8 +669,8 @@ ecs_system_define(GameInputUpdateSys) {
   if (!globalItr) {
     return;
   }
-  GameComp*                    game         = ecs_view_write_t(globalItr, GameComp);
   GameCmdComp*                 cmd          = ecs_view_write_t(globalItr, GameCmdComp);
+  const GameComp*              game         = ecs_view_read_t(globalItr, GameComp);
   const SceneLevelManagerComp* levelManager = ecs_view_read_t(globalItr, SceneLevelManagerComp);
   const SceneNavEnvComp*       nav          = ecs_view_read_t(globalItr, SceneNavEnvComp);
   const SceneSetEnvComp*       setEnv       = ecs_view_read_t(globalItr, SceneSetEnvComp);
