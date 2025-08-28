@@ -28,6 +28,7 @@
   X(0xE53B, Layers)                                                                                \
   X(0xE548, Hospital)                                                                              \
   X(0xE574, Category)                                                                              \
+  X(0xE5C4, ArrowLeft)                                                                             \
   X(0xE5CA, Check)                                                                                 \
   X(0xE5CD, Close)                                                                                 \
   X(0xE5CE, ExpandLess)                                                                            \
