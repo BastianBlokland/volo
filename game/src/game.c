@@ -571,7 +571,15 @@ ecs_system_define(GameUpdateSys) {
       ui_canvas_reset(ctx.winCanvas);
     }
 
-    if (ctx.game->state == GameState_Debug || ctx.game->state == GameState_Edit) {
+    switch (ctx.game->state) {
+    case GameState_Play:
+      game_dev_panels_hide(&ctx, true);
+      input_layer_disable(ctx.input, string_hash_lit("Dev"));
+      input_layer_enable(ctx.input, string_hash_lit("Game"));
+      scene_visibility_flags_clear(ctx.visibilityEnv, SceneVisibilityFlags_ForceRender);
+      break;
+    case GameState_Edit:
+    case GameState_Debug:
       if (!ctx.winGame->devMenu) {
         ctx.winGame->devMenu = dev_menu_create(world, ctx.winEntity);
       }
@@ -579,10 +587,10 @@ ecs_system_define(GameUpdateSys) {
       input_layer_enable(ctx.input, string_hash_lit("Dev"));
       input_layer_disable(ctx.input, string_hash_lit("Game"));
       scene_visibility_flags_set(ctx.visibilityEnv, SceneVisibilityFlags_ForceRender);
-    } else {
-      game_dev_panels_hide(&ctx, false);
+      break;
+    default:
       input_layer_disable(ctx.input, string_hash_lit("Dev"));
-      input_layer_enable(ctx.input, string_hash_lit("Game"));
+      input_layer_disable(ctx.input, string_hash_lit("Game"));
       scene_visibility_flags_clear(ctx.visibilityEnv, SceneVisibilityFlags_ForceRender);
     }
 
