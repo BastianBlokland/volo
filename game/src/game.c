@@ -562,7 +562,7 @@ ecs_system_define(GameUpdateSys) {
     if (input_triggered_lit(ctx.input, "Quit")) {
       game_quit(ctx.winComp);
     }
-    if (input_triggered_lit(ctx.input, "ToggleFullscreen")) {
+    if (input_triggered_lit(ctx.input, "Fullscreen")) {
       game_fullscreen_toggle(ctx.winComp);
     }
 
