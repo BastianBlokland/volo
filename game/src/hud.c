@@ -22,7 +22,6 @@
 #include "scene/collision.h"
 #include "scene/faction.h"
 #include "scene/health.h"
-#include "scene/level.h"
 #include "scene/lifetime.h"
 #include "scene/locomotion.h"
 #include "scene/name.h"
@@ -44,6 +43,7 @@
 #include "ui/widget.h"
 
 #include "cmd.h"
+#include "game.h"
 #include "hud.h"
 #include "input.h"
 
@@ -80,8 +80,8 @@ ecs_comp_define(HudComp) {
 };
 
 ecs_view_define(GlobalView) {
+  ecs_access_read(GameComp);
   ecs_access_read(InputManagerComp);
-  ecs_access_read(SceneLevelManagerComp);
   ecs_access_read(SceneSetEnvComp);
   ecs_access_read(SceneTerrainComp);
   ecs_access_read(SceneWeaponResourceComp);
@@ -1001,7 +1001,7 @@ ecs_system_define(GameHudDrawSys) {
   }
   GameCmdComp*                   cmd       = ecs_view_write_t(globalItr, GameCmdComp);
   const InputManagerComp*        input     = ecs_view_read_t(globalItr, InputManagerComp);
-  const SceneLevelManagerComp*   level     = ecs_view_read_t(globalItr, SceneLevelManagerComp);
+  const GameComp*                game      = ecs_view_read_t(globalItr, GameComp);
   const SceneSetEnvComp*         setEnv    = ecs_view_read_t(globalItr, SceneSetEnvComp);
   const SceneTerrainComp*        terrain   = ecs_view_read_t(globalItr, SceneTerrainComp);
   const SceneWeaponResourceComp* weaponRes = ecs_view_read_t(globalItr, SceneWeaponResourceComp);
@@ -1035,7 +1035,7 @@ ecs_system_define(GameHudDrawSys) {
     const GeoMatrix viewProj = hud_ui_view_proj(cam, camTrans, c);
 
     ui_canvas_reset(c);
-    if (input_layer_active(input, string_hash_lit("Dev"))) {
+    if (game_state(game) != GameState_Play) {
       continue;
     }
     const UiVector res = ui_canvas_resolution(c);
