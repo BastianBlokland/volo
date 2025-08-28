@@ -331,6 +331,7 @@ static void menu_entry_menu_main(const GameUpdateContext* ctx, MAYBE_UNUSED cons
           .fontSize = 25,
           .tooltip  = string_lit("Go back to the main-menu."))) {
     game_state_set(ctx->game, GameState_MenuMain);
+    game_music_play(ctx->world, ctx->game, ctx->soundMixer, ctx->assets);
     scene_level_unload(ctx->world);
   }
 }
