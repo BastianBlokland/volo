@@ -597,6 +597,12 @@ ecs_system_define(GameUpdateSys) {
       break;
     }
 
+    if (ctx.game->state == GameState_Play || ctx.game->state == GameState_Edit) {
+      ctx.timeSet->flags &= ~SceneTimeFlags_Paused;
+    } else {
+      ctx.timeSet->flags |= SceneTimeFlags_Paused;
+    }
+
     MenuEntry menuEntries[32];
     u32       menuEntriesCount = 0;
     switch (ctx.game->state) {
@@ -628,6 +634,9 @@ ecs_system_define(GameUpdateSys) {
       }
       break;
     case GameState_Play:
+      if (input_triggered_lit(ctx.input, "Pause")) {
+        game_state_set(ctx.game, GameState_Pause);
+      }
       break;
     case GameState_Debug:
       break;
