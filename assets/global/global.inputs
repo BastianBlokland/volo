@@ -8,6 +8,13 @@
       ]
     },
     {
+      "name": "Pause",
+      "blockers": [ "TextInput" ],
+      "bindings": [
+        { "type": "Pressed", "key": "Escape" }
+      ]
+    },
+    {
       "name": "Reset",
       "blockers": [ "TextInput" ],
       "bindings": [
