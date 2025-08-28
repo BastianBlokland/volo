@@ -729,6 +729,7 @@ ecs_system_define(GameInputUpdateSys) {
           productionView);
     } else {
       state->selectState = InputSelectState_None;
+      mem_set(array_mem(state->hoveredEntity), 0);
     }
   }
 }
