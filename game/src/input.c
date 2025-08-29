@@ -730,6 +730,7 @@ ecs_system_define(GameInputUpdateSys) {
     } else {
       state->selectState = InputSelectState_None;
       mem_set(array_mem(state->hoveredEntity), 0);
+      input_cursor_mode_set(input, InputCursorMode_Normal);
     }
   }
 }
