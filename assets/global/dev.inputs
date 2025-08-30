@@ -2,53 +2,6 @@
   "layer": "Dev",
   "actions": [
     {
-      "name": "Select",
-      "blockers": [ "TextInput", "CursorLocked", "PrefabCreate", "EntityPicker" ],
-      "bindings": [
-        { "type": "Down", "key": "MouseLeft" }
-      ]
-    },
-    {
-      "name": "CameraPanForward",
-      "blockers": [ "TextInput" ],
-      "bindings": [
-        { "type": "Down", "key": "ArrowUp" },
-        { "type": "Down", "key": "W", "illegalModifiers": [ "Control" ] }
-      ]
-    },
-    {
-      "name": "CameraPanBackward",
-      "blockers": [ "TextInput" ],
-      "bindings": [
-        { "type": "Down", "key": "ArrowDown" },
-        { "type": "Down", "key": "S", "illegalModifiers": [ "Control" ] }
-      ]
-    },
-    {
-      "name": "CameraPanRight",
-      "blockers": [ "TextInput" ],
-      "bindings": [
-        { "type": "Down", "key": "ArrowRight" },
-        { "type": "Down", "key": "D", "illegalModifiers": [ "Control" ] }
-      ]
-    },
-    {
-      "name": "CameraPanLeft",
-      "blockers": [ "TextInput" ],
-      "bindings": [
-        { "type": "Down", "key": "ArrowLeft" },
-        { "type": "Down", "key": "A", "illegalModifiers": [ "Control" ] }
-      ]
-    },
-    {
-      "name": "CameraRotate",
-      "blockers": [ "TextInput" ],
-      "bindings": [
-        { "type": "Down", "key": "Alt" },
-        { "type": "Down", "key": "MouseExtra1" }
-      ]
-    },
-    {
       "name": "SaveLevel",
       "blockers": [ "TextInput" ],
       "bindings": [
