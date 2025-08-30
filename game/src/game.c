@@ -73,6 +73,7 @@ ecs_comp_define(GameComp) {
   u32       stateTicks;
   bool      devSupport;
   bool      debugActive;
+  bool      editMode;
 
   EcsEntityId mainWindow;
   SndObjectId musicHandle;
@@ -302,6 +303,7 @@ static void game_transition(const GameUpdateContext* ctx, const GameState state)
     input_layer_disable(ctx->input, string_hash_lit("Edit"));
     input_layer_disable(ctx->input, string_hash_lit("Dev"));
     game_input_type_set(ctx->winGameInput, GameInputType_None);
+    ctx->game->editMode = false;
     break;
   case GameState_Pause:
     ctx->timeSet->flags &= ~SceneTimeFlags_Paused;
@@ -452,6 +454,7 @@ static void menu_entry_play(const GameUpdateContext* ctx, MAYBE_UNUSED const u32
           .label    = string_lit("Play"),
           .fontSize = 25,
           .tooltip  = string_lit("Select a level to play."))) {
+    ctx->game->editMode = false;
     game_transition(ctx, GameState_MenuSelect);
   }
 }
@@ -463,6 +466,7 @@ static void menu_entry_edit(const GameUpdateContext* ctx, MAYBE_UNUSED const u32
           .frameColor = ui_color(255, 16, 16, 192),
           .fontSize   = 25,
           .tooltip    = string_lit("Select a level to edit."))) {
+    ctx->game->editMode = true;
     game_transition(ctx, GameState_MenuSelect);
   }
 }
@@ -616,7 +620,14 @@ static void menu_entry_back(const GameUpdateContext* ctx, MAYBE_UNUSED const u32
 static void menu_entry_level(const GameUpdateContext* ctx, const u32 index) {
   const u32    levelIndex = (u32)bitset_index(bitset_from_var(ctx->game->levelMask), index);
   const String levelName  = ctx->game->levelNames[levelIndex];
-  const String tooltip    = fmt_write_scratch("Play the '{}' level.", fmt_text(levelName));
+
+  String tooltip;
+  if (ctx->game->editMode) {
+    tooltip = fmt_write_scratch("Edit the '{}' level.", fmt_text(levelName));
+  } else {
+    tooltip = fmt_write_scratch("Play the '{}' level.", fmt_text(levelName));
+  }
+
   if (ui_button(ctx->winCanvas, .label = levelName, .fontSize = 25, .tooltip = tooltip)) {
     game_transition(ctx, GameState_Loading);
     scene_level_load(ctx->world, SceneLevelMode_Play, ctx->game->levelAssets[levelIndex]);
@@ -874,7 +885,8 @@ ecs_system_define(GameUpdateSys) {
         menuEntries[menuEntriesCount++] = &menu_entry_level;
       }
       menuEntries[menuEntriesCount++] = &menu_entry_back;
-      menu_draw(&ctx, string_lit("Play"), menuEntries, menuEntriesCount);
+      const String header = ctx.game->editMode ? string_lit("Edit") : string_lit("Play");
+      menu_draw(&ctx, header, menuEntries, menuEntriesCount);
       menu_draw_version(&ctx);
     } break;
     case GameState_Loading:
