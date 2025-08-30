@@ -2,6 +2,66 @@
   "layer": "Edit",
   "actions": [
     {
+      "name": "Select",
+      "blockers": [ "TextInput", "CursorLocked", "PrefabCreate", "EntityPicker" ],
+      "bindings": [
+        { "type": "Down", "key": "MouseLeft" }
+      ]
+    },
+    {
+      "name": "CameraReset",
+      "blockers": [ "TextInput" ],
+      "bindings": [
+        { "type": "Pressed", "key": "Backspace", "illegalModifiers": [ "Alt" ] }
+      ]
+    },
+    {
+      "name": "CameraPanForward",
+      "blockers": [ "TextInput" ],
+      "bindings": [
+        { "type": "Down", "key": "ArrowUp" }
+      ]
+    },
+    {
+      "name": "CameraPanBackward",
+      "blockers": [ "TextInput" ],
+      "bindings": [
+        { "type": "Down", "key": "ArrowDown" }
+      ]
+    },
+    {
+      "name": "CameraPanRight",
+      "blockers": [ "TextInput" ],
+      "bindings": [
+        { "type": "Down", "key": "ArrowRight" }
+      ]
+    },
+    {
+      "name": "CameraPanLeft",
+      "blockers": [ "TextInput" ],
+      "bindings": [
+        { "type": "Down", "key": "ArrowLeft" }
+      ]
+    },
+    {
+      "name": "CameraPanCursor",
+      "blockers": [ "TextInput" ],
+      "bindings": [
+        { "type": "Down", "key": "Z" },
+        { "type": "Down", "key": "MouseMiddle" },
+        { "type": "Down", "key": "MouseExtra2" }
+      ]
+    },
+    {
+      "name": "CameraRotate",
+      "blockers": [ "TextInput", "Debug" ],
+      "bindings": [
+        { "type": "Down", "key": "Alt" },
+        { "type": "Down", "key": "MouseExtra1" }
+      ]
+    },
+
+    {
       "name": "SaveLevel",
       "blockers": [ "TextInput" ],
       "bindings": [
