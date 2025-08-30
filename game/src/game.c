@@ -64,6 +64,7 @@ enum { GameLevelsMax = 8 };
 ecs_comp_define(GameComp) {
   GameState state : 8;
   GameState statePrev : 8;
+  GameState stateNext : 8;
   bool      devSupport;
   bool      cliLevelLoad;
 
@@ -245,6 +246,10 @@ static void game_fullscreen_toggle(const GameUpdateContext* ctx) {
 static void game_quit(const GameUpdateContext* ctx) {
   log_i("Quit");
   gap_window_close(ctx->winComp);
+}
+
+static void game_transition_delayed(GameComp* game, const GameState state) {
+  game->stateNext = state;
 }
 
 static void game_transition(const GameUpdateContext* ctx, const GameState state) {
@@ -750,6 +755,11 @@ ecs_system_define(GameUpdateSys) {
       ui_canvas_reset(ctx.winCanvas);
     }
 
+    if (ctx.game->stateNext) {
+      game_transition(&ctx, ctx.game->stateNext);
+      ctx.game->stateNext = GameState_None;
+    }
+
     switch (ctx.game->state) {
     case GameState_Play:
       game_dev_panels_hide(&ctx, true);
@@ -776,6 +786,8 @@ ecs_system_define(GameUpdateSys) {
     MenuEntry menuEntries[32];
     u32       menuEntriesCount = 0;
     switch (ctx.game->state) {
+    case GameState_None:
+      break;
     case GameState_MenuMain: {
       menuEntries[menuEntriesCount++] = &menu_entry_play;
       menuEntries[menuEntriesCount++] = &menu_entry_volume;
@@ -993,7 +1005,6 @@ bool app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
       .mainWindow  = mainWin,
       .musicHandle = sentinel_u32);
 
-  game_music_play(world, game, soundMixer, assets);
   game_levels_query_init(world, game, assets);
 
   InputResourceComp* inputResource = input_resource_init(world);
@@ -1009,8 +1020,10 @@ bool app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
 
   const String level = cli_read_string(invoc, g_optLevel, string_empty);
   if (!string_is_empty(level)) {
-    game->cliLevelLoad = true;
+    game_transition_delayed(game, GameState_Loading);
     scene_level_load(world, SceneLevelMode_Play, asset_lookup(world, assets, level));
+  } else {
+    game_transition_delayed(game, GameState_MenuMain);
   }
 
   return true; // Initialization succeeded.

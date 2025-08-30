@@ -2,6 +2,7 @@
 #include "ecs/module.h"
 
 typedef enum {
+  GameState_None,
   GameState_MenuMain,
   GameState_MenuSelect,
   GameState_Loading,
