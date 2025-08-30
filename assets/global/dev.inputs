@@ -8,13 +8,6 @@
       ]
     },
     {
-      "name": "SaveLevel",
-      "blockers": [ "TextInput" ],
-      "bindings": [
-        { "type": "Pressed", "key": "S", "requiredModifiers": [ "Control" ] }
-      ]
-    },
-    {
       "name": "DevFreeCamera",
       "blockers": [ "TextInput" ],
       "bindings": [
