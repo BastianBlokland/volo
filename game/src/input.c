@@ -828,11 +828,8 @@ ecs_module_init(game_input_module) {
       ecs_view_id(ProductionView));
   ecs_register_system(GameInputDrawUiSys, ecs_view_id(UiCameraView), ecs_view_id(UiCanvasView));
 
-  enum {
-    Order_Normal      = 0,
-    Order_InputDrawUi = 1,
-  };
-  ecs_order(GameInputDrawUiSys, Order_InputDrawUi);
+  ecs_order(GameInputUpdateSys, GameOrder_Input);
+  ecs_order(GameInputDrawUiSys, GameOrder_InputUi);
 
   // Initialize group action hashes.
   for (u32 i = 0; i != game_cmd_group_count; ++i) {

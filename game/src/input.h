@@ -3,6 +3,11 @@
 #include "ecs/module.h"
 #include "geo/vector.h"
 
+enum {
+  GameOrder_Input   = -1,
+  GameOrder_InputUi = 1,
+};
+
 ecs_comp_extern(GameInputComp);
 
 void game_input_camera_center(GameInputComp*, GeoVector worldPos);

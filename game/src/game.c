@@ -866,6 +866,8 @@ ecs_module_init(game_module) {
       ecs_view_id(UiCanvasView),
       ecs_view_id(LevelRenderableView),
       ecs_view_id(DevPanelView));
+
+  ecs_order(GameUpdateSys, GameOrder_StateUpdate);
 }
 
 static CliId g_optAssets, g_optWindow, g_optWidth, g_optHeight, g_optLevel, g_optDev;

@@ -1,6 +1,10 @@
 #pragma once
 #include "ecs/module.h"
 
+enum {
+  GameOrder_StateUpdate = -2,
+};
+
 typedef enum {
   GameState_None,
   GameState_MenuMain,
