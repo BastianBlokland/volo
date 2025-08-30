@@ -287,7 +287,7 @@
       "name": "DevInspectorVisMode",
       "blockers": [ "TextInput" ],
       "bindings": [
-        { "type": "Pressed", "key": "Tab", "requiredModifiers": [ "Alt" ] }
+        { "type": "Pressed", "key": "Tab" }
       ]
     },
     {
