@@ -22,7 +22,6 @@
 #include "ui/style.h"
 
 #include "cmd.h"
-#include "game.h"
 #include "hud.h"
 #include "input.h"
 
@@ -71,6 +70,7 @@ typedef enum {
 
 ecs_comp_define(GameInputComp) {
   EcsEntityId      uiCanvas;
+  GameInputType    type : 8;
   InputFlags       flags : 8;
   InputSelectState selectState : 8;
   InputSelectMode  selectMode : 8;
@@ -661,7 +661,6 @@ static void input_state_init(EcsWorld* world, const EcsEntityId windowEntity) {
 }
 
 ecs_view_define(GlobalUpdateView) {
-  ecs_access_read(GameComp);
   ecs_access_read(SceneLevelManagerComp);
   ecs_access_read(SceneNavEnvComp);
   ecs_access_read(SceneSetEnvComp);
@@ -688,7 +687,6 @@ ecs_system_define(GameInputUpdateSys) {
     return;
   }
   GameCmdComp*                 cmd          = ecs_view_write_t(globalItr, GameCmdComp);
-  const GameComp*              game         = ecs_view_read_t(globalItr, GameComp);
   const SceneLevelManagerComp* levelManager = ecs_view_read_t(globalItr, SceneLevelManagerComp);
   const SceneNavEnvComp*       nav          = ecs_view_read_t(globalItr, SceneNavEnvComp);
   const SceneSetEnvComp*       setEnv       = ecs_view_read_t(globalItr, SceneSetEnvComp);
@@ -718,13 +716,14 @@ ecs_system_define(GameInputUpdateSys) {
     state->lastSelectionCount = scene_set_count(setEnv, g_sceneSetSelected);
 
     bool windowActive = input_active_window(input) == ecs_view_entity(camItr);
-    switch (game_state(game)) {
-    case GameState_Play:
+    switch (state->type) {
+    case GameInputType_Normal:
       update_camera_movement(state, input, time, terrain, camTrans, windowActive);
       break;
-    case GameState_Edit:
+    case GameInputType_FreeCamera:
       update_camera_movement_dev(input, time, cam, camTrans);
-    default:
+      break;
+    case GameInputType_None:
       windowActive = false;
       break;
     }
@@ -836,6 +835,9 @@ ecs_module_init(game_input_module) {
     g_inputGroupActions[i] = string_hash(fmt_write_scratch("CommandGroup{}", fmt_int(i + 1)));
   }
 }
+
+GameInputType game_input_type(const GameInputComp* comp) { return comp->type; }
+void game_input_type_set(GameInputComp* comp, const GameInputType type) { comp->type = type; }
 
 void game_input_camera_center(GameInputComp* state, const GeoVector worldPos) {
   state->camPosTgt = worldPos;
