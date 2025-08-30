@@ -54,7 +54,6 @@
     },
     {
       "name": "CameraRotate",
-      "blockers": [ "TextInput", "Debug" ],
       "bindings": [
         { "type": "Down", "key": "Alt" },
         { "type": "Down", "key": "MouseExtra1" }
