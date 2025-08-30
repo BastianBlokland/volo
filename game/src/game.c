@@ -819,12 +819,14 @@ ecs_system_define(GameUpdateSys) {
       if (ctx.winGameInput && input_triggered_lit(ctx.input, "DevFreeCamera")) {
         game_input_toggle_free_camera(ctx.winGameInput);
       }
+      input_blocker_update(ctx.input, InputBlocker_Debug, true);
       dev_stats_notify(ctx.devStatsGlobal, string_lit("Debug"), string_lit("On"));
       ctx.game->debugActive = true;
     } else if (!debugReq && ctx.game->debugActive) {
       game_dev_panels_hide(&ctx, true);
       scene_visibility_flags_clear(ctx.visibilityEnv, SceneVisibilityFlags_ForceRender);
       input_layer_disable(ctx.input, string_hash_lit("Dev"));
+      input_blocker_update(ctx.input, InputBlocker_Debug, false);
       dev_stats_notify(ctx.devStatsGlobal, string_lit("Debug"), string_lit("Off"));
       ctx.game->debugActive = false;
     }
