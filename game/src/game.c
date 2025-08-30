@@ -223,6 +223,7 @@ typedef struct {
   GapWindowComp*      winComp;
   RendSettingsComp*   winRendSet;
   GameHudComp*        winHud;
+  DevStatsComp*       winDevStats;
   UiCanvasComp*       winCanvas;
 
   EcsView* levelRenderableView;
@@ -582,9 +583,10 @@ ecs_view_define(UpdateGlobalView) {
 }
 
 ecs_view_define(MainWindowView) {
+  ecs_access_maybe_write(DevStatsComp);
   ecs_access_maybe_write(RendSettingsComp);
-  ecs_access_write(GameMainWindowComp);
   ecs_access_write(GameHudComp);
+  ecs_access_write(GameMainWindowComp);
   ecs_access_write(GapWindowComp);
 }
 
@@ -721,11 +723,12 @@ ecs_system_define(GameUpdateSys) {
   EcsView*     mainWinView = ecs_world_view_t(world, MainWindowView);
   EcsIterator* mainWinItr  = ecs_view_maybe_at(mainWinView, ctx.game->mainWindow);
   if (mainWinItr) {
-    ctx.winEntity  = ecs_view_entity(mainWinItr);
-    ctx.winGame    = ecs_view_write_t(mainWinItr, GameMainWindowComp);
-    ctx.winComp    = ecs_view_write_t(mainWinItr, GapWindowComp);
-    ctx.winRendSet = ecs_view_write_t(mainWinItr, RendSettingsComp);
-    ctx.winHud     = ecs_view_write_t(mainWinItr, GameHudComp);
+    ctx.winEntity   = ecs_view_entity(mainWinItr);
+    ctx.winGame     = ecs_view_write_t(mainWinItr, GameMainWindowComp);
+    ctx.winComp     = ecs_view_write_t(mainWinItr, GapWindowComp);
+    ctx.winRendSet  = ecs_view_write_t(mainWinItr, RendSettingsComp);
+    ctx.winHud      = ecs_view_write_t(mainWinItr, GameHudComp);
+    ctx.winDevStats = ecs_view_write_t(mainWinItr, DevStatsComp);
 
     if (gap_window_events(ctx.winComp) & GapWindowEvents_Resized) {
       // Save last window size.
