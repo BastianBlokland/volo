@@ -49,7 +49,6 @@ typedef EcsEntityId (*ChildOpenFunc)(EcsWorld*, EcsEntityId, DevPanelType);
 static const struct {
   String        name;
   u32           iconShape;
-  bool          autoOpen;
   GapVector     detachedSize;
   ChildOpenFunc openFunc;
   String        hotkeyName;
@@ -60,7 +59,6 @@ static const struct {
         .detachedSize = {.x = 500, .y = 500},
         .openFunc     = dev_inspector_panel_open,
         .hotkeyName   = string_static("DevPanelInspector"),
-        .autoOpen     = true,
     },
     {
         .name         = string_static("Hierarchy"),
@@ -68,7 +66,6 @@ static const struct {
         .detachedSize = {.x = 500, .y = 350},
         .openFunc     = dev_hierarchy_panel_open,
         .hotkeyName   = string_static("DevPanelHierarchy"),
-        .autoOpen     = true,
     },
     {
         .name         = string_static("Prefab"),
@@ -76,7 +73,6 @@ static const struct {
         .detachedSize = {.x = 500, .y = 350},
         .openFunc     = dev_prefab_panel_open,
         .hotkeyName   = string_static("DevPanelPrefab"),
-        .autoOpen     = false,
     },
     {
         .name         = string_static("Level"),
@@ -391,13 +387,6 @@ ecs_module_init(dev_menu_module) {
 
 EcsEntityId dev_menu_create(EcsWorld* world, const EcsEntityId window) {
   const EcsEntityId menuEntity = dev_panel_create(world, window, DevPanelType_Normal);
-  DevMenuComp*      menu       = ecs_world_add_t(world, menuEntity, DevMenuComp, .window = window);
-
-  for (u32 childIndex = 0; childIndex != array_elems(menu->childEntities); ++childIndex) {
-    if (g_menuChildConfig[childIndex].autoOpen) {
-      menu_child_open(world, menu, menuEntity, childIndex);
-    }
-  }
-
+  ecs_world_add_t(world, menuEntity, DevMenuComp, .window = window);
   return menuEntity;
 }
