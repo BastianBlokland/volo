@@ -15,13 +15,6 @@
       ]
     },
     {
-      "name": "Reset",
-      "blockers": [ "TextInput" ],
-      "bindings": [
-        { "type": "Pressed", "key": "R" }
-      ]
-    },
-    {
       "name": "Debug",
       "blockers": [ "TextInput" ],
       "bindings": [
