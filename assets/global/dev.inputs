@@ -2,6 +2,12 @@
   "layer": "Dev",
   "actions": [
     {
+      "name": "CameraRotate",
+      "bindings": [
+        { "type": "Down", "key": "MouseExtra1" }
+      ]
+    },
+    {
       "name": "SaveLevel",
       "blockers": [ "TextInput" ],
       "bindings": [
