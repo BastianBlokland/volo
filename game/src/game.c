@@ -58,6 +58,7 @@
 #include "cmd.h"
 #include "game.h"
 #include "hud.h"
+#include "input.h"
 #include "prefs.h"
 
 enum {
@@ -228,6 +229,7 @@ typedef struct {
   GapWindowComp*      winComp;
   RendSettingsComp*   winRendSet;
   GameHudComp*        winHud;
+  GameInputComp*      winGameInput;
   DevStatsComp*       winDevStats;
   UiCanvasComp*       winCanvas;
 
@@ -273,6 +275,7 @@ static void game_transition(const GameUpdateContext* ctx, const GameState state)
     break;
   case GameState_Play:
     input_layer_disable(ctx->input, string_hash_lit("Game"));
+    game_input_type_set(ctx->winGameInput, GameInputType_None);
     break;
   case GameState_Pause:
     ctx->timeSet->flags &= ~SceneTimeFlags_Paused;
@@ -301,6 +304,7 @@ static void game_transition(const GameUpdateContext* ctx, const GameState state)
     break;
   case GameState_Play:
     ctx->winRendSet->flags &= ~RendFlags_2D;
+    game_input_type_set(ctx->winGameInput, GameInputType_Normal);
     input_layer_enable(ctx->input, string_hash_lit("Game"));
     break;
   case GameState_Pause:
@@ -598,8 +602,9 @@ ecs_view_define(UpdateGlobalView) {
 
 ecs_view_define(MainWindowView) {
   ecs_access_maybe_write(DevStatsComp);
+  ecs_access_maybe_write(GameHudComp);
+  ecs_access_maybe_write(GameInputComp);
   ecs_access_maybe_write(RendSettingsComp);
-  ecs_access_write(GameHudComp);
   ecs_access_write(GameMainWindowComp);
   ecs_access_write(GapWindowComp);
 }
@@ -737,12 +742,13 @@ ecs_system_define(GameUpdateSys) {
   EcsView*     mainWinView = ecs_world_view_t(world, MainWindowView);
   EcsIterator* mainWinItr  = ecs_view_maybe_at(mainWinView, ctx.game->mainWindow);
   if (mainWinItr) {
-    ctx.winEntity   = ecs_view_entity(mainWinItr);
-    ctx.winGame     = ecs_view_write_t(mainWinItr, GameMainWindowComp);
-    ctx.winComp     = ecs_view_write_t(mainWinItr, GapWindowComp);
-    ctx.winRendSet  = ecs_view_write_t(mainWinItr, RendSettingsComp);
-    ctx.winHud      = ecs_view_write_t(mainWinItr, GameHudComp);
-    ctx.winDevStats = ecs_view_write_t(mainWinItr, DevStatsComp);
+    ctx.winEntity    = ecs_view_entity(mainWinItr);
+    ctx.winGame      = ecs_view_write_t(mainWinItr, GameMainWindowComp);
+    ctx.winComp      = ecs_view_write_t(mainWinItr, GapWindowComp);
+    ctx.winRendSet   = ecs_view_write_t(mainWinItr, RendSettingsComp);
+    ctx.winHud       = ecs_view_write_t(mainWinItr, GameHudComp);
+    ctx.winGameInput = ecs_view_write_t(mainWinItr, GameInputComp);
+    ctx.winDevStats  = ecs_view_write_t(mainWinItr, DevStatsComp);
 
     if (gap_window_events(ctx.winComp) & GapWindowEvents_Resized) {
       // Save last window size.
@@ -824,7 +830,7 @@ ecs_system_define(GameUpdateSys) {
       break;
     case GameState_Play:
     case GameState_Edit:
-      if (game_hud_consume_action(ctx.winHud, GameHudAction_Pause)) {
+      if (ctx.winHud && game_hud_consume_action(ctx.winHud, GameHudAction_Pause)) {
         game_transition_delayed(ctx.game, GameState_Pause);
       }
       break;

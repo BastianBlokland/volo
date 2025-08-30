@@ -652,8 +652,8 @@ static void input_update_collision_mask(SceneCollisionEnvComp* env, const InputM
   scene_collision_ignore_mask_set(env, ignoreMask);
 }
 
-static void input_state_init(EcsWorld* world, const EcsEntityId windowEntity) {
-  ecs_world_add_t(
+static GameInputComp* input_state_init(EcsWorld* world, const EcsEntityId windowEntity) {
+  return ecs_world_add_t(
       world,
       windowEntity,
       GameInputComp,
