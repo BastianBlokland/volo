@@ -60,12 +60,16 @@
 #include "hud.h"
 #include "prefs.h"
 
-enum { GameLevelsMax = 8 };
+enum {
+  GameLevelsMax       = 8,
+  GameLoadingMinTicks = 5, // Not strictly needed, but avoids very short loading screen flashes.
+};
 
 ecs_comp_define(GameComp) {
   GameState state : 8;
   GameState statePrev : 8;
   GameState stateNext : 8;
+  u32       stateTicks;
   bool      devSupport;
 
   EcsEntityId mainWindow;
@@ -257,8 +261,9 @@ static void game_transition(const GameUpdateContext* ctx, const GameState state)
   if (ctx->game->state == state) {
     return;
   }
-  ctx->game->statePrev = ctx->game->state;
-  ctx->game->state     = state;
+  ctx->game->statePrev  = ctx->game->state;
+  ctx->game->state      = state;
+  ctx->game->stateTicks = 0;
 
   // Apply leave transitions.
   switch (ctx->game->statePrev) {
@@ -292,6 +297,7 @@ static void game_transition(const GameUpdateContext* ctx, const GameState state)
     break;
   case GameState_Loading:
     ctx->timeSet->flags |= SceneTimeFlags_Paused;
+    ctx->winRendSet->flags |= RendFlags_2D;
     break;
   case GameState_Play:
     ctx->winRendSet->flags &= ~RendFlags_2D;
@@ -763,6 +769,8 @@ ecs_system_define(GameUpdateSys) {
     if (ctx.game->stateNext) {
       game_transition(&ctx, ctx.game->stateNext);
       ctx.game->stateNext = GameState_None;
+    } else {
+      ++ctx.game->stateTicks;
     }
 
     if (ctx.winDevStats && dev_stats_debug(ctx.winDevStats) == DevStatDebug_On) {
@@ -809,7 +817,7 @@ ecs_system_define(GameUpdateSys) {
         game_transition_delayed(ctx.game, GameState_MenuMain);
         break;
       }
-      if (game_level_ready(&ctx)) {
+      if (game_level_ready(&ctx) && ctx.game->stateTicks >= GameLoadingMinTicks) {
         game_transition_delayed(ctx.game, GameState_Play);
         break;
       }
