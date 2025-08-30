@@ -774,18 +774,18 @@ ecs_system_define(GameUpdateSys) {
 
     if (gap_window_events(ctx.winComp) & GapWindowEvents_Resized) {
       // Save last window size.
-      ctx.prefs->fullscreen = gap_window_mode(ctx.winComp) == GapWindowMode_Fullscreen;
+      const GapVector windowSize = gap_window_param(ctx.winComp, GapParam_WindowSize);
+      ctx.prefs->fullscreen      = gap_window_mode(ctx.winComp) == GapWindowMode_Fullscreen;
       if (!ctx.prefs->fullscreen) {
-        ctx.prefs->windowWidth  = gap_window_param(ctx.winComp, GapParam_WindowSize).width;
-        ctx.prefs->windowHeight = gap_window_param(ctx.winComp, GapParam_WindowSize).height;
+        ctx.prefs->windowWidth  = windowSize.width;
+        ctx.prefs->windowHeight = windowSize.height;
       }
       ctx.prefs->dirty = true;
       if (ctx.devStatsGlobal) {
         dev_stats_notify(
             ctx.devStatsGlobal,
             string_lit("WindowSize"),
-            fmt_write_scratch(
-                "{}x{}", fmt_int(ctx.prefs->windowWidth), fmt_int(ctx.prefs->windowHeight)));
+            fmt_write_scratch("{}x{}", fmt_int(windowSize.width), fmt_int(windowSize.height)));
       }
     }
 
