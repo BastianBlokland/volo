@@ -699,10 +699,6 @@ ecs_system_define(GameInputUpdateSys) {
 
   input_update_collision_mask(colEnv, input);
 
-  if (input_triggered_lit(input, "OrderStop")) {
-    input_order_stop(cmd, setEnv);
-  }
-
   EcsView* cameraView     = ecs_world_view_t(world, CameraView);
   EcsView* productionView = ecs_world_view_t(world, ProductionView);
 
@@ -715,6 +711,10 @@ ecs_system_define(GameInputUpdateSys) {
       input_state_init(world, ecs_view_entity(camItr));
       continue;
     }
+    if (hud && game_hud_consume_action(hud, GameHudAction_OrderStop)) {
+      input_order_stop(cmd, setEnv);
+    }
+
     state->lastSelectionCount = scene_set_count(setEnv, g_sceneSetSelected);
 
     bool windowActive = input_active_window(input) == ecs_view_entity(camItr);

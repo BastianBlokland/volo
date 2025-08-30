@@ -734,6 +734,12 @@ static void hud_actions_draw(UiCanvasComp* c, GameHudComp* hud, const InputManag
           .tooltip = string_static("Reset the camera."),
           .hotkey  = string_static("CameraReset"),
       },
+      {
+          .action  = GameHudAction_OrderStop,
+          .icon    = UiShape_Halt,
+          .tooltip = string_static("Order the selected unit to stop."),
+          .hotkey  = string_static("OrderStop"),
+      },
   };
 
   ui_layout_push(c);
