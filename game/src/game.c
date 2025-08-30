@@ -222,6 +222,7 @@ typedef struct {
   GameMainWindowComp* winGame;
   GapWindowComp*      winComp;
   RendSettingsComp*   winRendSet;
+  GameHudComp*        winHud;
   UiCanvasComp*       winCanvas;
 
   EcsView* levelRenderableView;
@@ -579,6 +580,7 @@ ecs_view_define(UpdateGlobalView) {
 ecs_view_define(MainWindowView) {
   ecs_access_maybe_write(RendSettingsComp);
   ecs_access_write(GameMainWindowComp);
+  ecs_access_write(GameHudComp);
   ecs_access_write(GapWindowComp);
 }
 
@@ -724,6 +726,7 @@ ecs_system_define(GameUpdateSys) {
     ctx.winGame    = ecs_view_write_t(mainWinItr, GameMainWindowComp);
     ctx.winComp    = ecs_view_write_t(mainWinItr, GapWindowComp);
     ctx.winRendSet = ecs_view_write_t(mainWinItr, RendSettingsComp);
+    ctx.winHud     = ecs_view_write_t(mainWinItr, GameHudComp);
 
     if (gap_window_events(ctx.winComp) & GapWindowEvents_Resized) {
       // Save last window size.
@@ -805,7 +808,7 @@ ecs_system_define(GameUpdateSys) {
       }
       break;
     case GameState_Play:
-      if (input_triggered_lit(ctx.input, "Pause")) {
+      if (game_hud_consume_pause(ctx.winHud)) {
         game_transition(&ctx, GameState_Pause);
       }
       break;
