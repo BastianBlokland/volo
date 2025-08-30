@@ -39,6 +39,7 @@
 #include "scene/product.h"
 #include "scene/register.h"
 #include "scene/renderable.h"
+#include "scene/terrain.h"
 #include "scene/time.h"
 #include "scene/transform.h"
 #include "scene/visibility.h"
@@ -207,6 +208,7 @@ typedef struct {
   GameComp*               game;
   GamePrefsComp*          prefs;
   SceneLevelManagerComp*  levelManager;
+  const SceneTerrainComp* terrain;
   InputManagerComp*       input;
   SndMixerComp*           soundMixer;
   const SceneTimeComp*    time;
@@ -549,6 +551,7 @@ ecs_view_define(ErrorView) {
 ecs_view_define(TimeView) { ecs_access_write(SceneTimeComp); }
 
 ecs_view_define(UpdateGlobalView) {
+  ecs_access_read(SceneTerrainComp);
   ecs_access_read(SceneTimeComp);
   ecs_access_write(AssetManagerComp);
   ecs_access_write(GameCmdComp);
@@ -638,11 +641,27 @@ static void game_dev_panels_hide(const GameUpdateContext* ctx, const bool hidden
   }
 }
 
-static bool game_level_renderable_loaded(const GameUpdateContext* ctx) {
+static bool game_level_ready(const GameUpdateContext* ctx) {
+  if (!scene_level_loaded(ctx->levelManager)) {
+    return false; // Still loading level.
+  }
+  const EcsEntityId terrainAsset = scene_level_terrain(ctx->levelManager);
+  if (terrainAsset) {
+    if (scene_terrain_resource_asset(ctx->terrain) != terrainAsset) {
+      return false; // Terrain load hasn't started.
+    }
+    if (!scene_terrain_loaded(ctx->terrain)) {
+      return false; // Still loading terrain.
+    }
+    const EcsEntityId terrainGraphic = scene_terrain_resource_graphic(ctx->terrain);
+    if (!ecs_world_has_t(ctx->world, terrainGraphic, RendResFinishedComp)) {
+      return false; // Still loading terrain renderer resource.
+    }
+  }
   for (EcsIterator* itr = ecs_view_itr(ctx->levelRenderableView); ecs_view_walk(itr);) {
     const SceneRenderableComp* renderable = ecs_view_read_t(itr, SceneRenderableComp);
     if (!ecs_world_has_t(ctx->world, renderable->graphic, RendResFinishedComp)) {
-      return false;
+      return false; // Still loading renderer resources.
     }
   }
   return true;
@@ -660,6 +679,7 @@ ecs_system_define(GameUpdateSys) {
       .game                = ecs_view_write_t(globalItr, GameComp),
       .prefs               = ecs_view_write_t(globalItr, GamePrefsComp),
       .levelManager        = ecs_view_write_t(globalItr, SceneLevelManagerComp),
+      .terrain             = ecs_view_read_t(globalItr, SceneTerrainComp),
       .input               = ecs_view_write_t(globalItr, InputManagerComp),
       .soundMixer          = ecs_view_write_t(globalItr, SndMixerComp),
       .time                = ecs_view_read_t(globalItr, SceneTimeComp),
@@ -768,7 +788,7 @@ ecs_system_define(GameUpdateSys) {
         game_transition(&ctx, GameState_MenuMain);
         break;
       }
-      if (scene_level_loaded(ctx.levelManager) && game_level_renderable_loaded(&ctx)) {
+      if (game_level_ready(&ctx)) {
         game_transition(&ctx, GameState_Play);
         break;
       }
