@@ -8,6 +8,7 @@
  * Renderer resource.
  */
 ecs_comp_extern(RendResComp);
+ecs_comp_extern(RendResFinishedComp);
 ecs_comp_extern(RendResGraphicComp);
 ecs_comp_extern(RendResShaderComp);
 ecs_comp_extern(RendResMeshComp);
