@@ -16,6 +16,7 @@
 #include "ecs/world.h"
 #include "gap/window.h"
 #include "geo/query.h"
+#include "input/manager.h"
 #include "rend/settings.h"
 #include "rend/stats.h"
 #include "scene/collision.h"
@@ -667,7 +668,8 @@ static void stats_draw_notifications(UiCanvasComp* c, const DevStatsGlobalComp* 
   }
 }
 
-static void stats_draw_controls(UiCanvasComp* c, DevStatsComp* stats) {
+static void
+stats_draw_controls(UiCanvasComp* c, const InputManagerComp* input, DevStatsComp* stats) {
   ui_layout_push(c);
   ui_layout_resize(c, UiAlign_BottomLeft, ui_vector(25, 25), UiBase_Absolute, Ui_XY);
 
@@ -704,7 +706,8 @@ static void stats_draw_controls(UiCanvasComp* c, DevStatsComp* stats) {
             .label    = ui_shape_scratch(UiShape_Bug),
             .noFrame  = true,
             .fontSize = 18,
-            .tooltip  = debugTooltip)) {
+            .tooltip  = debugTooltip,
+            .activate = input_triggered_lit(input, "Debug"))) {
       stats->debug = stats->debug == DevStatDebug_On ? DevStatDebug_Off : DevStatDebug_On;
     }
     ui_style_pop(c);
@@ -716,6 +719,7 @@ static void stats_draw_controls(UiCanvasComp* c, DevStatsComp* stats) {
 static void dev_stats_draw_interface(
     UiCanvasComp*                  c,
     const GapWindowComp*           window,
+    const InputManagerComp*        input,
     const DevStatsGlobalComp*      statsGlobal,
     DevStatsComp*                  stats,
     RendStatsComp*                 rendStats,
@@ -732,7 +736,7 @@ static void dev_stats_draw_interface(
   ui_layout_resize(c, UiAlign_TopLeft, ui_vector(500, 25), UiBase_Absolute, Ui_XY);
 
   stats_draw_bg(c, DevBgFlags_None);
-  stats_draw_controls(c, stats);
+  stats_draw_controls(c, input, stats);
   stats_draw_label(c, string_lit("Frame time: "), UiAlign_MiddleRight);
   stats_draw_frametime_value(c, stats);
   ui_layout_next(c, Ui_Down, 0);
@@ -926,6 +930,7 @@ dev_stats_global_update(DevStatsGlobalComp* statsGlobal, const EcsRunnerStats* e
 }
 
 ecs_view_define(GlobalView) {
+  ecs_access_read(InputManagerComp);
   ecs_access_read(RendSettingsGlobalComp);
   ecs_access_read(SceneCollisionStatsComp);
   ecs_access_read(SceneNavEnvComp);
@@ -988,6 +993,7 @@ ecs_system_define(DevStatsUpdateSys) {
   const VfxStatsGlobalComp*      vfxStats    = ecs_view_read_t(globalItr, VfxStatsGlobalComp);
   const SceneNavEnvComp*         navEnv      = ecs_view_read_t(globalItr, SceneNavEnvComp);
   const RendSettingsGlobalComp*  rendGlobalSet = ecs_view_read_t(globalItr, RendSettingsGlobalComp);
+  const InputManagerComp*        input         = ecs_view_read_t(globalItr, InputManagerComp);
 
   const AllocStats     allocStats     = alloc_stats_query();
   const EcsWorldStats  ecsWorldStats  = ecs_world_stats_query(world);
@@ -1022,6 +1028,7 @@ ecs_system_define(DevStatsUpdateSys) {
       dev_stats_draw_interface(
           c,
           window,
+          input,
           statsGlobal,
           stats,
           rendStats,
