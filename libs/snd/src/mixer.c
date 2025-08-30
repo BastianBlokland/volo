@@ -52,6 +52,7 @@ typedef enum {
   SndObjectFlags_Stop         = 1 << 0,
   SndObjectFlags_Looping      = 1 << 1,
   SndObjectFlags_RandomCursor = 1 << 2,
+  SndObjectFlags_DelayedSetup = 1 << 3,
 } SndObjectFlags;
 
 typedef enum {
@@ -246,9 +247,13 @@ ecs_system_define(SndMixerUpdateSys) {
       if (LIKELY(m->objectAssets[i] && snd_asset_valid(world, m->objectAssets[i]))) {
         asset_acquire(world, m->objectAssets[i]);
         obj->phase = SndObjectPhase_Acquired;
-      } else {
+      } else if (obj->flags & SndObjectFlags_DelayedSetup) {
         log_e("Invalid sound asset", log_param("entity", ecs_entity_fmt(m->objectAssets[i])));
         obj->phase = SndObjectPhase_Cleanup;
+        continue;
+      } else {
+        // Asset is not valid (yet); delay until next tick (asset can be waiting to be flushed).
+        obj->flags |= SndObjectFlags_DelayedSetup;
         continue;
       }
       /**
