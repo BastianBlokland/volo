@@ -728,12 +728,18 @@ static void hud_actions_draw(UiCanvasComp* c, GameHudComp* hud, const InputManag
           .tooltip = string_static("Pause the game."),
           .hotkey  = string_static("Pause"),
       },
+      {
+          .action  = GameHudAction_CameraReset,
+          .icon    = UiShape_ResetTv,
+          .tooltip = string_static("Reset the camera."),
+          .hotkey  = string_static("CameraReset"),
+      },
   };
 
   ui_layout_push(c);
   ui_layout_set(c, hud->minimapRect, UiBase_Absolute);
   ui_layout_move_to(c, UiBase_Current, UiAlign_BottomRight, Ui_XY);
-  ui_layout_resize(c, UiAlign_TopRight, ui_vector(25, 25), UiBase_Absolute, Ui_XY);
+  ui_layout_resize(c, UiAlign_TopRight, ui_vector(30, 30), UiBase_Absolute, Ui_XY);
   ui_layout_move(c, ui_vector(-5, -7), UiBase_Absolute, Ui_XY);
 
   for (u32 i = 0; i != array_elems(g_actionDefs); ++i) {
@@ -750,7 +756,7 @@ static void hud_actions_draw(UiCanvasComp* c, GameHudComp* hud, const InputManag
             .activate   = hotkeyActivate)) {
       hud->requestedActions = 1 << g_actionDefs[i].action;
     }
-    ui_layout_next(c, Ui_Down, 5);
+    ui_layout_next(c, Ui_Down, 7);
   }
   ui_layout_pop(c);
 }

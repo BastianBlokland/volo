@@ -8,6 +8,7 @@ enum {
 
 typedef enum {
   GameHudAction_Pause,
+  GameHudAction_CameraReset,
 } GameHudAction;
 
 ecs_comp_extern(GameHudComp);

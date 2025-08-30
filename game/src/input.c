@@ -23,6 +23,7 @@
 
 #include "cmd.h"
 #include "game.h"
+#include "hud.h"
 #include "input.h"
 
 static const f32  g_inputInteractMinDist       = 1.0f;
@@ -562,6 +563,7 @@ static void update_camera_hover(
 static void update_camera_interact(
     EcsWorld*                    world,
     GameInputComp*               state,
+    GameHudComp*                 hud,
     GameCmdComp*                 cmd,
     InputManagerComp*            input,
     const SceneLevelManagerComp* levelManager,
@@ -631,7 +633,7 @@ static void update_camera_interact(
     state->flags |= InputFlags_SnapCamera;
     state->lastLevelCounter = newLevelCounter;
   }
-  if (input_triggered_lit(input, "CameraReset")) {
+  if (hud && game_hud_consume_action(hud, GameHudAction_CameraReset)) {
     input_camera_reset(state, levelManager);
   }
 }
@@ -672,6 +674,7 @@ ecs_view_define(GlobalUpdateView) {
 
 ecs_view_define(CameraView) {
   ecs_access_maybe_write(GameInputComp);
+  ecs_access_maybe_write(GameHudComp);
   ecs_access_read(SceneCameraComp);
   ecs_access_write(SceneTransformComp);
 }
@@ -707,6 +710,7 @@ ecs_system_define(GameInputUpdateSys) {
     const SceneCameraComp* cam      = ecs_view_read_t(camItr, SceneCameraComp);
     SceneTransformComp*    camTrans = ecs_view_write_t(camItr, SceneTransformComp);
     GameInputComp*         state    = ecs_view_write_t(camItr, GameInputComp);
+    GameHudComp*           hud      = ecs_view_write_t(camItr, GameHudComp);
     if (!state) {
       input_state_init(world, ecs_view_entity(camItr));
       continue;
@@ -731,6 +735,7 @@ ecs_system_define(GameInputUpdateSys) {
       update_camera_interact(
           world,
           state,
+          hud,
           cmd,
           input,
           levelManager,
