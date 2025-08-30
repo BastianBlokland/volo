@@ -75,7 +75,7 @@ ecs_comp_define(GameHudComp) {
   EcsEntityId  uiCanvas;
   UiRect       minimapRect;
   UiScrollview productionScrollView;
-  bool         requestPause;
+  u32          requestedActions; // (1 << GameHudAction)[].
 
   EcsEntityId rendObjMinimap, rendObjIndicatorRing, rendObjIndicatorBox;
 };
@@ -716,20 +716,41 @@ static void hud_minimap_draw(
 }
 
 static void hud_actions_draw(UiCanvasComp* c, GameHudComp* hud, const InputManagerComp* input) {
+  static const struct {
+    GameHudAction action;
+    Unicode       icon;
+    String        tooltip;
+    String        hotkey;
+  } g_actionDefs[] = {
+      {
+          .action  = GameHudAction_Pause,
+          .icon    = UiShape_Pause,
+          .tooltip = string_static("Pause the game."),
+          .hotkey  = string_static("Pause"),
+      },
+  };
+
   ui_layout_push(c);
   ui_layout_set(c, hud->minimapRect, UiBase_Absolute);
   ui_layout_move_to(c, UiBase_Current, UiAlign_BottomRight, Ui_XY);
   ui_layout_resize(c, UiAlign_TopRight, ui_vector(25, 25), UiBase_Absolute, Ui_XY);
   ui_layout_move(c, ui_vector(-5, -7), UiBase_Absolute, Ui_XY);
 
-  if (ui_button(
-          c,
-          .label      = ui_shape_scratch(UiShape_Pause),
-          .fontSize   = 20,
-          .frameColor = ui_color(32, 32, 32, 192),
-          .tooltip    = fmt_write_scratch("Pause the game."),
-          .activate   = input_triggered_lit(input, "Pause"))) {
-    hud->requestPause = true;
+  for (u32 i = 0; i != array_elems(g_actionDefs); ++i) {
+    bool hotkeyActivate = false;
+    if (!string_is_empty(g_actionDefs[i].hotkey)) {
+      hotkeyActivate = input_triggered_hash(input, string_hash(g_actionDefs[i].hotkey));
+    }
+    if (ui_button(
+            c,
+            .label      = ui_shape_scratch(g_actionDefs[i].icon),
+            .fontSize   = 20,
+            .frameColor = ui_color(32, 32, 32, 192),
+            .tooltip    = g_actionDefs[i].tooltip,
+            .activate   = hotkeyActivate)) {
+      hud->requestedActions = 1 << g_actionDefs[i].action;
+    }
+    ui_layout_next(c, Ui_Down, 5);
   }
   ui_layout_pop(c);
 }
@@ -1162,8 +1183,8 @@ game_hud_init(EcsWorld* world, AssetManagerComp* assets, const EcsEntityId camer
       .rendObjIndicatorBox  = rendObjIndicatorBox);
 }
 
-bool game_hud_consume_pause(GameHudComp* hud) {
-  const bool result = hud->requestPause;
-  hud->requestPause = false;
+bool game_hud_consume_action(GameHudComp* hud, const GameHudAction action) {
+  const bool result = (hud->requestedActions & (1 << action)) != 0;
+  hud->requestedActions &= ~(1 << action);
   return result;
 }

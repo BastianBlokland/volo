@@ -814,7 +814,7 @@ ecs_system_define(GameUpdateSys) {
       }
       break;
     case GameState_Play:
-      if (game_hud_consume_pause(ctx.winHud)) {
+      if (game_hud_consume_action(ctx.winHud, GameHudAction_Pause)) {
         game_transition_delayed(ctx.game, GameState_Pause);
       }
       break;
