@@ -13,6 +13,8 @@ typedef enum {
   GameState_Play,
   GameState_Edit,
   GameState_Pause,
+
+  GameState_Count,
 } GameState;
 
 ecs_comp_extern(GameComp);

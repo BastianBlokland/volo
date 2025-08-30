@@ -118,7 +118,7 @@ static const struct {
             {
                 {
                     .name         = string_static("Jump"),
-                    .blockerBits  = 0b11,
+                    .blockerBits  = 0b110,
                     .bindings     = {{.type = AssetInputType_Pressed, .key = 15}},
                     .bindingCount = 1,
                 },

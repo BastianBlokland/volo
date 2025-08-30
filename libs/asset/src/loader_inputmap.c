@@ -201,14 +201,15 @@ void asset_data_init_inputmap(void) {
     * NOTE: This is a virtual data type, meaning there is no matching AssetInputBlocker C type.
     */
   data_reg_enum_multi_t(g_dataReg, AssetInputBlocker);
-  data_reg_const_custom(g_dataReg, AssetInputBlocker, TextInput, 1 << 0);
-  data_reg_const_custom(g_dataReg, AssetInputBlocker, HoveringUi, 1 << 1);
-  data_reg_const_custom(g_dataReg, AssetInputBlocker, HoveringGizmo, 1 << 2);
-  data_reg_const_custom(g_dataReg, AssetInputBlocker, PrefabCreate, 1 << 3);
-  data_reg_const_custom(g_dataReg, AssetInputBlocker, EntityPicker, 1 << 4);
-  data_reg_const_custom(g_dataReg, AssetInputBlocker, CursorLocked, 1 << 5);
-  data_reg_const_custom(g_dataReg, AssetInputBlocker, CursorConfined, 1 << 6);
-  data_reg_const_custom(g_dataReg, AssetInputBlocker, WindowFullscreen, 1 << 7);
+  data_reg_const_custom(g_dataReg, AssetInputBlocker, Debug, 1 << 0);
+  data_reg_const_custom(g_dataReg, AssetInputBlocker, TextInput, 1 << 1);
+  data_reg_const_custom(g_dataReg, AssetInputBlocker, HoveringUi, 1 << 2);
+  data_reg_const_custom(g_dataReg, AssetInputBlocker, HoveringGizmo, 1 << 3);
+  data_reg_const_custom(g_dataReg, AssetInputBlocker, PrefabCreate, 1 << 4);
+  data_reg_const_custom(g_dataReg, AssetInputBlocker, EntityPicker, 1 << 5);
+  data_reg_const_custom(g_dataReg, AssetInputBlocker, CursorLocked, 1 << 6);
+  data_reg_const_custom(g_dataReg, AssetInputBlocker, CursorConfined, 1 << 7);
+  data_reg_const_custom(g_dataReg, AssetInputBlocker, WindowFullscreen, 1 << 8);
 
   /**
     * Modifiers correspond to the 'InputModifier' values as defined in 'input_manager.h'.

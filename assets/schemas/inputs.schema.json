@@ -39,6 +39,7 @@
       "uniqueItems": true,
       "items": {
         "enum": [
+          "Debug",
           "TextInput",
           "HoveringUi",
           "HoveringGizmo",

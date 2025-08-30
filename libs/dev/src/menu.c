@@ -117,19 +117,21 @@ static const struct {
         .hotkeyName   = string_static("DevPanelEcs"),
     },
     {
-        .name         = string_static("Trace"),
-        .iconShape    = UiShape_QueryStats,
-        .detachedSize = {.x = 800, .y = 500},
-        .openFunc     = dev_trace_panel_open,
-        .hotkeyName   = string_static("DevPanelTrace"),
-    },
-    {
         .name         = string_static("Renderer"),
         .iconShape    = UiShape_Brush,
         .detachedSize = {.x = 800, .y = 520},
         .openFunc     = dev_rend_panel_open,
         .hotkeyName   = string_static("DevPanelRenderer"),
     },
+#ifdef VOLO_TRACE
+    {
+        .name         = string_static("Trace"),
+        .iconShape    = UiShape_QueryStats,
+        .detachedSize = {.x = 800, .y = 500},
+        .openFunc     = dev_trace_panel_open,
+        .hotkeyName   = string_static("DevPanelTrace"),
+    },
+#endif
     {
         .name         = string_static("Asset"),
         .iconShape    = UiShape_Storage,
