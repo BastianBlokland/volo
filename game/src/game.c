@@ -66,7 +66,6 @@ ecs_comp_define(GameComp) {
   GameState statePrev : 8;
   GameState stateNext : 8;
   bool      devSupport;
-  bool      cliLevelLoad;
 
   EcsEntityId mainWindow;
   SndObjectId musicHandle;
@@ -412,7 +411,7 @@ static void menu_entry_resume(const GameUpdateContext* ctx, MAYBE_UNUSED const u
           .fontSize = 25,
           .tooltip  = string_lit("Resume playing."),
           .activate = input_triggered_lit(ctx->input, "Pause"), )) {
-    game_transition(ctx, GameState_Play);
+    game_transition_delayed(ctx->game, GameState_Play);
   }
 }
 
@@ -718,11 +717,6 @@ ecs_system_define(GameUpdateSys) {
     asset_loading_budget_set(ctx.assets, 0); // Infinite while not in gameplay.
   }
 
-  if (ctx.game->cliLevelLoad) {
-    game_transition(&ctx, GameState_Loading);
-    ctx.game->cliLevelLoad = false;
-  }
-
   EcsIterator* canvasItr   = ecs_view_itr(ecs_world_view_t(world, UiCanvasView));
   EcsView*     mainWinView = ecs_world_view_t(world, MainWindowView);
   EcsIterator* mainWinItr  = ecs_view_maybe_at(mainWinView, ctx.game->mainWindow);
@@ -811,17 +805,17 @@ ecs_system_define(GameUpdateSys) {
       menu_draw_spinner(&ctx);
       if (scene_level_error(ctx.levelManager)) {
         scene_level_error_clear(ctx.levelManager);
-        game_transition(&ctx, GameState_MenuMain);
+        game_transition_delayed(ctx.game, GameState_MenuMain);
         break;
       }
       if (game_level_ready(&ctx)) {
-        game_transition(&ctx, GameState_Play);
+        game_transition_delayed(ctx.game, GameState_Play);
         break;
       }
       break;
     case GameState_Play:
       if (game_hud_consume_pause(ctx.winHud)) {
-        game_transition(&ctx, GameState_Pause);
+        game_transition_delayed(ctx.game, GameState_Pause);
       }
       break;
     case GameState_Debug:
