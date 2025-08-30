@@ -209,6 +209,7 @@ typedef struct {
   SceneLevelManagerComp*  levelManager;
   InputManagerComp*       input;
   SndMixerComp*           soundMixer;
+  const SceneTimeComp*    time;
   SceneTimeSettingsComp*  timeSet;
   GameCmdComp*            cmd;
   AssetManagerComp*       assets;
@@ -311,6 +312,29 @@ static void menu_draw_version(const GameUpdateContext* ctx) {
       .align    = UiAlign_BottomLeft,
       .fontSize = 12);
   ui_style_pop(ctx->winCanvas);
+  ui_layout_pop(ctx->winCanvas);
+}
+
+static void menu_draw_spinner(const GameUpdateContext* ctx) {
+  const u32 segments  = 8;
+  const f32 radius    = 25.0f;
+  const f32 rotSpeed  = -3.5f;
+  const f32 seconds   = scene_real_time_seconds(ctx->time);
+  const f32 baseAngle = math_mod_f32(seconds * rotSpeed, math_pi_f32 * 2.0f);
+  const f32 angleStep = math_pi_f32 * 2.0f / segments;
+
+  ui_layout_push(ctx->winCanvas);
+  ui_layout_move_to(ctx->winCanvas, UiBase_Canvas, UiAlign_MiddleCenter, Ui_XY);
+  ui_layout_resize(ctx->winCanvas, UiAlign_MiddleCenter, ui_vector(10, 10), UiBase_Absolute, Ui_XY);
+  for (u32 i = 0; i != segments; ++i) {
+    const f32      angle = baseAngle + i * angleStep;
+    const UiVector pos   = ui_vector(radius * math_cos_f32(angle), radius * math_sin_f32(angle));
+
+    ui_layout_push(ctx->winCanvas);
+    ui_layout_move(ctx->winCanvas, pos, UiBase_Absolute, Ui_XY);
+    ui_canvas_draw_glyph(ctx->winCanvas, UiShape_Circle, 0, UiFlags_None);
+    ui_layout_pop(ctx->winCanvas);
+  }
   ui_layout_pop(ctx->winCanvas);
 }
 
@@ -525,6 +549,7 @@ ecs_view_define(ErrorView) {
 ecs_view_define(TimeView) { ecs_access_write(SceneTimeComp); }
 
 ecs_view_define(UpdateGlobalView) {
+  ecs_access_read(SceneTimeComp);
   ecs_access_write(AssetManagerComp);
   ecs_access_write(GameCmdComp);
   ecs_access_write(GameComp);
@@ -637,6 +662,7 @@ ecs_system_define(GameUpdateSys) {
       .levelManager        = ecs_view_write_t(globalItr, SceneLevelManagerComp),
       .input               = ecs_view_write_t(globalItr, InputManagerComp),
       .soundMixer          = ecs_view_write_t(globalItr, SndMixerComp),
+      .time                = ecs_view_read_t(globalItr, SceneTimeComp),
       .timeSet             = ecs_view_write_t(globalItr, SceneTimeSettingsComp),
       .cmd                 = ecs_view_write_t(globalItr, GameCmdComp),
       .assets              = ecs_view_write_t(globalItr, AssetManagerComp),
@@ -736,6 +762,7 @@ ecs_system_define(GameUpdateSys) {
       menu_draw_version(&ctx);
     } break;
     case GameState_Loading:
+      menu_draw_spinner(&ctx);
       if (scene_level_error(ctx.levelManager)) {
         scene_level_error_clear(ctx.levelManager);
         game_transition(&ctx, GameState_MenuMain);
