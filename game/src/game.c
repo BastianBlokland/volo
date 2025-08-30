@@ -762,7 +762,6 @@ ecs_system_define(GameUpdateSys) {
       scene_visibility_flags_clear(ctx.visibilityEnv, SceneVisibilityFlags_ForceRender);
       break;
     case GameState_Edit:
-    case GameState_Debug:
       if (!ctx.winGame->devMenu) {
         ctx.winGame->devMenu = dev_menu_create(world, ctx.winEntity);
       }
@@ -814,13 +813,10 @@ ecs_system_define(GameUpdateSys) {
       }
       break;
     case GameState_Play:
+    case GameState_Edit:
       if (game_hud_consume_action(ctx.winHud, GameHudAction_Pause)) {
         game_transition_delayed(ctx.game, GameState_Pause);
       }
-      break;
-    case GameState_Debug:
-      break;
-    case GameState_Edit:
       break;
     case GameState_Pause:
       menuEntries[menuEntriesCount++] = &menu_entry_resume;

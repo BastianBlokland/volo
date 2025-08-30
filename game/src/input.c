@@ -722,7 +722,6 @@ ecs_system_define(GameInputUpdateSys) {
     case GameState_Play:
       update_camera_movement(state, input, time, terrain, camTrans, windowActive);
       break;
-    case GameState_Debug:
     case GameState_Edit:
       update_camera_movement_dev(input, time, cam, camTrans);
     default:
