@@ -37,6 +37,7 @@
   X(0xE5D6, UnfoldLess)                                                                            \
   X(0xE5D7, UnfoldMore)                                                                            \
   X(0xE645, Error)                                                                                 \
+  X(0xE769, Halt)                                                                                  \
   X(0xE798, Droplet)                                                                               \
   X(0xE7EF, Group)                                                                                 \
   X(0xE80B, Globe)                                                                                 \
