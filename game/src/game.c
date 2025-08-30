@@ -897,7 +897,7 @@ ecs_system_define(GameUpdateSys) {
         break;
       }
       if (game_level_ready(&ctx) && ctx.game->stateTicks >= GameLoadingMinTicks) {
-        game_transition_delayed(ctx.game, GameState_Play);
+        game_transition_delayed(ctx.game, ctx.game->editMode ? GameState_Edit : GameState_Play);
         break;
       }
       break;
