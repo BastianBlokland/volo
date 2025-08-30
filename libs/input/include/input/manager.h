@@ -24,14 +24,15 @@ ecs_comp_extern(InputManagerComp);
 EcsEntityId input_active_window(const InputManagerComp*);
 
 typedef enum eInputBlocker {
-  InputBlocker_TextInput        = 1 << 0,
-  InputBlocker_HoveringUi       = 1 << 1,
-  InputBlocker_HoveringGizmo    = 1 << 2,
-  InputBlocker_PrefabCreate     = 1 << 3,
-  InputBlocker_EntityPicker     = 1 << 4,
-  InputBlocker_CursorLocked     = 1 << 5, // Managed by the input library.
-  InputBlocker_CursorConfined   = 1 << 6, // Managed by the input library.
-  InputBlocker_WindowFullscreen = 1 << 7, // Managed by the input library.
+  InputBlocker_Debug            = 1 << 0,
+  InputBlocker_TextInput        = 1 << 1,
+  InputBlocker_HoveringUi       = 1 << 2,
+  InputBlocker_HoveringGizmo    = 1 << 3,
+  InputBlocker_PrefabCreate     = 1 << 4,
+  InputBlocker_EntityPicker     = 1 << 5,
+  InputBlocker_CursorLocked     = 1 << 6, // Managed by the input library.
+  InputBlocker_CursorConfined   = 1 << 7, // Managed by the input library.
+  InputBlocker_WindowFullscreen = 1 << 8, // Managed by the input library.
 } InputBlocker;
 
 InputBlocker input_blockers(const InputManagerComp*);
