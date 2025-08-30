@@ -53,21 +53,21 @@
       "name": "DevGridShow",
       "blockers": [ "TextInput" ],
       "bindings": [
-        { "type": "Pressed", "key": "G" }
+        { "type": "Pressed", "key": "G", "requiredModifiers": [ "Alt" ] }
       ]
     },
     {
       "name": "DevGridScaleUp",
       "blockers": [ "TextInput" ],
       "bindings": [
-        { "type": "Pressed", "key": "BracketRight" }
+        { "type": "Pressed", "key": "BracketRight", "requiredModifiers": [ "Alt" ] }
       ]
     },
     {
       "name": "DevGridScaleDown",
       "blockers": [ "TextInput" ],
       "bindings": [
-        { "type": "Pressed", "key": "BracketLeft" }
+        { "type": "Pressed", "key": "BracketLeft", "requiredModifiers": [ "Alt" ] }
       ]
     },
     {
