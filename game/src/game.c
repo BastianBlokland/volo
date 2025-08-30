@@ -72,6 +72,7 @@ ecs_comp_define(GameComp) {
   GameState stateNext : 8;
   u32       stateTicks;
   bool      devSupport;
+  bool      debugActive;
 
   EcsEntityId mainWindow;
   SndObjectId musicHandle;
@@ -96,6 +97,20 @@ static void ecs_destruct_game_comp(void* data) {
   for (u32 i = 0; i != GameLevelsMax; ++i) {
     string_maybe_free(g_allocHeap, comp->levelNames[i]);
   }
+}
+
+static String game_state_name(const GameState state) {
+  static const String g_names[] = {
+      [GameState_None]       = string_static("None"),
+      [GameState_MenuMain]   = string_static("MenuMain"),
+      [GameState_MenuSelect] = string_static("MenuSelect"),
+      [GameState_Loading]    = string_static("Loading"),
+      [GameState_Play]       = string_static("Play"),
+      [GameState_Edit]       = string_static("Edit"),
+      [GameState_Pause]      = string_static("Pause"),
+  };
+  ASSERT(array_elems(g_names) == GameState_Count, "Incorrect number of names");
+  return g_names[state];
 }
 
 static EcsEntityId game_window_create(
@@ -223,6 +238,7 @@ typedef struct {
   AssetManagerComp*       assets;
   SceneVisibilityEnvComp* visibilityEnv;
   RendSettingsGlobalComp* rendSetGlobal;
+  DevStatsGlobalComp*     devStatsGlobal;
 
   EcsEntityId         winEntity;
   GameMainWindowComp* winGame;
@@ -266,6 +282,10 @@ static void game_transition(const GameUpdateContext* ctx, const GameState state)
   ctx->game->statePrev  = ctx->game->state;
   ctx->game->state      = state;
   ctx->game->stateTicks = 0;
+
+  if (ctx->devStatsGlobal) {
+    dev_stats_notify(ctx->devStatsGlobal, string_lit("GameState"), game_state_name(state));
+  }
 
   // Apply leave transitions.
   switch (ctx->game->statePrev) {
@@ -598,6 +618,7 @@ ecs_view_define(UpdateGlobalView) {
   ecs_access_write(SceneTimeSettingsComp);
   ecs_access_write(SceneVisibilityEnvComp);
   ecs_access_write(SndMixerComp);
+  ecs_access_maybe_write(DevStatsGlobalComp);
 }
 
 ecs_view_define(MainWindowView) {
@@ -726,6 +747,7 @@ ecs_system_define(GameUpdateSys) {
       .assets              = ecs_view_write_t(globalItr, AssetManagerComp),
       .visibilityEnv       = ecs_view_write_t(globalItr, SceneVisibilityEnvComp),
       .rendSetGlobal       = ecs_view_write_t(globalItr, RendSettingsGlobalComp),
+      .devStatsGlobal      = ecs_view_write_t(globalItr, DevStatsGlobalComp),
       .levelRenderableView = ecs_world_view_t(world, LevelRenderableView),
       .devPanelView        = ecs_world_view_t(world, DevPanelView),
   };
@@ -758,6 +780,13 @@ ecs_system_define(GameUpdateSys) {
         ctx.prefs->windowHeight = gap_window_param(ctx.winComp, GapParam_WindowSize).height;
       }
       ctx.prefs->dirty = true;
+      if (ctx.devStatsGlobal) {
+        dev_stats_notify(
+            ctx.devStatsGlobal,
+            string_lit("WindowSize"),
+            fmt_write_scratch(
+                "{}x{}", fmt_int(ctx.prefs->windowWidth), fmt_int(ctx.prefs->windowHeight)));
+      }
     }
 
     if (input_triggered_lit(ctx.input, "Quit")) {
@@ -779,7 +808,8 @@ ecs_system_define(GameUpdateSys) {
       ++ctx.game->stateTicks;
     }
 
-    if (ctx.winDevStats && dev_stats_debug(ctx.winDevStats) == DevStatDebug_On) {
+    const bool debugReq = ctx.winDevStats && dev_stats_debug(ctx.winDevStats) == DevStatDebug_On;
+    if (debugReq && !ctx.game->debugActive) {
       if (!ctx.winGame->devMenu) {
         ctx.winGame->devMenu = dev_menu_create(world, ctx.winEntity);
       }
@@ -789,16 +819,21 @@ ecs_system_define(GameUpdateSys) {
       if (ctx.winGameInput && input_triggered_lit(ctx.input, "DevFreeCamera")) {
         game_input_toggle_free_camera(ctx.winGameInput);
       }
-    } else {
+      dev_stats_notify(ctx.devStatsGlobal, string_lit("Debug"), string_lit("On"));
+      ctx.game->debugActive = true;
+    } else if (!debugReq && ctx.game->debugActive) {
       game_dev_panels_hide(&ctx, true);
       scene_visibility_flags_clear(ctx.visibilityEnv, SceneVisibilityFlags_ForceRender);
       input_layer_disable(ctx.input, string_hash_lit("Dev"));
+      dev_stats_notify(ctx.devStatsGlobal, string_lit("Debug"), string_lit("Off"));
+      ctx.game->debugActive = false;
     }
 
     MenuEntry menuEntries[32];
     u32       menuEntriesCount = 0;
     switch (ctx.game->state) {
     case GameState_None:
+    case GameState_Count:
       break;
     case GameState_MenuMain: {
       menuEntries[menuEntriesCount++] = &menu_entry_play;
