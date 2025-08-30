@@ -298,6 +298,11 @@ static void game_transition(const GameUpdateContext* ctx, const GameState state)
     game_input_type_set(ctx->winGameInput, GameInputType_None);
     asset_loading_budget_set(ctx->assets, 0); // Infinite budget while not in gameplay.
     break;
+  case GameState_Edit:
+    input_layer_disable(ctx->input, string_hash_lit("Edit"));
+    input_layer_disable(ctx->input, string_hash_lit("Dev"));
+    game_input_type_set(ctx->winGameInput, GameInputType_None);
+    break;
   case GameState_Pause:
     ctx->timeSet->flags &= ~SceneTimeFlags_Paused;
 
@@ -328,6 +333,12 @@ static void game_transition(const GameUpdateContext* ctx, const GameState state)
     game_input_type_set(ctx->winGameInput, GameInputType_Normal);
     input_layer_enable(ctx->input, string_hash_lit("Game"));
     asset_loading_budget_set(ctx->assets, time_milliseconds(2)); // Limit loading during gameplay.
+    break;
+  case GameState_Edit:
+    ctx->winRendSet->flags &= ~RendFlags_2D;
+    game_input_type_set(ctx->winGameInput, GameInputType_Normal);
+    input_layer_enable(ctx->input, string_hash_lit("Edit"));
+    input_layer_enable(ctx->input, string_hash_lit("Dev"));
     break;
   case GameState_Pause:
     ctx->timeSet->flags |= SceneTimeFlags_Paused;
@@ -440,7 +451,18 @@ static void menu_entry_play(const GameUpdateContext* ctx, MAYBE_UNUSED const u32
           ctx->winCanvas,
           .label    = string_lit("Play"),
           .fontSize = 25,
-          .tooltip  = string_lit("Go to level-select menu."))) {
+          .tooltip  = string_lit("Select a level to play."))) {
+    game_transition(ctx, GameState_MenuSelect);
+  }
+}
+
+static void menu_entry_edit(const GameUpdateContext* ctx, MAYBE_UNUSED const u32 index) {
+  if (ui_button(
+          ctx->winCanvas,
+          .label      = string_lit("Edit"),
+          .frameColor = ui_color(255, 16, 16, 192),
+          .fontSize   = 25,
+          .tooltip    = string_lit("Select a level to edit."))) {
     game_transition(ctx, GameState_MenuSelect);
   }
 }
@@ -835,6 +857,9 @@ ecs_system_define(GameUpdateSys) {
       break;
     case GameState_MenuMain: {
       menuEntries[menuEntriesCount++] = &menu_entry_play;
+      if (ctx.devPanelView && asset_save_supported(ctx.assets)) {
+        menuEntries[menuEntriesCount++] = &menu_entry_edit;
+      }
       menuEntries[menuEntriesCount++] = &menu_entry_volume;
       menuEntries[menuEntriesCount++] = &menu_entry_powersaving;
       menuEntries[menuEntriesCount++] = &menu_entry_quality;
@@ -1056,6 +1081,7 @@ bool app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
   input_resource_load_map(inputResource, string_lit("global/game.inputs"));
   if (devSupport) {
     input_resource_load_map(inputResource, string_lit("global/dev.inputs"));
+    input_resource_load_map(inputResource, string_lit("global/edit.inputs"));
   }
 
   scene_prefab_init(world, string_lit("global/game.prefabs"));
