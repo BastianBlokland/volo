@@ -100,9 +100,10 @@ void ui_label_entity(UiCanvasComp* canvas, const EcsEntityId entity) {
 }
 
 bool ui_button_with_opts(UiCanvasComp* canvas, const UiButtonOpts* opts) {
-  const UiId     id       = ui_canvas_id_peek(canvas);
-  const bool     disabled = (opts->flags & UiWidget_Disabled) != 0;
-  const UiStatus status   = disabled ? UiStatus_Idle : ui_canvas_elem_status(canvas, id);
+  const UiId     id           = ui_canvas_id_peek(canvas);
+  const bool     disabled     = (opts->flags & UiWidget_Disabled) != 0;
+  const UiStatus status       = disabled ? UiStatus_Idle : ui_canvas_elem_status(canvas, id);
+  const UiStatus visualStatus = opts->activate ? UiStatus_Activated : status;
 
   UiFlags interactFlags = UiFlags_Interactable;
   if (opts->flags & UiWidget_InteractAllowSwitch) {
@@ -112,7 +113,7 @@ bool ui_button_with_opts(UiCanvasComp* canvas, const UiButtonOpts* opts) {
     ui_canvas_draw_glyph(canvas, UiShape_Empty, 0, interactFlags);
   } else {
     ui_style_push(canvas);
-    ui_interactable_frame_style(canvas, opts->frameColor, status);
+    ui_interactable_frame_style(canvas, opts->frameColor, visualStatus);
     ui_canvas_draw_glyph(canvas, UiShape_Circle, 10, interactFlags);
     ui_style_pop(canvas);
   }
@@ -121,7 +122,7 @@ bool ui_button_with_opts(UiCanvasComp* canvas, const UiButtonOpts* opts) {
   if (disabled) {
     ui_style_color_mult(canvas, g_uiDisabledMult);
   }
-  ui_interactable_text_style(canvas, status);
+  ui_interactable_text_style(canvas, visualStatus);
   ui_canvas_draw_text(canvas, opts->label, opts->fontSize, UiAlign_MiddleCenter, UiFlags_None);
   ui_style_pop(canvas);
 
