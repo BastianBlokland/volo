@@ -862,7 +862,13 @@ ecs_system_define(GameUpdateSys) {
       ctx.game->debugActive = false;
     }
     if (debugReq && ctx.winGameInput && input_triggered_lit(ctx.input, "DevFreeCamera")) {
-      game_input_toggle_free_camera(ctx.winGameInput);
+      if (game_input_type(ctx.winGameInput) == GameInputType_Normal) {
+        game_input_type_set(ctx.winGameInput, GameInputType_FreeCamera);
+        dev_stats_notify(ctx.devStatsGlobal, string_lit("Camera"), string_lit("Free"));
+      } else {
+        game_input_type_set(ctx.winGameInput, GameInputType_Normal);
+        dev_stats_notify(ctx.devStatsGlobal, string_lit("Camera"), string_lit("Normal"));
+      }
     }
 
     MenuEntry menuEntries[32];

@@ -18,7 +18,6 @@ ecs_comp_extern(GameInputComp);
 
 GameInputType game_input_type(const GameInputComp*);
 void          game_input_type_set(GameInputComp*, GameInputType);
-void          game_input_toggle_free_camera(GameInputComp*);
 
 void game_input_camera_reset(GameInputComp*);
 void game_input_camera_center(GameInputComp*, GeoVector worldPos);
