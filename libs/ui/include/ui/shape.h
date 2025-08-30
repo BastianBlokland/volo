@@ -55,6 +55,7 @@
   X(0xE92C, Body)                                                                                  \
   X(0xE97A, Tree)                                                                                  \
   X(0xE9BA, Logout)                                                                                \
+  X(0xE9D9, ResetTv)                                                                               \
   X(0xE9FE, ViewInAr)                                                                              \
   X(0xEA3C, Construction)                                                                          \
   X(0xEAD5, Diamond)                                                                               \
