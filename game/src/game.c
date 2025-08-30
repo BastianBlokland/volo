@@ -341,6 +341,9 @@ static void game_transition(const GameUpdateContext* ctx, const GameState state)
     game_input_type_set(ctx->winGameInput, GameInputType_Normal);
     input_layer_enable(ctx->input, string_hash_lit("Edit"));
     input_layer_enable(ctx->input, string_hash_lit("Dev"));
+    if (ctx->winDevStats) {
+      dev_stats_debug_set(ctx->winDevStats, DevStatDebug_Unavailable);
+    }
     break;
   case GameState_Pause:
     ctx->timeSet->flags |= SceneTimeFlags_Paused;
@@ -902,10 +905,11 @@ ecs_system_define(GameUpdateSys) {
       }
       break;
     case GameState_Play:
-    case GameState_Edit:
       if (ctx.winHud && game_hud_consume_action(ctx.winHud, GameHudAction_Pause)) {
         game_transition_delayed(ctx.game, GameState_Pause);
       }
+      break;
+    case GameState_Edit:
       break;
     case GameState_Pause:
       menuEntries[menuEntriesCount++] = &menu_entry_resume;
