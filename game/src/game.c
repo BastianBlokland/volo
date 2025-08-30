@@ -17,6 +17,7 @@
 #include "dev/menu.h"
 #include "dev/panel.h"
 #include "dev/register.h"
+#include "dev/stats.h"
 #include "ecs/entity.h"
 #include "ecs/utils.h"
 #include "ecs/view.h"
@@ -282,6 +283,9 @@ static void game_transition(const GameUpdateContext* ctx, const GameState state)
     game_music_play(ctx->world, ctx->game, ctx->soundMixer, ctx->assets);
     scene_level_unload(ctx->world);
     ctx->winRendSet->flags |= RendFlags_2D;
+    if (ctx->winDevStats) {
+      dev_stats_debug_set_available(ctx->winDevStats);
+    }
     break;
   case GameState_Loading:
     ctx->timeSet->flags |= SceneTimeFlags_Paused;
