@@ -786,7 +786,7 @@ ecs_system_define(GameUpdateSys) {
       game_dev_panels_hide(&ctx, false);
       scene_visibility_flags_set(ctx.visibilityEnv, SceneVisibilityFlags_ForceRender);
       input_layer_enable(ctx.input, string_hash_lit("Dev"));
-      if (ctx.winGameInput && input_triggered_lit(ctx.input, "FreeCamera")) {
+      if (ctx.winGameInput && input_triggered_lit(ctx.input, "DevFreeCamera")) {
         game_input_toggle_free_camera(ctx.winGameInput);
       }
     } else {

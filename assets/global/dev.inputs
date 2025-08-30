@@ -9,7 +9,7 @@
       ]
     },
     {
-      "name": "FreeCamera",
+      "name": "DevFreeCamera",
       "blockers": [ "TextInput" ],
       "bindings": [
         { "type": "Pressed", "key": "F1" }
