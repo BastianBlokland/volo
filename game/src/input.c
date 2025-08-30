@@ -46,6 +46,7 @@ static StringHash g_inputGroupActions[game_cmd_group_count];
 typedef enum {
   InputFlags_AllowZoomOverUi = 1 << 0,
   InputFlags_SnapCamera      = 1 << 1,
+  InputFlags_ResetCamera     = 1 << 2,
 } InputFlags;
 
 typedef enum {
@@ -636,6 +637,10 @@ static void update_camera_interact(
   if (hud && game_hud_consume_action(hud, GameHudAction_CameraReset)) {
     input_camera_reset(state, levelManager);
   }
+  if (state->flags & InputFlags_ResetCamera) {
+    input_camera_reset(state, levelManager);
+    state->flags &= ~InputFlags_ResetCamera;
+  }
 }
 
 /**
@@ -846,6 +851,8 @@ void game_input_toggle_free_camera(GameInputComp* comp) {
     comp->type = GameInputType_FreeCamera;
   }
 }
+
+void game_input_camera_reset(GameInputComp* state) { state->flags |= InputFlags_ResetCamera; }
 
 void game_input_camera_center(GameInputComp* state, const GeoVector worldPos) {
   state->camPosTgt = worldPos;

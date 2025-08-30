@@ -20,6 +20,7 @@ GameInputType game_input_type(const GameInputComp*);
 void          game_input_type_set(GameInputComp*, GameInputType);
 void          game_input_toggle_free_camera(GameInputComp*);
 
+void game_input_camera_reset(GameInputComp*);
 void game_input_camera_center(GameInputComp*, GeoVector worldPos);
 void game_input_set_allow_zoom_over_ui(GameInputComp*, bool allowZoomOverUI);
 bool game_input_hovered_entity(const GameInputComp*, EcsEntityId* outEntity, TimeDuration* outTime);
