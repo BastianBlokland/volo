@@ -76,8 +76,9 @@ typedef struct {
 } DevStatsNotification;
 
 ecs_comp_define(DevStatsComp) {
-  DevStatShow show;
-  EcsEntityId canvas;
+  DevStatShow  show;
+  DevStatDebug debug;
+  EcsEntityId  canvas;
 
   DevStatPlot* frameDurPlot; // In microseconds.
   TimeDuration frameDurDesired;
@@ -671,23 +672,42 @@ static void stats_draw_controls(UiCanvasComp* c, DevStatsComp* stats) {
   ui_layout_resize(c, UiAlign_BottomLeft, ui_vector(25, 25), UiBase_Absolute, Ui_XY);
 
   ui_style_push(c);
-  String tooltip;
+  String showTooltip;
   if (stats->show == DevStatShow_Full) {
     ui_style_color(c, ui_color_lime);
-    tooltip = string_lit("Hide full stats.");
+    showTooltip = string_lit("Hide full stats.");
   } else {
-    tooltip = string_lit("Show full stats.");
+    showTooltip = string_lit("Show full stats.");
   }
   if (ui_button(
           c,
           .label    = ui_shape_scratch(UiShape_Layers),
           .noFrame  = true,
           .fontSize = 18,
-          .tooltip  = tooltip)) {
+          .tooltip  = showTooltip)) {
     stats->show = stats->show == DevStatShow_Full ? DevStatShow_Minimal : DevStatShow_Full;
   }
-
   ui_style_pop(c);
+
+  ui_layout_next(c, Ui_Right, 0);
+  ui_style_push(c);
+  String debugTooltip;
+  if (stats->debug == DevStatDebug_On) {
+    ui_style_color(c, ui_color(255, 16, 16, 255));
+    debugTooltip = string_lit("Disable debug mode.");
+  } else {
+    debugTooltip = string_lit("Enable debug mode.");
+  }
+  if (ui_button(
+          c,
+          .label    = ui_shape_scratch(UiShape_Bug),
+          .noFrame  = true,
+          .fontSize = 18,
+          .tooltip  = debugTooltip)) {
+    stats->debug ^= DevStatDebug_On;
+  }
+  ui_style_pop(c);
+
   ui_layout_pop(c);
 }
 
@@ -1045,3 +1065,6 @@ void dev_stats_notify(DevStatsGlobalComp* comp, const String key, const String v
 
 DevStatShow dev_stats_show(const DevStatsComp* comp) { return comp->show; }
 void        dev_stats_show_set(DevStatsComp* comp, const DevStatShow show) { comp->show = show; }
+
+DevStatDebug dev_stats_debug(const DevStatsComp* comp) { return comp->debug; }
+void dev_stats_debug_set(DevStatsComp* comp, const DevStatDebug debug) { comp->debug = debug; }
