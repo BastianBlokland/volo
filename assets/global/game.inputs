@@ -19,14 +19,14 @@
       "name": "OrderStop",
       "blockers": [ "TextInput" ],
       "bindings": [
-        { "type": "Pressed", "key": "S" }
+        { "type": "Pressed", "key": "S", "illegalModifiers": [ "Alt" ] }
       ]
     },
     {
       "name": "CameraReset",
       "blockers": [ "TextInput" ],
       "bindings": [
-        { "type": "Pressed", "key": "Backspace" }
+        { "type": "Pressed", "key": "Backspace", "illegalModifiers": [ "Alt" ] }
       ]
     },
     {
@@ -93,29 +93,29 @@
       "name": "PlacementRotateLeft",
       "blockers": [ "TextInput" ],
       "bindings": [
-        { "type": "Pressed", "key": "BracketLeft" }
+        { "type": "Pressed", "key": "BracketLeft", "illegalModifiers": [ "Alt" ] }
       ]
     },
     {
       "name": "PlacementRotateRight",
       "blockers": [ "TextInput" ],
       "bindings": [
-        { "type": "Pressed", "key": "BracketRight" }
+        { "type": "Pressed", "key": "BracketRight", "illegalModifiers": [ "Alt" ] }
       ]
     },
 
-    { "name": "ProductQueue1", "blockers": [ "TextInput" ], "bindings": [ { "type": "Pressed", "key": "Q" } ] },
-    { "name": "ProductQueue2", "blockers": [ "TextInput" ], "bindings": [ { "type": "Pressed", "key": "W" } ] },
-    { "name": "ProductQueue3", "blockers": [ "TextInput" ], "bindings": [ { "type": "Pressed", "key": "E" } ] },
+    { "name": "ProductQueue1", "blockers": [ "TextInput" ], "bindings": [ { "type": "Pressed", "key": "Q", "illegalModifiers": [ "Alt" ] } ] },
+    { "name": "ProductQueue2", "blockers": [ "TextInput" ], "bindings": [ { "type": "Pressed", "key": "W", "illegalModifiers": [ "Alt" ] } ] },
+    { "name": "ProductQueue3", "blockers": [ "TextInput" ], "bindings": [ { "type": "Pressed", "key": "E", "illegalModifiers": [ "Alt" ] } ] },
 
-    { "name": "CommandGroup1", "blockers": [ "TextInput" ], "bindings": [ { "type": "Pressed", "key": "Alpha1" } ] },
-    { "name": "CommandGroup2", "blockers": [ "TextInput" ], "bindings": [ { "type": "Pressed", "key": "Alpha2" } ] },
-    { "name": "CommandGroup3", "blockers": [ "TextInput" ], "bindings": [ { "type": "Pressed", "key": "Alpha3" } ] },
-    { "name": "CommandGroup4", "blockers": [ "TextInput" ], "bindings": [ { "type": "Pressed", "key": "Alpha4" } ] },
-    { "name": "CommandGroup5", "blockers": [ "TextInput" ], "bindings": [ { "type": "Pressed", "key": "Alpha5" } ] },
-    { "name": "CommandGroup6", "blockers": [ "TextInput" ], "bindings": [ { "type": "Pressed", "key": "Alpha6" } ] },
-    { "name": "CommandGroup7", "blockers": [ "TextInput" ], "bindings": [ { "type": "Pressed", "key": "Alpha7" } ] },
-    { "name": "CommandGroup8", "blockers": [ "TextInput" ], "bindings": [ { "type": "Pressed", "key": "Alpha8" } ] },
-    { "name": "CommandGroup9", "blockers": [ "TextInput" ], "bindings": [ { "type": "Pressed", "key": "Alpha9" } ] }
+    { "name": "CommandGroup1", "blockers": [ "TextInput" ], "bindings": [ { "type": "Pressed", "key": "Alpha1", "illegalModifiers": [ "Alt" ] } ] },
+    { "name": "CommandGroup2", "blockers": [ "TextInput" ], "bindings": [ { "type": "Pressed", "key": "Alpha2", "illegalModifiers": [ "Alt" ] } ] },
+    { "name": "CommandGroup3", "blockers": [ "TextInput" ], "bindings": [ { "type": "Pressed", "key": "Alpha3", "illegalModifiers": [ "Alt" ] } ] },
+    { "name": "CommandGroup4", "blockers": [ "TextInput" ], "bindings": [ { "type": "Pressed", "key": "Alpha4", "illegalModifiers": [ "Alt" ] } ] },
+    { "name": "CommandGroup5", "blockers": [ "TextInput" ], "bindings": [ { "type": "Pressed", "key": "Alpha5", "illegalModifiers": [ "Alt" ] } ] },
+    { "name": "CommandGroup6", "blockers": [ "TextInput" ], "bindings": [ { "type": "Pressed", "key": "Alpha6", "illegalModifiers": [ "Alt" ] } ] },
+    { "name": "CommandGroup7", "blockers": [ "TextInput" ], "bindings": [ { "type": "Pressed", "key": "Alpha7", "illegalModifiers": [ "Alt" ] } ] },
+    { "name": "CommandGroup8", "blockers": [ "TextInput" ], "bindings": [ { "type": "Pressed", "key": "Alpha8", "illegalModifiers": [ "Alt" ] } ] },
+    { "name": "CommandGroup9", "blockers": [ "TextInput" ], "bindings": [ { "type": "Pressed", "key": "Alpha9", "illegalModifiers": [ "Alt" ] } ] }
   ]
 }
