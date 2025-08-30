@@ -45,6 +45,7 @@ static StringHash g_inputGroupActions[game_cmd_group_count];
 
 typedef enum {
   InputFlags_AllowZoomOverUi = 1 << 0,
+  InputFlags_SnapCamera      = 1 << 1,
 } InputFlags;
 
 typedef enum {
@@ -231,7 +232,11 @@ static void update_camera_movement(
   const f32 camPosEaseDelta = math_min(deltaSeconds * g_inputCamPosEaseSpeed, 1.0f);
   state->camPosTgt = geo_vector_add(state->camPosTgt, geo_quat_rotate(camRotYOld, panDeltaRel));
   state->camPosTgt = input_clamp_to_play_area(terrain, state->camPosTgt);
-  state->camPos    = geo_vector_lerp(state->camPos, state->camPosTgt, camPosEaseDelta);
+  if (state->flags & InputFlags_SnapCamera) {
+    state->camPos = state->camPosTgt;
+  } else {
+    state->camPos = geo_vector_lerp(state->camPos, state->camPosTgt, camPosEaseDelta);
+  }
 
   // Update Y rotation.
   if (!lockCursor && input_triggered_lit(input, "CameraRotate")) {
@@ -240,7 +245,11 @@ static void update_camera_movement(
     lockCursor         = true;
   }
   const f32 camRotEaseDelta = math_min(1.0f, deltaSeconds * g_inputCamRotYEaseSpeed);
-  state->camRotY = math_lerp_angle_f32(state->camRotY, state->camRotYTgt, camRotEaseDelta);
+  if (state->flags & InputFlags_SnapCamera) {
+    state->camRotY = state->camRotYTgt;
+  } else {
+    state->camRotY = math_lerp_angle_f32(state->camRotY, state->camRotYTgt, camRotEaseDelta);
+  }
 
   // Update zoom.
   if (windowActive) { /* Disallow zooming when the window is not focussed. */
@@ -249,8 +258,12 @@ static void update_camera_movement(
       const f32 zoomDelta = input_scroll_y(input) * g_inputCamZoomMult;
       state->camZoomTgt   = math_clamp_f32(state->camZoomTgt + zoomDelta, 0.0f, 1.0f);
     }
-    const f32 camZoomEaseDelta = math_min(1.0f, deltaSeconds * g_inputCamZoomEaseSpeed);
-    state->camZoom             = math_lerp(state->camZoom, state->camZoomTgt, camZoomEaseDelta);
+    if (state->flags & InputFlags_SnapCamera) {
+      state->camZoom = state->camZoomTgt;
+    } else {
+      const f32 camZoomEaseDelta = math_min(1.0f, deltaSeconds * g_inputCamZoomEaseSpeed);
+      state->camZoom             = math_lerp(state->camZoom, state->camZoomTgt, camZoomEaseDelta);
+    }
   }
 
   // Set camera transform.
@@ -261,6 +274,7 @@ static void update_camera_movement(
   camTrans->rotation        = camRot;
 
   input_cursor_mode_set(input, lockCursor ? InputCursorMode_Locked : InputCursorMode_Normal);
+  state->flags &= ~InputFlags_SnapCamera;
 }
 
 static void update_camera_movement_dev(
@@ -614,6 +628,7 @@ static void update_camera_interact(
   const u32 newLevelCounter = scene_level_counter(levelManager);
   if (state->lastLevelCounter != newLevelCounter) {
     input_camera_reset(state, levelManager);
+    state->flags |= InputFlags_SnapCamera;
     state->lastLevelCounter = newLevelCounter;
   }
   if (input_triggered_lit(input, "CameraReset")) {
