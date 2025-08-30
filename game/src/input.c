@@ -839,6 +839,14 @@ ecs_module_init(game_input_module) {
 GameInputType game_input_type(const GameInputComp* comp) { return comp->type; }
 void game_input_type_set(GameInputComp* comp, const GameInputType type) { comp->type = type; }
 
+void game_input_toggle_free_camera(GameInputComp* comp) {
+  if (comp->type == GameInputType_FreeCamera) {
+    comp->type = GameInputType_Normal;
+  } else {
+    comp->type = GameInputType_FreeCamera;
+  }
+}
+
 void game_input_camera_center(GameInputComp* state, const GeoVector worldPos) {
   state->camPosTgt = worldPos;
 }

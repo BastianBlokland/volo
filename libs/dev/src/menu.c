@@ -110,13 +110,6 @@ static const struct {
         .hotkeyName   = string_static("DevPanelScript"),
     },
     {
-        .name         = string_static("Asset"),
-        .iconShape    = UiShape_Storage,
-        .detachedSize = {.x = 950, .y = 500},
-        .openFunc     = dev_asset_panel_open,
-        .hotkeyName   = string_static("DevPanelAsset"),
-    },
-    {
         .name         = string_static("Ecs"),
         .iconShape    = UiShape_Extension,
         .detachedSize = {.x = 800, .y = 500},
@@ -131,6 +124,19 @@ static const struct {
         .hotkeyName   = string_static("DevPanelTrace"),
     },
     {
+        .name         = string_static("Renderer"),
+        .iconShape    = UiShape_Brush,
+        .detachedSize = {.x = 800, .y = 520},
+        .openFunc     = dev_rend_panel_open,
+        .hotkeyName   = string_static("DevPanelRenderer"),
+    },
+    {
+        .name         = string_static("Asset"),
+        .iconShape    = UiShape_Storage,
+        .detachedSize = {.x = 950, .y = 500},
+        .openFunc     = dev_asset_panel_open,
+    },
+    {
         .name         = string_static("Camera"),
         .iconShape    = UiShape_PhotoCamera,
         .detachedSize = {.x = 500, .y = 400},
@@ -141,13 +147,6 @@ static const struct {
         .iconShape    = UiShape_Grid4x4,
         .detachedSize = {.x = 500, .y = 220},
         .openFunc     = dev_grid_panel_open,
-    },
-    {
-        .name         = string_static("Renderer"),
-        .iconShape    = UiShape_Brush,
-        .detachedSize = {.x = 800, .y = 520},
-        .openFunc     = dev_rend_panel_open,
-        .hotkeyName   = string_static("DevPanelRenderer"),
     },
     {
         .name         = string_static("Vfx"),

@@ -9,6 +9,13 @@
       ]
     },
     {
+      "name": "FreeCamera",
+      "blockers": [ "TextInput" ],
+      "bindings": [
+        { "type": "Pressed", "key": "F1" }
+      ]
+    },
+    {
       "name": "DevTimePauseToggle",
       "blockers": [ "TextInput" ],
       "bindings": [
@@ -76,60 +83,53 @@
       "name": "DevPanelInspector",
       "blockers": [ "TextInput" ],
       "bindings": [
-        { "type": "Pressed", "key": "F1" }
+        { "type": "Pressed", "key": "F2" }
       ]
     },
     {
       "name": "DevPanelHierarchy",
       "blockers": [ "TextInput" ],
       "bindings": [
-        { "type": "Pressed", "key": "F2" }
+        { "type": "Pressed", "key": "F3" }
       ]
     },
     {
       "name": "DevPanelPrefab",
       "blockers": [ "TextInput" ],
       "bindings": [
-        { "type": "Pressed", "key": "F3" }
+        { "type": "Pressed", "key": "F4" }
       ]
     },
     {
       "name": "DevPanelLevel",
       "blockers": [ "TextInput" ],
       "bindings": [
-        { "type": "Pressed", "key": "F4" }
+        { "type": "Pressed", "key": "F5" }
       ]
     },
     {
       "name": "DevPanelSound",
       "blockers": [ "TextInput" ],
       "bindings": [
-        { "type": "Pressed", "key": "F5" }
+        { "type": "Pressed", "key": "F6" }
       ]
     },
     {
       "name": "DevPanelTime",
       "blockers": [ "TextInput" ],
       "bindings": [
-        { "type": "Pressed", "key": "F6" }
+        { "type": "Pressed", "key": "F7" }
       ]
     },
     {
       "name": "DevPanelSkeleton",
       "blockers": [ "TextInput" ],
       "bindings": [
-        { "type": "Pressed", "key": "F7" }
-      ]
-    },
-    {
-      "name": "DevPanelScript",
-      "blockers": [ "TextInput" ],
-      "bindings": [
         { "type": "Pressed", "key": "F8" }
       ]
     },
     {
-      "name": "DevPanelAsset",
+      "name": "DevPanelScript",
       "blockers": [ "TextInput" ],
       "bindings": [
         { "type": "Pressed", "key": "F9" }
