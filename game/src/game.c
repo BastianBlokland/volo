@@ -301,7 +301,6 @@ static void game_transition(const GameUpdateContext* ctx, const GameState state)
     break;
   case GameState_Edit:
     input_layer_disable(ctx->input, string_hash_lit("Edit"));
-    input_layer_disable(ctx->input, string_hash_lit("Dev"));
     game_input_type_set(ctx->winGameInput, GameInputType_None);
     ctx->game->editMode = false;
     break;
@@ -340,7 +339,6 @@ static void game_transition(const GameUpdateContext* ctx, const GameState state)
     ctx->winRendSet->flags &= ~RendFlags_2D;
     game_input_type_set(ctx->winGameInput, GameInputType_Normal);
     input_layer_enable(ctx->input, string_hash_lit("Edit"));
-    input_layer_enable(ctx->input, string_hash_lit("Dev"));
     if (ctx->winDevStats) {
       dev_stats_debug_set(ctx->winDevStats, DevStatDebug_Unavailable);
     }
@@ -633,7 +631,8 @@ static void menu_entry_level(const GameUpdateContext* ctx, const u32 index) {
 
   if (ui_button(ctx->winCanvas, .label = levelName, .fontSize = 25, .tooltip = tooltip)) {
     game_transition(ctx, GameState_Loading);
-    scene_level_load(ctx->world, SceneLevelMode_Play, ctx->game->levelAssets[levelIndex]);
+    const SceneLevelMode mode = ctx->game->editMode ? SceneLevelMode_Edit : SceneLevelMode_Play;
+    scene_level_load(ctx->world, mode, ctx->game->levelAssets[levelIndex]);
   }
 }
 
@@ -840,7 +839,10 @@ ecs_system_define(GameUpdateSys) {
       ++ctx.game->stateTicks;
     }
 
-    const bool debugReq = ctx.winDevStats && dev_stats_debug(ctx.winDevStats) == DevStatDebug_On;
+    bool debugReq = false;
+    debugReq |= ctx.winDevStats && dev_stats_debug(ctx.winDevStats) == DevStatDebug_On;
+    debugReq |= ctx.game->state == GameState_Edit;
+
     if (debugReq && !ctx.game->debugActive) {
       if (!ctx.winGame->devMenu) {
         ctx.winGame->devMenu = dev_menu_create(world, ctx.winEntity);
