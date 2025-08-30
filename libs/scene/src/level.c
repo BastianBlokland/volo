@@ -24,6 +24,7 @@ typedef enum {
   LevelLoadState_AssetAcquire,
   LevelLoadState_AssetWait,
   LevelLoadState_Create,
+  LevelLoadState_Finish,
 } LevelLoadState;
 
 ecs_comp_define(SceneLevelManagerComp) {
@@ -331,6 +332,9 @@ ecs_system_define(SceneLevelLoadSys) {
       }
       level_process_load(
           world, manager, assets, prefabEnv, req->levelMode, req->levelAsset, &levelComp->level);
+      ++req->state;
+      goto Wait; // Wait for the entities to be created.
+    case LevelLoadState_Finish:
       manager->isLoading = false;
       ++manager->loadCounter;
       goto Done;
