@@ -689,24 +689,26 @@ static void stats_draw_controls(UiCanvasComp* c, DevStatsComp* stats) {
   }
   ui_style_pop(c);
 
-  ui_layout_next(c, Ui_Right, 0);
-  ui_style_push(c);
-  String debugTooltip;
-  if (stats->debug == DevStatDebug_On) {
-    ui_style_color(c, ui_color(255, 16, 16, 255));
-    debugTooltip = string_lit("Disable debug mode.");
-  } else {
-    debugTooltip = string_lit("Enable debug mode.");
+  if (stats->debug != DevStatDebug_Unavailable) {
+    ui_layout_next(c, Ui_Right, 0);
+    ui_style_push(c);
+    String debugTooltip;
+    if (stats->debug == DevStatDebug_On) {
+      ui_style_color(c, ui_color(255, 16, 16, 255));
+      debugTooltip = string_lit("Disable debug mode.");
+    } else {
+      debugTooltip = string_lit("Enable debug mode.");
+    }
+    if (ui_button(
+            c,
+            .label    = ui_shape_scratch(UiShape_Bug),
+            .noFrame  = true,
+            .fontSize = 18,
+            .tooltip  = debugTooltip)) {
+      stats->debug = stats->debug == DevStatDebug_On ? DevStatDebug_Off : DevStatDebug_On;
+    }
+    ui_style_pop(c);
   }
-  if (ui_button(
-          c,
-          .label    = ui_shape_scratch(UiShape_Bug),
-          .noFrame  = true,
-          .fontSize = 18,
-          .tooltip  = debugTooltip)) {
-    stats->debug ^= DevStatDebug_On;
-  }
-  ui_style_pop(c);
 
   ui_layout_pop(c);
 }

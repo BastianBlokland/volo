@@ -13,6 +13,7 @@ typedef enum {
 } DevStatShow;
 
 typedef enum {
+  DevStatDebug_Unavailable,
   DevStatDebug_Off,
   DevStatDebug_On,
 } DevStatDebug;
