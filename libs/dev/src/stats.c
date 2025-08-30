@@ -16,6 +16,7 @@
 #include "ecs/world.h"
 #include "gap/window.h"
 #include "geo/query.h"
+#include "input/manager.h"
 #include "rend/settings.h"
 #include "rend/stats.h"
 #include "scene/collision.h"
@@ -76,8 +77,9 @@ typedef struct {
 } DevStatsNotification;
 
 ecs_comp_define(DevStatsComp) {
-  DevStatShow show;
-  EcsEntityId canvas;
+  DevStatShow  show;
+  DevStatDebug debug;
+  EcsEntityId  canvas;
 
   DevStatPlot* frameDurPlot; // In microseconds.
   TimeDuration frameDurDesired;
@@ -666,34 +668,58 @@ static void stats_draw_notifications(UiCanvasComp* c, const DevStatsGlobalComp* 
   }
 }
 
-static void stats_draw_controls(UiCanvasComp* c, DevStatsComp* stats) {
+static void
+stats_draw_controls(UiCanvasComp* c, const InputManagerComp* input, DevStatsComp* stats) {
   ui_layout_push(c);
   ui_layout_resize(c, UiAlign_BottomLeft, ui_vector(25, 25), UiBase_Absolute, Ui_XY);
 
   ui_style_push(c);
-  String tooltip;
+  String showTooltip;
   if (stats->show == DevStatShow_Full) {
     ui_style_color(c, ui_color_lime);
-    tooltip = string_lit("Hide full stats.");
+    showTooltip = string_lit("Hide full stats.");
   } else {
-    tooltip = string_lit("Show full stats.");
+    showTooltip = string_lit("Show full stats.");
   }
   if (ui_button(
           c,
           .label    = ui_shape_scratch(UiShape_Layers),
           .noFrame  = true,
           .fontSize = 18,
-          .tooltip  = tooltip)) {
+          .tooltip  = showTooltip)) {
     stats->show = stats->show == DevStatShow_Full ? DevStatShow_Minimal : DevStatShow_Full;
   }
-
   ui_style_pop(c);
+
+  if (stats->debug != DevStatDebug_Unavailable) {
+    ui_layout_next(c, Ui_Right, 0);
+    ui_style_push(c);
+    String debugTooltip;
+    if (stats->debug == DevStatDebug_On) {
+      ui_style_color(c, ui_color(255, 16, 16, 255));
+      debugTooltip = string_lit("Disable debug mode.");
+    } else {
+      debugTooltip = string_lit("Enable debug mode.");
+    }
+    if (ui_button(
+            c,
+            .label    = ui_shape_scratch(UiShape_Bug),
+            .noFrame  = true,
+            .fontSize = 18,
+            .tooltip  = debugTooltip,
+            .activate = input_triggered_lit(input, "Debug"))) {
+      stats->debug = stats->debug == DevStatDebug_On ? DevStatDebug_Off : DevStatDebug_On;
+    }
+    ui_style_pop(c);
+  }
+
   ui_layout_pop(c);
 }
 
 static void dev_stats_draw_interface(
     UiCanvasComp*                  c,
     const GapWindowComp*           window,
+    const InputManagerComp*        input,
     const DevStatsGlobalComp*      statsGlobal,
     DevStatsComp*                  stats,
     RendStatsComp*                 rendStats,
@@ -710,7 +736,7 @@ static void dev_stats_draw_interface(
   ui_layout_resize(c, UiAlign_TopLeft, ui_vector(500, 25), UiBase_Absolute, Ui_XY);
 
   stats_draw_bg(c, DevBgFlags_None);
-  stats_draw_controls(c, stats);
+  stats_draw_controls(c, input, stats);
   stats_draw_label(c, string_lit("Frame time: "), UiAlign_MiddleRight);
   stats_draw_frametime_value(c, stats);
   ui_layout_next(c, Ui_Down, 0);
@@ -904,6 +930,7 @@ dev_stats_global_update(DevStatsGlobalComp* statsGlobal, const EcsRunnerStats* e
 }
 
 ecs_view_define(GlobalView) {
+  ecs_access_read(InputManagerComp);
   ecs_access_read(RendSettingsGlobalComp);
   ecs_access_read(SceneCollisionStatsComp);
   ecs_access_read(SceneNavEnvComp);
@@ -966,6 +993,7 @@ ecs_system_define(DevStatsUpdateSys) {
   const VfxStatsGlobalComp*      vfxStats    = ecs_view_read_t(globalItr, VfxStatsGlobalComp);
   const SceneNavEnvComp*         navEnv      = ecs_view_read_t(globalItr, SceneNavEnvComp);
   const RendSettingsGlobalComp*  rendGlobalSet = ecs_view_read_t(globalItr, RendSettingsGlobalComp);
+  const InputManagerComp*        input         = ecs_view_read_t(globalItr, InputManagerComp);
 
   const AllocStats     allocStats     = alloc_stats_query();
   const EcsWorldStats  ecsWorldStats  = ecs_world_stats_query(world);
@@ -987,7 +1015,7 @@ ecs_system_define(DevStatsUpdateSys) {
 
     // Create or destroy the interface canvas as needed.
     if (stats->show != DevStatShow_None && !stats->canvas) {
-      stats->canvas = ui_canvas_create(world, ecs_view_entity(itr), UiCanvasCreateFlags_ToBack);
+      stats->canvas = ui_canvas_create(world, ecs_view_entity(itr), UiCanvasCreateFlags_ToFront);
     } else if (stats->show == DevStatShow_None && stats->canvas) {
       ecs_world_entity_destroy(world, stats->canvas);
       stats->canvas = 0;
@@ -1000,6 +1028,7 @@ ecs_system_define(DevStatsUpdateSys) {
       dev_stats_draw_interface(
           c,
           window,
+          input,
           statsGlobal,
           stats,
           rendStats,
@@ -1045,3 +1074,11 @@ void dev_stats_notify(DevStatsGlobalComp* comp, const String key, const String v
 
 DevStatShow dev_stats_show(const DevStatsComp* comp) { return comp->show; }
 void        dev_stats_show_set(DevStatsComp* comp, const DevStatShow show) { comp->show = show; }
+
+DevStatDebug dev_stats_debug(const DevStatsComp* comp) { return comp->debug; }
+void dev_stats_debug_set(DevStatsComp* comp, const DevStatDebug debug) { comp->debug = debug; }
+void dev_stats_debug_set_available(DevStatsComp* comp) {
+  if (comp->debug == DevStatDebug_Unavailable) {
+    comp->debug = DevStatDebug_Off;
+  }
+}

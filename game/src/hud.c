@@ -22,7 +22,6 @@
 #include "scene/collision.h"
 #include "scene/faction.h"
 #include "scene/health.h"
-#include "scene/level.h"
 #include "scene/lifetime.h"
 #include "scene/locomotion.h"
 #include "scene/name.h"
@@ -44,6 +43,7 @@
 #include "ui/widget.h"
 
 #include "cmd.h"
+#include "game.h"
 #include "hud.h"
 #include "input.h"
 
@@ -71,17 +71,18 @@ static const f32      g_hudMinimapLineWidth = 2.5f;
 static const UiVector g_hudProductionSize   = {.x = 300.0f, .y = 400.0f};
 static StringHash     g_hudProductQueueActions[3];
 
-ecs_comp_define(HudComp) {
+ecs_comp_define(GameHudComp) {
   EcsEntityId  uiCanvas;
   UiRect       minimapRect;
   UiScrollview productionScrollView;
+  u32          requestedActions; // (1 << GameHudAction)[].
 
   EcsEntityId rendObjMinimap, rendObjIndicatorRing, rendObjIndicatorBox;
 };
 
 ecs_view_define(GlobalView) {
+  ecs_access_read(GameComp);
   ecs_access_read(InputManagerComp);
-  ecs_access_read(SceneLevelManagerComp);
   ecs_access_read(SceneSetEnvComp);
   ecs_access_read(SceneTerrainComp);
   ecs_access_read(SceneWeaponResourceComp);
@@ -91,7 +92,7 @@ ecs_view_define(GlobalView) {
 ecs_view_define(HudView) {
   ecs_access_read(SceneCameraComp);
   ecs_access_read(SceneTransformComp);
-  ecs_access_write(HudComp);
+  ecs_access_write(GameHudComp);
   ecs_access_write(GameInputComp);
 }
 
@@ -159,11 +160,11 @@ static EcsEntityId hud_rend_obj_create(
 }
 
 static void hud_indicator_ring_draw(
-    const HudComp*  hud,
-    EcsIterator*    rendObjItr,
-    const GeoVector center,
-    const f32       radius,
-    const UiColor   color) {
+    const GameHudComp* hud,
+    EcsIterator*       rendObjItr,
+    const GeoVector    center,
+    const f32          radius,
+    const UiColor      color) {
   ecs_view_jump(rendObjItr, hud->rendObjIndicatorRing);
   RendObjectComp* obj = ecs_view_write_t(rendObjItr, RendObjectComp);
 
@@ -196,7 +197,7 @@ static void hud_indicator_ring_draw(
 }
 
 static void hud_indicator_box_draw(
-    const HudComp* hud, EcsIterator* rendObjItr, const GeoBox* box, const UiColor color) {
+    const GameHudComp* hud, EcsIterator* rendObjItr, const GeoBox* box, const UiColor color) {
   ecs_view_jump(rendObjItr, hud->rendObjIndicatorBox);
   RendObjectComp* obj = ecs_view_write_t(rendObjItr, RendObjectComp);
 
@@ -290,26 +291,9 @@ static UiColor hud_faction_color(const SceneFaction faction) {
   }
 }
 
-static void hud_level_draw(UiCanvasComp* c, const SceneLevelManagerComp* level) {
-  const String name = scene_level_name(level);
-  if (!string_is_empty(name)) {
-    ui_layout_push(c);
-    ui_layout_inner(c, UiBase_Canvas, UiAlign_TopCenter, ui_vector(500, 100), UiBase_Absolute);
-
-    ui_style_push(c);
-    ui_style_color(c, ui_color_white);
-    ui_style_outline(c, 5);
-
-    ui_label(c, name, .align = UiAlign_MiddleCenter, .fontSize = 40);
-
-    ui_style_pop(c);
-    ui_layout_pop(c);
-  }
-}
-
 static void hud_health_draw(
     UiCanvasComp*    c,
-    HudComp*         hud,
+    GameHudComp*     hud,
     const GeoMatrix* viewProj,
     EcsView*         healthView,
     const UiVector   res) {
@@ -398,7 +382,7 @@ static void hud_groups_draw(UiCanvasComp* c, GameCmdComp* cmd) {
             .label      = fmt_write_scratch("\a|02{}\ar {}", fmt_int(i + 1), fmt_ui_shape(Group)),
             .fontSize   = 20,
             .frameColor = ui_color(32, 32, 32, 192),
-            .tooltip    = fmt_write_scratch("Size: {}", fmt_int(size)))) {
+            .tooltip    = fmt_write_scratch("Size: {}.", fmt_int(size)))) {
       game_cmd_push_select_group(cmd, i);
     }
     ui_layout_next(c, Ui_Up, g_spacing);
@@ -531,7 +515,10 @@ static void hud_info_draw(UiCanvasComp* c, EcsIterator* infoItr, EcsIterator* we
 }
 
 static void hud_minimap_update(
-    HudComp* hud, EcsIterator* rendObjItr, const SceneTerrainComp* terrain, const UiVector res) {
+    GameHudComp*            hud,
+    EcsIterator*            rendObjItr,
+    const SceneTerrainComp* terrain,
+    const UiVector          res) {
   // Compute minimap rect.
   hud->minimapRect = (UiRect){
       .pos  = ui_vector(res.width - g_hudMinimapSize.width, res.height - g_hudMinimapSize.height),
@@ -648,7 +635,7 @@ static u32 hud_minimap_marker_collect(
 
 static void hud_minimap_draw(
     UiCanvasComp*             c,
-    HudComp*                  hud,
+    GameHudComp*              hud,
     GameInputComp*            inputState,
     const SceneTerrainComp*   terrain,
     const SceneCameraComp*    cam,
@@ -728,7 +715,59 @@ static void hud_minimap_draw(
   ui_layout_pop(c);
 }
 
-static void hud_vision_draw(HudComp* hud, EcsIterator* rendObjItr, EcsIterator* itr) {
+static void hud_actions_draw(UiCanvasComp* c, GameHudComp* hud, const InputManagerComp* input) {
+  static const struct {
+    GameHudAction action;
+    Unicode       icon;
+    String        tooltip;
+    String        hotkey;
+  } g_actionDefs[] = {
+      {
+          .action  = GameHudAction_Pause,
+          .icon    = UiShape_Pause,
+          .tooltip = string_static("Pause the game."),
+          .hotkey  = string_static("Pause"),
+      },
+      {
+          .action  = GameHudAction_CameraReset,
+          .icon    = UiShape_ResetTv,
+          .tooltip = string_static("Reset the camera."),
+          .hotkey  = string_static("CameraReset"),
+      },
+      {
+          .action  = GameHudAction_OrderStop,
+          .icon    = UiShape_Halt,
+          .tooltip = string_static("Order the selected unit to stop."),
+          .hotkey  = string_static("OrderStop"),
+      },
+  };
+
+  ui_layout_push(c);
+  ui_layout_set(c, hud->minimapRect, UiBase_Absolute);
+  ui_layout_move_to(c, UiBase_Current, UiAlign_BottomRight, Ui_XY);
+  ui_layout_resize(c, UiAlign_TopRight, ui_vector(30, 30), UiBase_Absolute, Ui_XY);
+  ui_layout_move(c, ui_vector(-5, -7), UiBase_Absolute, Ui_XY);
+
+  for (u32 i = 0; i != array_elems(g_actionDefs); ++i) {
+    bool hotkeyActivate = false;
+    if (!string_is_empty(g_actionDefs[i].hotkey)) {
+      hotkeyActivate = input_triggered_hash(input, string_hash(g_actionDefs[i].hotkey));
+    }
+    if (ui_button(
+            c,
+            .label      = ui_shape_scratch(g_actionDefs[i].icon),
+            .fontSize   = 20,
+            .frameColor = ui_color(32, 32, 32, 192),
+            .tooltip    = g_actionDefs[i].tooltip,
+            .activate   = hotkeyActivate)) {
+      hud->requestedActions = 1 << g_actionDefs[i].action;
+    }
+    ui_layout_next(c, Ui_Down, 7);
+  }
+  ui_layout_pop(c);
+}
+
+static void hud_vision_draw(GameHudComp* hud, EcsIterator* rendObjItr, EcsIterator* itr) {
   const SceneVisionComp* vision = ecs_view_read_t(itr, SceneVisionComp);
   if (vision->flags & SceneVisionFlags_ShowInHud) {
     const GeoVector pos = ecs_view_read_t(itr, SceneTransformComp)->position;
@@ -957,7 +996,7 @@ static void hud_production_queue_draw(
 
 static void hud_production_draw(
     UiCanvasComp*           c,
-    HudComp*                hud,
+    GameHudComp*            hud,
     const InputManagerComp* input,
     EcsIterator*            rendObjItr,
     EcsIterator*            itr) {
@@ -1018,7 +1057,7 @@ ecs_system_define(GameHudDrawSys) {
   }
   GameCmdComp*                   cmd       = ecs_view_write_t(globalItr, GameCmdComp);
   const InputManagerComp*        input     = ecs_view_read_t(globalItr, InputManagerComp);
-  const SceneLevelManagerComp*   level     = ecs_view_read_t(globalItr, SceneLevelManagerComp);
+  const GameComp*                game      = ecs_view_read_t(globalItr, GameComp);
   const SceneSetEnvComp*         setEnv    = ecs_view_read_t(globalItr, SceneSetEnvComp);
   const SceneTerrainComp*        terrain   = ecs_view_read_t(globalItr, SceneTerrainComp);
   const SceneWeaponResourceComp* weaponRes = ecs_view_read_t(globalItr, SceneWeaponResourceComp);
@@ -1044,7 +1083,7 @@ ecs_system_define(GameHudDrawSys) {
     GameInputComp*            inputState = ecs_view_write_t(itr, GameInputComp);
     const SceneCameraComp*    cam        = ecs_view_read_t(itr, SceneCameraComp);
     const SceneTransformComp* camTrans   = ecs_view_read_t(itr, SceneTransformComp);
-    HudComp*                  hud        = ecs_view_write_t(itr, HudComp);
+    GameHudComp*              hud        = ecs_view_write_t(itr, GameHudComp);
     if (!ecs_view_maybe_jump(canvasItr, hud->uiCanvas)) {
       continue;
     }
@@ -1052,7 +1091,7 @@ ecs_system_define(GameHudDrawSys) {
     const GeoMatrix viewProj = hud_ui_view_proj(cam, camTrans, c);
 
     ui_canvas_reset(c);
-    if (input_layer_active(input, string_hash_lit("Dev"))) {
+    if (game_state(game) != GameState_Play) {
       continue;
     }
     const UiVector res = ui_canvas_resolution(c);
@@ -1068,7 +1107,6 @@ ecs_system_define(GameHudDrawSys) {
     }
 
     hud_minimap_update(hud, rendObjItr, terrain, res);
-    hud_level_draw(c, level);
 
     trace_begin("game_hud_health", TraceColor_White);
     hud_health_draw(c, hud, &viewProj, healthView, res);
@@ -1079,6 +1117,8 @@ ecs_system_define(GameHudDrawSys) {
     trace_begin("game_hud_minimap", TraceColor_White);
     hud_minimap_draw(c, hud, inputState, terrain, cam, camTrans, minimapMarkerView);
     trace_end();
+
+    hud_actions_draw(c, hud, input);
 
     if (ecs_view_maybe_jump(visionItr, scene_set_main(setEnv, g_sceneSetSelected))) {
       hud_vision_draw(hud, rendObjItr, visionItr);
@@ -1098,7 +1138,7 @@ ecs_system_define(GameHudDrawSys) {
 }
 
 ecs_module_init(game_hud_module) {
-  ecs_register_comp(HudComp);
+  ecs_register_comp(GameHudComp);
 
   ecs_register_view(GlobalView);
   ecs_register_view(HudView);
@@ -1132,8 +1172,9 @@ ecs_module_init(game_hud_module) {
   }
 }
 
-void game_hud_init(EcsWorld* world, AssetManagerComp* assets, const EcsEntityId cameraEntity) {
-  diag_assert_msg(!ecs_world_has_t(world, cameraEntity, HudComp), "HUD already active");
+GameHudComp*
+game_hud_init(EcsWorld* world, AssetManagerComp* assets, const EcsEntityId cameraEntity) {
+  diag_assert_msg(!ecs_world_has_t(world, cameraEntity, GameHudComp), "HUD already active");
 
   const EcsEntityId rendObjMinimap =
       hud_rend_obj_create(world, assets, cameraEntity, string_lit("graphics/hud/minimap.graphic"));
@@ -1144,12 +1185,18 @@ void game_hud_init(EcsWorld* world, AssetManagerComp* assets, const EcsEntityId 
   const EcsEntityId rendObjIndicatorBox = hud_rend_obj_create(
       world, assets, cameraEntity, string_lit("graphics/hud/indicator_box.graphic"));
 
-  ecs_world_add_t(
+  return ecs_world_add_t(
       world,
       cameraEntity,
-      HudComp,
+      GameHudComp,
       .uiCanvas             = ui_canvas_create(world, cameraEntity, UiCanvasCreateFlags_None),
       .rendObjMinimap       = rendObjMinimap,
       .rendObjIndicatorRing = rendObjIndicatorRing,
       .rendObjIndicatorBox  = rendObjIndicatorBox);
+}
+
+bool game_hud_consume_action(GameHudComp* hud, const GameHudAction action) {
+  const bool result = (hud->requestedActions & (1 << action)) != 0;
+  hud->requestedActions &= ~(1 << action);
+  return result;
 }

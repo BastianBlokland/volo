@@ -62,6 +62,7 @@ void rend_settings_to_default(RendSettingsComp* s) {
   s->bloomIntensity            = 0.04f;
   s->bloomSteps                = 5;
   s->bloomRadius               = 0.003f;
+  s->grayscaleFrac             = 0.0f;
   s->distortionResolutionScale = 0.25f;
   s->debugViewerResource       = 0;
   s->debugViewerLod            = 0.0f;

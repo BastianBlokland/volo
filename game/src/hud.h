@@ -6,4 +6,13 @@ enum {
   GameOrder_HudDraw = 725,
 };
 
-void game_hud_init(EcsWorld*, AssetManagerComp*, EcsEntityId cameraEntity);
+typedef enum {
+  GameHudAction_Pause,
+  GameHudAction_CameraReset,
+  GameHudAction_OrderStop,
+} GameHudAction;
+
+ecs_comp_extern(GameHudComp);
+
+GameHudComp* game_hud_init(EcsWorld*, AssetManagerComp*, EcsEntityId cameraEntity);
+bool         game_hud_consume_action(GameHudComp*, GameHudAction);

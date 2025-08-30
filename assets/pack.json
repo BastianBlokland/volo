@@ -3,6 +3,7 @@
     "global/*",
 
     "external/sound/builtin/*.wav",
+    "external/music/*.wav",
 
     "fonts/builtin/*.fonttex",
 

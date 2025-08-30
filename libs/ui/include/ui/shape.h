@@ -28,6 +28,7 @@
   X(0xE53B, Layers)                                                                                \
   X(0xE548, Hospital)                                                                              \
   X(0xE574, Category)                                                                              \
+  X(0xE5C4, ArrowLeft)                                                                             \
   X(0xE5CA, Check)                                                                                 \
   X(0xE5CD, Close)                                                                                 \
   X(0xE5CE, ExpandLess)                                                                            \
@@ -36,6 +37,7 @@
   X(0xE5D6, UnfoldLess)                                                                            \
   X(0xE5D7, UnfoldMore)                                                                            \
   X(0xE645, Error)                                                                                 \
+  X(0xE769, Halt)                                                                                  \
   X(0xE798, Droplet)                                                                               \
   X(0xE7EF, Group)                                                                                 \
   X(0xE80B, Globe)                                                                                 \
@@ -54,6 +56,7 @@
   X(0xE92C, Body)                                                                                  \
   X(0xE97A, Tree)                                                                                  \
   X(0xE9BA, Logout)                                                                                \
+  X(0xE9D9, ResetTv)                                                                               \
   X(0xE9FE, ViewInAr)                                                                              \
   X(0xEA3C, Construction)                                                                          \
   X(0xEAD5, Diamond)                                                                               \

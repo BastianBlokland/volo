@@ -386,11 +386,13 @@ static void painter_push_tonemapping(RendPaintContext* ctx) {
     f32 exposure;
     u32 mode;
     f32 bloomIntensity;
+    f32 grayscaleFrac;
   } data;
 
   data.exposure       = ctx->settings->exposure;
   data.mode           = ctx->settings->tonemapper;
   data.bloomIntensity = ctx->settings->flags & RendFlags_Bloom ? ctx->settings->bloomIntensity : 0;
+  data.grayscaleFrac  = ctx->settings->grayscaleFrac;
 
   painter_push_simple(ctx, RvkRepositoryId_TonemapperGraphic, mem_var(data));
 }
@@ -1039,7 +1041,7 @@ ecs_system_define(RendPainterDrawSys) {
     const SceneTransformComp* camTrans = ecs_view_read_t(itr, SceneTransformComp);
 
     const RvkRepository* repo = rvk_canvas_repository(painter->canvas);
-    if (cam && rvk_repository_all_set(repo)) {
+    if (cam && rvk_repository_all_set(repo) && !(settings->flags & RendFlags_2D)) {
       rend_canvas_paint_3d(
           world,
           painter,

@@ -1,28 +1,35 @@
 {
   "actions": [
     {
-      "name": "AppDebug",
+      "name": "Back",
+      "blockers": [ "TextInput" ],
+      "bindings": [
+        { "type": "Pressed", "key": "Escape" }
+      ]
+    },
+    {
+      "name": "Pause",
+      "blockers": [ "TextInput" ],
+      "bindings": [
+        { "type": "Pressed", "key": "Escape" }
+      ]
+    },
+    {
+      "name": "Debug",
       "blockers": [ "TextInput" ],
       "bindings": [
         { "type": "Pressed", "key": "Tilde" }
       ]
     },
     {
-      "name": "AppReset",
-      "blockers": [ "TextInput" ],
-      "bindings": [
-        { "type": "Pressed", "key": "R" }
-      ]
-    },
-    {
-      "name": "AppWindowClose",
+      "name": "Quit",
       "blockers": [ "TextInput" ],
       "bindings": [
         { "type": "Pressed", "key": "F4", "requiredModifiers": [ "Alt" ] }
       ]
     },
     {
-      "name": "AppWindowFullscreen",
+      "name": "Fullscreen",
       "blockers": [ "TextInput" ],
       "bindings": [
         { "type": "Pressed", "key": "Return", "requiredModifiers": [ "Alt" ] }

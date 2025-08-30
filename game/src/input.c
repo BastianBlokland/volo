@@ -16,12 +16,13 @@
 #include "scene/time.h"
 #include "scene/transform.h"
 #include "ui/canvas.h"
+#include "ui/color.h"
 #include "ui/layout.h"
-#include "ui/panel.h"
 #include "ui/shape.h"
 #include "ui/style.h"
 
 #include "cmd.h"
+#include "hud.h"
 #include "input.h"
 
 static const f32  g_inputInteractMinDist       = 1.0f;
@@ -44,6 +45,7 @@ static StringHash g_inputGroupActions[game_cmd_group_count];
 
 typedef enum {
   InputFlags_AllowZoomOverUi = 1 << 0,
+  InputFlags_SnapCamera      = 1 << 1,
 } InputFlags;
 
 typedef enum {
@@ -68,6 +70,7 @@ typedef enum {
 
 ecs_comp_define(GameInputComp) {
   EcsEntityId      uiCanvas;
+  GameInputType    type : 8;
   InputFlags       flags : 8;
   InputSelectState selectState : 8;
   InputSelectMode  selectMode : 8;
@@ -230,7 +233,11 @@ static void update_camera_movement(
   const f32 camPosEaseDelta = math_min(deltaSeconds * g_inputCamPosEaseSpeed, 1.0f);
   state->camPosTgt = geo_vector_add(state->camPosTgt, geo_quat_rotate(camRotYOld, panDeltaRel));
   state->camPosTgt = input_clamp_to_play_area(terrain, state->camPosTgt);
-  state->camPos    = geo_vector_lerp(state->camPos, state->camPosTgt, camPosEaseDelta);
+  if (state->flags & InputFlags_SnapCamera) {
+    state->camPos = state->camPosTgt;
+  } else {
+    state->camPos = geo_vector_lerp(state->camPos, state->camPosTgt, camPosEaseDelta);
+  }
 
   // Update Y rotation.
   if (!lockCursor && input_triggered_lit(input, "CameraRotate")) {
@@ -239,7 +246,11 @@ static void update_camera_movement(
     lockCursor         = true;
   }
   const f32 camRotEaseDelta = math_min(1.0f, deltaSeconds * g_inputCamRotYEaseSpeed);
-  state->camRotY = math_lerp_angle_f32(state->camRotY, state->camRotYTgt, camRotEaseDelta);
+  if (state->flags & InputFlags_SnapCamera) {
+    state->camRotY = state->camRotYTgt;
+  } else {
+    state->camRotY = math_lerp_angle_f32(state->camRotY, state->camRotYTgt, camRotEaseDelta);
+  }
 
   // Update zoom.
   if (windowActive) { /* Disallow zooming when the window is not focussed. */
@@ -248,8 +259,12 @@ static void update_camera_movement(
       const f32 zoomDelta = input_scroll_y(input) * g_inputCamZoomMult;
       state->camZoomTgt   = math_clamp_f32(state->camZoomTgt + zoomDelta, 0.0f, 1.0f);
     }
-    const f32 camZoomEaseDelta = math_min(1.0f, deltaSeconds * g_inputCamZoomEaseSpeed);
-    state->camZoom             = math_lerp(state->camZoom, state->camZoomTgt, camZoomEaseDelta);
+    if (state->flags & InputFlags_SnapCamera) {
+      state->camZoom = state->camZoomTgt;
+    } else {
+      const f32 camZoomEaseDelta = math_min(1.0f, deltaSeconds * g_inputCamZoomEaseSpeed);
+      state->camZoom             = math_lerp(state->camZoom, state->camZoomTgt, camZoomEaseDelta);
+    }
   }
 
   // Set camera transform.
@@ -260,6 +275,7 @@ static void update_camera_movement(
   camTrans->rotation        = camRot;
 
   input_cursor_mode_set(input, lockCursor ? InputCursorMode_Locked : InputCursorMode_Normal);
+  state->flags &= ~InputFlags_SnapCamera;
 }
 
 static void update_camera_movement_dev(
@@ -547,6 +563,7 @@ static void update_camera_hover(
 static void update_camera_interact(
     EcsWorld*                    world,
     GameInputComp*               state,
+    GameHudComp*                 hud,
     GameCmdComp*                 cmd,
     InputManagerComp*            input,
     const SceneLevelManagerComp* levelManager,
@@ -613,9 +630,10 @@ static void update_camera_interact(
   const u32 newLevelCounter = scene_level_counter(levelManager);
   if (state->lastLevelCounter != newLevelCounter) {
     input_camera_reset(state, levelManager);
+    state->flags |= InputFlags_SnapCamera;
     state->lastLevelCounter = newLevelCounter;
   }
-  if (input_triggered_lit(input, "CameraReset")) {
+  if (hud && game_hud_consume_action(hud, GameHudAction_CameraReset)) {
     input_camera_reset(state, levelManager);
   }
 }
@@ -634,8 +652,8 @@ static void input_update_collision_mask(SceneCollisionEnvComp* env, const InputM
   scene_collision_ignore_mask_set(env, ignoreMask);
 }
 
-static void input_state_init(EcsWorld* world, const EcsEntityId windowEntity) {
-  ecs_world_add_t(
+static GameInputComp* input_state_init(EcsWorld* world, const EcsEntityId windowEntity) {
+  return ecs_world_add_t(
       world,
       windowEntity,
       GameInputComp,
@@ -655,6 +673,7 @@ ecs_view_define(GlobalUpdateView) {
 
 ecs_view_define(CameraView) {
   ecs_access_maybe_write(GameInputComp);
+  ecs_access_maybe_write(GameHudComp);
   ecs_access_read(SceneCameraComp);
   ecs_access_write(SceneTransformComp);
 }
@@ -678,10 +697,6 @@ ecs_system_define(GameInputUpdateSys) {
 
   input_update_collision_mask(colEnv, input);
 
-  if (input_triggered_lit(input, "OrderStop")) {
-    input_order_stop(cmd, setEnv);
-  }
-
   EcsView* cameraView     = ecs_world_view_t(world, CameraView);
   EcsView* productionView = ecs_world_view_t(world, ProductionView);
 
@@ -689,17 +704,28 @@ ecs_system_define(GameInputUpdateSys) {
     const SceneCameraComp* cam      = ecs_view_read_t(camItr, SceneCameraComp);
     SceneTransformComp*    camTrans = ecs_view_write_t(camItr, SceneTransformComp);
     GameInputComp*         state    = ecs_view_write_t(camItr, GameInputComp);
+    GameHudComp*           hud      = ecs_view_write_t(camItr, GameHudComp);
     if (!state) {
       input_state_init(world, ecs_view_entity(camItr));
       continue;
     }
-    state->lastSelectionCount = scene_set_count(setEnv, g_sceneSetSelected);
-    const bool windowActive   = input_active_window(input) == ecs_view_entity(camItr);
+    if (hud && game_hud_consume_action(hud, GameHudAction_OrderStop)) {
+      input_order_stop(cmd, setEnv);
+    }
 
-    if (input_layer_active(input, string_hash_lit("Dev"))) {
-      update_camera_movement_dev(input, time, cam, camTrans);
-    } else {
+    state->lastSelectionCount = scene_set_count(setEnv, g_sceneSetSelected);
+
+    bool windowActive = input_active_window(input) == ecs_view_entity(camItr);
+    switch (state->type) {
+    case GameInputType_Normal:
       update_camera_movement(state, input, time, terrain, camTrans, windowActive);
+      break;
+    case GameInputType_FreeCamera:
+      update_camera_movement_dev(input, time, cam, camTrans);
+      break;
+    case GameInputType_None:
+      windowActive = false;
+      break;
     }
 
     if (windowActive) {
@@ -707,6 +733,7 @@ ecs_system_define(GameInputUpdateSys) {
       update_camera_interact(
           world,
           state,
+          hud,
           cmd,
           input,
           levelManager,
@@ -720,6 +747,8 @@ ecs_system_define(GameInputUpdateSys) {
           productionView);
     } else {
       state->selectState = InputSelectState_None;
+      mem_set(array_mem(state->hoveredEntity), 0);
+      input_cursor_mode_set(input, InputCursorMode_Normal);
     }
   }
 }
@@ -798,15 +827,23 @@ ecs_module_init(game_input_module) {
       ecs_view_id(ProductionView));
   ecs_register_system(GameInputDrawUiSys, ecs_view_id(UiCameraView), ecs_view_id(UiCanvasView));
 
-  enum {
-    Order_Normal      = 0,
-    Order_InputDrawUi = 1,
-  };
-  ecs_order(GameInputDrawUiSys, Order_InputDrawUi);
+  ecs_order(GameInputUpdateSys, GameOrder_Input);
+  ecs_order(GameInputDrawUiSys, GameOrder_InputUi);
 
   // Initialize group action hashes.
   for (u32 i = 0; i != game_cmd_group_count; ++i) {
     g_inputGroupActions[i] = string_hash(fmt_write_scratch("CommandGroup{}", fmt_int(i + 1)));
+  }
+}
+
+GameInputType game_input_type(const GameInputComp* comp) { return comp->type; }
+void game_input_type_set(GameInputComp* comp, const GameInputType type) { comp->type = type; }
+
+void game_input_toggle_free_camera(GameInputComp* comp) {
+  if (comp->type == GameInputType_FreeCamera) {
+    comp->type = GameInputType_Normal;
+  } else {
+    comp->type = GameInputType_FreeCamera;
   }
 }
 
