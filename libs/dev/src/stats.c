@@ -1070,3 +1070,8 @@ void        dev_stats_show_set(DevStatsComp* comp, const DevStatShow show) { com
 
 DevStatDebug dev_stats_debug(const DevStatsComp* comp) { return comp->debug; }
 void dev_stats_debug_set(DevStatsComp* comp, const DevStatDebug debug) { comp->debug = debug; }
+void dev_stats_debug_set_available(DevStatsComp* comp) {
+  if (comp->debug == DevStatDebug_Unavailable) {
+    comp->debug = DevStatDebug_Off;
+  }
+}

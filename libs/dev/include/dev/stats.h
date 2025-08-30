@@ -28,3 +28,4 @@ void        dev_stats_show_set(DevStatsComp*, DevStatShow);
 
 DevStatDebug dev_stats_debug(const DevStatsComp*);
 void         dev_stats_debug_set(DevStatsComp*, DevStatDebug);
+void         dev_stats_debug_set_available(DevStatsComp*);
