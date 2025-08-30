@@ -143,14 +143,14 @@
       ]
     },
     {
-      "name": "DevPanelTrace",
+      "name": "DevPanelRenderer",
       "blockers": [ "TextInput" ],
       "bindings": [
         { "type": "Pressed", "key": "F11" }
       ]
     },
     {
-      "name": "DevPanelRenderer",
+      "name": "DevPanelTrace",
       "blockers": [ "TextInput" ],
       "bindings": [
         { "type": "Pressed", "key": "F12" }
