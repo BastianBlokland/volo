@@ -380,7 +380,12 @@ ecs_system_define(AssetUpdateDirtySys) {
     AssetDirtyComp*   dirtyComp = ecs_view_write_t(itr, AssetDirtyComp);
 
     assetComp->refCount += dirtyComp->numAcquire;
-    diag_assert_msg(assetComp->refCount >= dirtyComp->numRelease, "Unbalanced Acquire / Release");
+    diag_assert_msg(
+        assetComp->refCount >= dirtyComp->numRelease,
+        "Unbalanced Acquire / Release (asset: '{}', ref-count: {}, releases: {})",
+        fmt_text(assetComp->id),
+        fmt_int(assetComp->refCount),
+        fmt_int(dirtyComp->numRelease));
     assetComp->refCount -= dirtyComp->numRelease;
 
     // Loading assets should be continuously updated to track their progress.
