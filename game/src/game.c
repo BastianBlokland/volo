@@ -30,6 +30,7 @@
 #include "input/resource.h"
 #include "log/logger.h"
 #include "rend/error.h"
+#include "rend/forward.h"
 #include "rend/register.h"
 #include "rend/settings.h"
 #include "scene/camera.h"
@@ -37,6 +38,7 @@
 #include "scene/prefab.h"
 #include "scene/product.h"
 #include "scene/register.h"
+#include "scene/renderable.h"
 #include "scene/time.h"
 #include "scene/transform.h"
 #include "scene/visibility.h"
@@ -219,6 +221,7 @@ typedef struct {
   RendSettingsComp*   winRendSet;
   UiCanvasComp*       winCanvas;
 
+  EcsView* levelRenderableView;
   EcsView* devPanelView; // Null if dev-support is not enabled.
 } GameUpdateContext;
 
@@ -545,6 +548,11 @@ ecs_view_define(LevelView) {
   ecs_access_read(AssetLevelComp);
 }
 
+ecs_view_define(LevelRenderableView) {
+  ecs_access_with(SceneLevelInstanceComp);
+  ecs_access_read(SceneRenderableComp);
+}
+
 ecs_view_define(UiCanvasView) {
   ecs_view_flags(EcsViewFlags_Exclusive); // Only access the canvas's we create.
   ecs_access_write(UiCanvasComp);
@@ -605,6 +613,16 @@ static void game_dev_panels_hide(const GameUpdateContext* ctx, const bool hidden
   }
 }
 
+static bool game_level_renderable_loaded(const GameUpdateContext* ctx) {
+  for (EcsIterator* itr = ecs_view_itr(ctx->levelRenderableView); ecs_view_walk(itr);) {
+    const SceneRenderableComp* renderable = ecs_view_read_t(itr, SceneRenderableComp);
+    if (!ecs_world_has_t(ctx->world, renderable->graphic, RendResFinishedComp)) {
+      return false;
+    }
+  }
+  return true;
+}
+
 ecs_system_define(GameUpdateSys) {
   EcsView*     globalView = ecs_world_view_t(world, UpdateGlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
@@ -613,18 +631,19 @@ ecs_system_define(GameUpdateSys) {
   }
 
   GameUpdateContext ctx = {
-      .world         = world,
-      .game          = ecs_view_write_t(globalItr, GameComp),
-      .prefs         = ecs_view_write_t(globalItr, GamePrefsComp),
-      .levelManager  = ecs_view_write_t(globalItr, SceneLevelManagerComp),
-      .input         = ecs_view_write_t(globalItr, InputManagerComp),
-      .soundMixer    = ecs_view_write_t(globalItr, SndMixerComp),
-      .timeSet       = ecs_view_write_t(globalItr, SceneTimeSettingsComp),
-      .cmd           = ecs_view_write_t(globalItr, GameCmdComp),
-      .assets        = ecs_view_write_t(globalItr, AssetManagerComp),
-      .visibilityEnv = ecs_view_write_t(globalItr, SceneVisibilityEnvComp),
-      .rendSetGlobal = ecs_view_write_t(globalItr, RendSettingsGlobalComp),
-      .devPanelView  = ecs_world_view_t(world, DevPanelView),
+      .world               = world,
+      .game                = ecs_view_write_t(globalItr, GameComp),
+      .prefs               = ecs_view_write_t(globalItr, GamePrefsComp),
+      .levelManager        = ecs_view_write_t(globalItr, SceneLevelManagerComp),
+      .input               = ecs_view_write_t(globalItr, InputManagerComp),
+      .soundMixer          = ecs_view_write_t(globalItr, SndMixerComp),
+      .timeSet             = ecs_view_write_t(globalItr, SceneTimeSettingsComp),
+      .cmd                 = ecs_view_write_t(globalItr, GameCmdComp),
+      .assets              = ecs_view_write_t(globalItr, AssetManagerComp),
+      .visibilityEnv       = ecs_view_write_t(globalItr, SceneVisibilityEnvComp),
+      .rendSetGlobal       = ecs_view_write_t(globalItr, RendSettingsGlobalComp),
+      .levelRenderableView = ecs_world_view_t(world, LevelRenderableView),
+      .devPanelView        = ecs_world_view_t(world, DevPanelView),
   };
 
   game_levels_query_update(&ctx);
@@ -717,12 +736,14 @@ ecs_system_define(GameUpdateSys) {
       menu_draw_version(&ctx);
     } break;
     case GameState_Loading:
-      if (scene_level_loaded(ctx.levelManager)) {
-        game_transition(&ctx, GameState_Play);
-      }
       if (scene_level_error(ctx.levelManager)) {
         scene_level_error_clear(ctx.levelManager);
         game_transition(&ctx, GameState_MenuMain);
+        break;
+      }
+      if (scene_level_loaded(ctx.levelManager) && game_level_renderable_loaded(&ctx)) {
+        game_transition(&ctx, GameState_Play);
+        break;
       }
       break;
     case GameState_Play:
@@ -764,6 +785,7 @@ ecs_module_init(game_module) {
   ecs_register_view(UpdateGlobalView);
   ecs_register_view(MainWindowView);
   ecs_register_view(LevelView);
+  ecs_register_view(LevelRenderableView);
   ecs_register_view(UiCanvasView);
 
   if (ctx->devSupport) {
@@ -776,6 +798,7 @@ ecs_module_init(game_module) {
       ecs_view_id(MainWindowView),
       ecs_view_id(LevelView),
       ecs_view_id(UiCanvasView),
+      ecs_view_id(LevelRenderableView),
       ecs_view_id(DevPanelView));
 }
 
