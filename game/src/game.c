@@ -410,6 +410,17 @@ static void menu_entry_resume(const GameUpdateContext* ctx, MAYBE_UNUSED const u
   }
 }
 
+static void menu_entry_restart(const GameUpdateContext* ctx, MAYBE_UNUSED const u32 index) {
+  if (ui_button(
+          ctx->winCanvas,
+          .label    = string_lit("Restart"),
+          .fontSize = 25,
+          .tooltip  = string_lit("Restart the current level."))) {
+    game_transition(ctx, GameState_Loading);
+    scene_level_reload(ctx->world, SceneLevelMode_Play);
+  }
+}
+
 static void menu_entry_menu_main(const GameUpdateContext* ctx, MAYBE_UNUSED const u32 index) {
   if (ui_button(
           ctx->winCanvas,
@@ -804,6 +815,7 @@ ecs_system_define(GameUpdateSys) {
       break;
     case GameState_Pause:
       menuEntries[menuEntriesCount++] = &menu_entry_resume;
+      menuEntries[menuEntriesCount++] = &menu_entry_restart;
       menuEntries[menuEntriesCount++] = &menu_entry_volume;
       menuEntries[menuEntriesCount++] = &menu_entry_powersaving;
       menuEntries[menuEntriesCount++] = &menu_entry_quality;
