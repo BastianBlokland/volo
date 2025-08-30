@@ -12,7 +12,7 @@
       "name": "CameraReset",
       "blockers": [ "TextInput" ],
       "bindings": [
-        { "type": "Pressed", "key": "Backspace", "illegalModifiers": [ "Alt" ] }
+        { "type": "Pressed", "key": "Backspace" }
       ]
     },
     {
