@@ -296,6 +296,7 @@ static void game_transition(const GameUpdateContext* ctx, const GameState state)
   case GameState_Play:
     input_layer_disable(ctx->input, string_hash_lit("Game"));
     game_input_type_set(ctx->winGameInput, GameInputType_None);
+    asset_loading_budget_set(ctx->assets, 0); // Infinite budget while not in gameplay.
     break;
   case GameState_Pause:
     ctx->timeSet->flags &= ~SceneTimeFlags_Paused;
@@ -326,6 +327,7 @@ static void game_transition(const GameUpdateContext* ctx, const GameState state)
     ctx->winRendSet->flags &= ~RendFlags_2D;
     game_input_type_set(ctx->winGameInput, GameInputType_Normal);
     input_layer_enable(ctx->input, string_hash_lit("Game"));
+    asset_loading_budget_set(ctx->assets, time_milliseconds(2)); // Limit loading during gameplay.
     break;
   case GameState_Pause:
     ctx->timeSet->flags |= SceneTimeFlags_Paused;
@@ -753,12 +755,6 @@ ecs_system_define(GameUpdateSys) {
   };
 
   game_levels_query_update(&ctx);
-
-  if (scene_level_loaded(ctx.levelManager)) {
-    asset_loading_budget_set(ctx.assets, time_milliseconds(2)); // Limit loading during gameplay.
-  } else {
-    asset_loading_budget_set(ctx.assets, 0); // Infinite while not in gameplay.
-  }
 
   EcsIterator* canvasItr   = ecs_view_itr(ecs_world_view_t(world, UiCanvasView));
   EcsView*     mainWinView = ecs_world_view_t(world, MainWindowView);
