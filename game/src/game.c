@@ -266,6 +266,9 @@ static void game_transition(const GameUpdateContext* ctx, const GameState state)
     game_music_stop(ctx->game, ctx->soundMixer);
     ctx->timeSet->flags &= ~SceneTimeFlags_Paused;
     break;
+  case GameState_Play:
+    input_layer_disable(ctx->input, string_hash_lit("Game"));
+    break;
   case GameState_Pause:
     ctx->timeSet->flags &= ~SceneTimeFlags_Paused;
 
@@ -292,6 +295,7 @@ static void game_transition(const GameUpdateContext* ctx, const GameState state)
     break;
   case GameState_Play:
     ctx->winRendSet->flags &= ~RendFlags_2D;
+    input_layer_enable(ctx->input, string_hash_lit("Game"));
     break;
   case GameState_Pause:
     ctx->timeSet->flags |= SceneTimeFlags_Paused;
@@ -761,26 +765,17 @@ ecs_system_define(GameUpdateSys) {
       ctx.game->stateNext = GameState_None;
     }
 
-    switch (ctx.game->state) {
-    case GameState_Play:
-      game_dev_panels_hide(&ctx, true);
-      input_layer_disable(ctx.input, string_hash_lit("Dev"));
-      input_layer_enable(ctx.input, string_hash_lit("Game"));
-      scene_visibility_flags_clear(ctx.visibilityEnv, SceneVisibilityFlags_ForceRender);
-      break;
-    case GameState_Edit:
+    if (ctx.winDevStats && dev_stats_debug(ctx.winDevStats) == DevStatDebug_On) {
       if (!ctx.winGame->devMenu) {
         ctx.winGame->devMenu = dev_menu_create(world, ctx.winEntity);
       }
       game_dev_panels_hide(&ctx, false);
-      input_layer_enable(ctx.input, string_hash_lit("Dev"));
-      input_layer_disable(ctx.input, string_hash_lit("Game"));
       scene_visibility_flags_set(ctx.visibilityEnv, SceneVisibilityFlags_ForceRender);
-      break;
-    default:
-      input_layer_disable(ctx.input, string_hash_lit("Dev"));
-      input_layer_disable(ctx.input, string_hash_lit("Game"));
+      input_layer_enable(ctx.input, string_hash_lit("Dev"));
+    } else {
+      game_dev_panels_hide(&ctx, true);
       scene_visibility_flags_clear(ctx.visibilityEnv, SceneVisibilityFlags_ForceRender);
+      input_layer_disable(ctx.input, string_hash_lit("Dev"));
     }
 
     MenuEntry menuEntries[32];
