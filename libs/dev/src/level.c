@@ -24,21 +24,9 @@
 
 // clang-format off
 
-static const String g_tooltipEdit   = string_static("Start editing the current level.");
-static const String g_tooltipPlay   = string_static("Start playing the current level.");
 static const String g_tooltipFilter = string_static("Filter levels by identifier.\nSupports glob characters \a.b*\ar and \a.b?\ar (\a.b!\ar prefix to invert).");
 
 // clang-format on
-
-typedef enum {
-  DevLevelFlags_RefreshLevels = 1 << 0,
-  DevLevelFlags_Edit          = 1 << 1,
-  DevLevelFlags_Play          = 1 << 2,
-
-  DevLevelFlags_None     = 0,
-  DevLevelFlags_Default  = DevLevelFlags_RefreshLevels,
-  DevLevelFlags_Volatile = DevLevelFlags_RefreshLevels | DevLevelFlags_Edit | DevLevelFlags_Play,
-} DevLevelFlags;
 
 typedef enum {
   DevLevelTab_Manage,
@@ -60,13 +48,13 @@ static const String g_levelFogNames[] = {
 ASSERT(array_elems(g_levelFogNames) == AssetLevelFog_Count, "Incorrect number of names");
 
 ecs_comp_define(DevLevelPanelComp) {
-  DevLevelFlags flags;
-  EcsEntityId   window;
-  DynString     idFilter;
-  DynString     nameBuffer;
-  UiPanel       panel;
-  UiScrollview  scrollview;
-  u32           totalRows;
+  EcsEntityId  window;
+  DynString    idFilter;
+  DynString    nameBuffer;
+  UiPanel      panel;
+  UiScrollview scrollview;
+  u32          totalRows;
+  bool         refreshLevels;
 };
 
 static void ecs_destruct_level_panel(void* data) {
@@ -116,24 +104,10 @@ static void manage_panel_options_draw(UiCanvasComp* c, DevLevelContext* ctx) {
   ui_layout_push(c);
 
   UiTable table = ui_table(.spacing = ui_vector(5, 5), .rowHeight = 20);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 30);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 30);
   ui_table_add_column(&table, UiTableColumn_Fixed, 60);
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
   ui_table_next_row(c, &table);
-
-  const bool          isLoaded = ecs_entity_valid(scene_level_asset(ctx->levelManager));
-  const UiWidgetFlags btnFlags = isLoaded ? 0 : UiWidget_Disabled;
-
-  if (ui_button(c, .flags = btnFlags, .label = string_lit("\uE3C9"), .tooltip = g_tooltipEdit)) {
-    ctx->panelComp->flags |= DevLevelFlags_Edit;
-  }
-  ui_table_next_column(c, &table);
-  if (ui_button(c, .flags = btnFlags, .label = string_lit("\uE037"), .tooltip = g_tooltipPlay)) {
-    ctx->panelComp->flags |= DevLevelFlags_Play;
-  }
-  ui_table_next_column(c, &table);
   ui_label(c, string_lit("Filter:"));
   ui_table_next_column(c, &table);
   ui_textbox(
@@ -327,15 +301,7 @@ ecs_system_define(DevLevelUpdatePanelSys) {
     if (ecs_view_maybe_jump(cameraItr, panelComp->window) || ecs_view_walk(cameraItr)) {
       ctx.cameraTrans = ecs_view_read_t(cameraItr, SceneTransformComp);
     }
-
-    refreshLevels |= (panelComp->flags & DevLevelFlags_RefreshLevels) != 0;
-    if (panelComp->flags & DevLevelFlags_Edit) {
-      scene_level_reload(world, SceneLevelMode_Edit);
-    }
-    if (panelComp->flags & DevLevelFlags_Play) {
-      scene_level_reload(world, SceneLevelMode_Play);
-    }
-    panelComp->flags &= ~DevLevelFlags_Volatile;
+    refreshLevels |= panelComp->refreshLevels;
 
     ui_canvas_reset(canvas);
     const bool pinned = ui_panel_pinned(&panelComp->panel);
@@ -376,7 +342,6 @@ dev_level_panel_open(EcsWorld* world, const EcsEntityId window, const DevPanelTy
       world,
       panelEntity,
       DevLevelPanelComp,
-      .flags      = DevLevelFlags_Default,
       .window     = window,
       .idFilter   = dynstring_create(g_allocHeap, 32),
       .nameBuffer = dynstring_create(g_allocHeap, 32),
