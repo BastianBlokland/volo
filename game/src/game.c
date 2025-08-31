@@ -254,6 +254,16 @@ typedef struct {
   EcsView* devPanelView; // Null if dev-support is not enabled.
 } GameUpdateContext;
 
+static void game_notify_level_action(const GameUpdateContext* ctx, const String action) {
+  if (ctx->devStatsGlobal) {
+    String name = scene_level_name(ctx->levelManager);
+    if (string_is_empty(name)) {
+      name = string_lit("<unnamed>");
+    }
+    dev_stats_notify(ctx->devStatsGlobal, action, name);
+  }
+}
+
 static void game_fullscreen_toggle(const GameUpdateContext* ctx) {
   if (gap_window_mode(ctx->winComp) == GapWindowMode_Fullscreen) {
     log_i("Enter windowed mode");
@@ -449,6 +459,22 @@ static void menu_draw(
   ui_style_pop(ctx->winCanvas);
 }
 
+static void
+menu_bar_draw(const GameUpdateContext* ctx, const MenuEntry entries[], const u32 count) {
+  static const UiVector g_entrySize = {.x = 40.0f, .y = 40.0f};
+  static const f32      g_spacing   = 8.0f;
+
+  const f32 xCenterOffset = (count - 1) * (g_entrySize.x + g_spacing) * -0.5f;
+  ui_layout_inner(
+      ctx->winCanvas, UiBase_Canvas, UiAlign_BottomCenter, g_entrySize, UiBase_Absolute);
+  ui_layout_move(ctx->winCanvas, ui_vector(xCenterOffset, g_spacing), UiBase_Absolute, Ui_XY);
+
+  for (u32 i = 0; i != count; ++i) {
+    entries[i](ctx, i);
+    ui_layout_next(ctx->winCanvas, Ui_Right, g_spacing);
+  }
+}
+
 static void menu_entry_play(const GameUpdateContext* ctx, MAYBE_UNUSED const u32 index) {
   if (ui_button(
           ctx->winCanvas,
@@ -633,6 +659,49 @@ static void menu_entry_level(const GameUpdateContext* ctx, const u32 index) {
     game_transition(ctx, GameState_Loading);
     const SceneLevelMode mode = ctx->game->editMode ? SceneLevelMode_Edit : SceneLevelMode_Play;
     scene_level_load(ctx->world, mode, ctx->game->levelAssets[levelIndex]);
+  }
+}
+
+static void menu_entry_edit_play(const GameUpdateContext* ctx, MAYBE_UNUSED const u32 index) {
+  if (ui_button(
+          ctx->winCanvas,
+          .label    = ui_shape_scratch(UiShape_Play),
+          .fontSize = 25,
+          .tooltip  = string_lit("Play the level."))) {
+    scene_level_reload(ctx->world, SceneLevelMode_Play);
+    game_transition_delayed(ctx->game, GameState_Loading);
+  }
+}
+
+static void menu_entry_edit_discard(const GameUpdateContext* ctx, MAYBE_UNUSED const u32 index) {
+  if (ui_button(
+          ctx->winCanvas,
+          .label    = ui_shape_scratch(UiShape_Restart),
+          .fontSize = 25,
+          .tooltip  = string_lit("Reload the level (discarding any unsaved changes)."))) {
+    scene_level_reload(ctx->world, SceneLevelMode_Edit);
+    game_notify_level_action(ctx, string_lit("Discard"));
+  }
+}
+
+static void menu_entry_edit_save(const GameUpdateContext* ctx, MAYBE_UNUSED const u32 index) {
+  if (ui_button(
+          ctx->winCanvas,
+          .label    = ui_shape_scratch(UiShape_Save),
+          .fontSize = 25,
+          .tooltip  = string_lit("Save the level."))) {
+    scene_level_save(ctx->world, scene_level_asset(ctx->levelManager));
+    game_notify_level_action(ctx, string_lit("Save"));
+  }
+}
+
+static void menu_entry_edit_stop(const GameUpdateContext* ctx, MAYBE_UNUSED const u32 index) {
+  if (ui_button(
+          ctx->winCanvas,
+          .label    = ui_shape_scratch(UiShape_Logout),
+          .fontSize = 25,
+          .tooltip  = string_lit("Stop editing."))) {
+    game_transition(ctx, GameState_MenuMain);
   }
 }
 
@@ -918,6 +987,11 @@ ecs_system_define(GameUpdateSys) {
       }
       break;
     case GameState_Edit:
+      menuEntries[menuEntriesCount++] = &menu_entry_edit_play;
+      menuEntries[menuEntriesCount++] = &menu_entry_edit_discard;
+      menuEntries[menuEntriesCount++] = &menu_entry_edit_save;
+      menuEntries[menuEntriesCount++] = &menu_entry_edit_stop;
+      menu_bar_draw(&ctx, menuEntries, menuEntriesCount);
       break;
     case GameState_Pause:
       menuEntries[menuEntriesCount++] = &menu_entry_resume;
