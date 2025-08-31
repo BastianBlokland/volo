@@ -18,7 +18,6 @@
 #include "ui/panel.h"
 #include "ui/scrollview.h"
 #include "ui/shape.h"
-#include "ui/style.h"
 #include "ui/table.h"
 #include "ui/widget.h"
 
@@ -121,12 +120,8 @@ static void manage_panel_draw(UiCanvasComp* c, DevLevelContext* ctx) {
   ui_layout_grow(c, UiAlign_BottomCenter, ui_vector(0, -35), UiBase_Absolute, Ui_Y);
   ui_layout_container_push(c, UiClip_None, UiLayer_Normal);
 
-  const bool isLoading = scene_level_loading(ctx->levelManager);
-  const bool disabled  = isLoading;
-  ui_style_push(c);
-  if (disabled) {
-    ui_style_color_mult(c, 0.5f);
-  }
+  const bool disabled =
+      scene_level_loading(ctx->levelManager) || scene_level_loaded(ctx->levelManager);
 
   UiTable table = ui_table(.spacing = ui_vector(10, 5));
   ui_table_add_column(&table, UiTableColumn_Fixed, 375);
@@ -171,8 +166,6 @@ static void manage_panel_draw(UiCanvasComp* c, DevLevelContext* ctx) {
   }
 
   ui_scrollview_end(c, &ctx->panelComp->scrollview);
-
-  ui_style_pop(c);
   ui_layout_container_pop(c);
 }
 
