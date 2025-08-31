@@ -47,13 +47,14 @@ static const String g_levelFogNames[] = {
 ASSERT(array_elems(g_levelFogNames) == AssetLevelFog_Count, "Incorrect number of names");
 
 ecs_comp_define(DevLevelPanelComp) {
-  EcsEntityId  window;
-  DynString    idFilter;
-  DynString    nameBuffer;
-  UiPanel      panel;
-  UiScrollview scrollview;
-  u32          totalRows;
-  bool         refreshLevels;
+  EcsEntityId     window;
+  DynString       idFilter;
+  DynString       nameBuffer;
+  UiPanel         panel;
+  UiScrollview    scrollview;
+  u32             totalRows;
+  bool            refreshLevels;
+  DevLevelRequest loadRequest;
 };
 
 static void ecs_destruct_level_panel(void* data) {
@@ -120,8 +121,10 @@ static void browse_panel_draw(UiCanvasComp* c, DevLevelContext* ctx) {
   ui_layout_grow(c, UiAlign_BottomCenter, ui_vector(0, -35), UiBase_Absolute, Ui_Y);
   ui_layout_container_push(c, UiClip_None, UiLayer_Normal);
 
-  const bool disabled =
-      scene_level_loading(ctx->levelManager) || scene_level_loaded(ctx->levelManager);
+  bool disabled = false;
+  disabled |= ecs_entity_valid(ctx->panelComp->loadRequest.levelAsset);
+  disabled |= scene_level_loading(ctx->levelManager);
+  disabled |= scene_level_loaded(ctx->levelManager);
 
   UiTable table = ui_table(.spacing = ui_vector(10, 5));
   ui_table_add_column(&table, UiTableColumn_Fixed, 375);
@@ -157,11 +160,17 @@ static void browse_panel_draw(UiCanvasComp* c, DevLevelContext* ctx) {
 
     ui_layout_resize(c, UiAlign_MiddleLeft, ui_vector(30, 0), UiBase_Absolute, Ui_X);
     if (ui_button(c, .flags = disabled ? UiWidget_Disabled : 0, .label = string_lit("\uE3C9"))) {
-      scene_level_load(ctx->world, SceneLevelMode_Edit, asset);
+      ctx->panelComp->loadRequest = (DevLevelRequest){
+          .levelAsset = asset,
+          .levelMode  = SceneLevelMode_Edit,
+      };
     }
     ui_layout_next(c, Ui_Right, 10);
     if (ui_button(c, .flags = disabled ? UiWidget_Disabled : 0, .label = string_lit("\uE037"))) {
-      scene_level_load(ctx->world, SceneLevelMode_Play, asset);
+      ctx->panelComp->loadRequest = (DevLevelRequest){
+          .levelAsset = asset,
+          .levelMode  = SceneLevelMode_Play,
+      };
     }
   }
 
@@ -255,8 +264,6 @@ ecs_view_define(PanelUpdateGlobalView) {
 }
 
 ecs_view_define(PanelUpdateView) {
-  ecs_view_flags(EcsViewFlags_Exclusive); // DevLevelPanelComp's are exclusively managed here.
-
   ecs_access_read(DevPanelComp);
   ecs_access_write(DevLevelPanelComp);
   ecs_access_write(UiCanvasComp);
@@ -345,4 +352,14 @@ dev_level_panel_open(EcsWorld* world, const EcsEntityId window, const DevPanelTy
   }
 
   return panelEntity;
+}
+
+bool dev_level_consume_request(DevLevelPanelComp* comp, DevLevelRequest* out) {
+  const bool hasRequest = ecs_entity_valid(comp->loadRequest.levelAsset);
+  if (hasRequest) {
+    *out              = comp->loadRequest;
+    comp->loadRequest = (DevLevelRequest){0};
+    return true;
+  }
+  return false;
 }
