@@ -301,7 +301,10 @@ ecs_system_define(DevLevelUpdatePanelSys) {
     if (ecs_view_maybe_jump(cameraItr, panelComp->window) || ecs_view_walk(cameraItr)) {
       ctx.cameraTrans = ecs_view_read_t(cameraItr, SceneTransformComp);
     }
-    refreshLevels |= panelComp->refreshLevels;
+    if (panelComp->refreshLevels) {
+      refreshLevels            = true;
+      panelComp->refreshLevels = false;
+    }
 
     ui_canvas_reset(canvas);
     const bool pinned = ui_panel_pinned(&panelComp->panel);
