@@ -556,7 +556,7 @@ static void menu_entry_edit_current(const GameUpdateContext* ctx, MAYBE_UNUSED c
           .fontSize   = 25,
           .tooltip    = string_lit("Start editing the current level."))) {
     ctx->game->flags |= GameFlags_EditMode;
-    scene_level_reload(ctx->world, SceneLevelMode_Play);
+    scene_level_reload(ctx->world, SceneLevelMode_Edit);
     game_transition(ctx, GameState_Loading);
   }
 }
@@ -738,8 +738,8 @@ static void menu_entry_edit_play(const GameUpdateContext* ctx, MAYBE_UNUSED cons
           ctx->winCanvas,
           .label    = ui_shape_scratch(UiShape_Play),
           .fontSize = 25,
-          .tooltip  = string_lit("Play the level."))) {
-    scene_level_reload(ctx->world, SceneLevelMode_Play);
+          .tooltip  = string_lit("Play the level (saves the current state to disk)."))) {
+    scene_level_save_reload(ctx->world, scene_level_asset(ctx->levelManager), SceneLevelMode_Play);
     game_transition_delayed(ctx->game, GameState_Loading);
   }
 }
