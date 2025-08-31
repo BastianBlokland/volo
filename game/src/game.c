@@ -367,7 +367,6 @@ static void game_transition(const GameUpdateContext* ctx, const GameState state)
   case GameState_Play:
     ctx->winRendSet->flags &= ~RendFlags_2D;
     game_input_type_set(ctx->winGameInput, GameInputType_Normal);
-    input_layer_enable(ctx->input, string_hash_lit("Game"));
     asset_loading_budget_set(ctx->assets, time_milliseconds(2)); // Limit loading during gameplay.
     break;
   case GameState_Edit:
@@ -1003,20 +1002,30 @@ ecs_system_define(GameUpdateSys) {
     if (debugReq && !(ctx.game->flags & GameFlags_DebugActive)) {
       game_dev_panels_hide(&ctx, false);
       scene_visibility_flags_set(ctx.visibilityEnv, SceneVisibilityFlags_ForceRender);
-      input_layer_enable(ctx.input, string_hash_lit("Dev"));
       input_blocker_update(ctx.input, InputBlocker_Debug, true);
       dev_stats_notify(ctx.devStatsGlobal, string_lit("Debug"), string_lit("On"));
       ctx.game->flags |= GameFlags_DebugActive;
     } else if (!debugReq && (ctx.game->flags & GameFlags_DebugActive)) {
       game_dev_panels_hide(&ctx, true);
       scene_visibility_flags_clear(ctx.visibilityEnv, SceneVisibilityFlags_ForceRender);
-      input_layer_disable(ctx.input, string_hash_lit("Dev"));
       input_blocker_update(ctx.input, InputBlocker_Debug, false);
       dev_stats_notify(ctx.devStatsGlobal, string_lit("Debug"), string_lit("Off"));
       ctx.game->flags &= ~GameFlags_DebugActive;
     }
-    if (debugReq && input_triggered_lit(ctx.input, "DevFreeCamera")) {
-      game_toggle_camera(&ctx);
+
+    if (debugReq) {
+      if (input_triggered_lit(ctx.input, "DevFreeCamera")) {
+        game_toggle_camera(&ctx);
+      }
+      input_layer_enable(ctx.input, string_hash_lit("Dev"));
+      input_layer_disable(ctx.input, string_hash_lit("Game"));
+    } else {
+      if (ctx.game->state == GameState_Play) {
+        input_layer_enable(ctx.input, string_hash_lit("Game"));
+      } else {
+        input_layer_disable(ctx.input, string_hash_lit("Game"));
+      }
+      input_layer_disable(ctx.input, string_hash_lit("Dev"));
     }
 
     MenuEntry menuEntries[32];
