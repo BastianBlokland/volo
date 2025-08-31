@@ -139,7 +139,6 @@ spec(bitset) {
   }
 
   it("computes the same index as the iterations number while walking the set bits") {
-
     static const u32 g_mask = 0b01100100010101000100010110010110;
     const BitSet     bits   = bitset_from_var(g_mask);
 
@@ -148,6 +147,30 @@ spec(bitset) {
       check_eq_int(bitset_index(bits, setIdx), i);
       ++i;
     }
+  }
+
+  it("can retrieve the nth set bit") {
+    const BitSet bitsA = bitset_from_var((u32){0b01000100010111000100010010010011});
+    check_eq_int(bitset_nth(bitsA, 0), 0);
+    check_eq_int(bitset_nth(bitsA, 1), 1);
+    check_eq_int(bitset_nth(bitsA, 2), 4);
+    check_eq_int(bitset_nth(bitsA, 3), 7);
+    check_eq_int(bitset_nth(bitsA, 4), 10);
+    check_eq_int(bitset_nth(bitsA, 5), 14);
+    check_eq_int(bitset_nth(bitsA, 6), 18);
+    check_eq_int(bitset_nth(bitsA, 7), 19);
+    check_eq_int(bitset_nth(bitsA, 8), 20);
+    check_eq_int(bitset_nth(bitsA, 9), 22);
+    check_eq_int(bitset_nth(bitsA, 10), 26);
+    check_eq_int(bitset_nth(bitsA, 11), 30);
+
+    const BitSet bitsB = bitset_from_var((u32){0b11000100000000000000000000000000});
+    check_eq_int(bitset_nth(bitsB, 0), 26);
+    check_eq_int(bitset_nth(bitsB, 1), 30);
+    check_eq_int(bitset_nth(bitsB, 2), 31);
+
+    const BitSet bitsC = bitset_from_var((u32){0b10000000000000000000000000000000});
+    check_eq_int(bitset_nth(bitsC, 0), 31);
   }
 
   it("can iterate all set bits") {

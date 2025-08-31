@@ -109,6 +109,24 @@ u8 bits_clz_64(u64);
 // clang-format on
 
 /**
+ * Return the index of the nth set bit in a mask.
+ *
+ * Pre-condition: index < popcnt(mask)
+ */
+u8 bits_nth_32(u32, u8 index);
+u8 bits_nth_64(u64, u8 index);
+
+// clang-format off
+
+#define bits_nth(_VAL_, _IDX_)                                                                     \
+  _Generic((_VAL_),                                                                                \
+    u32 : bits_nth_32((u32)(_VAL_), (_IDX_)),                                                      \
+    u64 : bits_nth_64((u64)(_VAL_), (_IDX_))                                                       \
+  )
+
+// clang-format on
+
+/**
  * Check if the given value is a power of two.
  * Pre-condition: val != 0.
  */

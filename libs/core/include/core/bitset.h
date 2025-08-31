@@ -82,6 +82,13 @@ usize bitset_next(BitSet, usize idx);
 usize bitset_index(BitSet, usize idx);
 
 /**
+ * Return the nth set bit.
+ *
+ * Pre-condition: idx < bitset_count()
+ */
+usize bitset_nth(BitSet, usize nth);
+
+/**
  * Set the bit at the given index.
  * Pre-condition: idx < bitset_size
  */

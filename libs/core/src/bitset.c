@@ -84,6 +84,22 @@ usize bitset_index(const BitSet bits, const usize idx) {
   return result;
 }
 
+usize bitset_nth(const BitSet bits, usize nth) {
+  diag_assert(nth < bitset_count(bits));
+
+  usize     result = 0;
+  const u8* itr    = mem_begin(bits);
+  for (;; ++itr) {
+    const u8 setBits = bits_popcnt_32(*itr);
+    if (nth < setBits) {
+      return result + bits_nth_32(*itr, (u8)nth);
+    }
+    nth -= setBits;
+    result += 8;
+  }
+  UNREACHABLE
+}
+
 void bitset_set(const BitSet bits, const usize idx) {
   diag_assert(idx < bitset_size(bits));
   *mem_at_u8(bits, bits_to_bytes(idx)) |= 1u << bit_in_byte(idx);

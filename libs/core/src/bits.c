@@ -59,6 +59,40 @@ u8 bits_clz_64(const u64 mask) {
   return intrinsic_clz_64(mask);
 }
 
+u8 bits_nth_32(u32 mask, u8 index) {
+  /**
+   * NOTE: Could be implemented significantly faster using the PDEP instruction from the BMI
+   * instruction extensions, however we still support 'Sandy Bridge' which did not have this.
+   */
+  diag_assert(index < intrinsic_popcnt_32(mask));
+
+  u8 result = u8_max;
+  do {
+    const u8 skip = intrinsic_ctz_32(mask) + 1;
+    result += skip;
+    mask >>= skip;
+  } while (index--);
+
+  return result;
+}
+
+u8 bits_nth_64(u64 mask, u8 index) {
+  /**
+   * NOTE: Could be implemented significantly faster using the PDEP instruction from the BMI
+   * instruction extensions, however we still support 'Sandy Bridge' which did not have this.
+   */
+  diag_assert(index < intrinsic_popcnt_64(mask));
+
+  u8 result = u8_max;
+  do {
+    const u8 skip = intrinsic_ctz_64(mask) + 1;
+    result += skip;
+    mask >>= skip;
+  } while (index--);
+
+  return result;
+}
+
 bool bits_ispow2_32(const u32 val) {
   diag_assert(val != 0);
   // Ref: https://graphics.stanford.edu/~seander/bithacks.html#DetermineIfPowerOf2.
