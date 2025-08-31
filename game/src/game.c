@@ -799,7 +799,17 @@ ecs_view_define(UiCanvasView) {
 ecs_view_define(DevMenuView) { ecs_access_write(DevMenuComp); }
 ecs_view_define(DevPanelView) { ecs_access_write(DevPanelComp); }
 
-static void game_levels_query_init(EcsWorld* world, GameComp* game, AssetManagerComp* assets) {
+static void game_level_query_begin(EcsWorld* world, GameComp* game, AssetManagerComp* assets) {
+  if (UNLIKELY(game->levelLoadingMask)) {
+    log_e("Already busy querying levels");
+    return;
+  }
+  game->levelMask = 0;
+  for (u32 i = 0; i != GameLevelsMax; ++i) {
+    game->levelAssets[i] = 0;
+    string_maybe_free(g_allocHeap, game->levelNames[i]);
+  }
+
   const String levelPattern = string_lit("levels/game/*.level");
   EcsEntityId  queryAssets[asset_query_max_results];
   const u32    queryCount = asset_query(world, assets, levelPattern, queryAssets);
@@ -811,7 +821,7 @@ static void game_levels_query_init(EcsWorld* world, GameComp* game, AssetManager
   }
 }
 
-static void game_levels_query_update(const GameUpdateContext* ctx) {
+static void game_level_query_update(const GameUpdateContext* ctx) {
   if (!ctx->game->levelLoadingMask) {
     return; // Loading finished.
   }
@@ -904,7 +914,7 @@ ecs_system_define(GameUpdateSys) {
       .devPanelView        = ecs_world_view_t(world, DevPanelView),
   };
 
-  game_levels_query_update(&ctx);
+  game_level_query_update(&ctx);
 
   EcsIterator* canvasItr   = ecs_view_itr(ecs_world_view_t(world, UiCanvasView));
   EcsView*     mainWinView = ecs_world_view_t(world, MainWindowView);
@@ -1218,7 +1228,7 @@ bool app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
       .mainWindow  = mainWin,
       .musicHandle = sentinel_u32);
 
-  game_levels_query_init(world, game, assets);
+  game_level_query_begin(world, game, assets);
 
   InputResourceComp* inputResource = input_resource_init(world);
   input_resource_load_map(inputResource, string_lit("global/global.inputs"));
