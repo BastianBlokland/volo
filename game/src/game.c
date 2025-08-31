@@ -264,6 +264,16 @@ static void game_notify_level_action(const GameUpdateContext* ctx, const String 
   }
 }
 
+static void game_toggle_camera(const GameUpdateContext* ctx) {
+  if (game_input_type(ctx->winGameInput) == GameInputType_Normal) {
+    game_input_type_set(ctx->winGameInput, GameInputType_FreeCamera);
+    dev_stats_notify(ctx->devStatsGlobal, string_lit("Camera"), string_lit("Free"));
+  } else {
+    game_input_type_set(ctx->winGameInput, GameInputType_Normal);
+    dev_stats_notify(ctx->devStatsGlobal, string_lit("Camera"), string_lit("Normal"));
+  }
+}
+
 static void game_fullscreen_toggle(const GameUpdateContext* ctx) {
   if (gap_window_mode(ctx->winComp) == GapWindowMode_Fullscreen) {
     log_i("Enter windowed mode");
@@ -662,6 +672,16 @@ static void menu_entry_level(const GameUpdateContext* ctx, const u32 index) {
   }
 }
 
+static void menu_entry_edit_camera(const GameUpdateContext* ctx, MAYBE_UNUSED const u32 index) {
+  if (ui_button(
+          ctx->winCanvas,
+          .label    = ui_shape_scratch(UiShape_PhotoCamera),
+          .fontSize = 25,
+          .tooltip  = string_lit("Toggle between the normal and free camera."))) {
+    game_toggle_camera(ctx);
+  }
+}
+
 static void menu_entry_edit_play(const GameUpdateContext* ctx, MAYBE_UNUSED const u32 index) {
   if (ui_button(
           ctx->winCanvas,
@@ -931,13 +951,7 @@ ecs_system_define(GameUpdateSys) {
       ctx.game->debugActive = false;
     }
     if (debugReq && ctx.winGameInput && input_triggered_lit(ctx.input, "DevFreeCamera")) {
-      if (game_input_type(ctx.winGameInput) == GameInputType_Normal) {
-        game_input_type_set(ctx.winGameInput, GameInputType_FreeCamera);
-        dev_stats_notify(ctx.devStatsGlobal, string_lit("Camera"), string_lit("Free"));
-      } else {
-        game_input_type_set(ctx.winGameInput, GameInputType_Normal);
-        dev_stats_notify(ctx.devStatsGlobal, string_lit("Camera"), string_lit("Normal"));
-      }
+      game_toggle_camera(&ctx);
     }
 
     MenuEntry menuEntries[32];
@@ -987,6 +1001,7 @@ ecs_system_define(GameUpdateSys) {
       }
       break;
     case GameState_Edit:
+      menuEntries[menuEntriesCount++] = &menu_entry_edit_camera;
       menuEntries[menuEntriesCount++] = &menu_entry_edit_play;
       menuEntries[menuEntriesCount++] = &menu_entry_edit_discard;
       menuEntries[menuEntriesCount++] = &menu_entry_edit_save;
