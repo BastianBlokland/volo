@@ -542,6 +542,19 @@ static void menu_entry_restart(const GameUpdateContext* ctx, MAYBE_UNUSED const 
   }
 }
 
+static void menu_entry_edit_current(const GameUpdateContext* ctx, MAYBE_UNUSED const u32 index) {
+  if (ui_button(
+          ctx->winCanvas,
+          .label      = string_lit("Edit"),
+          .frameColor = ui_color(255, 16, 16, 192),
+          .fontSize   = 25,
+          .tooltip    = string_lit("Start editing the current level."))) {
+    ctx->game->editMode = true;
+    scene_level_reload(ctx->world, SceneLevelMode_Play);
+    game_transition(ctx, GameState_Loading);
+  }
+}
+
 static void menu_entry_menu_main(const GameUpdateContext* ctx, MAYBE_UNUSED const u32 index) {
   if (ui_button(
           ctx->winCanvas,
@@ -1024,6 +1037,9 @@ ecs_system_define(GameUpdateSys) {
     case GameState_Pause:
       menuEntries[menuEntriesCount++] = &menu_entry_resume;
       menuEntries[menuEntriesCount++] = &menu_entry_restart;
+      if (ctx.devPanelView && asset_save_supported(ctx.assets)) {
+        menuEntries[menuEntriesCount++] = &menu_entry_edit_current;
+      }
       menuEntries[menuEntriesCount++] = &menu_entry_volume;
       menuEntries[menuEntriesCount++] = &menu_entry_powersaving;
       menuEntries[menuEntriesCount++] = &menu_entry_quality;
