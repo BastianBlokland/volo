@@ -268,6 +268,9 @@ static void game_notify_level_action(const GameUpdateContext* ctx, const String 
 }
 
 static void game_toggle_camera(const GameUpdateContext* ctx) {
+  if (!ctx->winGameInput) {
+    return;
+  }
   if (game_input_type(ctx->winGameInput) == GameInputType_Normal) {
     game_input_type_set(ctx->winGameInput, GameInputType_FreeCamera);
     dev_stats_notify(ctx->devStatsGlobal, string_lit("Camera"), string_lit("Free"));
@@ -960,7 +963,7 @@ ecs_system_define(GameUpdateSys) {
       dev_stats_notify(ctx.devStatsGlobal, string_lit("Debug"), string_lit("Off"));
       ctx.game->debugActive = false;
     }
-    if (debugReq && ctx.winGameInput && input_triggered_lit(ctx.input, "DevFreeCamera")) {
+    if (debugReq && input_triggered_lit(ctx.input, "DevFreeCamera")) {
       game_toggle_camera(&ctx);
     }
 
