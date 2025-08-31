@@ -48,7 +48,12 @@ ecs_comp_define(SceneLevelRequestLoadComp) {
 };
 
 ecs_comp_define(SceneLevelRequestUnloadComp);
-ecs_comp_define(SceneLevelRequestSaveComp) { EcsEntityId levelAsset; };
+ecs_comp_define(SceneLevelRequestSaveComp) {
+  EcsEntityId    levelAsset;
+  bool           reload;
+  SceneLevelMode reloadMode;
+  bool           savePerformed;
+};
 
 static const String g_levelModeNames[] = {
     string_static("Play"),
@@ -635,7 +640,7 @@ ecs_view_define(SaveGlobalView) {
   ecs_access_read(SceneLevelManagerComp);
 }
 ecs_view_define(SaveAssetView) { ecs_access_read(AssetComp); }
-ecs_view_define(SaveRequestView) { ecs_access_read(SceneLevelRequestSaveComp); }
+ecs_view_define(SaveRequestView) { ecs_access_write(SceneLevelRequestSaveComp); }
 
 ecs_system_define(SceneLevelSaveSys) {
   EcsView*     globalView = ecs_world_view_t(world, SaveGlobalView);
@@ -654,7 +659,13 @@ ecs_system_define(SceneLevelSaveSys) {
   EcsIterator* entityRefItr = ecs_view_itr(ecs_world_view_t(world, EntityRefView));
 
   for (EcsIterator* itr = ecs_view_itr(requestView); ecs_view_walk(itr);) {
-    const SceneLevelRequestSaveComp* req = ecs_view_read_t(itr, SceneLevelRequestSaveComp);
+    const EcsEntityId          entity = ecs_view_entity(itr);
+    SceneLevelRequestSaveComp* req    = ecs_view_write_t(itr, SceneLevelRequestSaveComp);
+    if (req->savePerformed && req->reload) {
+      ecs_world_add_t(world, entity, SceneLevelRequestLoadComp, .levelMode = req->reloadMode);
+      ecs_world_remove_t(world, entity, SceneLevelRequestSaveComp);
+      continue;
+    }
     if (manager->isLoading) {
       log_e("Level save failed", log_param("reason", fmt_text_lit("Load in progress")));
     } else if (manager->levelMode != SceneLevelMode_Edit) {
@@ -667,7 +678,16 @@ ecs_system_define(SceneLevelSaveSys) {
 
       level_process_save(manager, assets, assetView, assetId, instanceView, entityRefItr);
     }
-    ecs_world_entity_destroy(world, ecs_view_entity(itr));
+    req->savePerformed = true;
+    if (req->reload) {
+      /**
+       * Explicitly mark it as dirty to avoid situations where the file_monitor is too slow.
+       * NOTE: takes 1 tick to take effect so trigger the reload in the next tick.
+       */
+      asset_reload_request(world, req->levelAsset);
+    } else {
+      ecs_world_entity_destroy(world, entity);
+    }
   }
 }
 
@@ -774,4 +794,18 @@ void scene_level_save(EcsWorld* world, const EcsEntityId levelAsset) {
 
   const EcsEntityId reqEntity = ecs_world_entity_create(world);
   ecs_world_add_t(world, reqEntity, SceneLevelRequestSaveComp, .levelAsset = levelAsset);
+}
+
+void scene_level_save_reload(
+    EcsWorld* world, const EcsEntityId levelAsset, const SceneLevelMode mode) {
+  diag_assert(ecs_entity_valid(levelAsset));
+
+  const EcsEntityId reqEntity = ecs_world_entity_create(world);
+  ecs_world_add_t(
+      world,
+      reqEntity,
+      SceneLevelRequestSaveComp,
+      .levelAsset = levelAsset,
+      .reload     = true,
+      .reloadMode = mode);
 }
