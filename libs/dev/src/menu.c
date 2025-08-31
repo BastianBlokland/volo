@@ -49,6 +49,7 @@ typedef EcsEntityId (*ChildOpenFunc)(EcsWorld*, EcsEntityId, DevPanelType);
 static const struct {
   String        name;
   u32           iconShape;
+  bool          openOnEdit;
   GapVector     detachedSize;
   ChildOpenFunc openFunc;
   String        hotkeyName;
@@ -56,6 +57,7 @@ static const struct {
     {
         .name         = string_static("Inspector"),
         .iconShape    = UiShape_ViewInAr,
+        .openOnEdit   = true,
         .detachedSize = {.x = 500, .y = 500},
         .openFunc     = dev_inspector_panel_open,
         .hotkeyName   = string_static("DevPanelInspector"),
@@ -63,6 +65,7 @@ static const struct {
     {
         .name         = string_static("Hierarchy"),
         .iconShape    = UiShape_Tree,
+        .openOnEdit   = true,
         .detachedSize = {.x = 500, .y = 350},
         .openFunc     = dev_hierarchy_panel_open,
         .hotkeyName   = string_static("DevPanelHierarchy"),
@@ -184,6 +187,7 @@ menu_child_tooltip_scratch(const u32 childIndex, const bool open, const bool all
 
 ecs_comp_define(DevMenuComp) {
   EcsEntityId window;
+  EcsEntityId menuEntity;
   EcsEntityId childEntities[array_elems(g_menuChildConfig)];
 };
 
@@ -386,8 +390,30 @@ ecs_module_init(dev_menu_module) {
       ecs_view_id(WindowView));
 }
 
-EcsEntityId dev_menu_create(EcsWorld* world, const EcsEntityId window) {
-  const EcsEntityId menuEntity = dev_panel_create(world, window, DevPanelType_Normal);
-  ecs_world_add_t(world, menuEntity, DevMenuComp, .window = window);
+EcsEntityId dev_menu_create(EcsWorld* world, const EcsEntityId window, const bool hidden) {
+  EcsEntityId menuEntity;
+  if (hidden) {
+    menuEntity = dev_panel_create_hidden(world, window, DevPanelType_Normal);
+  } else {
+    menuEntity = dev_panel_create(world, window, DevPanelType_Normal);
+  }
+  ecs_world_add_t(world, menuEntity, DevMenuComp, .window = window, .menuEntity = menuEntity);
   return menuEntity;
+}
+
+void dev_menu_edit_panels_open(EcsWorld* world, DevMenuComp* menu) {
+  for (u32 childIndex = 0; childIndex != array_elems(menu->childEntities); ++childIndex) {
+    if (g_menuChildConfig[childIndex].openOnEdit && !menu_child_is_open(world, menu, childIndex)) {
+      menu_child_open(world, menu, menu->menuEntity, childIndex);
+    }
+  }
+}
+
+void dev_menu_edit_panels_close(EcsWorld* world, DevMenuComp* menu) {
+  for (u32 childIndex = 0; childIndex != array_elems(menu->childEntities); ++childIndex) {
+    if (g_menuChildConfig[childIndex].openOnEdit && menu_child_is_open(world, menu, childIndex)) {
+      ecs_world_entity_destroy(world, menu->childEntities[childIndex]);
+      menu->childEntities[childIndex] = 0;
+    }
+  }
 }

@@ -73,6 +73,7 @@ ecs_comp_define(GameComp) {
   u32       stateTicks;
   bool      devSupport;
   bool      debugActive;
+  bool      editMode;
 
   EcsEntityId mainWindow;
   SndObjectId musicHandle;
@@ -130,12 +131,14 @@ static EcsEntityId game_window_create(
   const String        titleScratch   = fmt_write_scratch("Volo v{}", fmt_text(versionScratch));
   const EcsEntityId   window = gap_window_create(world, mode, flags, size, icon, titleScratch);
 
+  const EcsEntityId   uiCanvas = ui_canvas_create(world, window, UiCanvasCreateFlags_ToBack);
+  GameMainWindowComp* gameWinComp =
+      ecs_world_add_t(world, window, GameMainWindowComp, .uiCanvas = uiCanvas);
+
   if (devSupport) {
     dev_log_viewer_create(world, window, LogMask_Info | LogMask_Warn | LogMask_Error);
+    gameWinComp->devMenu = dev_menu_create(world, window, true /* hidden */);
   }
-
-  const EcsEntityId uiCanvas = ui_canvas_create(world, window, UiCanvasCreateFlags_ToBack);
-  ecs_world_add_t(world, window, GameMainWindowComp, .uiCanvas = uiCanvas);
 
   ecs_world_add_t(
       world,
@@ -247,11 +250,35 @@ typedef struct {
   GameHudComp*        winHud;
   GameInputComp*      winGameInput;
   DevStatsComp*       winDevStats;
+  DevMenuComp*        winDevMenu;
   UiCanvasComp*       winCanvas;
 
   EcsView* levelRenderableView;
   EcsView* devPanelView; // Null if dev-support is not enabled.
 } GameUpdateContext;
+
+static void game_notify_level_action(const GameUpdateContext* ctx, const String action) {
+  if (ctx->devStatsGlobal) {
+    String name = scene_level_name(ctx->levelManager);
+    if (string_is_empty(name)) {
+      name = string_lit("<unnamed>");
+    }
+    dev_stats_notify(ctx->devStatsGlobal, action, name);
+  }
+}
+
+static void game_toggle_camera(const GameUpdateContext* ctx) {
+  if (!ctx->winGameInput) {
+    return;
+  }
+  if (game_input_type(ctx->winGameInput) == GameInputType_Normal) {
+    game_input_type_set(ctx->winGameInput, GameInputType_FreeCamera);
+    dev_stats_notify(ctx->devStatsGlobal, string_lit("Camera"), string_lit("Free"));
+  } else {
+    game_input_type_set(ctx->winGameInput, GameInputType_Normal);
+    dev_stats_notify(ctx->devStatsGlobal, string_lit("Camera"), string_lit("Normal"));
+  }
+}
 
 static void game_fullscreen_toggle(const GameUpdateContext* ctx) {
   if (gap_window_mode(ctx->winComp) == GapWindowMode_Fullscreen) {
@@ -298,6 +325,14 @@ static void game_transition(const GameUpdateContext* ctx, const GameState state)
     game_input_type_set(ctx->winGameInput, GameInputType_None);
     asset_loading_budget_set(ctx->assets, 0); // Infinite budget while not in gameplay.
     break;
+  case GameState_Edit:
+    input_layer_disable(ctx->input, string_hash_lit("Edit"));
+    game_input_type_set(ctx->winGameInput, GameInputType_None);
+    if (ctx->winDevMenu) {
+      dev_menu_edit_panels_close(ctx->world, ctx->winDevMenu);
+    }
+    ctx->game->editMode = false;
+    break;
   case GameState_Pause:
     ctx->timeSet->flags &= ~SceneTimeFlags_Paused;
 
@@ -328,6 +363,17 @@ static void game_transition(const GameUpdateContext* ctx, const GameState state)
     game_input_type_set(ctx->winGameInput, GameInputType_Normal);
     input_layer_enable(ctx->input, string_hash_lit("Game"));
     asset_loading_budget_set(ctx->assets, time_milliseconds(2)); // Limit loading during gameplay.
+    break;
+  case GameState_Edit:
+    ctx->winRendSet->flags &= ~RendFlags_2D;
+    game_input_type_set(ctx->winGameInput, GameInputType_Normal);
+    input_layer_enable(ctx->input, string_hash_lit("Edit"));
+    if (ctx->winDevMenu) {
+      dev_menu_edit_panels_open(ctx->world, ctx->winDevMenu);
+    }
+    if (ctx->winDevStats) {
+      dev_stats_debug_set(ctx->winDevStats, DevStatDebug_Unavailable);
+    }
     break;
   case GameState_Pause:
     ctx->timeSet->flags |= SceneTimeFlags_Paused;
@@ -435,12 +481,41 @@ static void menu_draw(
   ui_style_pop(ctx->winCanvas);
 }
 
+static void
+menu_bar_draw(const GameUpdateContext* ctx, const MenuEntry entries[], const u32 count) {
+  static const UiVector g_entrySize = {.x = 40.0f, .y = 40.0f};
+  static const f32      g_spacing   = 8.0f;
+
+  const f32 xCenterOffset = (count - 1) * (g_entrySize.x + g_spacing) * -0.5f;
+  ui_layout_inner(
+      ctx->winCanvas, UiBase_Canvas, UiAlign_BottomCenter, g_entrySize, UiBase_Absolute);
+  ui_layout_move(ctx->winCanvas, ui_vector(xCenterOffset, g_spacing), UiBase_Absolute, Ui_XY);
+
+  for (u32 i = 0; i != count; ++i) {
+    entries[i](ctx, i);
+    ui_layout_next(ctx->winCanvas, Ui_Right, g_spacing);
+  }
+}
+
 static void menu_entry_play(const GameUpdateContext* ctx, MAYBE_UNUSED const u32 index) {
   if (ui_button(
           ctx->winCanvas,
           .label    = string_lit("Play"),
           .fontSize = 25,
-          .tooltip  = string_lit("Go to level-select menu."))) {
+          .tooltip  = string_lit("Select a level to play."))) {
+    ctx->game->editMode = false;
+    game_transition(ctx, GameState_MenuSelect);
+  }
+}
+
+static void menu_entry_edit(const GameUpdateContext* ctx, MAYBE_UNUSED const u32 index) {
+  if (ui_button(
+          ctx->winCanvas,
+          .label      = string_lit("Edit"),
+          .frameColor = ui_color(255, 16, 16, 192),
+          .fontSize   = 25,
+          .tooltip    = string_lit("Select a level to edit."))) {
+    ctx->game->editMode = true;
     game_transition(ctx, GameState_MenuSelect);
   }
 }
@@ -594,10 +669,71 @@ static void menu_entry_back(const GameUpdateContext* ctx, MAYBE_UNUSED const u32
 static void menu_entry_level(const GameUpdateContext* ctx, const u32 index) {
   const u32    levelIndex = (u32)bitset_index(bitset_from_var(ctx->game->levelMask), index);
   const String levelName  = ctx->game->levelNames[levelIndex];
-  const String tooltip    = fmt_write_scratch("Play the '{}' level.", fmt_text(levelName));
+
+  String tooltip;
+  if (ctx->game->editMode) {
+    tooltip = fmt_write_scratch("Edit the '{}' level.", fmt_text(levelName));
+  } else {
+    tooltip = fmt_write_scratch("Play the '{}' level.", fmt_text(levelName));
+  }
+
   if (ui_button(ctx->winCanvas, .label = levelName, .fontSize = 25, .tooltip = tooltip)) {
     game_transition(ctx, GameState_Loading);
-    scene_level_load(ctx->world, SceneLevelMode_Play, ctx->game->levelAssets[levelIndex]);
+    const SceneLevelMode mode = ctx->game->editMode ? SceneLevelMode_Edit : SceneLevelMode_Play;
+    scene_level_load(ctx->world, mode, ctx->game->levelAssets[levelIndex]);
+  }
+}
+
+static void menu_entry_edit_camera(const GameUpdateContext* ctx, MAYBE_UNUSED const u32 index) {
+  if (ui_button(
+          ctx->winCanvas,
+          .label    = ui_shape_scratch(UiShape_PhotoCamera),
+          .fontSize = 25,
+          .tooltip  = string_lit("Toggle between the normal and free camera."))) {
+    game_toggle_camera(ctx);
+  }
+}
+
+static void menu_entry_edit_play(const GameUpdateContext* ctx, MAYBE_UNUSED const u32 index) {
+  if (ui_button(
+          ctx->winCanvas,
+          .label    = ui_shape_scratch(UiShape_Play),
+          .fontSize = 25,
+          .tooltip  = string_lit("Play the level."))) {
+    scene_level_reload(ctx->world, SceneLevelMode_Play);
+    game_transition_delayed(ctx->game, GameState_Loading);
+  }
+}
+
+static void menu_entry_edit_discard(const GameUpdateContext* ctx, MAYBE_UNUSED const u32 index) {
+  if (ui_button(
+          ctx->winCanvas,
+          .label    = ui_shape_scratch(UiShape_Restart),
+          .fontSize = 25,
+          .tooltip  = string_lit("Reload the level (discarding any unsaved changes)."))) {
+    scene_level_reload(ctx->world, SceneLevelMode_Edit);
+    game_notify_level_action(ctx, string_lit("Discard"));
+  }
+}
+
+static void menu_entry_edit_save(const GameUpdateContext* ctx, MAYBE_UNUSED const u32 index) {
+  if (ui_button(
+          ctx->winCanvas,
+          .label    = ui_shape_scratch(UiShape_Save),
+          .fontSize = 25,
+          .tooltip  = string_lit("Save the level."))) {
+    scene_level_save(ctx->world, scene_level_asset(ctx->levelManager));
+    game_notify_level_action(ctx, string_lit("Save"));
+  }
+}
+
+static void menu_entry_edit_stop(const GameUpdateContext* ctx, MAYBE_UNUSED const u32 index) {
+  if (ui_button(
+          ctx->winCanvas,
+          .label    = ui_shape_scratch(UiShape_Logout),
+          .fontSize = 25,
+          .tooltip  = string_lit("Stop editing."))) {
+    game_transition(ctx, GameState_MenuMain);
   }
 }
 
@@ -647,6 +783,7 @@ ecs_view_define(UiCanvasView) {
   ecs_access_write(UiCanvasComp);
 }
 
+ecs_view_define(DevMenuView) { ecs_access_write(DevMenuComp); }
 ecs_view_define(DevPanelView) { ecs_access_write(DevPanelComp); }
 
 static void game_levels_query_init(EcsWorld* world, GameComp* game, AssetManagerComp* assets) {
@@ -767,6 +904,9 @@ ecs_system_define(GameUpdateSys) {
     ctx.winHud       = ecs_view_write_t(mainWinItr, GameHudComp);
     ctx.winGameInput = ecs_view_write_t(mainWinItr, GameInputComp);
     ctx.winDevStats  = ecs_view_write_t(mainWinItr, DevStatsComp);
+    if (ctx.winGame->devMenu) {
+      ctx.winDevMenu = ecs_utils_write_t(world, DevMenuView, ctx.winGame->devMenu, DevMenuComp);
+    }
 
     if (gap_window_events(ctx.winComp) & GapWindowEvents_Resized) {
       // Save last window size.
@@ -804,17 +944,14 @@ ecs_system_define(GameUpdateSys) {
       ++ctx.game->stateTicks;
     }
 
-    const bool debugReq = ctx.winDevStats && dev_stats_debug(ctx.winDevStats) == DevStatDebug_On;
+    bool debugReq = false;
+    debugReq |= ctx.winDevStats && dev_stats_debug(ctx.winDevStats) == DevStatDebug_On;
+    debugReq |= ctx.game->state == GameState_Edit;
+
     if (debugReq && !ctx.game->debugActive) {
-      if (!ctx.winGame->devMenu) {
-        ctx.winGame->devMenu = dev_menu_create(world, ctx.winEntity);
-      }
       game_dev_panels_hide(&ctx, false);
       scene_visibility_flags_set(ctx.visibilityEnv, SceneVisibilityFlags_ForceRender);
       input_layer_enable(ctx.input, string_hash_lit("Dev"));
-      if (ctx.winGameInput && input_triggered_lit(ctx.input, "DevFreeCamera")) {
-        game_input_toggle_free_camera(ctx.winGameInput);
-      }
       input_blocker_update(ctx.input, InputBlocker_Debug, true);
       dev_stats_notify(ctx.devStatsGlobal, string_lit("Debug"), string_lit("On"));
       ctx.game->debugActive = true;
@@ -826,6 +963,9 @@ ecs_system_define(GameUpdateSys) {
       dev_stats_notify(ctx.devStatsGlobal, string_lit("Debug"), string_lit("Off"));
       ctx.game->debugActive = false;
     }
+    if (debugReq && input_triggered_lit(ctx.input, "DevFreeCamera")) {
+      game_toggle_camera(&ctx);
+    }
 
     MenuEntry menuEntries[32];
     u32       menuEntriesCount = 0;
@@ -835,6 +975,9 @@ ecs_system_define(GameUpdateSys) {
       break;
     case GameState_MenuMain: {
       menuEntries[menuEntriesCount++] = &menu_entry_play;
+      if (ctx.devPanelView && asset_save_supported(ctx.assets)) {
+        menuEntries[menuEntriesCount++] = &menu_entry_edit;
+      }
       menuEntries[menuEntriesCount++] = &menu_entry_volume;
       menuEntries[menuEntriesCount++] = &menu_entry_powersaving;
       menuEntries[menuEntriesCount++] = &menu_entry_quality;
@@ -849,7 +992,8 @@ ecs_system_define(GameUpdateSys) {
         menuEntries[menuEntriesCount++] = &menu_entry_level;
       }
       menuEntries[menuEntriesCount++] = &menu_entry_back;
-      menu_draw(&ctx, string_lit("Play"), menuEntries, menuEntriesCount);
+      const String header = ctx.game->editMode ? string_lit("Edit") : string_lit("Play");
+      menu_draw(&ctx, header, menuEntries, menuEntriesCount);
       menu_draw_version(&ctx);
     } break;
     case GameState_Loading:
@@ -860,15 +1004,22 @@ ecs_system_define(GameUpdateSys) {
         break;
       }
       if (game_level_ready(&ctx) && ctx.game->stateTicks >= GameLoadingMinTicks) {
-        game_transition_delayed(ctx.game, GameState_Play);
+        game_transition_delayed(ctx.game, ctx.game->editMode ? GameState_Edit : GameState_Play);
         break;
       }
       break;
     case GameState_Play:
-    case GameState_Edit:
       if (ctx.winHud && game_hud_consume_action(ctx.winHud, GameHudAction_Pause)) {
         game_transition_delayed(ctx.game, GameState_Pause);
       }
+      break;
+    case GameState_Edit:
+      menuEntries[menuEntriesCount++] = &menu_entry_edit_camera;
+      menuEntries[menuEntriesCount++] = &menu_entry_edit_play;
+      menuEntries[menuEntriesCount++] = &menu_entry_edit_discard;
+      menuEntries[menuEntriesCount++] = &menu_entry_edit_save;
+      menuEntries[menuEntriesCount++] = &menu_entry_edit_stop;
+      menu_bar_draw(&ctx, menuEntries, menuEntriesCount);
       break;
     case GameState_Pause:
       menuEntries[menuEntriesCount++] = &menu_entry_resume;
@@ -906,6 +1057,7 @@ ecs_module_init(game_module) {
 
   if (ctx->devSupport) {
     ecs_register_view(DevPanelView);
+    ecs_register_view(DevMenuView);
   }
 
   ecs_register_system(
@@ -915,7 +1067,8 @@ ecs_module_init(game_module) {
       ecs_view_id(LevelView),
       ecs_view_id(UiCanvasView),
       ecs_view_id(LevelRenderableView),
-      ecs_view_id(DevPanelView));
+      ecs_view_id(DevPanelView),
+      ecs_view_id(DevMenuView));
 
   ecs_order(GameUpdateSys, GameOrder_StateUpdate);
 }
@@ -1056,6 +1209,7 @@ bool app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
   input_resource_load_map(inputResource, string_lit("global/game.inputs"));
   if (devSupport) {
     input_resource_load_map(inputResource, string_lit("global/dev.inputs"));
+    input_resource_load_map(inputResource, string_lit("global/edit.inputs"));
   }
 
   scene_prefab_init(world, string_lit("global/game.prefabs"));

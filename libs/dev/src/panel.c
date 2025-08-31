@@ -23,3 +23,10 @@ EcsEntityId dev_panel_create(EcsWorld* world, const EcsEntityId window, const De
   ecs_world_add_t(world, panelEntity, DevPanelComp, .type = type);
   return panelEntity;
 }
+
+EcsEntityId
+dev_panel_create_hidden(EcsWorld* world, const EcsEntityId window, const DevPanelType type) {
+  const EcsEntityId panelEntity = ui_canvas_create(world, window, UiCanvasCreateFlags_ToFront);
+  ecs_world_add_t(world, panelEntity, DevPanelComp, .type = type, .hidden = true);
+  return panelEntity;
+}

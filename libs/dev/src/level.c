@@ -6,6 +6,7 @@
 #include "dev/finder.h"
 #include "dev/level.h"
 #include "dev/panel.h"
+#include "dev/stats.h"
 #include "dev/widget.h"
 #include "ecs/entity.h"
 #include "ecs/view.h"
@@ -313,6 +314,7 @@ ecs_view_define(PanelUpdateGlobalView) {
   ecs_access_read(InputManagerComp);
   ecs_access_write(DevFinderComp);
   ecs_access_write(SceneLevelManagerComp);
+  ecs_access_maybe_write(DevStatsGlobalComp);
 }
 
 ecs_view_define(PanelUpdateView) {
@@ -332,6 +334,7 @@ ecs_system_define(DevLevelUpdatePanelSys) {
   SceneLevelManagerComp*  levelManager = ecs_view_write_t(globalItr, SceneLevelManagerComp);
   DevFinderComp*          finder       = ecs_view_write_t(globalItr, DevFinderComp);
   const InputManagerComp* input        = ecs_view_read_t(globalItr, InputManagerComp);
+  DevStatsGlobalComp*     statsGlobal  = ecs_view_write_t(globalItr, DevStatsGlobalComp);
 
   EcsView* cameraView = ecs_world_view_t(world, CameraView);
   EcsView* panelView  = ecs_world_view_t(world, PanelUpdateView);
@@ -340,6 +343,14 @@ ecs_system_define(DevLevelUpdatePanelSys) {
     const EcsEntityId currentLevelAsset = scene_level_asset(levelManager);
     if (currentLevelAsset && scene_level_mode(levelManager) == SceneLevelMode_Edit) {
       scene_level_save(world, currentLevelAsset);
+
+      if (statsGlobal) {
+        String name = scene_level_name(levelManager);
+        if (string_is_empty(name)) {
+          name = string_lit("unnamed level");
+        }
+        dev_stats_notify(statsGlobal, string_lit("Save"), name);
+      }
     }
   }
 
