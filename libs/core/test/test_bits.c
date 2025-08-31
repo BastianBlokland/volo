@@ -70,6 +70,22 @@ spec(bits) {
     check_eq_int(bits_clz_64(0), 64);
   }
 
+  it("can find the nth set bit in a 32 bit mask") {
+    check_eq_int(bits_nth_32(0b1, 0), 0);
+    check_eq_int(bits_nth_32(0b10, 0), 1);
+    check_eq_int(bits_nth_32(0b100, 0), 2);
+    check_eq_int(bits_nth_32(0b11, 1), 1);
+    check_eq_int(bits_nth_32(0b101, 1), 2);
+    check_eq_int(bits_nth_32(0b10000001, 1), 7);
+    check_eq_int(bits_nth_32(0b1001100101, 2), 5);
+    check_eq_int(bits_nth_32(0b1001100101, 3), 6);
+    check_eq_int(bits_nth_32(0b1001100101, 4), 9);
+    check_eq_int(bits_nth_32(0b10000001, 1), 7);
+    check_eq_int(bits_nth_32(0b10000000000000000000000000000000, 0), 31);
+    check_eq_int(bits_nth_32(0b10000000000000000000000000000001, 1), 31);
+    check_eq_int(bits_nth_32(0b11111111111111111111111111111111, 31), 31);
+  }
+
   it("can check if a 32 bit integer is a power-of-two") {
     // Undefined for val,0.
     check(bits_ispow2_32(1));
