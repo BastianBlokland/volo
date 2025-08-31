@@ -131,12 +131,14 @@ static EcsEntityId game_window_create(
   const String        titleScratch   = fmt_write_scratch("Volo v{}", fmt_text(versionScratch));
   const EcsEntityId   window = gap_window_create(world, mode, flags, size, icon, titleScratch);
 
+  const EcsEntityId   uiCanvas = ui_canvas_create(world, window, UiCanvasCreateFlags_ToBack);
+  GameMainWindowComp* gameWinComp =
+      ecs_world_add_t(world, window, GameMainWindowComp, .uiCanvas = uiCanvas);
+
   if (devSupport) {
     dev_log_viewer_create(world, window, LogMask_Info | LogMask_Warn | LogMask_Error);
+    gameWinComp->devMenu = dev_menu_create(world, window, true /* hidden */);
   }
-
-  const EcsEntityId uiCanvas = ui_canvas_create(world, window, UiCanvasCreateFlags_ToBack);
-  ecs_world_add_t(world, window, GameMainWindowComp, .uiCanvas = uiCanvas);
 
   ecs_world_add_t(
       world,
@@ -248,6 +250,7 @@ typedef struct {
   GameHudComp*        winHud;
   GameInputComp*      winGameInput;
   DevStatsComp*       winDevStats;
+  DevMenuComp*        winDevMenu;
   UiCanvasComp*       winCanvas;
 
   EcsView* levelRenderableView;
@@ -322,6 +325,9 @@ static void game_transition(const GameUpdateContext* ctx, const GameState state)
   case GameState_Edit:
     input_layer_disable(ctx->input, string_hash_lit("Edit"));
     game_input_type_set(ctx->winGameInput, GameInputType_None);
+    if (ctx->winDevMenu) {
+      dev_menu_edit_panels_close(ctx->world, ctx->winDevMenu);
+    }
     ctx->game->editMode = false;
     break;
   case GameState_Pause:
@@ -359,6 +365,9 @@ static void game_transition(const GameUpdateContext* ctx, const GameState state)
     ctx->winRendSet->flags &= ~RendFlags_2D;
     game_input_type_set(ctx->winGameInput, GameInputType_Normal);
     input_layer_enable(ctx->input, string_hash_lit("Edit"));
+    if (ctx->winDevMenu) {
+      dev_menu_edit_panels_open(ctx->world, ctx->winDevMenu);
+    }
     if (ctx->winDevStats) {
       dev_stats_debug_set(ctx->winDevStats, DevStatDebug_Unavailable);
     }
@@ -771,6 +780,7 @@ ecs_view_define(UiCanvasView) {
   ecs_access_write(UiCanvasComp);
 }
 
+ecs_view_define(DevMenuView) { ecs_access_write(DevMenuComp); }
 ecs_view_define(DevPanelView) { ecs_access_write(DevPanelComp); }
 
 static void game_levels_query_init(EcsWorld* world, GameComp* game, AssetManagerComp* assets) {
@@ -891,6 +901,9 @@ ecs_system_define(GameUpdateSys) {
     ctx.winHud       = ecs_view_write_t(mainWinItr, GameHudComp);
     ctx.winGameInput = ecs_view_write_t(mainWinItr, GameInputComp);
     ctx.winDevStats  = ecs_view_write_t(mainWinItr, DevStatsComp);
+    if (ctx.winGame->devMenu) {
+      ctx.winDevMenu = ecs_utils_write_t(world, DevMenuView, ctx.winGame->devMenu, DevMenuComp);
+    }
 
     if (gap_window_events(ctx.winComp) & GapWindowEvents_Resized) {
       // Save last window size.
@@ -933,9 +946,6 @@ ecs_system_define(GameUpdateSys) {
     debugReq |= ctx.game->state == GameState_Edit;
 
     if (debugReq && !ctx.game->debugActive) {
-      if (!ctx.winGame->devMenu) {
-        ctx.winGame->devMenu = dev_menu_create(world, ctx.winEntity);
-      }
       game_dev_panels_hide(&ctx, false);
       scene_visibility_flags_set(ctx.visibilityEnv, SceneVisibilityFlags_ForceRender);
       input_layer_enable(ctx.input, string_hash_lit("Dev"));
@@ -1044,6 +1054,7 @@ ecs_module_init(game_module) {
 
   if (ctx->devSupport) {
     ecs_register_view(DevPanelView);
+    ecs_register_view(DevMenuView);
   }
 
   ecs_register_system(
@@ -1053,7 +1064,8 @@ ecs_module_init(game_module) {
       ecs_view_id(LevelView),
       ecs_view_id(UiCanvasView),
       ecs_view_id(LevelRenderableView),
-      ecs_view_id(DevPanelView));
+      ecs_view_id(DevPanelView),
+      ecs_view_id(DevMenuView));
 
   ecs_order(GameUpdateSys, GameOrder_StateUpdate);
 }
