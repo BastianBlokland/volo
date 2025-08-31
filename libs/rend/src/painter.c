@@ -162,14 +162,26 @@ static void painter_set_global_data(
     data->camPosition = geo_vector(0, 0, 0);
     data->camRotation = geo_quat_forward_to_down;
   } else {
-    data->viewInv     = *cameraMatrix;
-    data->view        = geo_matrix_inverse(cameraMatrix);
-    data->proj        = *projMatrix;
-    data->projInv     = geo_matrix_inverse(projMatrix);
+    if (cameraMatrix) {
+      data->viewInv     = *cameraMatrix;
+      data->view        = geo_matrix_inverse(cameraMatrix);
+      data->camPosition = geo_matrix_to_translation(cameraMatrix);
+      data->camRotation = geo_matrix_to_quat(cameraMatrix);
+    } else {
+      data->viewInv     = geo_matrix_ident();
+      data->view        = geo_matrix_ident();
+      data->camPosition = geo_vector(0);
+      data->camRotation = geo_quat_ident;
+    }
+    if (projMatrix) {
+      data->proj    = *projMatrix;
+      data->projInv = geo_matrix_inverse(projMatrix);
+    } else {
+      data->proj    = geo_matrix_ident();
+      data->projInv = geo_matrix_ident();
+    }
     data->viewProj    = geo_matrix_mul(&data->proj, &data->view);
     data->viewProjInv = geo_matrix_inverse(&data->viewProj);
-    data->camPosition = geo_matrix_to_translation(cameraMatrix);
-    data->camRotation = geo_matrix_to_quat(cameraMatrix);
   }
 }
 
@@ -602,6 +614,7 @@ static void painter_push_debug_skinning(RendPaintContext* ctx, EcsView* objView,
 }
 
 static bool rend_canvas_paint_2d(
+    EcsWorld*               world,
     RendPainterComp*        painter,
     RendPlatformComp*       platform,
     const RendSettingsComp* set,
@@ -611,8 +624,11 @@ static bool rend_canvas_paint_2d(
     EcsView*                objView,
     EcsView*                resView) {
 
+  const RvkSize winSize   = painter_win_size(win);
+  const f32     winAspect = winSize.height ? ((f32)winSize.width / (f32)winSize.height) : 1.0f;
+
   RendBuilder* b = rend_builder(platform->builderContainer);
-  if (!rend_builder_canvas_push(b, painter->canvas, set, time->frameIdx, painter_win_size(win))) {
+  if (!rend_builder_canvas_push(b, painter->canvas, set, time->frameIdx, winSize)) {
     return false; // Canvas not ready for rendering.
   }
 
@@ -627,7 +643,12 @@ static bool rend_canvas_paint_2d(
       const RendView   mainView = painter_view_2d_create(camEntity);
       RendPaintContext ctx      = painter_context(b, set, time, mainView);
       rend_builder_attach_color(b, swapchainImage, 0);
+      painter_set_global_data(&ctx, null, null, winSize, time, RendViewType_Main);
       painter_push_objects_simple(&ctx, objView, resView, AssetGraphicPass_Post);
+      if (set->debugViewerResource) {
+        painter_push_debug_resource_viewer(
+            world, &ctx, winAspect, resView, set->debugViewerResource);
+      }
     }
     rend_builder_pass_flush(b);
   }
@@ -1057,7 +1078,7 @@ ecs_system_define(RendPainterDrawSys) {
           objView,
           resView);
     } else {
-      rend_canvas_paint_2d(painter, platform, settings, time, win, entity, objView, resView);
+      rend_canvas_paint_2d(world, painter, platform, settings, time, win, entity, objView, resView);
     }
   }
 }

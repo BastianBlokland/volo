@@ -1,3 +1,4 @@
+#include "asset/manager.h"
 #include "core/alloc.h"
 #include "core/array.h"
 #include "core/diag.h"
@@ -6,12 +7,10 @@
 #include "dev/finder.h"
 #include "dev/level.h"
 #include "dev/panel.h"
-#include "dev/stats.h"
 #include "dev/widget.h"
 #include "ecs/entity.h"
 #include "ecs/view.h"
 #include "ecs/world.h"
-#include "input/manager.h"
 #include "scene/camera.h"
 #include "scene/level.h"
 #include "scene/transform.h"
@@ -20,43 +19,25 @@
 #include "ui/panel.h"
 #include "ui/scrollview.h"
 #include "ui/shape.h"
-#include "ui/style.h"
 #include "ui/table.h"
 #include "ui/widget.h"
 
 // clang-format off
 
-static const String g_tooltipEdit   = string_static("Start editing the current level.");
-static const String g_tooltipPlay   = string_static("Start playing the current level.");
-static const String g_tooltipUnload = string_static("Unload the current level.");
-static const String g_tooltipSave   = string_static("Save the current level.");
 static const String g_tooltipFilter = string_static("Filter levels by identifier.\nSupports glob characters \a.b*\ar and \a.b?\ar (\a.b!\ar prefix to invert).");
 
 // clang-format on
 
 typedef enum {
-  DevLevelFlags_RefreshLevels = 1 << 0,
-  DevLevelFlags_Edit          = 1 << 1,
-  DevLevelFlags_Play          = 1 << 2,
-  DevLevelFlags_Unload        = 1 << 3,
-  DevLevelFlags_Save          = 1 << 4,
-
-  DevLevelFlags_None     = 0,
-  DevLevelFlags_Default  = DevLevelFlags_RefreshLevels,
-  DevLevelFlags_Volatile = DevLevelFlags_RefreshLevels | DevLevelFlags_Edit | DevLevelFlags_Play |
-                           DevLevelFlags_Unload | DevLevelFlags_Save,
-} DevLevelFlags;
-
-typedef enum {
-  DevLevelTab_Manage,
   DevLevelTab_Settings,
+  DevLevelTab_Browse,
 
   DevLevelTab_Count,
 } DevLevelTab;
 
 static const String g_levelTabNames[] = {
-    string_static("Manage"),
     string_static("\uE8B8 Settings"),
+    string_static("Browse"),
 };
 ASSERT(array_elems(g_levelTabNames) == DevLevelTab_Count, "Incorrect number of names");
 
@@ -67,13 +48,14 @@ static const String g_levelFogNames[] = {
 ASSERT(array_elems(g_levelFogNames) == AssetLevelFog_Count, "Incorrect number of names");
 
 ecs_comp_define(DevLevelPanelComp) {
-  DevLevelFlags flags;
-  EcsEntityId   window;
-  DynString     idFilter;
-  DynString     nameBuffer;
-  UiPanel       panel;
-  UiScrollview  scrollview;
-  u32           totalRows;
+  EcsEntityId     window;
+  DynString       idFilter;
+  DynString       nameBuffer;
+  UiPanel         panel;
+  UiScrollview    scrollview;
+  u32             totalRows;
+  bool            refreshLevels;
+  DevLevelRequest loadRequest;
 };
 
 static void ecs_destruct_level_panel(void* data) {
@@ -91,6 +73,7 @@ typedef struct {
   EcsWorld*                 world;
   DevLevelPanelComp*        panelComp;
   SceneLevelManagerComp*    levelManager;
+  const AssetManagerComp*   assetManager;
   DevFinderComp*            finder;
   const SceneTransformComp* cameraTrans;
 } DevLevelContext;
@@ -119,41 +102,14 @@ static bool level_id_filter(DevLevelContext* ctx, const String levelId) {
   return string_match_glob(levelId, filter, StringMatchFlags_IgnoreCase);
 }
 
-static void manage_panel_options_draw(UiCanvasComp* c, DevLevelContext* ctx) {
+static void browse_panel_options_draw(UiCanvasComp* c, DevLevelContext* ctx) {
   ui_layout_push(c);
 
   UiTable table = ui_table(.spacing = ui_vector(5, 5), .rowHeight = 20);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 30);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 30);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 30);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 30);
   ui_table_add_column(&table, UiTableColumn_Fixed, 60);
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
   ui_table_next_row(c, &table);
-
-  const bool isLoaded   = ecs_entity_valid(scene_level_asset(ctx->levelManager));
-  const bool isEditMode = isLoaded && scene_level_mode(ctx->levelManager) == SceneLevelMode_Edit;
-
-  const UiWidgetFlags btnFlags  = isLoaded ? 0 : UiWidget_Disabled;
-  const UiWidgetFlags editFlags = isEditMode ? 0 : UiWidget_Disabled;
-
-  if (ui_button(c, .flags = btnFlags, .label = string_lit("\uE3C9"), .tooltip = g_tooltipEdit)) {
-    ctx->panelComp->flags |= DevLevelFlags_Edit;
-  }
-  ui_table_next_column(c, &table);
-  if (ui_button(c, .flags = btnFlags, .label = string_lit("\uE037"), .tooltip = g_tooltipPlay)) {
-    ctx->panelComp->flags |= DevLevelFlags_Play;
-  }
-  ui_table_next_column(c, &table);
-  if (ui_button(c, .flags = editFlags, .label = string_lit("\uE161"), .tooltip = g_tooltipSave)) {
-    ctx->panelComp->flags |= DevLevelFlags_Save;
-  }
-  ui_table_next_column(c, &table);
-  if (ui_button(c, .flags = btnFlags, .label = string_lit("\uE9BA"), .tooltip = g_tooltipUnload)) {
-    ctx->panelComp->flags |= DevLevelFlags_Unload;
-  }
-  ui_table_next_column(c, &table);
   ui_label(c, string_lit("Filter:"));
   ui_table_next_column(c, &table);
   ui_textbox(
@@ -162,17 +118,15 @@ static void manage_panel_options_draw(UiCanvasComp* c, DevLevelContext* ctx) {
   ui_layout_pop(c);
 }
 
-static void manage_panel_draw(UiCanvasComp* c, DevLevelContext* ctx) {
-  manage_panel_options_draw(c, ctx);
+static void browse_panel_draw(UiCanvasComp* c, DevLevelContext* ctx) {
+  browse_panel_options_draw(c, ctx);
   ui_layout_grow(c, UiAlign_BottomCenter, ui_vector(0, -35), UiBase_Absolute, Ui_Y);
   ui_layout_container_push(c, UiClip_None, UiLayer_Normal);
 
-  const bool isLoading = scene_level_loading(ctx->levelManager);
-  const bool disabled  = isLoading;
-  ui_style_push(c);
-  if (disabled) {
-    ui_style_color_mult(c, 0.5f);
-  }
+  bool disabled = false;
+  disabled |= ecs_entity_valid(ctx->panelComp->loadRequest.levelAsset);
+  disabled |= scene_level_loading(ctx->levelManager);
+  disabled |= scene_level_loaded(ctx->levelManager);
 
   UiTable table = ui_table(.spacing = ui_vector(10, 5));
   ui_table_add_column(&table, UiTableColumn_Fixed, 375);
@@ -207,18 +161,24 @@ static void manage_panel_draw(UiCanvasComp* c, DevLevelContext* ctx) {
     ui_table_next_column(c, &table);
 
     ui_layout_resize(c, UiAlign_MiddleLeft, ui_vector(30, 0), UiBase_Absolute, Ui_X);
-    if (ui_button(c, .flags = disabled ? UiWidget_Disabled : 0, .label = string_lit("\uE3C9"))) {
-      scene_level_load(ctx->world, SceneLevelMode_Edit, asset);
+    if (asset_save_supported(ctx->assetManager)) {
+      if (ui_button(c, .flags = disabled ? UiWidget_Disabled : 0, .label = string_lit("\uE3C9"))) {
+        ctx->panelComp->loadRequest = (DevLevelRequest){
+            .levelAsset = asset,
+            .levelMode  = SceneLevelMode_Edit,
+        };
+      }
+      ui_layout_next(c, Ui_Right, 10);
     }
-    ui_layout_next(c, Ui_Right, 10);
     if (ui_button(c, .flags = disabled ? UiWidget_Disabled : 0, .label = string_lit("\uE037"))) {
-      scene_level_load(ctx->world, SceneLevelMode_Play, asset);
+      ctx->panelComp->loadRequest = (DevLevelRequest){
+          .levelAsset = asset,
+          .levelMode  = SceneLevelMode_Play,
+      };
     }
   }
 
   ui_scrollview_end(c, &ctx->panelComp->scrollview);
-
-  ui_style_pop(c);
   ui_layout_container_pop(c);
 }
 
@@ -270,14 +230,6 @@ static void settings_panel_draw(UiCanvasComp* c, DevLevelContext* ctx) {
     const GeoVector newStartpoint = level_camera_center(ctx);
     scene_level_startpoint_update(ctx->levelManager, newStartpoint);
   }
-
-  ui_layout_push(c);
-  ui_layout_inner(c, UiBase_Container, UiAlign_BottomCenter, ui_vector(100, 22), UiBase_Absolute);
-  ui_layout_move_dir(c, Ui_Up, 8, UiBase_Absolute);
-  if (ui_button(c, .label = string_lit("Save"), .tooltip = g_tooltipSave)) {
-    ctx->panelComp->flags |= DevLevelFlags_Save;
-  }
-  ui_layout_pop(c);
 }
 
 static void level_panel_draw(UiCanvasComp* c, DevLevelContext* ctx) {
@@ -291,12 +243,13 @@ static void level_panel_draw(UiCanvasComp* c, DevLevelContext* ctx) {
       .topBarColor = ui_color(100, 0, 0, 192));
 
   switch (ctx->panelComp->panel.activeTab) {
-  case DevLevelTab_Manage:
-    manage_panel_draw(c, ctx);
-    break;
   case DevLevelTab_Settings:
     if (!ecs_entity_valid(scene_level_asset(ctx->levelManager))) {
       ui_label(c, string_lit("< No loaded level >"), .align = UiAlign_MiddleCenter);
+      break;
+    }
+    if (!asset_save_supported(ctx->assetManager)) {
+      ui_label(c, string_lit("< Level editing not supported >"), .align = UiAlign_MiddleCenter);
       break;
     }
     if (scene_level_mode(ctx->levelManager) != SceneLevelMode_Edit) {
@@ -305,21 +258,21 @@ static void level_panel_draw(UiCanvasComp* c, DevLevelContext* ctx) {
     }
     settings_panel_draw(c, ctx);
     break;
+  case DevLevelTab_Browse:
+    browse_panel_draw(c, ctx);
+    break;
   }
 
   ui_panel_end(c, &ctx->panelComp->panel);
 }
 
 ecs_view_define(PanelUpdateGlobalView) {
-  ecs_access_read(InputManagerComp);
   ecs_access_write(DevFinderComp);
   ecs_access_write(SceneLevelManagerComp);
-  ecs_access_maybe_write(DevStatsGlobalComp);
+  ecs_access_read(AssetManagerComp);
 }
 
 ecs_view_define(PanelUpdateView) {
-  ecs_view_flags(EcsViewFlags_Exclusive); // DevLevelPanelComp's are exclusively managed here.
-
   ecs_access_read(DevPanelComp);
   ecs_access_write(DevLevelPanelComp);
   ecs_access_write(UiCanvasComp);
@@ -332,27 +285,11 @@ ecs_system_define(DevLevelUpdatePanelSys) {
     return;
   }
   SceneLevelManagerComp*  levelManager = ecs_view_write_t(globalItr, SceneLevelManagerComp);
+  const AssetManagerComp* assetManager = ecs_view_read_t(globalItr, AssetManagerComp);
   DevFinderComp*          finder       = ecs_view_write_t(globalItr, DevFinderComp);
-  const InputManagerComp* input        = ecs_view_read_t(globalItr, InputManagerComp);
-  DevStatsGlobalComp*     statsGlobal  = ecs_view_write_t(globalItr, DevStatsGlobalComp);
 
   EcsView* cameraView = ecs_world_view_t(world, CameraView);
   EcsView* panelView  = ecs_world_view_t(world, PanelUpdateView);
-
-  if (input_triggered_lit(input, "SaveLevel")) {
-    const EcsEntityId currentLevelAsset = scene_level_asset(levelManager);
-    if (currentLevelAsset && scene_level_mode(levelManager) == SceneLevelMode_Edit) {
-      scene_level_save(world, currentLevelAsset);
-
-      if (statsGlobal) {
-        String name = scene_level_name(levelManager);
-        if (string_is_empty(name)) {
-          name = string_lit("unnamed level");
-        }
-        dev_stats_notify(statsGlobal, string_lit("Save"), name);
-      }
-    }
-  }
 
   bool refreshLevels = false;
 
@@ -365,6 +302,7 @@ ecs_system_define(DevLevelUpdatePanelSys) {
         .world        = world,
         .panelComp    = panelComp,
         .levelManager = levelManager,
+        .assetManager = assetManager,
         .finder       = finder,
     };
 
@@ -374,21 +312,10 @@ ecs_system_define(DevLevelUpdatePanelSys) {
     if (ecs_view_maybe_jump(cameraItr, panelComp->window) || ecs_view_walk(cameraItr)) {
       ctx.cameraTrans = ecs_view_read_t(cameraItr, SceneTransformComp);
     }
-
-    refreshLevels |= (panelComp->flags & DevLevelFlags_RefreshLevels) != 0;
-    if (panelComp->flags & DevLevelFlags_Edit) {
-      scene_level_reload(world, SceneLevelMode_Edit);
+    if (panelComp->refreshLevels) {
+      refreshLevels            = true;
+      panelComp->refreshLevels = false;
     }
-    if (panelComp->flags & DevLevelFlags_Play) {
-      scene_level_reload(world, SceneLevelMode_Play);
-    }
-    if (panelComp->flags & DevLevelFlags_Unload) {
-      scene_level_unload(world);
-    }
-    if (panelComp->flags & DevLevelFlags_Save) {
-      scene_level_save(world, scene_level_asset(levelManager));
-    }
-    panelComp->flags &= ~DevLevelFlags_Volatile;
 
     ui_canvas_reset(canvas);
     const bool pinned = ui_panel_pinned(&panelComp->panel);
@@ -429,15 +356,25 @@ dev_level_panel_open(EcsWorld* world, const EcsEntityId window, const DevPanelTy
       world,
       panelEntity,
       DevLevelPanelComp,
-      .flags      = DevLevelFlags_Default,
-      .window     = window,
-      .idFilter   = dynstring_create(g_allocHeap, 32),
-      .nameBuffer = dynstring_create(g_allocHeap, 32),
-      .panel      = ui_panel(.position = ui_vector(0.5f, 0.5f), .size = ui_vector(500, 300)));
+      .window        = window,
+      .idFilter      = dynstring_create(g_allocHeap, 32),
+      .nameBuffer    = dynstring_create(g_allocHeap, 32),
+      .panel         = ui_panel(.position = ui_vector(0.5f, 0.5f), .size = ui_vector(500, 300)),
+      .refreshLevels = true);
 
   if (type == DevPanelType_Detached) {
     ui_panel_maximize(&levelPanel->panel);
   }
 
   return panelEntity;
+}
+
+bool dev_level_consume_request(DevLevelPanelComp* comp, DevLevelRequest* out) {
+  const bool hasRequest = ecs_entity_valid(comp->loadRequest.levelAsset);
+  if (hasRequest) {
+    *out              = comp->loadRequest;
+    comp->loadRequest = (DevLevelRequest){0};
+    return true;
+  }
+  return false;
 }

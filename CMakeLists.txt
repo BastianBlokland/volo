@@ -9,7 +9,7 @@ if(${CMAKE_VERSION} VERSION_GREATER "3.20")
 endif()
 
 project(Volo
-  VERSION 0.2.0
+  VERSION 0.3.0
   DESCRIPTION "Volo Game"
   HOMEPAGE_URL "https://github.com/bastianblokland/volo"
   LANGUAGES C
