@@ -1,3 +1,4 @@
+#include "asset/manager.h"
 #include "core/alloc.h"
 #include "core/array.h"
 #include "core/diag.h"
@@ -72,6 +73,7 @@ typedef struct {
   EcsWorld*                 world;
   DevLevelPanelComp*        panelComp;
   SceneLevelManagerComp*    levelManager;
+  const AssetManagerComp*   assetManager;
   DevFinderComp*            finder;
   const SceneTransformComp* cameraTrans;
 } DevLevelContext;
@@ -159,13 +161,15 @@ static void browse_panel_draw(UiCanvasComp* c, DevLevelContext* ctx) {
     ui_table_next_column(c, &table);
 
     ui_layout_resize(c, UiAlign_MiddleLeft, ui_vector(30, 0), UiBase_Absolute, Ui_X);
-    if (ui_button(c, .flags = disabled ? UiWidget_Disabled : 0, .label = string_lit("\uE3C9"))) {
-      ctx->panelComp->loadRequest = (DevLevelRequest){
-          .levelAsset = asset,
-          .levelMode  = SceneLevelMode_Edit,
-      };
+    if (asset_save_supported(ctx->assetManager)) {
+      if (ui_button(c, .flags = disabled ? UiWidget_Disabled : 0, .label = string_lit("\uE3C9"))) {
+        ctx->panelComp->loadRequest = (DevLevelRequest){
+            .levelAsset = asset,
+            .levelMode  = SceneLevelMode_Edit,
+        };
+      }
+      ui_layout_next(c, Ui_Right, 10);
     }
-    ui_layout_next(c, Ui_Right, 10);
     if (ui_button(c, .flags = disabled ? UiWidget_Disabled : 0, .label = string_lit("\uE037"))) {
       ctx->panelComp->loadRequest = (DevLevelRequest){
           .levelAsset = asset,
@@ -244,6 +248,10 @@ static void level_panel_draw(UiCanvasComp* c, DevLevelContext* ctx) {
       ui_label(c, string_lit("< No loaded level >"), .align = UiAlign_MiddleCenter);
       break;
     }
+    if (!asset_save_supported(ctx->assetManager)) {
+      ui_label(c, string_lit("< Level editing not supported >"), .align = UiAlign_MiddleCenter);
+      break;
+    }
     if (scene_level_mode(ctx->levelManager) != SceneLevelMode_Edit) {
       ui_label(c, string_lit("< Level not open for edit >"), .align = UiAlign_MiddleCenter);
       break;
@@ -261,6 +269,7 @@ static void level_panel_draw(UiCanvasComp* c, DevLevelContext* ctx) {
 ecs_view_define(PanelUpdateGlobalView) {
   ecs_access_write(DevFinderComp);
   ecs_access_write(SceneLevelManagerComp);
+  ecs_access_read(AssetManagerComp);
 }
 
 ecs_view_define(PanelUpdateView) {
@@ -275,8 +284,9 @@ ecs_system_define(DevLevelUpdatePanelSys) {
   if (!globalItr) {
     return;
   }
-  SceneLevelManagerComp* levelManager = ecs_view_write_t(globalItr, SceneLevelManagerComp);
-  DevFinderComp*         finder       = ecs_view_write_t(globalItr, DevFinderComp);
+  SceneLevelManagerComp*  levelManager = ecs_view_write_t(globalItr, SceneLevelManagerComp);
+  const AssetManagerComp* assetManager = ecs_view_read_t(globalItr, AssetManagerComp);
+  DevFinderComp*          finder       = ecs_view_write_t(globalItr, DevFinderComp);
 
   EcsView* cameraView = ecs_world_view_t(world, CameraView);
   EcsView* panelView  = ecs_world_view_t(world, PanelUpdateView);
@@ -292,6 +302,7 @@ ecs_system_define(DevLevelUpdatePanelSys) {
         .world        = world,
         .panelComp    = panelComp,
         .levelManager = levelManager,
+        .assetManager = assetManager,
         .finder       = finder,
     };
 
