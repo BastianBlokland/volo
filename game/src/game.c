@@ -66,14 +66,20 @@ enum {
   GameLoadingMinTicks = 5, // Not strictly needed, but avoids very short loading screen flashes.
 };
 
+typedef enum {
+  GameFlags_None          = 0,
+  GameFlags_DevSupport    = 1 << 0,
+  GameFlags_DebugActive   = 1 << 1,
+  GameFlags_EditMode      = 1 << 2,
+  GameFlags_RefreshLevels = 1 << 3,
+} GameFlags;
+
 ecs_comp_define(GameComp) {
   GameState state : 8;
   GameState statePrev : 8;
   GameState stateNext : 8;
+  GameFlags flags : 8;
   u32       stateTicks;
-  bool      devSupport;
-  bool      debugActive;
-  bool      editMode;
 
   EcsEntityId mainWindow;
   SndObjectId musicHandle;
@@ -331,7 +337,7 @@ static void game_transition(const GameUpdateContext* ctx, const GameState state)
     if (ctx->winDevMenu) {
       dev_menu_edit_panels_close(ctx->world, ctx->winDevMenu);
     }
-    ctx->game->editMode = false;
+    ctx->game->flags &= ~GameFlags_EditMode;
     break;
   case GameState_Pause:
     ctx->timeSet->flags &= ~SceneTimeFlags_Paused;
@@ -503,7 +509,7 @@ static void menu_entry_play(const GameUpdateContext* ctx, MAYBE_UNUSED const u32
           .label    = string_lit("Play"),
           .fontSize = 25,
           .tooltip  = string_lit("Select a level to play."))) {
-    ctx->game->editMode = false;
+    ctx->game->flags &= ~GameFlags_EditMode;
     game_transition(ctx, GameState_MenuSelect);
   }
 }
@@ -515,7 +521,7 @@ static void menu_entry_edit(const GameUpdateContext* ctx, MAYBE_UNUSED const u32
           .frameColor = ui_color(255, 16, 16, 192),
           .fontSize   = 25,
           .tooltip    = string_lit("Select a level to edit."))) {
-    ctx->game->editMode = true;
+    ctx->game->flags |= GameFlags_EditMode;
     game_transition(ctx, GameState_MenuSelect);
   }
 }
@@ -539,6 +545,19 @@ static void menu_entry_restart(const GameUpdateContext* ctx, MAYBE_UNUSED const 
           .tooltip  = string_lit("Restart the current level."))) {
     game_transition(ctx, GameState_Loading);
     scene_level_reload(ctx->world, SceneLevelMode_Play);
+  }
+}
+
+static void menu_entry_edit_current(const GameUpdateContext* ctx, MAYBE_UNUSED const u32 index) {
+  if (ui_button(
+          ctx->winCanvas,
+          .label      = string_lit("Edit"),
+          .frameColor = ui_color(255, 16, 16, 192),
+          .fontSize   = 25,
+          .tooltip    = string_lit("Start editing the current level."))) {
+    ctx->game->flags |= GameFlags_EditMode;
+    scene_level_reload(ctx->world, SceneLevelMode_Edit);
+    game_transition(ctx, GameState_Loading);
   }
 }
 
@@ -666,12 +685,27 @@ static void menu_entry_back(const GameUpdateContext* ctx, MAYBE_UNUSED const u32
   ui_layout_pop(ctx->winCanvas);
 }
 
-static void menu_entry_level(const GameUpdateContext* ctx, const u32 index) {
-  const u32    levelIndex = (u32)bitset_index(bitset_from_var(ctx->game->levelMask), index);
+static void menu_entry_refresh_levels(const GameUpdateContext* ctx, MAYBE_UNUSED const u32 index) {
+  ui_layout_push(ctx->winCanvas);
+  ui_style_outline(ctx->winCanvas, 4);
+  if (ui_button(
+          ctx->winCanvas,
+          .label      = ui_shape_scratch(UiShape_Restart),
+          .fontSize   = 35,
+          .frameColor = ui_color_clear,
+          .flags      = ctx->game->levelLoadingMask ? UiWidget_Disabled : UiWidget_Default,
+          .tooltip    = string_lit("Refresh the level list."))) {
+    ctx->game->flags |= GameFlags_RefreshLevels;
+  }
+  ui_layout_pop(ctx->winCanvas);
+}
+
+static void menu_entry_level(const GameUpdateContext* ctx, u32 index) {
+  const u32    levelIndex = (u32)bitset_nth(bitset_from_var(ctx->game->levelMask), index);
   const String levelName  = ctx->game->levelNames[levelIndex];
 
   String tooltip;
-  if (ctx->game->editMode) {
+  if (ctx->game->flags & GameFlags_EditMode) {
     tooltip = fmt_write_scratch("Edit the '{}' level.", fmt_text(levelName));
   } else {
     tooltip = fmt_write_scratch("Play the '{}' level.", fmt_text(levelName));
@@ -679,8 +713,13 @@ static void menu_entry_level(const GameUpdateContext* ctx, const u32 index) {
 
   if (ui_button(ctx->winCanvas, .label = levelName, .fontSize = 25, .tooltip = tooltip)) {
     game_transition(ctx, GameState_Loading);
-    const SceneLevelMode mode = ctx->game->editMode ? SceneLevelMode_Edit : SceneLevelMode_Play;
-    scene_level_load(ctx->world, mode, ctx->game->levelAssets[levelIndex]);
+    SceneLevelMode levelMode;
+    if (ctx->game->flags & GameFlags_EditMode) {
+      levelMode = SceneLevelMode_Edit;
+    } else {
+      levelMode = SceneLevelMode_Play;
+    }
+    scene_level_load(ctx->world, levelMode, ctx->game->levelAssets[levelIndex]);
   }
 }
 
@@ -699,8 +738,8 @@ static void menu_entry_edit_play(const GameUpdateContext* ctx, MAYBE_UNUSED cons
           ctx->winCanvas,
           .label    = ui_shape_scratch(UiShape_Play),
           .fontSize = 25,
-          .tooltip  = string_lit("Play the level."))) {
-    scene_level_reload(ctx->world, SceneLevelMode_Play);
+          .tooltip  = string_lit("Play the level (saves the current state to disk)."))) {
+    scene_level_save_reload(ctx->world, scene_level_asset(ctx->levelManager), SceneLevelMode_Play);
     game_transition_delayed(ctx->game, GameState_Loading);
   }
 }
@@ -786,22 +825,30 @@ ecs_view_define(UiCanvasView) {
 ecs_view_define(DevMenuView) { ecs_access_write(DevMenuComp); }
 ecs_view_define(DevPanelView) { ecs_access_write(DevPanelComp); }
 
-static void game_levels_query_init(EcsWorld* world, GameComp* game, AssetManagerComp* assets) {
+static void game_level_query_begin(const GameUpdateContext* ctx) {
+  diag_assert(!ctx->game->levelLoadingMask);
+
+  ctx->game->levelMask = 0;
+  for (u32 i = 0; i != GameLevelsMax; ++i) {
+    string_maybe_free(g_allocHeap, ctx->game->levelNames[i]);
+    ctx->game->levelAssets[i] = 0;
+    ctx->game->levelNames[i]  = string_empty;
+  }
+
   const String levelPattern = string_lit("levels/game/*.level");
   EcsEntityId  queryAssets[asset_query_max_results];
-  const u32    queryCount = asset_query(world, assets, levelPattern, queryAssets);
+  const u32    queryCount = asset_query(ctx->world, ctx->assets, levelPattern, queryAssets);
 
   for (u32 i = 0; i != math_min(queryCount, GameLevelsMax); ++i) {
-    asset_acquire(world, queryAssets[i]);
-    game->levelLoadingMask |= 1 << i;
-    game->levelAssets[i] = queryAssets[i];
+    asset_acquire(ctx->world, queryAssets[i]);
+    ctx->game->levelLoadingMask |= 1 << i;
+    ctx->game->levelAssets[i] = queryAssets[i];
   }
 }
 
-static void game_levels_query_update(const GameUpdateContext* ctx) {
-  if (!ctx->game->levelLoadingMask) {
-    return; // Loading finished.
-  }
+static void game_level_query_update(const GameUpdateContext* ctx) {
+  diag_assert(ctx->game->levelLoadingMask);
+
   EcsIterator* levelItr = ecs_view_itr(ecs_world_view_t(ctx->world, LevelView));
   bitset_for(bitset_from_var(ctx->game->levelLoadingMask), idx) {
     const EcsEntityId asset = ctx->game->levelAssets[idx];
@@ -891,7 +938,12 @@ ecs_system_define(GameUpdateSys) {
       .devPanelView        = ecs_world_view_t(world, DevPanelView),
   };
 
-  game_levels_query_update(&ctx);
+  if (ctx.game->levelLoadingMask) {
+    game_level_query_update(&ctx);
+  } else if (ctx.game->flags & GameFlags_RefreshLevels) {
+    game_level_query_begin(&ctx);
+    ctx.game->flags &= ~GameFlags_RefreshLevels;
+  }
 
   EcsIterator* canvasItr   = ecs_view_itr(ecs_world_view_t(world, UiCanvasView));
   EcsView*     mainWinView = ecs_world_view_t(world, MainWindowView);
@@ -948,20 +1000,20 @@ ecs_system_define(GameUpdateSys) {
     debugReq |= ctx.winDevStats && dev_stats_debug(ctx.winDevStats) == DevStatDebug_On;
     debugReq |= ctx.game->state == GameState_Edit;
 
-    if (debugReq && !ctx.game->debugActive) {
+    if (debugReq && !(ctx.game->flags & GameFlags_DebugActive)) {
       game_dev_panels_hide(&ctx, false);
       scene_visibility_flags_set(ctx.visibilityEnv, SceneVisibilityFlags_ForceRender);
       input_layer_enable(ctx.input, string_hash_lit("Dev"));
       input_blocker_update(ctx.input, InputBlocker_Debug, true);
       dev_stats_notify(ctx.devStatsGlobal, string_lit("Debug"), string_lit("On"));
-      ctx.game->debugActive = true;
-    } else if (!debugReq && ctx.game->debugActive) {
+      ctx.game->flags |= GameFlags_DebugActive;
+    } else if (!debugReq && (ctx.game->flags & GameFlags_DebugActive)) {
       game_dev_panels_hide(&ctx, true);
       scene_visibility_flags_clear(ctx.visibilityEnv, SceneVisibilityFlags_ForceRender);
       input_layer_disable(ctx.input, string_hash_lit("Dev"));
       input_blocker_update(ctx.input, InputBlocker_Debug, false);
       dev_stats_notify(ctx.devStatsGlobal, string_lit("Debug"), string_lit("Off"));
-      ctx.game->debugActive = false;
+      ctx.game->flags &= ~GameFlags_DebugActive;
     }
     if (debugReq && input_triggered_lit(ctx.input, "DevFreeCamera")) {
       game_toggle_camera(&ctx);
@@ -987,13 +1039,22 @@ ecs_system_define(GameUpdateSys) {
       menu_draw_version(&ctx);
     } break;
     case GameState_MenuSelect: {
+      if (ctx.game->levelLoadingMask) {
+        break; // Still loading the level list.
+      }
       const u32 levelCount = bits_popcnt(ctx.game->levelMask);
       for (u32 i = 0; i != levelCount; ++i) {
         menuEntries[menuEntriesCount++] = &menu_entry_level;
       }
+      if (ctx.devPanelView && asset_save_supported(ctx.assets)) {
+        menuEntries[menuEntriesCount++] = &menu_entry_refresh_levels;
+      }
       menuEntries[menuEntriesCount++] = &menu_entry_back;
-      const String header = ctx.game->editMode ? string_lit("Edit") : string_lit("Play");
-      menu_draw(&ctx, header, menuEntries, menuEntriesCount);
+      if (ctx.game->flags & GameFlags_EditMode) {
+        menu_draw(&ctx, string_lit("Edit"), menuEntries, menuEntriesCount);
+      } else {
+        menu_draw(&ctx, string_lit("Play"), menuEntries, menuEntriesCount);
+      }
       menu_draw_version(&ctx);
     } break;
     case GameState_Loading:
@@ -1004,7 +1065,11 @@ ecs_system_define(GameUpdateSys) {
         break;
       }
       if (game_level_ready(&ctx) && ctx.game->stateTicks >= GameLoadingMinTicks) {
-        game_transition_delayed(ctx.game, ctx.game->editMode ? GameState_Edit : GameState_Play);
+        if (ctx.game->flags & GameFlags_EditMode) {
+          game_transition_delayed(ctx.game, GameState_Edit);
+        } else {
+          game_transition_delayed(ctx.game, GameState_Play);
+        }
         break;
       }
       break;
@@ -1024,6 +1089,9 @@ ecs_system_define(GameUpdateSys) {
     case GameState_Pause:
       menuEntries[menuEntriesCount++] = &menu_entry_resume;
       menuEntries[menuEntriesCount++] = &menu_entry_restart;
+      if (ctx.devPanelView && asset_save_supported(ctx.assets)) {
+        menuEntries[menuEntriesCount++] = &menu_entry_edit_current;
+      }
       menuEntries[menuEntriesCount++] = &menu_entry_volume;
       menuEntries[menuEntriesCount++] = &menu_entry_powersaving;
       menuEntries[menuEntriesCount++] = &menu_entry_quality;
@@ -1194,15 +1262,17 @@ bool app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
 
   game_quality_apply(prefs, rendSettingsGlobal, rendSettingsWin);
 
+  GameFlags gameFlags = GameFlags_RefreshLevels;
+  if (devSupport) {
+    gameFlags |= GameFlags_DevSupport;
+  }
   GameComp* game = ecs_world_add_t(
       world,
       ecs_world_global(world),
       GameComp,
-      .devSupport  = devSupport,
+      .flags       = gameFlags,
       .mainWindow  = mainWin,
       .musicHandle = sentinel_u32);
-
-  game_levels_query_init(world, game, assets);
 
   InputResourceComp* inputResource = input_resource_init(world);
   input_resource_load_map(inputResource, string_lit("global/global.inputs"));

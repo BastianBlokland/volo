@@ -41,3 +41,4 @@ void scene_level_load(EcsWorld*, SceneLevelMode, EcsEntityId levelAsset);
 void scene_level_reload(EcsWorld*, SceneLevelMode);
 void scene_level_unload(EcsWorld*);
 void scene_level_save(EcsWorld*, EcsEntityId levelAsset);
+void scene_level_save_reload(EcsWorld*, EcsEntityId levelAsset, SceneLevelMode);
