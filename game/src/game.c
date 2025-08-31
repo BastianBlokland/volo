@@ -13,6 +13,7 @@
 #include "core/path.h"
 #include "core/rng.h"
 #include "core/version.h"
+#include "dev/level.h"
 #include "dev/log_viewer.h"
 #include "dev/menu.h"
 #include "dev/panel.h"
@@ -260,7 +261,8 @@ typedef struct {
   UiCanvasComp*       winCanvas;
 
   EcsView* levelRenderableView;
-  EcsView* devPanelView; // Null if dev-support is not enabled.
+  EcsView* devPanelView;      // Null if dev-support is not enabled.
+  EcsView* devLevelPanelView; // Null if dev-support is not enabled.
 } GameUpdateContext;
 
 static void game_notify_level_action(const GameUpdateContext* ctx, const String action) {
@@ -824,6 +826,7 @@ ecs_view_define(UiCanvasView) {
 
 ecs_view_define(DevMenuView) { ecs_access_write(DevMenuComp); }
 ecs_view_define(DevPanelView) { ecs_access_write(DevPanelComp); }
+ecs_view_define(DevLevelPanelView) { ecs_access_write(DevLevelPanelComp); }
 
 static void game_level_query_begin(const GameUpdateContext* ctx) {
   diag_assert(!ctx->game->levelLoadingMask);
@@ -875,13 +878,31 @@ static void game_level_query_update(const GameUpdateContext* ctx) {
 }
 
 static void game_dev_panels_hide(const GameUpdateContext* ctx, const bool hidden) {
-  if (!ctx->devPanelView) {
-    return; // Dev support not enabled.
-  }
+  diag_assert(ctx->devPanelView);
   for (EcsIterator* itr = ecs_view_itr(ctx->devPanelView); ecs_view_walk(itr);) {
     DevPanelComp* panel = ecs_view_write_t(itr, DevPanelComp);
     if (dev_panel_type(panel) != DevPanelType_Detached) {
       dev_panel_hide(panel, hidden);
+    }
+  }
+}
+
+static void game_dev_handle_level_requests(const GameUpdateContext* ctx) {
+  diag_assert(ctx->devLevelPanelView);
+  DevLevelRequest req;
+  for (EcsIterator* itr = ecs_view_itr(ctx->devLevelPanelView); ecs_view_walk(itr);) {
+    DevLevelPanelComp* levelPanel = ecs_view_write_t(itr, DevLevelPanelComp);
+    if (dev_level_consume_request(levelPanel, &req)) {
+      if (ctx->game->state == GameState_MenuMain || ctx->game->state == GameState_MenuSelect) {
+        if (req.levelMode == SceneLevelMode_Edit) {
+          ctx->game->flags |= GameFlags_EditMode;
+        } else {
+          ctx->game->flags &= ~GameFlags_EditMode;
+        }
+        game_transition(ctx, GameState_Loading);
+        scene_level_load(ctx->world, req.levelMode, req.levelAsset);
+      }
+      break;
     }
   }
 }
@@ -936,6 +957,7 @@ ecs_system_define(GameUpdateSys) {
       .devStatsGlobal      = ecs_view_write_t(globalItr, DevStatsGlobalComp),
       .levelRenderableView = ecs_world_view_t(world, LevelRenderableView),
       .devPanelView        = ecs_world_view_t(world, DevPanelView),
+      .devLevelPanelView   = ecs_world_view_t(world, DevLevelPanelView),
   };
 
   if (ctx.game->levelLoadingMask) {
@@ -994,6 +1016,9 @@ ecs_system_define(GameUpdateSys) {
       ctx.game->stateNext = GameState_None;
     } else {
       ++ctx.game->stateTicks;
+    }
+    if (ctx.game->flags & GameFlags_DevSupport) {
+      game_dev_handle_level_requests(&ctx);
     }
 
     bool debugReq = false;
@@ -1136,6 +1161,7 @@ ecs_module_init(game_module) {
   if (ctx->devSupport) {
     ecs_register_view(DevPanelView);
     ecs_register_view(DevMenuView);
+    ecs_register_view(DevLevelPanelView);
   }
 
   ecs_register_system(
@@ -1146,7 +1172,8 @@ ecs_module_init(game_module) {
       ecs_view_id(UiCanvasView),
       ecs_view_id(LevelRenderableView),
       ecs_view_id(DevPanelView),
-      ecs_view_id(DevMenuView));
+      ecs_view_id(DevMenuView),
+      ecs_view_id(DevLevelPanelView));
 
   ecs_order(GameUpdateSys, GameOrder_StateUpdate);
 }
