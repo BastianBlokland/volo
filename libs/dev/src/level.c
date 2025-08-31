@@ -26,7 +26,6 @@
 
 static const String g_tooltipEdit   = string_static("Start editing the current level.");
 static const String g_tooltipPlay   = string_static("Start playing the current level.");
-static const String g_tooltipUnload = string_static("Unload the current level.");
 static const String g_tooltipFilter = string_static("Filter levels by identifier.\nSupports glob characters \a.b*\ar and \a.b?\ar (\a.b!\ar prefix to invert).");
 
 // clang-format on
@@ -35,12 +34,10 @@ typedef enum {
   DevLevelFlags_RefreshLevels = 1 << 0,
   DevLevelFlags_Edit          = 1 << 1,
   DevLevelFlags_Play          = 1 << 2,
-  DevLevelFlags_Unload        = 1 << 3,
 
-  DevLevelFlags_None    = 0,
-  DevLevelFlags_Default = DevLevelFlags_RefreshLevels,
-  DevLevelFlags_Volatile =
-      DevLevelFlags_RefreshLevels | DevLevelFlags_Edit | DevLevelFlags_Play | DevLevelFlags_Unload,
+  DevLevelFlags_None     = 0,
+  DevLevelFlags_Default  = DevLevelFlags_RefreshLevels,
+  DevLevelFlags_Volatile = DevLevelFlags_RefreshLevels | DevLevelFlags_Edit | DevLevelFlags_Play,
 } DevLevelFlags;
 
 typedef enum {
@@ -121,7 +118,6 @@ static void manage_panel_options_draw(UiCanvasComp* c, DevLevelContext* ctx) {
   UiTable table = ui_table(.spacing = ui_vector(5, 5), .rowHeight = 20);
   ui_table_add_column(&table, UiTableColumn_Fixed, 30);
   ui_table_add_column(&table, UiTableColumn_Fixed, 30);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 30);
   ui_table_add_column(&table, UiTableColumn_Fixed, 60);
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
@@ -136,10 +132,6 @@ static void manage_panel_options_draw(UiCanvasComp* c, DevLevelContext* ctx) {
   ui_table_next_column(c, &table);
   if (ui_button(c, .flags = btnFlags, .label = string_lit("\uE037"), .tooltip = g_tooltipPlay)) {
     ctx->panelComp->flags |= DevLevelFlags_Play;
-  }
-  ui_table_next_column(c, &table);
-  if (ui_button(c, .flags = btnFlags, .label = string_lit("\uE9BA"), .tooltip = g_tooltipUnload)) {
-    ctx->panelComp->flags |= DevLevelFlags_Unload;
   }
   ui_table_next_column(c, &table);
   ui_label(c, string_lit("Filter:"));
@@ -342,9 +334,6 @@ ecs_system_define(DevLevelUpdatePanelSys) {
     }
     if (panelComp->flags & DevLevelFlags_Play) {
       scene_level_reload(world, SceneLevelMode_Play);
-    }
-    if (panelComp->flags & DevLevelFlags_Unload) {
-      scene_level_unload(world);
     }
     panelComp->flags &= ~DevLevelFlags_Volatile;
 
