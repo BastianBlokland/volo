@@ -1012,10 +1012,11 @@ ecs_system_define(GameUpdateSys) {
       dev_stats_notify(ctx.devStatsGlobal, string_lit("Debug"), string_lit("Off"));
       ctx.game->flags &= ~GameFlags_DebugActive;
     }
-    if (debugReq && input_triggered_lit(ctx.input, "DevFreeCamera")) {
-      game_toggle_camera(&ctx);
-    }
+
     if (debugReq) {
+      if (input_triggered_lit(ctx.input, "DevFreeCamera")) {
+        game_toggle_camera(&ctx);
+      }
       input_layer_enable(ctx.input, string_hash_lit("Dev"));
       input_layer_disable(ctx.input, string_hash_lit("Game"));
     } else {
