@@ -14,3 +14,4 @@ void dev_panel_hide(DevPanelComp*, bool hide);
 bool dev_panel_hidden(const DevPanelComp*);
 
 EcsEntityId dev_panel_create(EcsWorld*, EcsEntityId window, DevPanelType);
+EcsEntityId dev_panel_create_hidden(EcsWorld*, EcsEntityId window, DevPanelType);
