@@ -28,15 +28,15 @@ static const String g_tooltipFilter = string_static("Filter levels by identifier
 // clang-format on
 
 typedef enum {
-  DevLevelTab_Manage,
   DevLevelTab_Settings,
+  DevLevelTab_Browse,
 
   DevLevelTab_Count,
 } DevLevelTab;
 
 static const String g_levelTabNames[] = {
-    string_static("Manage"),
     string_static("\uE8B8 Settings"),
+    string_static("Browse"),
 };
 ASSERT(array_elems(g_levelTabNames) == DevLevelTab_Count, "Incorrect number of names");
 
@@ -99,7 +99,7 @@ static bool level_id_filter(DevLevelContext* ctx, const String levelId) {
   return string_match_glob(levelId, filter, StringMatchFlags_IgnoreCase);
 }
 
-static void manage_panel_options_draw(UiCanvasComp* c, DevLevelContext* ctx) {
+static void browse_panel_options_draw(UiCanvasComp* c, DevLevelContext* ctx) {
   ui_layout_push(c);
 
   UiTable table = ui_table(.spacing = ui_vector(5, 5), .rowHeight = 20);
@@ -115,8 +115,8 @@ static void manage_panel_options_draw(UiCanvasComp* c, DevLevelContext* ctx) {
   ui_layout_pop(c);
 }
 
-static void manage_panel_draw(UiCanvasComp* c, DevLevelContext* ctx) {
-  manage_panel_options_draw(c, ctx);
+static void browse_panel_draw(UiCanvasComp* c, DevLevelContext* ctx) {
+  browse_panel_options_draw(c, ctx);
   ui_layout_grow(c, UiAlign_BottomCenter, ui_vector(0, -35), UiBase_Absolute, Ui_Y);
   ui_layout_container_push(c, UiClip_None, UiLayer_Normal);
 
@@ -230,9 +230,6 @@ static void level_panel_draw(UiCanvasComp* c, DevLevelContext* ctx) {
       .topBarColor = ui_color(100, 0, 0, 192));
 
   switch (ctx->panelComp->panel.activeTab) {
-  case DevLevelTab_Manage:
-    manage_panel_draw(c, ctx);
-    break;
   case DevLevelTab_Settings:
     if (!ecs_entity_valid(scene_level_asset(ctx->levelManager))) {
       ui_label(c, string_lit("< No loaded level >"), .align = UiAlign_MiddleCenter);
@@ -243,6 +240,9 @@ static void level_panel_draw(UiCanvasComp* c, DevLevelContext* ctx) {
       break;
     }
     settings_panel_draw(c, ctx);
+    break;
+  case DevLevelTab_Browse:
+    browse_panel_draw(c, ctx);
     break;
   }
 
