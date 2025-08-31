@@ -342,10 +342,11 @@ dev_level_panel_open(EcsWorld* world, const EcsEntityId window, const DevPanelTy
       world,
       panelEntity,
       DevLevelPanelComp,
-      .window     = window,
-      .idFilter   = dynstring_create(g_allocHeap, 32),
-      .nameBuffer = dynstring_create(g_allocHeap, 32),
-      .panel      = ui_panel(.position = ui_vector(0.5f, 0.5f), .size = ui_vector(500, 300)));
+      .window        = window,
+      .idFilter      = dynstring_create(g_allocHeap, 32),
+      .nameBuffer    = dynstring_create(g_allocHeap, 32),
+      .panel         = ui_panel(.position = ui_vector(0.5f, 0.5f), .size = ui_vector(500, 300)),
+      .refreshLevels = true);
 
   if (type == DevPanelType_Detached) {
     ui_panel_maximize(&levelPanel->panel);
