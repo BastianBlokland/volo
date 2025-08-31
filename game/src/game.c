@@ -336,6 +336,7 @@ static void game_transition(const GameUpdateContext* ctx, const GameState state)
   case GameState_Edit:
     input_layer_disable(ctx->input, string_hash_lit("Edit"));
     game_input_type_set(ctx->winGameInput, GameInputType_None);
+    dev_stats_debug_set(ctx->winDevStats, DevStatDebug_Off);
     if (ctx->winDevMenu) {
       dev_menu_edit_panels_close(ctx->world, ctx->winDevMenu);
     }
