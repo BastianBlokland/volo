@@ -390,8 +390,13 @@ ecs_module_init(dev_menu_module) {
       ecs_view_id(WindowView));
 }
 
-EcsEntityId dev_menu_create(EcsWorld* world, const EcsEntityId window) {
-  const EcsEntityId menuEntity = dev_panel_create(world, window, DevPanelType_Normal);
+EcsEntityId dev_menu_create(EcsWorld* world, const EcsEntityId window, const bool hidden) {
+  EcsEntityId menuEntity;
+  if (hidden) {
+    menuEntity = dev_panel_create_hidden(world, window, DevPanelType_Normal);
+  } else {
+    menuEntity = dev_panel_create(world, window, DevPanelType_Normal);
+  }
   ecs_world_add_t(world, menuEntity, DevMenuComp, .window = window, .menuEntity = menuEntity);
   return menuEntity;
 }
