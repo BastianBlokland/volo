@@ -759,6 +759,7 @@ static void menu_entry_edit_save(const GameUpdateContext* ctx, MAYBE_UNUSED cons
           ctx->winCanvas,
           .label    = ui_shape_scratch(UiShape_Save),
           .fontSize = 25,
+          .activate = input_triggered_lit(ctx->input, "SaveLevel"),
           .tooltip  = string_lit("Save the level."))) {
     scene_level_save(ctx->world, scene_level_asset(ctx->levelManager));
     game_notify_level_action(ctx, string_lit("Save"));

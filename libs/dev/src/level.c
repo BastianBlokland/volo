@@ -6,12 +6,10 @@
 #include "dev/finder.h"
 #include "dev/level.h"
 #include "dev/panel.h"
-#include "dev/stats.h"
 #include "dev/widget.h"
 #include "ecs/entity.h"
 #include "ecs/view.h"
 #include "ecs/world.h"
-#include "input/manager.h"
 #include "scene/camera.h"
 #include "scene/level.h"
 #include "scene/transform.h"
@@ -29,7 +27,6 @@
 static const String g_tooltipEdit   = string_static("Start editing the current level.");
 static const String g_tooltipPlay   = string_static("Start playing the current level.");
 static const String g_tooltipUnload = string_static("Unload the current level.");
-static const String g_tooltipSave   = string_static("Save the current level.");
 static const String g_tooltipFilter = string_static("Filter levels by identifier.\nSupports glob characters \a.b*\ar and \a.b?\ar (\a.b!\ar prefix to invert).");
 
 // clang-format on
@@ -39,12 +36,11 @@ typedef enum {
   DevLevelFlags_Edit          = 1 << 1,
   DevLevelFlags_Play          = 1 << 2,
   DevLevelFlags_Unload        = 1 << 3,
-  DevLevelFlags_Save          = 1 << 4,
 
-  DevLevelFlags_None     = 0,
-  DevLevelFlags_Default  = DevLevelFlags_RefreshLevels,
-  DevLevelFlags_Volatile = DevLevelFlags_RefreshLevels | DevLevelFlags_Edit | DevLevelFlags_Play |
-                           DevLevelFlags_Unload | DevLevelFlags_Save,
+  DevLevelFlags_None    = 0,
+  DevLevelFlags_Default = DevLevelFlags_RefreshLevels,
+  DevLevelFlags_Volatile =
+      DevLevelFlags_RefreshLevels | DevLevelFlags_Edit | DevLevelFlags_Play | DevLevelFlags_Unload,
 } DevLevelFlags;
 
 typedef enum {
@@ -126,17 +122,13 @@ static void manage_panel_options_draw(UiCanvasComp* c, DevLevelContext* ctx) {
   ui_table_add_column(&table, UiTableColumn_Fixed, 30);
   ui_table_add_column(&table, UiTableColumn_Fixed, 30);
   ui_table_add_column(&table, UiTableColumn_Fixed, 30);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 30);
   ui_table_add_column(&table, UiTableColumn_Fixed, 60);
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
   ui_table_next_row(c, &table);
 
-  const bool isLoaded   = ecs_entity_valid(scene_level_asset(ctx->levelManager));
-  const bool isEditMode = isLoaded && scene_level_mode(ctx->levelManager) == SceneLevelMode_Edit;
-
-  const UiWidgetFlags btnFlags  = isLoaded ? 0 : UiWidget_Disabled;
-  const UiWidgetFlags editFlags = isEditMode ? 0 : UiWidget_Disabled;
+  const bool          isLoaded = ecs_entity_valid(scene_level_asset(ctx->levelManager));
+  const UiWidgetFlags btnFlags = isLoaded ? 0 : UiWidget_Disabled;
 
   if (ui_button(c, .flags = btnFlags, .label = string_lit("\uE3C9"), .tooltip = g_tooltipEdit)) {
     ctx->panelComp->flags |= DevLevelFlags_Edit;
@@ -144,10 +136,6 @@ static void manage_panel_options_draw(UiCanvasComp* c, DevLevelContext* ctx) {
   ui_table_next_column(c, &table);
   if (ui_button(c, .flags = btnFlags, .label = string_lit("\uE037"), .tooltip = g_tooltipPlay)) {
     ctx->panelComp->flags |= DevLevelFlags_Play;
-  }
-  ui_table_next_column(c, &table);
-  if (ui_button(c, .flags = editFlags, .label = string_lit("\uE161"), .tooltip = g_tooltipSave)) {
-    ctx->panelComp->flags |= DevLevelFlags_Save;
   }
   ui_table_next_column(c, &table);
   if (ui_button(c, .flags = btnFlags, .label = string_lit("\uE9BA"), .tooltip = g_tooltipUnload)) {
@@ -270,14 +258,6 @@ static void settings_panel_draw(UiCanvasComp* c, DevLevelContext* ctx) {
     const GeoVector newStartpoint = level_camera_center(ctx);
     scene_level_startpoint_update(ctx->levelManager, newStartpoint);
   }
-
-  ui_layout_push(c);
-  ui_layout_inner(c, UiBase_Container, UiAlign_BottomCenter, ui_vector(100, 22), UiBase_Absolute);
-  ui_layout_move_dir(c, Ui_Up, 8, UiBase_Absolute);
-  if (ui_button(c, .label = string_lit("Save"), .tooltip = g_tooltipSave)) {
-    ctx->panelComp->flags |= DevLevelFlags_Save;
-  }
-  ui_layout_pop(c);
 }
 
 static void level_panel_draw(UiCanvasComp* c, DevLevelContext* ctx) {
@@ -311,10 +291,8 @@ static void level_panel_draw(UiCanvasComp* c, DevLevelContext* ctx) {
 }
 
 ecs_view_define(PanelUpdateGlobalView) {
-  ecs_access_read(InputManagerComp);
   ecs_access_write(DevFinderComp);
   ecs_access_write(SceneLevelManagerComp);
-  ecs_access_maybe_write(DevStatsGlobalComp);
 }
 
 ecs_view_define(PanelUpdateView) {
@@ -331,28 +309,11 @@ ecs_system_define(DevLevelUpdatePanelSys) {
   if (!globalItr) {
     return;
   }
-  SceneLevelManagerComp*  levelManager = ecs_view_write_t(globalItr, SceneLevelManagerComp);
-  DevFinderComp*          finder       = ecs_view_write_t(globalItr, DevFinderComp);
-  const InputManagerComp* input        = ecs_view_read_t(globalItr, InputManagerComp);
-  DevStatsGlobalComp*     statsGlobal  = ecs_view_write_t(globalItr, DevStatsGlobalComp);
+  SceneLevelManagerComp* levelManager = ecs_view_write_t(globalItr, SceneLevelManagerComp);
+  DevFinderComp*         finder       = ecs_view_write_t(globalItr, DevFinderComp);
 
   EcsView* cameraView = ecs_world_view_t(world, CameraView);
   EcsView* panelView  = ecs_world_view_t(world, PanelUpdateView);
-
-  if (input_triggered_lit(input, "SaveLevel")) {
-    const EcsEntityId currentLevelAsset = scene_level_asset(levelManager);
-    if (currentLevelAsset && scene_level_mode(levelManager) == SceneLevelMode_Edit) {
-      scene_level_save(world, currentLevelAsset);
-
-      if (statsGlobal) {
-        String name = scene_level_name(levelManager);
-        if (string_is_empty(name)) {
-          name = string_lit("unnamed level");
-        }
-        dev_stats_notify(statsGlobal, string_lit("Save"), name);
-      }
-    }
-  }
 
   bool refreshLevels = false;
 
@@ -384,9 +345,6 @@ ecs_system_define(DevLevelUpdatePanelSys) {
     }
     if (panelComp->flags & DevLevelFlags_Unload) {
       scene_level_unload(world);
-    }
-    if (panelComp->flags & DevLevelFlags_Save) {
-      scene_level_save(world, scene_level_asset(levelManager));
     }
     panelComp->flags &= ~DevLevelFlags_Volatile;
 
