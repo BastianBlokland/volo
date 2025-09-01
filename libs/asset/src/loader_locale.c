@@ -19,6 +19,10 @@ static void ecs_destruct_locale_comp(void* data) {
       g_dataReg, g_allocHeap, g_assetLocaleDefMeta, mem_create(comp, sizeof(AssetLocaleComp)));
 }
 
+static i8 locale_text_compare(const void* a, const void* b) {
+  return compare_stringhash(field_ptr(a, AssetLocaleText, key), field_ptr(b, AssetLocaleText, key));
+}
+
 ecs_view_define(LocaleUnloadView) {
   ecs_access_with(AssetLocaleComp);
   ecs_access_without(AssetLoadedComp);
@@ -43,10 +47,17 @@ ecs_module_init(asset_locale_module) {
 
 void asset_data_init_locale(void) {
   // clang-format off
+  data_reg_struct_t(g_dataReg, AssetLocaleText);
+  data_reg_field_t(g_dataReg, AssetLocaleText, key, data_prim_t(StringHash), .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetLocaleText, value, data_prim_t(String));
+  data_reg_compare_t(g_dataReg, AssetLocaleText, locale_text_compare);
+  data_reg_comment_t(g_dataReg, AssetLocaleText, "Translation key / value.");
+
   data_reg_struct_t(g_dataReg, AssetLocaleComp);
   data_reg_field_t(g_dataReg, AssetLocaleComp, language, data_prim_t(StringHash), .flags = DataFlags_NotEmpty);
   data_reg_field_t(g_dataReg, AssetLocaleComp, country, data_prim_t(StringHash), .flags = DataFlags_NotEmpty);
   data_reg_field_t(g_dataReg, AssetLocaleComp, name, data_prim_t(String), .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetLocaleComp, textEntries, t_AssetLocaleText, .container = DataContainer_HeapArray, .flags = DataFlags_Sort);
   // clang-format on
 
   g_assetLocaleDefMeta = data_meta_t(t_AssetLocaleComp);

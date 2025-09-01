@@ -1,18 +1,34 @@
 {
-  "title": "LocaleDef",
-  "$ref": "#/$defs/LocaleDef",
+  "title": "AssetLocaleComp",
+  "$ref": "#/$defs/AssetLocaleComp",
   "$defs": {
-    "LocaleDef": {
+    "AssetLocaleComp": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
         "language": { "title": "StringHash", "type": "string", "minLength": 1 },
         "country": { "title": "StringHash", "type": "string", "minLength": 1 },
-        "name": { "title": "String", "type": "string", "minLength": 1 }
+        "name": { "title": "String", "type": "string", "minLength": 1 },
+        "textEntries": {
+          "type": "array",
+          "items": { "title": "AssetLocaleText", "description": "Translation key / value.", "$ref": "#/$defs/AssetLocaleText" }
+        }
       },
-      "required": [ "language", "country", "name" ],
+      "required": [ "language", "country", "name", "textEntries" ],
       "defaultSnippets": [
-        { "label": "New", "body": "^{\n  \"language\": \"placeholder\",\n  \"country\": \"placeholder\",\n  \"name\": \"placeholder\"\n}" }
+        { "label": "New", "body": "^{\n  \"language\": \"placeholder\",\n  \"country\": \"placeholder\",\n  \"name\": \"placeholder\",\n  \"textEntries\": []\n}" }
+      ]
+    },
+    "AssetLocaleText": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "key": { "title": "StringHash", "type": "string", "minLength": 1 },
+        "value": { "title": "String", "type": "string" }
+      },
+      "required": [ "key", "value" ],
+      "defaultSnippets": [
+        { "label": "New", "body": "^{\n  \"key\": \"placeholder\",\n  \"value\": \"\"\n}" }
       ]
     }
   }
