@@ -392,6 +392,13 @@ void data_reg_normalizer(DataReg* reg, const DataType type, const DataNormalizer
   decl->normalizer = normalizer;
 }
 
+void data_reg_compare(DataReg* reg, const DataType type, const CompareFunc compare) {
+  DataDecl* decl = data_decl_mutable(reg, type);
+  diag_assert_msg(
+      !decl->compare, "Compare is already registered for type '{}'", fmt_text(decl->id.name));
+  decl->compare = compare;
+}
+
 DataMeta data_meta_base(const DataMeta meta) {
   return (DataMeta){.type = meta.type, .flags = meta.flags & DataFlags_TransferToBase};
 }

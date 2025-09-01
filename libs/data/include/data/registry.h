@@ -1,4 +1,5 @@
 #pragma once
+#include "core/compare.h"
 #include "core/string.h"
 #include "data/type.h"
 
@@ -226,3 +227,13 @@ typedef bool (*DataNormalizer)(Mem data);
   data_reg_normalizer((_REG_), t_##_DATA_TYPE_, _NORMALIZER_FUNC_)
 
 void data_reg_normalizer(DataReg*, DataType, DataNormalizer);
+
+/**
+ * Register a compare function to the given type.
+ * When registering a compare function the type can be used in sorted collections.
+ * Pre-condition: Type is declared in the registry.
+ */
+#define data_reg_compare_t(_REG_, _DATA_TYPE_, _COMPARE_FUNC_)                                     \
+  data_reg_compare((_REG_), t_##_DATA_TYPE_, _COMPARE_FUNC_)
+
+void data_reg_compare(DataReg*, DataType, CompareFunc);
