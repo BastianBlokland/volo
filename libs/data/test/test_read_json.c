@@ -369,6 +369,23 @@ spec(read_json) {
     test_read_fail(_testCtx, reg, string_lit("null"), meta, DataReadError_MismatchedType);
   }
 
+  it("can read a sorted array") {
+    const DataMeta meta = data_meta_t(
+        data_prim_t(u32), .container = DataContainer_HeapArray, .flags = DataFlags_Sort);
+
+    HeapArray_t(u32) val;
+    test_read_success(_testCtx, reg, string_lit("[]"), meta, mem_var(val));
+    check_eq_int(val.count, 0);
+
+    test_read_success(_testCtx, reg, string_lit("[3, 1, 4, 2]"), meta, mem_var(val));
+    check_eq_int(val.count, 4);
+    check_eq_int(val.values[0], 1);
+    check_eq_int(val.values[1], 2);
+    check_eq_int(val.values[2], 3);
+    check_eq_int(val.values[3], 4);
+    alloc_free_array_t(g_allocHeap, val.values, val.count);
+  }
+
   it("can read an enum") {
     typedef enum {
       ReadJsonTestEnum_A = -42,
