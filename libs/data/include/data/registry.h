@@ -1,4 +1,5 @@
 #pragma once
+#include "core/compare.h"
 #include "core/string.h"
 #include "data/type.h"
 
@@ -22,7 +23,8 @@ typedef enum {
   DataFlags_Intern         = 1 << 2, // Intern the string in the global string-table.
   DataFlags_ExternalMemory = 1 << 3, // Support external allocations on this memory type.
   DataFlags_InlineField    = 1 << 4, // Inline in parent if this is the only field.
-  DataFlags_TransferToBase = DataFlags_Intern | DataFlags_ExternalMemory,
+  DataFlags_Sort           = 1 << 5, // The container should remain sorted.
+  DataFlags_TransferToBase = DataFlags_Intern | DataFlags_Sort | DataFlags_ExternalMemory,
 } DataFlags;
 
 typedef enum {
@@ -226,3 +228,13 @@ typedef bool (*DataNormalizer)(Mem data);
   data_reg_normalizer((_REG_), t_##_DATA_TYPE_, _NORMALIZER_FUNC_)
 
 void data_reg_normalizer(DataReg*, DataType, DataNormalizer);
+
+/**
+ * Register a compare function to the given type.
+ * When registering a compare function the type can be used in sorted collections.
+ * Pre-condition: Type is declared in the registry.
+ */
+#define data_reg_compare_t(_REG_, _DATA_TYPE_, _COMPARE_FUNC_)                                     \
+  data_reg_compare((_REG_), t_##_DATA_TYPE_, _COMPARE_FUNC_)
+
+void data_reg_compare(DataReg*, DataType, CompareFunc);

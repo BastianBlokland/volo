@@ -89,6 +89,23 @@ DataReg* data_reg_create(Allocator* alloc) {
   DATA_PRIMS
 #undef X
 
+  data_decl_mutable(reg, type_bool)->compare         = compare_bool;
+  data_decl_mutable(reg, type_i8)->compare           = compare_i8;
+  data_decl_mutable(reg, type_i16)->compare          = compare_i16;
+  data_decl_mutable(reg, type_i32)->compare          = compare_i32;
+  data_decl_mutable(reg, type_i64)->compare          = compare_i64;
+  data_decl_mutable(reg, type_u8)->compare           = compare_u8;
+  data_decl_mutable(reg, type_u16)->compare          = compare_u16;
+  data_decl_mutable(reg, type_u32)->compare          = compare_u32;
+  data_decl_mutable(reg, type_u64)->compare          = compare_u64;
+  data_decl_mutable(reg, type_f16)->compare          = compare_f16;
+  data_decl_mutable(reg, type_f32)->compare          = compare_f32;
+  data_decl_mutable(reg, type_f64)->compare          = compare_f64;
+  data_decl_mutable(reg, type_TimeDuration)->compare = compare_i64;
+  data_decl_mutable(reg, type_Angle)->compare        = compare_f32;
+  data_decl_mutable(reg, type_String)->compare       = compare_string;
+  data_decl_mutable(reg, type_StringHash)->compare   = compare_stringhash;
+
   return reg;
 }
 
@@ -390,6 +407,13 @@ void data_reg_normalizer(DataReg* reg, const DataType type, const DataNormalizer
   diag_assert_msg(
       !decl->normalizer, "Normalizer already registered for type '{}'", fmt_text(decl->id.name));
   decl->normalizer = normalizer;
+}
+
+void data_reg_compare(DataReg* reg, const DataType type, const CompareFunc compare) {
+  DataDecl* decl = data_decl_mutable(reg, type);
+  diag_assert_msg(
+      !decl->compare, "Compare is already registered for type '{}'", fmt_text(decl->id.name));
+  decl->compare = compare;
 }
 
 DataMeta data_meta_base(const DataMeta meta) {

@@ -20,6 +20,7 @@ typedef i8 (*CompareFunc)(const void* a, const void* b);
  * For each type there is a 'compare_X' and 'compare_X_reverse' function.
  */
 
+COMPARE_DECLARE(bool)
 COMPARE_DECLARE(i8)
 COMPARE_DECLARE(i16)
 COMPARE_DECLARE(i32)
@@ -30,6 +31,7 @@ COMPARE_DECLARE(u32)
 COMPARE_DECLARE(u64)
 COMPARE_DECLARE(usize)
 COMPARE_DECLARE(uptr)
+COMPARE_DECLARE(f16)
 COMPARE_DECLARE(f32)
 COMPARE_DECLARE(f64)
 COMPARE_DECLARE_WITH_NAME(StringHash, stringhash)

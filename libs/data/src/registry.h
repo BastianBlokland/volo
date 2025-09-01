@@ -47,8 +47,9 @@ typedef struct {
   DataId         id;
   DataKind       kind;
   usize          size, align;
-  String         comment;
-  DataNormalizer normalizer;
+  String         comment;    // Optional.
+  DataNormalizer normalizer; // Optional.
+  CompareFunc    compare;    // Optional.
   union {
     DataDeclStruct val_struct;
     DataDeclUnion  val_union;

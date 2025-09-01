@@ -1,4 +1,5 @@
 #include "core/compare.h"
+#include "core/float.h"
 #include "core/string.h"
 
 #define COMPARE_DEFINE_ARITHMETIC_WITH_NAME(_TYPE_, _NAME_)                                        \
@@ -11,6 +12,7 @@
 
 #define COMPARE_DEFINE_ARITHMETIC(_TYPE_) COMPARE_DEFINE_ARITHMETIC_WITH_NAME(_TYPE_, _TYPE_)
 
+COMPARE_DEFINE_ARITHMETIC(bool)
 COMPARE_DEFINE_ARITHMETIC(i8)
 COMPARE_DEFINE_ARITHMETIC(i16)
 COMPARE_DEFINE_ARITHMETIC(i32)
@@ -24,6 +26,12 @@ COMPARE_DEFINE_ARITHMETIC(uptr)
 COMPARE_DEFINE_ARITHMETIC(f32)
 COMPARE_DEFINE_ARITHMETIC(f64)
 COMPARE_DEFINE_ARITHMETIC_WITH_NAME(StringHash, stringhash)
+
+i8 compare_f16(const void* a, const void* b) {
+  const f32 fA = float_f16_to_f32(*(const f16*)a);
+  const f32 fB = float_f16_to_f32(*(const f16*)b);
+  return compare_f32(&fA, &fB);
+}
 
 i8 compare_string(const void* a, const void* b) {
   return string_cmp(*(const String*)a, *(const String*)b);
