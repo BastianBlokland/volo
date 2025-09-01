@@ -286,6 +286,7 @@ void asset_data_init(void) {
     asset_data_init_import_texture();
     asset_data_init_inputmap();
     asset_data_init_level();
+    asset_data_init_locale();
     asset_data_init_mesh();
     asset_data_init_pack();
     asset_data_init_prefab();

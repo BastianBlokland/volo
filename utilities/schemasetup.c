@@ -7,6 +7,7 @@
 #include "asset/icon.h"
 #include "asset/inputmap.h"
 #include "asset/level.h"
+#include "asset/locale.h"
 #include "asset/mesh.h"
 #include "asset/prefab.h"
 #include "asset/product.h"
@@ -69,6 +70,7 @@ static const SchemaConfig g_schemaConfigs[] = {
     {.name = string_static("icon.schema.json"),                  .context = &g_assetIconDefMeta,               .writer = schema_writer_data   },
     {.name = string_static("inputs.schema.json"),                .context = &g_assetInputDefMeta,              .writer = schema_writer_data   },
     {.name = string_static("level.schema.json"),                 .context = &g_assetLevelDefMeta,              .writer = schema_writer_data   },
+    {.name = string_static("locale.schema.json"),                .context = &g_assetLocaleDefMeta,             .writer = schema_writer_data   },
     {.name = string_static("prefabs.schema.json"),               .context = &g_assetPrefabDefMeta,             .writer = schema_writer_data   },
     {.name = string_static("procmesh.schema.json"),              .context = &g_assetProcMeshDefMeta,           .writer = schema_writer_data   },
     {.name = string_static("proctex.schema.json"),               .context = &g_assetTexProcDefMeta,            .writer = schema_writer_data   },

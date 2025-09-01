@@ -14,6 +14,8 @@ typedef enum eAssetFormat {
   AssetFormat_InputsBin,
   AssetFormat_Level,
   AssetFormat_LevelBin,
+  AssetFormat_Locale,
+  AssetFormat_LocaleBin,
   AssetFormat_MeshBin,
   AssetFormat_MeshGlb,
   AssetFormat_MeshGltf,

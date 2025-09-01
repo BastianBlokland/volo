@@ -13,6 +13,7 @@ void asset_data_init_import_mesh(void);
 void asset_data_init_import_texture(void);
 void asset_data_init_inputmap(void);
 void asset_data_init_level(void);
+void asset_data_init_locale(void);
 void asset_data_init_mesh(void);
 void asset_data_init_pack(void);
 void asset_data_init_prefab(void);

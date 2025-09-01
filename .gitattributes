@@ -24,6 +24,7 @@
 *.icon linguist-language=JSON
 *.inputs linguist-language=JSON
 *.level linguist-language=JSON
+*.locale linguist-language=JSON
 *.prefabs linguist-language=JSON
 *.prefs linguist-language=JSON
 *.procmesh linguist-language=JSON
