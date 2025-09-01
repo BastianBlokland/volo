@@ -6,6 +6,7 @@
 #include "core/float.h"
 #include "core/forward.h"
 #include "core/math.h"
+#include "core/sort.h"
 #include "core/stringtable.h"
 #include "core/time.h"
 #include "data/read.h"
@@ -759,6 +760,7 @@ static void data_read_json_val_pointer(const ReadCtx* ctx, DataReadResult* res) 
 static void data_read_json_val_elems(const ReadCtx* ctx, void* out, DataReadResult* res) {
   const DataDecl* decl = data_decl(ctx->reg, ctx->meta.type);
 
+  void* outItr = out;
   json_for_elems(ctx->doc, ctx->val, elem) {
     const ReadCtx elemCtx = {
         .reg         = ctx->reg,
@@ -767,13 +769,20 @@ static void data_read_json_val_elems(const ReadCtx* ctx, void* out, DataReadResu
         .doc         = ctx->doc,
         .val         = elem,
         .meta        = data_meta_base(ctx->meta),
-        .data        = mem_create(out, decl->size),
+        .data        = mem_create(outItr, decl->size),
     };
     data_read_json_val_single(&elemCtx, res);
     if (UNLIKELY(res->error)) {
       return;
     }
-    out = bits_ptr_offset(out, decl->size);
+    outItr = bits_ptr_offset(outItr, decl->size);
+  }
+
+  if (ctx->meta.flags & DataFlags_Sort) {
+    if (UNLIKELY(!decl->compare)) {
+      diag_crash_msg("Element type of sorted array does not have a compare function");
+    }
+    sort_quicksort(out, outItr, decl->size, decl->compare);
   }
 
   *res = result_success();
