@@ -29,4 +29,4 @@ u32           loc_manager_locale_count(const LocManagerComp*);
  * Pre-condition: localeIndex < loc_manager_locale_count().
  */
 u32  loc_manager_active_get(const LocManagerComp*);
-void loc_manager_active_set(const LocManagerComp*, u32 localeIndex);
+void loc_manager_active_set(LocManagerComp*, u32 localeIndex);
