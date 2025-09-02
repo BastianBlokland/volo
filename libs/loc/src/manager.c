@@ -1,14 +1,51 @@
 #include "asset/manager.h"
 #include "core/alloc.h"
+#include "core/array.h"
 #include "ecs/view.h"
 #include "ecs/world.h"
 #include "loc/manager.h"
 
-ecs_comp_define(LocManagerComp) { String preferredLocale; };
+typedef enum {
+  LocResource_Acquired  = 1 << 0,
+  LocResource_Unloading = 1 << 1,
+} LocResourceFlags;
+
+typedef struct {
+  LocResourceFlags flags;
+  EcsEntityId      asset;
+} LocResource;
+
+ecs_comp_define(LocManagerComp) {
+  String preferredLocale;
+
+  bool resourcesInit;
+  HeapArray_t(LocResource) resources;
+};
 
 static void ecs_destruct_loc_manager(void* data) {
   LocManagerComp* comp = data;
   string_maybe_free(g_allocHeap, comp->preferredLocale);
+
+  if (comp->resources.values) {
+    alloc_free_array_t(g_allocHeap, comp->resources.values, comp->resources.count);
+  }
+}
+
+static void loc_manager_res_init(EcsWorld* world, LocManagerComp* man, AssetManagerComp* assets) {
+  const String assetPattern = string_lit("locale/*.locale");
+  EcsEntityId  assetEntities[asset_query_max_results];
+  const u32    assetCount = asset_query(world, assets, assetPattern, assetEntities);
+  if (assetCount) {
+    man->resources.count  = assetCount;
+    man->resources.values = alloc_array_t(g_allocHeap, LocResource, assetCount);
+    for (u32 i = 0; i != assetCount; ++i) {
+      asset_acquire(world, assetEntities[i]);
+      man->resources.values[i] = (LocResource){
+          .flags = LocResource_Acquired,
+          .asset = assetEntities[i],
+      };
+    }
+  }
 }
 
 ecs_view_define(UpdateGlobalView) {
@@ -20,6 +57,14 @@ ecs_system_define(LocUpdateSys) {
   EcsView*     globalView = ecs_world_view_t(world, UpdateGlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   if (!globalItr) {
+    return;
+  }
+  LocManagerComp*   man    = ecs_view_write_t(globalItr, LocManagerComp);
+  AssetManagerComp* assets = ecs_view_write_t(globalItr, AssetManagerComp);
+
+  if (!man->resourcesInit) {
+    loc_manager_res_init(world, man, assets);
+    man->resourcesInit = true;
     return;
   }
 }
