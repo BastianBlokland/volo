@@ -39,7 +39,7 @@ static void prefs_data_init(void) {
     data_reg_field_t(g_dataReg, GamePrefsComp, windowWidth, data_prim_t(u16));
     data_reg_field_t(g_dataReg, GamePrefsComp, windowHeight, data_prim_t(u16));
     data_reg_field_t(g_dataReg, GamePrefsComp, quality, t_GameQuality);
-    data_reg_field_t(g_dataReg, GamePrefsComp, locale, data_prim_t(String));
+    data_reg_field_t(g_dataReg, GamePrefsComp, locale, data_prim_t(String), .flags = DataFlags_Opt);
 
     g_gamePrefsMeta = data_meta_t(t_GamePrefsComp);
   }
