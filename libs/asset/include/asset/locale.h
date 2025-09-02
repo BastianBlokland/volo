@@ -9,10 +9,8 @@ typedef struct {
 } AssetLocaleText;
 
 ecs_comp_extern_public(AssetLocaleComp) {
-  StringHash language; // ISO 639 language code, example: 'en'.
-  StringHash country;  // ISO 3166 country code, example: 'us'.
-  String     name;     // Display name in the native language, example: 'English'.
-  bool       isDefault;
+  String name; // Display name in the native language, example: 'English'.
+  bool   isDefault;
   HeapArray_t(AssetLocaleText) textEntries; // Sorted on 'key'.
 };
 
