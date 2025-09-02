@@ -6,42 +6,42 @@
 #include "loc/manager.h"
 
 typedef enum {
-  LocResource_Acquired  = 1 << 0,
-  LocResource_Unloading = 1 << 1,
-} LocResourceFlags;
+  LocEntry_Acquired  = 1 << 0,
+  LocEntry_Unloading = 1 << 1,
+} LocEntryFlags;
 
 typedef struct {
-  LocResourceFlags flags;
-  EcsEntityId      asset;
-} LocResource;
+  LocEntryFlags flags;
+  EcsEntityId   asset;
+} LocEntry;
 
 ecs_comp_define(LocManagerComp) {
   String preferredLocale;
 
-  bool resourcesInit;
-  HeapArray_t(LocResource) resources;
+  bool entriesInit;
+  HeapArray_t(LocEntry) entries;
 };
 
 static void ecs_destruct_loc_manager(void* data) {
   LocManagerComp* comp = data;
   string_maybe_free(g_allocHeap, comp->preferredLocale);
 
-  if (comp->resources.values) {
-    alloc_free_array_t(g_allocHeap, comp->resources.values, comp->resources.count);
+  if (comp->entries.values) {
+    alloc_free_array_t(g_allocHeap, comp->entries.values, comp->entries.count);
   }
 }
 
-static void loc_manager_res_init(EcsWorld* world, LocManagerComp* man, AssetManagerComp* assets) {
+static void loc_entries_init(EcsWorld* world, LocManagerComp* man, AssetManagerComp* assets) {
   const String assetPattern = string_lit("locale/*.locale");
   EcsEntityId  assetEntities[asset_query_max_results];
   const u32    assetCount = asset_query(world, assets, assetPattern, assetEntities);
   if (assetCount) {
-    man->resources.count  = assetCount;
-    man->resources.values = alloc_array_t(g_allocHeap, LocResource, assetCount);
+    man->entries.count  = assetCount;
+    man->entries.values = alloc_array_t(g_allocHeap, LocEntry, assetCount);
     for (u32 i = 0; i != assetCount; ++i) {
       asset_acquire(world, assetEntities[i]);
-      man->resources.values[i] = (LocResource){
-          .flags = LocResource_Acquired,
+      man->entries.values[i] = (LocEntry){
+          .flags = LocEntry_Acquired,
           .asset = assetEntities[i],
       };
     }
@@ -62,9 +62,9 @@ ecs_system_define(LocUpdateSys) {
   LocManagerComp*   man    = ecs_view_write_t(globalItr, LocManagerComp);
   AssetManagerComp* assets = ecs_view_write_t(globalItr, AssetManagerComp);
 
-  if (!man->resourcesInit) {
-    loc_manager_res_init(world, man, assets);
-    man->resourcesInit = true;
+  if (!man->entriesInit) {
+    loc_entries_init(world, man, assets);
+    man->entriesInit = true;
     return;
   }
 }
