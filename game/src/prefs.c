@@ -39,6 +39,7 @@ static void prefs_data_init(void) {
     data_reg_field_t(g_dataReg, GamePrefsComp, windowWidth, data_prim_t(u16));
     data_reg_field_t(g_dataReg, GamePrefsComp, windowHeight, data_prim_t(u16));
     data_reg_field_t(g_dataReg, GamePrefsComp, quality, t_GameQuality);
+    data_reg_field_t(g_dataReg, GamePrefsComp, locale, data_prim_t(String));
 
     g_gamePrefsMeta = data_meta_t(t_GamePrefsComp);
   }
@@ -63,6 +64,7 @@ static void prefs_to_default(GamePrefsComp* prefs) {
   prefs->windowWidth  = 1920;
   prefs->windowHeight = 1080;
   prefs->quality      = GameQuality_Medium;
+  prefs->locale       = string_empty;
 }
 
 static void prefs_save(const GamePrefsComp* prefs) {

@@ -19,6 +19,7 @@ ecs_comp_extern_public(GamePrefsComp) {
   bool        fullscreen;
   u16         windowWidth, windowHeight;
   GameQuality quality;
+  String      locale; // For example 'en-us'.
 };
 
 GamePrefsComp* game_prefs_init(EcsWorld*);
