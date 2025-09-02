@@ -15,4 +15,4 @@ if(${VOLO_PLATFORM} STREQUAL "win32")
   target_sources(volo PRIVATE "res/game.rc")
 endif()
 
-target_link_libraries(volo PRIVATE app_ecs asset data dev gap input rend scene snd trace ui vfx)
+target_link_libraries(volo PRIVATE app_ecs asset data dev gap input rend scene snd trace ui vfx loc)

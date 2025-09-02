@@ -30,6 +30,8 @@
 #include "input/manager.h"
 #include "input/register.h"
 #include "input/resource.h"
+#include "loc/manager.h"
+#include "loc/register.h"
 #include "log/logger.h"
 #include "rend/error.h"
 #include "rend/forward.h"
@@ -1228,6 +1230,7 @@ void app_ecs_register(EcsDef* def, const CliInvocation* invoc) {
   asset_register(def);
   gap_register(def);
   input_register(def);
+  loc_register(def);
   rend_register(def, gameInitCtx.devSupport ? RendRegisterFlags_EnableStats : 0);
   scene_register(def);
   snd_register(def);
@@ -1287,6 +1290,8 @@ bool app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
   const bool     fullscreen = prefs->fullscreen && !cli_parse_provided(invoc, g_optWindow);
   const u16      width      = (u16)cli_read_u64(invoc, g_optWidth, prefs->windowWidth);
   const u16      height     = (u16)cli_read_u64(invoc, g_optHeight, prefs->windowHeight);
+
+  loc_manager_init(world, prefs->locale);
 
   RendSettingsGlobalComp* rendSettingsGlobal = rend_settings_global_init(world, devSupport);
 
