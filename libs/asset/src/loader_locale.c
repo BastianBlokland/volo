@@ -57,6 +57,7 @@ void asset_data_init_locale(void) {
   data_reg_field_t(g_dataReg, AssetLocaleComp, language, data_prim_t(StringHash), .flags = DataFlags_NotEmpty);
   data_reg_field_t(g_dataReg, AssetLocaleComp, country, data_prim_t(StringHash), .flags = DataFlags_NotEmpty);
   data_reg_field_t(g_dataReg, AssetLocaleComp, name, data_prim_t(String), .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetLocaleComp, isDefault, data_prim_t(bool), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AssetLocaleComp, textEntries, t_AssetLocaleText, .container = DataContainer_HeapArray, .flags = DataFlags_Sort);
   // clang-format on
 
