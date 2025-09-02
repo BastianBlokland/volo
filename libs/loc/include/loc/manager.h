@@ -9,7 +9,7 @@ ecs_comp_extern(LocManagerComp);
 /**
  * Initialize the locale manager.
  */
-LocManagerComp* loc_manager_init(EcsWorld*, String preferredLocale);
+LocManagerComp* loc_manager_init(EcsWorld*, String preferredId);
 
 /**
  * Has the locale manager finished initializing.
@@ -28,5 +28,6 @@ u32           loc_manager_locale_count(const LocManagerComp*);
  * Pre-condition: loc_manager_ready().
  * Pre-condition: localeIndex < loc_manager_locale_count().
  */
-u32  loc_manager_active_get(const LocManagerComp*);
-void loc_manager_active_set(LocManagerComp*, u32 localeIndex);
+String loc_manager_active_id(const LocManagerComp*);
+u32    loc_manager_active_get(const LocManagerComp*);
+void   loc_manager_active_set(LocManagerComp*, u32 localeIndex);

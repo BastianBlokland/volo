@@ -27,7 +27,7 @@ typedef struct {
 } LocManagerEntry;
 
 ecs_comp_define(LocManagerComp) {
-  String          preferredLocale;
+  String          preferredId;
   LocManagerState state;
 
   u32              localeActive; // Index of active locale or sentinel_u32.
@@ -38,7 +38,7 @@ ecs_comp_define(LocManagerComp) {
 
 static void ecs_destruct_loc_manager(void* data) {
   LocManagerComp* comp = data;
-  string_maybe_free(g_allocHeap, comp->preferredLocale);
+  string_maybe_free(g_allocHeap, comp->preferredId);
 
   if (comp->localeCount) {
     for (u32 i = 0; i != comp->localeCount; ++i) {
@@ -169,7 +169,7 @@ ecs_system_define(LocUpdateSys) {
   case LocManagerState_Loading:
     if (loc_entries_load(world, man, assetItr)) {
       man->state        = LocManagerState_Ready;
-      man->localeActive = loc_entries_pick(man, man->preferredLocale);
+      man->localeActive = loc_entries_pick(man, man->preferredId);
       if (!sentinel_check(man->localeActive)) {
         const LocManagerEntry* entry = &man->localeEntries[man->localeActive];
         log_i("Locale selected", log_param("id", fmt_text(entry->id)));
@@ -190,13 +190,13 @@ ecs_module_init(loc_manager_module) {
   ecs_register_system(LocUpdateSys, ecs_view_id(UpdateGlobalView), ecs_view_id(LocaleAssetView));
 }
 
-LocManagerComp* loc_manager_init(EcsWorld* world, const String preferredLocale) {
+LocManagerComp* loc_manager_init(EcsWorld* world, const String preferredId) {
   return ecs_world_add_t(
       world,
       ecs_world_global(world),
       LocManagerComp,
-      .preferredLocale = string_maybe_dup(g_allocHeap, preferredLocale),
-      .localeActive    = sentinel_u32);
+      .preferredId  = string_maybe_dup(g_allocHeap, preferredId),
+      .localeActive = sentinel_u32);
 }
 
 bool loc_manager_ready(const LocManagerComp* man) { return man->state == LocManagerState_Ready; }
@@ -210,6 +210,13 @@ u32 loc_manager_locale_count(const LocManagerComp* man) {
 }
 
 u32 loc_manager_active_get(const LocManagerComp* man) { return man->localeActive; }
+
+String loc_manager_active_id(const LocManagerComp* man) {
+  if (sentinel_check(man->localeActive)) {
+    return string_empty;
+  }
+  return man->localeEntries[man->localeActive].id;
+}
 
 void loc_manager_active_set(LocManagerComp* man, const u32 localeIndex) {
   diag_assert(localeIndex < man->localeCount);
