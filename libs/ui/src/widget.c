@@ -4,6 +4,7 @@
 #include "core/math.h"
 #include "core/sentinel.h"
 #include "ecs/entity.h"
+#include "loc/translate.h"
 #include "ui/canvas.h"
 #include "ui/layout.h"
 #include "ui/scrollview.h"
@@ -48,10 +49,14 @@ static void ui_interactable_text_style(UiCanvasComp* canvas, const UiStatus stat
   }
 }
 
-static UiId ui_label_selectable(UiCanvasComp* canvas, const String text, const UiLabelOpts* opts) {
+static UiId ui_label_selectable(UiCanvasComp* canvas, String text, const UiLabelOpts* opts) {
   const UiId     id       = ui_canvas_id_peek(canvas);
   const UiStatus status   = ui_canvas_elem_status(canvas, id);
   bool           selected = ui_canvas_text_editor_active(canvas, id);
+
+  if (opts->flags & UiWidget_Translate) {
+    text = loc_translate_str(text);
+  }
 
   if (!selected && status == UiStatus_Activated) {
     ui_canvas_text_editor_start(canvas, text, id, text.size, UiTextFilter_Readonly);
@@ -73,11 +78,14 @@ static UiId ui_label_selectable(UiCanvasComp* canvas, const String text, const U
   return id;
 }
 
-void ui_label_with_opts(UiCanvasComp* canvas, const String text, const UiLabelOpts* opts) {
+void ui_label_with_opts(UiCanvasComp* canvas, String text, const UiLabelOpts* opts) {
   UiId id;
   if (opts->selectable) {
     id = ui_label_selectable(canvas, text, opts);
   } else {
+    if (opts->flags & UiWidget_Translate) {
+      text = loc_translate_str(text);
+    }
     const UiFlags flags = !string_is_empty(opts->tooltip) ? UiFlags_Interactable : UiFlags_None;
     id                  = ui_canvas_draw_text(canvas, text, opts->fontSize, opts->align, flags);
   }
@@ -123,7 +131,12 @@ bool ui_button_with_opts(UiCanvasComp* canvas, const UiButtonOpts* opts) {
     ui_style_color_mult(canvas, g_uiDisabledMult);
   }
   ui_interactable_text_style(canvas, visualStatus);
-  ui_canvas_draw_text(canvas, opts->label, opts->fontSize, UiAlign_MiddleCenter, UiFlags_None);
+
+  String labelLoc = opts->label;
+  if (opts->flags & UiWidget_Translate) {
+    labelLoc = loc_translate_str(labelLoc);
+  }
+  ui_canvas_draw_text(canvas, labelLoc, opts->fontSize, UiAlign_MiddleCenter, UiFlags_None);
   ui_style_pop(canvas);
 
   if (status >= UiStatus_Hovered) {
@@ -528,7 +541,10 @@ static UiSelectFlags ui_select_dropdown(
 
     ui_style_push(canvas);
     ui_interactable_text_style(canvas, optionStatus);
-    const String label = optionIndex < 0 ? opts->placeholder : options[optionIndex];
+    String label = optionIndex < 0 ? opts->placeholder : options[optionIndex];
+    if (opts->flags & UiWidget_Translate) {
+      label = loc_translate_str(label);
+    }
     ui_canvas_draw_text(canvas, label, opts->fontSize, UiAlign_MiddleLeft, 0);
     ui_style_pop(canvas);
 
@@ -572,8 +588,11 @@ bool ui_select_with_opts(
     ui_canvas_persistent_flags_toggle(canvas, headerId, UiPersistentFlags_Open);
   }
   const bool isOpen = (ui_canvas_persistent_flags(canvas, headerId) & UiPersistentFlags_Open) != 0;
-  const bool outOfBounds   = *input < 0 || *input >= (i32)optionCount;
-  const String headerLabel = outOfBounds ? opts->placeholder : options[*input];
+  const bool outOfBounds = *input < 0 || *input >= (i32)optionCount;
+  String     headerLabel = outOfBounds ? opts->placeholder : options[*input];
+  if (opts->flags & UiWidget_Translate) {
+    headerLabel = loc_translate_str(headerLabel);
+  }
 
   ui_style_push(canvas);
   if (isOpen) {
@@ -686,10 +705,14 @@ static UiSelectFlags ui_select_bits_dropdown(
     }
     const u32 optionIndex  = dir == Ui_Up ? optionCount - 1 - i : i;
     bool      optionActive = bitset_test(value, optionIndex);
+    String    optionLabel  = options[optionIndex];
+    if (opts->flags & UiWidget_Translate) {
+      optionLabel = loc_translate_str(optionLabel);
+    }
 
     ui_layout_push(canvas);
     ui_layout_grow(canvas, UiAlign_MiddleCenter, ui_vector(-10, 0), UiBase_Absolute, Ui_X);
-    ui_canvas_draw_text(canvas, options[optionIndex], opts->fontSize, UiAlign_MiddleLeft, 0);
+    ui_canvas_draw_text(canvas, optionLabel, opts->fontSize, UiAlign_MiddleLeft, 0);
 
     if (optionIndex < bitset_size(value)) {
       if (ui_canvas_elem_status(canvas, ui_canvas_id_peek(canvas)) >= UiStatus_Hovered) {
@@ -815,9 +838,13 @@ ui_tooltip_background(UiCanvasComp* canvas, const UiAlign align, const UiRect la
 static void ui_tooltip_text(
     UiCanvasComp*        canvas,
     const UiAlign        align,
-    const String         text,
+    String               text,
     const UiRect         lastRect,
     const UiTooltipOpts* opts) {
+
+  if (opts->flags & UiWidget_Translate) {
+    text = loc_translate_str(text);
+  }
 
   ui_layout_inner(canvas, UiBase_Input, align, opts->maxSize, UiBase_Absolute);
   if (align != UiAlign_MiddleCenter) {
@@ -919,10 +946,14 @@ bool ui_section_with_opts(UiCanvasComp* canvas, const UiSectionOpts* opts) {
       canvas, isOpen ? UiShape_UnfoldLess : UiShape_UnfoldMore, 0, UiFlags_Interactable);
   ui_layout_pop(canvas);
 
+  String label = opts->label;
+  if (opts->flags & UiWidget_Translate) {
+    label = loc_translate_str(label);
+  }
+
   ui_layout_push(canvas);
   ui_layout_grow(canvas, UiAlign_MiddleRight, ui_vector(-15, 0), UiBase_Absolute, Ui_X);
-  ui_canvas_draw_text(
-      canvas, opts->label, opts->fontSize, UiAlign_MiddleLeft, UiFlags_Interactable);
+  ui_canvas_draw_text(canvas, label, opts->fontSize, UiAlign_MiddleLeft, UiFlags_Interactable);
   ui_layout_pop(canvas);
 
   if (status >= UiStatus_Hovered) {

@@ -8,8 +8,9 @@
 typedef enum eUiWidgetFlags {
   UiWidget_Default             = 0,
   UiWidget_Disabled            = 1 << 0,
-  UiWidget_DirtyWhileEditing   = 1 << 1, // Always dirty during edit even if no changes occurred.
-  UiWidget_InteractAllowSwitch = 1 << 2, // Allow switching targets while holding input down.
+  UiWidget_Translate           = 1 << 1, // Treat the input text as a localization key.
+  UiWidget_DirtyWhileEditing   = 1 << 2, // Always dirty during edit even if no changes occurred.
+  UiWidget_InteractAllowSwitch = 1 << 3, // Allow switching targets while holding input down.
 } UiWidgetFlags;
 
 typedef enum {
@@ -19,11 +20,12 @@ typedef enum {
 } UiTextboxType;
 
 typedef struct {
-  u16      fontSize;
-  UiAlign  align;
-  bool     selectable; // NOTE: Only supports single-line text.
-  String   tooltip;
-  UiVector tooltipMaxSize;
+  UiWidgetFlags flags;
+  u16           fontSize;
+  UiAlign       align;
+  bool          selectable; // NOTE: Only supports single-line text.
+  String        tooltip;
+  UiVector      tooltipMaxSize;
 } UiLabelOpts;
 
 typedef struct {
@@ -81,9 +83,10 @@ typedef struct {
 } UiTooltipOpts;
 
 typedef struct {
-  String label;
-  String tooltip;
-  u16    fontSize;
+  UiWidgetFlags flags;
+  String        label;
+  String        tooltip;
+  u16           fontSize;
 } UiSectionOpts;
 
 typedef struct {
