@@ -15,3 +15,5 @@ ecs_comp_extern_public(AssetLocaleComp) {
 };
 
 extern DataMeta g_assetLocaleDefMeta;
+
+i8 asset_locale_text_compare(const void* a, const void* b);

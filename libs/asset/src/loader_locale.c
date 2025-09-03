@@ -19,10 +19,6 @@ static void ecs_destruct_locale_comp(void* data) {
       g_dataReg, g_allocHeap, g_assetLocaleDefMeta, mem_create(comp, sizeof(AssetLocaleComp)));
 }
 
-static i8 locale_text_compare(const void* a, const void* b) {
-  return compare_stringhash(field_ptr(a, AssetLocaleText, key), field_ptr(b, AssetLocaleText, key));
-}
-
 ecs_view_define(LocaleUnloadView) {
   ecs_access_with(AssetLocaleComp);
   ecs_access_without(AssetLoadedComp);
@@ -50,7 +46,7 @@ void asset_data_init_locale(void) {
   data_reg_struct_t(g_dataReg, AssetLocaleText);
   data_reg_field_t(g_dataReg, AssetLocaleText, key, data_prim_t(StringHash), .flags = DataFlags_NotEmpty);
   data_reg_field_t(g_dataReg, AssetLocaleText, value, data_prim_t(String));
-  data_reg_compare_t(g_dataReg, AssetLocaleText, locale_text_compare);
+  data_reg_compare_t(g_dataReg, AssetLocaleText, asset_locale_text_compare);
   data_reg_comment_t(g_dataReg, AssetLocaleText, "Translation key / value.");
 
   data_reg_struct_t(g_dataReg, AssetLocaleComp);
@@ -94,4 +90,8 @@ void asset_load_locale(
 
 Ret:
   asset_repo_close(src);
+}
+
+i8 asset_locale_text_compare(const void* a, const void* b) {
+  return compare_stringhash(field_ptr(a, AssetLocaleText, key), field_ptr(b, AssetLocaleText, key));
 }
