@@ -16,8 +16,9 @@ typedef enum {
 
 typedef enum {
   LocManagerEntry_Initialized = 1 << 0,
-  LocManagerEntry_Failed      = 1 << 1,
-  LocManagerEntry_Default     = 1 << 2,
+  LocManagerEntry_Acquired    = 1 << 1,
+  LocManagerEntry_Failed      = 1 << 2,
+  LocManagerEntry_Default     = 1 << 3,
 } LocManagerEntryFlags;
 
 typedef struct {
@@ -60,8 +61,11 @@ static void loc_entries_init(EcsWorld* world, LocManagerComp* man, AssetManagerC
 
     for (u32 i = 0; i != assetCount; ++i) {
       asset_acquire(world, assetEntities[i]);
-      man->localeEntries[i] = (LocManagerEntry){.asset = assetEntities[i]};
-      man->localeNames[i]   = string_empty;
+      man->localeEntries[i] = (LocManagerEntry){
+          .asset = assetEntities[i],
+          .flags = LocManagerEntry_Acquired,
+      };
+      man->localeNames[i] = string_empty;
     }
   }
 }
@@ -98,14 +102,11 @@ static bool loc_entries_load(EcsWorld* world, LocManagerComp* man, EcsIterator* 
       entry->flags |= LocManagerEntry_Default;
     }
     entry->id = path_stem(assetId);
-    goto Finished;
+    continue;
 
   Failed:
     entry->flags |= LocManagerEntry_Failed;
     man->localeNames[i] = string_dup(g_allocHeap, string_lit("Error"));
-
-  Finished:
-    asset_release(world, entry->asset);
   }
   return ready;
 }
@@ -177,6 +178,13 @@ ecs_system_define(LocUpdateSys) {
     }
     break;
   case LocManagerState_Ready:
+    for (u32 i = 0; i != man->localeCount; ++i) {
+      LocManagerEntry* entry = &man->localeEntries[i];
+      if (i != man->localeActive && (entry->flags & LocManagerEntry_Acquired)) {
+        asset_release(world, entry->asset);
+        entry->flags &= ~LocManagerEntry_Acquired;
+      }
+    }
     break;
   }
 }
