@@ -345,6 +345,13 @@ struct sFormatArg {
 #define fmt_write_scratch(_FORMAT_LIT_, ...)                                                       \
   format_write_formatted_scratch(string_lit(_FORMAT_LIT_), fmt_args(__VA_ARGS__))
 
+/**
+ * Create a formatted string in scratch memory. Meant for very short lived strings as the scratch
+ * memory will be overwritten eventually.
+ * Pre-condition: Formatted string fits in 8KiB.
+ */
+#define fmt_write_scratch_str(_STR_, ...) \
+  format_write_formatted_scratch((_STR_), fmt_args(__VA_ARGS__))
 
 /**
  * Write a integer as ascii characters to the given dynamic-string.
