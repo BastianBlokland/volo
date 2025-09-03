@@ -155,3 +155,11 @@ Ret:
   }
   return prefs;
 }
+
+void game_prefs_locale_set(GamePrefsComp* prefs, const String locale) {
+  if (!string_eq(prefs->locale, locale)) {
+    string_maybe_free(g_allocHeap, prefs->locale);
+    prefs->locale = string_maybe_dup(g_allocHeap, locale);
+    prefs->dirty  = true;
+  }
+}

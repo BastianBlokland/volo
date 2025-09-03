@@ -23,3 +23,4 @@ ecs_comp_extern_public(GamePrefsComp) {
 };
 
 GamePrefsComp* game_prefs_init(EcsWorld*);
+void           game_prefs_locale_set(GamePrefsComp*, String locale);

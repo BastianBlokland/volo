@@ -220,6 +220,9 @@ String loc_manager_active_id(const LocManagerComp* man) {
 
 void loc_manager_active_set(LocManagerComp* man, const u32 localeIndex) {
   diag_assert(localeIndex < man->localeCount);
+  if (man->localeActive == localeIndex) {
+    return;
+  }
   const LocManagerEntry* entry = &man->localeEntries[localeIndex];
   if (entry->flags & LocManagerEntry_Initialized) {
     man->localeActive = localeIndex;

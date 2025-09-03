@@ -244,6 +244,7 @@ typedef struct {
   const SceneTerrainComp* terrain;
   InputManagerComp*       input;
   SndMixerComp*           soundMixer;
+  LocManagerComp*         locManager;
   const SceneTimeComp*    time;
   SceneTimeSettingsComp*  timeSet;
   GameCmdComp*            cmd;
@@ -454,8 +455,8 @@ typedef void (*MenuEntry)(const GameUpdateContext*, u32 index);
 
 static void menu_draw(
     const GameUpdateContext* ctx, const String header, const MenuEntry entries[], const u32 count) {
-  static const UiVector g_headerSize = {.x = 300.0f, .y = 75.0f};
-  static const UiVector g_entrySize  = {.x = 300.0f, .y = 50.0f};
+  static const UiVector g_headerSize = {.x = 350.0f, .y = 75.0f};
+  static const UiVector g_entrySize  = {.x = 350.0f, .y = 50.0f};
   static const f32      g_spacing    = 8.0f;
 
   ui_style_push(ctx->winCanvas);
@@ -583,7 +584,7 @@ static void menu_entry_volume(const GameUpdateContext* ctx, MAYBE_UNUSED const u
   ui_layout_grow(ctx->winCanvas, UiAlign_MiddleCenter, g_frameInset, UiBase_Absolute, Ui_XY);
   ui_label(ctx->winCanvas, string_lit("Volume"));
   ui_layout_inner(
-      ctx->winCanvas, UiBase_Current, UiAlign_MiddleRight, ui_vector(0.4f, 1), UiBase_Current);
+      ctx->winCanvas, UiBase_Current, UiAlign_MiddleRight, ui_vector(0.5f, 1), UiBase_Current);
   if (ui_slider(
           ctx->winCanvas,
           &ctx->prefs->volume,
@@ -625,7 +626,7 @@ static void menu_entry_quality(const GameUpdateContext* ctx, MAYBE_UNUSED const 
   ui_layout_grow(ctx->winCanvas, UiAlign_MiddleCenter, g_frameInset, UiBase_Absolute, Ui_XY);
   ui_label(ctx->winCanvas, string_lit("Quality"));
   ui_layout_inner(
-      ctx->winCanvas, UiBase_Current, UiAlign_MiddleRight, ui_vector(0.4f, 0.6f), UiBase_Current);
+      ctx->winCanvas, UiBase_Current, UiAlign_MiddleRight, ui_vector(0.5f, 0.6f), UiBase_Current);
 
   ui_style_push(ctx->winCanvas);
   ui_style_transform(ctx->winCanvas, UiTransform_None);
@@ -639,6 +640,34 @@ static void menu_entry_quality(const GameUpdateContext* ctx, MAYBE_UNUSED const 
           .tooltip = string_lit("Select the rendering quality."))) {
     ctx->prefs->dirty = true;
     game_quality_apply(ctx->prefs, ctx->rendSetGlobal, ctx->winRendSet);
+  }
+
+  ui_style_pop(ctx->winCanvas);
+  ui_layout_pop(ctx->winCanvas);
+}
+
+static void menu_entry_locale(const GameUpdateContext* ctx, MAYBE_UNUSED const u32 index) {
+  menu_draw_entry_frame(ctx);
+
+  ui_layout_push(ctx->winCanvas);
+  static const UiVector g_frameInset = {-40, -10};
+  ui_layout_grow(ctx->winCanvas, UiAlign_MiddleCenter, g_frameInset, UiBase_Absolute, Ui_XY);
+  ui_label(ctx->winCanvas, string_lit("Locale"));
+  ui_layout_inner(
+      ctx->winCanvas, UiBase_Current, UiAlign_MiddleRight, ui_vector(0.5f, 0.6f), UiBase_Current);
+
+  ui_style_push(ctx->winCanvas);
+  ui_style_transform(ctx->winCanvas, UiTransform_None);
+
+  i32 localeIndex = (i32)loc_manager_active_get(ctx->locManager);
+  if (ui_select(
+          ctx->winCanvas,
+          &localeIndex,
+          loc_manager_locale_names(ctx->locManager),
+          loc_manager_locale_count(ctx->locManager),
+          .tooltip = string_lit("Select the active locale."))) {
+    loc_manager_active_set(ctx->locManager, (u32)localeIndex);
+    game_prefs_locale_set(ctx->prefs, loc_manager_active_id(ctx->locManager));
   }
 
   ui_style_pop(ctx->winCanvas);
@@ -800,6 +829,7 @@ ecs_view_define(UpdateGlobalView) {
   ecs_access_write(SceneTimeSettingsComp);
   ecs_access_write(SceneVisibilityEnvComp);
   ecs_access_write(SndMixerComp);
+  ecs_access_write(LocManagerComp);
   ecs_access_maybe_write(DevStatsGlobalComp);
 }
 
@@ -951,6 +981,7 @@ ecs_system_define(GameUpdateSys) {
       .terrain             = ecs_view_read_t(globalItr, SceneTerrainComp),
       .input               = ecs_view_write_t(globalItr, InputManagerComp),
       .soundMixer          = ecs_view_write_t(globalItr, SndMixerComp),
+      .locManager          = ecs_view_write_t(globalItr, LocManagerComp),
       .time                = ecs_view_read_t(globalItr, SceneTimeComp),
       .timeSet             = ecs_view_write_t(globalItr, SceneTimeSettingsComp),
       .cmd                 = ecs_view_write_t(globalItr, GameCmdComp),
@@ -1071,6 +1102,7 @@ ecs_system_define(GameUpdateSys) {
       menuEntries[menuEntriesCount++] = &menu_entry_volume;
       menuEntries[menuEntriesCount++] = &menu_entry_powersaving;
       menuEntries[menuEntriesCount++] = &menu_entry_quality;
+      menuEntries[menuEntriesCount++] = &menu_entry_locale;
       menuEntries[menuEntriesCount++] = &menu_entry_fullscreen;
       menuEntries[menuEntriesCount++] = &menu_entry_quit;
       menu_draw(&ctx, string_lit("Volo"), menuEntries, menuEntriesCount);
