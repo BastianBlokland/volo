@@ -1,0 +1,52 @@
+{
+  "name": "Nederlands",
+  "textEntries": [
+    { "key": "MENU_PLAY", "value": "Spelen" },
+    { "key": "MENU_PLAY_TOOLTIP", "value": "Selecteer een level om te spelen." },
+
+    { "key": "MENU_EDIT", "value": "Bewerken" },
+    { "key": "MENU_EDIT_TOOLTIP", "value": "Selecteer een level om te bewerken." },
+
+    { "key": "MENU_PAUSED", "value": "Gepauzeerd" },
+
+    { "key": "MENU_RESUME", "value": "Hervatten" },
+    { "key": "MENU_RESUME_TOOLTIP", "value": "Verder spelen." },
+
+    { "key": "MENU_RESTART", "value": "Opnieuw" },
+    { "key": "MENU_RESTART_TOOLTIP", "value": "Het huidige level opnieuw starten." },
+
+    { "key": "MENU_EDIT_CURRENT", "value": "Bewerken" },
+    { "key": "MENU_EDIT_CURRENT_TOOLTIP", "value": "Begin met het bewerken van het huidige level." },
+
+    { "key": "MENU_MAINMENU", "value": "Hoofdmenu" },
+    { "key": "MENU_MAINMENU_TOOLTIP", "value": "Ga terug naar het hoofdmenu." },
+
+    { "key": "MENU_VOLUME", "value": "Volume" },
+    { "key": "MENU_VOLUME_TOOLTIP", "value": "Verander het geluidsvolume." },
+
+    { "key": "MENU_POWERSAVING", "value": "Energiebesparing" },
+    { "key": "MENU_POWERSAVING_TOOLTIP", "value": "Bespaar energie door de verversingssnelheid te beperken tot 30 Hz." },
+
+    { "key": "MENU_QUALITY", "value": "Kwaliteit" },
+    { "key": "MENU_QUALITY_TOOLTIP", "value": "Selecteer de renderkwaliteit." },
+
+    { "key": "MENU_LOCALE", "value": "Taal" },
+    { "key": "MENU_LOCALE_TOOLTIP", "value": "Selecteer de actieve landinstelling." },
+
+    { "key": "MENU_FULLSCREEN", "value": "Volledig scherm" },
+    { "key": "MENU_FULLSCREEN_TOOLTIP", "value": "Schakelen tussen volledig scherm en venstermodus." },
+
+    { "key": "MENU_QUIT", "value": "Afsluiten" },
+    { "key": "MENU_QUIT_TOOLTIP", "value": "Terug naar bureaublad." },
+
+    { "key": "MENU_BACK_TOOLTIP", "value": "Terug naar het vorige menu." },
+    { "key": "MENU_LEVEL_REFRESH_TOOLTIP", "value": "Vernieuw de level lijst." },
+    { "key": "MENU_LEVEL_EDIT_TOOLTIP", "value": "Bewerk het '{}' level." },
+    { "key": "MENU_LEVEL_PLAY_TOOLTIP", "value": "Speel the '{}' level." },
+    { "key": "MENU_EDIT_CAMERA_TOOLTIP", "value": "Schakel tussen de normale en de vrije camera." },
+    { "key": "MENU_EDIT_PLAY_TOOLTIP", "value": "Speel het level (slaat de huidige status op)." },
+    { "key": "MENU_EDIT_DISCARD_TOOLTIP", "value": "Laad het level opnieuw (en gooi alle niet-opgeslagen wijzigingen weg)." },
+    { "key": "MENU_EDIT_SAVE_TOOLTIP", "value": "Sla het level op." },
+    { "key": "MENU_EDIT_STOP_TOOLTIP", "value": "Stop met bewerken." }
+  ]
+}
