@@ -10,7 +10,6 @@
 #include "core/diag.h"
 #include "core/file.h"
 #include "core/math.h"
-#include "core/path.h"
 #include "core/rng.h"
 #include "core/version.h"
 #include "dev/level.h"
@@ -737,7 +736,7 @@ static void menu_entry_refresh_levels(const GameUpdateContext* ctx, MAYBE_UNUSED
 
 static void menu_entry_level(const GameUpdateContext* ctx, u32 index) {
   const u32    levelIndex = (u32)bitset_nth(bitset_from_var(ctx->game->levelMask), index);
-  const String levelName  = ctx->game->levelNames[levelIndex];
+  const String levelName  = loc_translate_str(ctx->game->levelNames[levelIndex]);
 
   String tooltip;
   if (ctx->game->flags & GameFlags_EditMode) {
@@ -746,11 +745,7 @@ static void menu_entry_level(const GameUpdateContext* ctx, u32 index) {
     tooltip = loc_translate_lit_fmt("MENU_LEVEL_PLAY_TOOLTIP", fmt_text(levelName));
   }
 
-  if (ui_button(
-          ctx->winCanvas,
-          .label    = loc_translate_str(levelName),
-          .fontSize = 25,
-          .tooltip  = tooltip)) {
+  if (ui_button(ctx->winCanvas, .label = levelName, .fontSize = 25, .tooltip = tooltip)) {
     game_transition(ctx, GameState_Loading);
     SceneLevelMode levelMode;
     if (ctx->game->flags & GameFlags_EditMode) {
