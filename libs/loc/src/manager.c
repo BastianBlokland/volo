@@ -184,6 +184,10 @@ ecs_system_define(LocUpdateSys) {
         asset_release(world, entry->asset);
         entry->flags &= ~LocManagerEntry_Acquired;
       }
+      if (i == man->localeActive && !(entry->flags & LocManagerEntry_Acquired)) {
+        asset_acquire(world, entry->asset);
+        entry->flags |= LocManagerEntry_Acquired;
+      }
     }
     break;
   }
