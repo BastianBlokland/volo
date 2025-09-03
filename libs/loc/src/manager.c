@@ -8,6 +8,8 @@
 #include "loc/manager.h"
 #include "log/logger.h"
 
+#include "translate.h"
+
 typedef enum {
   LocManagerState_Init,
   LocManagerState_Loading,
@@ -192,18 +194,31 @@ ecs_system_define(LocUpdateSys) {
       if (shouldLoad && !isAcquired && !isUnloading) {
         asset_acquire(world, entry->asset);
         entry->flags |= LocManagerEntry_Acquired;
+        continue;
       }
       if (isAcquired && !shouldLoad) {
         asset_release(world, entry->asset);
+        loc_translate_source_unset(entry->asset);
         entry->flags &= ~LocManagerEntry_Acquired;
+        continue;
       }
       if (isAcquired && hasChanged && (isLoaded || isFailed)) {
         asset_release(world, entry->asset);
+        loc_translate_source_unset(entry->asset);
         entry->flags &= ~LocManagerEntry_Acquired;
         entry->flags |= LocManagerEntry_Unloading;
+        continue;
       }
       if (isUnloading && !(isLoaded || isFailed)) {
         entry->flags &= ~LocManagerEntry_Unloading; // Unload finished.
+        continue;
+      }
+      ecs_view_jump(assetItr, entry->asset);
+      const AssetLocaleComp* localeComp = ecs_view_read_t(assetItr, AssetLocaleComp);
+      if (shouldLoad && isAcquired && localeComp) {
+        loc_translate_source_set(entry->asset, localeComp);
+      } else {
+        loc_translate_source_unset(entry->asset);
       }
     }
     break;
