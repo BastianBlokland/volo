@@ -32,6 +32,7 @@
 #include "input/resource.h"
 #include "loc/manager.h"
 #include "loc/register.h"
+#include "loc/translate.h"
 #include "log/logger.h"
 #include "rend/error.h"
 #include "rend/forward.h"
@@ -511,9 +512,9 @@ menu_bar_draw(const GameUpdateContext* ctx, const MenuEntry entries[], const u32
 static void menu_entry_play(const GameUpdateContext* ctx, MAYBE_UNUSED const u32 index) {
   if (ui_button(
           ctx->winCanvas,
-          .label    = string_lit("Play"),
+          .label    = loc_translate_lit("MENU_PLAY"),
           .fontSize = 25,
-          .tooltip  = string_lit("Select a level to play."))) {
+          .tooltip  = loc_translate_lit("MENU_PLAY_TOOLTIP"))) {
     ctx->game->flags &= ~GameFlags_EditMode;
     game_transition(ctx, GameState_MenuSelect);
   }
@@ -522,10 +523,10 @@ static void menu_entry_play(const GameUpdateContext* ctx, MAYBE_UNUSED const u32
 static void menu_entry_edit(const GameUpdateContext* ctx, MAYBE_UNUSED const u32 index) {
   if (ui_button(
           ctx->winCanvas,
-          .label      = string_lit("Edit"),
+          .label      = loc_translate_lit("MENU_EDIT"),
           .frameColor = ui_color(255, 16, 16, 192),
           .fontSize   = 25,
-          .tooltip    = string_lit("Select a level to edit."))) {
+          .tooltip    = loc_translate_lit("MENU_EDIT_TOOLTIP"))) {
     ctx->game->flags |= GameFlags_EditMode;
     game_transition(ctx, GameState_MenuSelect);
   }
@@ -534,9 +535,9 @@ static void menu_entry_edit(const GameUpdateContext* ctx, MAYBE_UNUSED const u32
 static void menu_entry_resume(const GameUpdateContext* ctx, MAYBE_UNUSED const u32 index) {
   if (ui_button(
           ctx->winCanvas,
-          .label    = string_lit("Resume"),
+          .label    = loc_translate_lit("MENU_RESUME"),
           .fontSize = 25,
-          .tooltip  = string_lit("Resume playing."),
+          .tooltip  = loc_translate_lit("MENU_RESUME_TOOLTIP"),
           .activate = input_triggered_lit(ctx->input, "Pause"), )) {
     game_transition_delayed(ctx->game, GameState_Play);
   }
@@ -545,9 +546,9 @@ static void menu_entry_resume(const GameUpdateContext* ctx, MAYBE_UNUSED const u
 static void menu_entry_restart(const GameUpdateContext* ctx, MAYBE_UNUSED const u32 index) {
   if (ui_button(
           ctx->winCanvas,
-          .label    = string_lit("Restart"),
+          .label    = loc_translate_lit("MENU_RESTART"),
           .fontSize = 25,
-          .tooltip  = string_lit("Restart the current level."))) {
+          .tooltip  = loc_translate_lit("MENU_RESTART_TOOLTIP"))) {
     game_transition(ctx, GameState_Loading);
     scene_level_reload(ctx->world, SceneLevelMode_Play);
   }
@@ -556,10 +557,10 @@ static void menu_entry_restart(const GameUpdateContext* ctx, MAYBE_UNUSED const 
 static void menu_entry_edit_current(const GameUpdateContext* ctx, MAYBE_UNUSED const u32 index) {
   if (ui_button(
           ctx->winCanvas,
-          .label      = string_lit("Edit"),
+          .label      = loc_translate_lit("MENU_EDIT_CURRENT"),
           .frameColor = ui_color(255, 16, 16, 192),
           .fontSize   = 25,
-          .tooltip    = string_lit("Start editing the current level."))) {
+          .tooltip    = loc_translate_lit("MENU_EDIT_CURRENT_TOOLTIP"))) {
     ctx->game->flags |= GameFlags_EditMode;
     scene_level_reload(ctx->world, SceneLevelMode_Edit);
     game_transition(ctx, GameState_Loading);
@@ -569,9 +570,9 @@ static void menu_entry_edit_current(const GameUpdateContext* ctx, MAYBE_UNUSED c
 static void menu_entry_menu_main(const GameUpdateContext* ctx, MAYBE_UNUSED const u32 index) {
   if (ui_button(
           ctx->winCanvas,
-          .label    = string_lit("Main-menu"),
+          .label    = loc_translate_lit("MENU_MAINMENU"),
           .fontSize = 25,
-          .tooltip  = string_lit("Go back to the main-menu."))) {
+          .tooltip  = loc_translate_lit("MENU_MAINMENU_TOOLTIP"))) {
     game_transition(ctx, GameState_MenuMain);
   }
 }
@@ -582,7 +583,7 @@ static void menu_entry_volume(const GameUpdateContext* ctx, MAYBE_UNUSED const u
   ui_layout_push(ctx->winCanvas);
   static const UiVector g_frameInset = {-40, -10};
   ui_layout_grow(ctx->winCanvas, UiAlign_MiddleCenter, g_frameInset, UiBase_Absolute, Ui_XY);
-  ui_label(ctx->winCanvas, string_lit("Volume"));
+  ui_label(ctx->winCanvas, loc_translate_lit("MENU_VOLUME"));
   ui_layout_inner(
       ctx->winCanvas, UiBase_Current, UiAlign_MiddleRight, ui_vector(0.5f, 1), UiBase_Current);
   if (ui_slider(
@@ -592,7 +593,7 @@ static void menu_entry_volume(const GameUpdateContext* ctx, MAYBE_UNUSED const u
           .step       = 1,
           .handleSize = 25,
           .thickness  = 10,
-          .tooltip    = string_lit("Change the sound volume."))) {
+          .tooltip    = loc_translate_lit("MENU_VOLUME_TOOLTIP"))) {
     ctx->prefs->dirty = true;
     snd_mixer_gain_set(ctx->soundMixer, ctx->prefs->volume * 1e-2f);
   }
@@ -605,13 +606,13 @@ static void menu_entry_powersaving(const GameUpdateContext* ctx, MAYBE_UNUSED co
   ui_layout_push(ctx->winCanvas);
   static const UiVector g_frameInset = {-40, -10};
   ui_layout_grow(ctx->winCanvas, UiAlign_MiddleCenter, g_frameInset, UiBase_Absolute, Ui_XY);
-  ui_label(ctx->winCanvas, string_lit("Power saving"));
+  ui_label(ctx->winCanvas, loc_translate_lit("MENU_POWERSAVING"));
   if (ui_toggle(
           ctx->winCanvas,
           &ctx->prefs->powerSaving,
           .align   = UiAlign_MiddleRight,
           .size    = 25,
-          .tooltip = string_lit("Save power by limiting the frame-rate to 30hz."))) {
+          .tooltip = loc_translate_lit("MENU_POWERSAVING_TOOLTIP"))) {
     ctx->prefs->dirty = true;
     game_quality_apply(ctx->prefs, ctx->rendSetGlobal, ctx->winRendSet);
   }
@@ -624,7 +625,7 @@ static void menu_entry_quality(const GameUpdateContext* ctx, MAYBE_UNUSED const 
   ui_layout_push(ctx->winCanvas);
   static const UiVector g_frameInset = {-40, -10};
   ui_layout_grow(ctx->winCanvas, UiAlign_MiddleCenter, g_frameInset, UiBase_Absolute, Ui_XY);
-  ui_label(ctx->winCanvas, string_lit("Quality"));
+  ui_label(ctx->winCanvas, loc_translate_lit("MENU_QUALITY"));
   ui_layout_inner(
       ctx->winCanvas, UiBase_Current, UiAlign_MiddleRight, ui_vector(0.5f, 0.6f), UiBase_Current);
 
@@ -637,7 +638,7 @@ static void menu_entry_quality(const GameUpdateContext* ctx, MAYBE_UNUSED const 
           quality,
           g_gameQualityLabels,
           GameQuality_Count,
-          .tooltip = string_lit("Select the rendering quality."))) {
+          .tooltip = loc_translate_lit("MENU_QUALITY_TOOLTIP"))) {
     ctx->prefs->dirty = true;
     game_quality_apply(ctx->prefs, ctx->rendSetGlobal, ctx->winRendSet);
   }
@@ -652,7 +653,7 @@ static void menu_entry_locale(const GameUpdateContext* ctx, MAYBE_UNUSED const u
   ui_layout_push(ctx->winCanvas);
   static const UiVector g_frameInset = {-40, -10};
   ui_layout_grow(ctx->winCanvas, UiAlign_MiddleCenter, g_frameInset, UiBase_Absolute, Ui_XY);
-  ui_label(ctx->winCanvas, string_lit("Locale"));
+  ui_label(ctx->winCanvas, loc_translate_lit("MENU_LOCALE"));
   ui_layout_inner(
       ctx->winCanvas, UiBase_Current, UiAlign_MiddleRight, ui_vector(0.5f, 0.6f), UiBase_Current);
 
@@ -665,7 +666,7 @@ static void menu_entry_locale(const GameUpdateContext* ctx, MAYBE_UNUSED const u
           &localeIndex,
           loc_manager_locale_names(ctx->locManager),
           loc_manager_locale_count(ctx->locManager),
-          .tooltip = string_lit("Select the active locale."))) {
+          .tooltip = loc_translate_lit("MENU_LOCALE_TOOLTIP"))) {
     loc_manager_active_set(ctx->locManager, (u32)localeIndex);
     game_prefs_locale_set(ctx->prefs, loc_manager_active_id(ctx->locManager));
   }
@@ -680,14 +681,14 @@ static void menu_entry_fullscreen(const GameUpdateContext* ctx, MAYBE_UNUSED con
   ui_layout_push(ctx->winCanvas);
   static const UiVector g_frameInset = {-40, -10};
   ui_layout_grow(ctx->winCanvas, UiAlign_MiddleCenter, g_frameInset, UiBase_Absolute, Ui_XY);
-  ui_label(ctx->winCanvas, string_lit("Fullscreen"));
+  ui_label(ctx->winCanvas, loc_translate_lit("MENU_FULLSCREEN"));
   bool isFullscreen = gap_window_mode(ctx->winComp) == GapWindowMode_Fullscreen;
   if (ui_toggle(
           ctx->winCanvas,
           &isFullscreen,
           .align   = UiAlign_MiddleRight,
           .size    = 25,
-          .tooltip = string_lit("Switch between fullscreen and windowed modes."))) {
+          .tooltip = loc_translate_lit("MENU_FULLSCREEN_TOOLTIP"))) {
     game_fullscreen_toggle(ctx);
   }
   ui_layout_pop(ctx->winCanvas);
@@ -696,9 +697,9 @@ static void menu_entry_fullscreen(const GameUpdateContext* ctx, MAYBE_UNUSED con
 static void menu_entry_quit(const GameUpdateContext* ctx, MAYBE_UNUSED const u32 index) {
   if (ui_button(
           ctx->winCanvas,
-          .label    = string_lit("Quit"),
+          .label    = loc_translate_lit("MENU_QUIT"),
           .fontSize = 25,
-          .tooltip  = string_lit("Quit to desktop."))) {
+          .tooltip  = loc_translate_lit("MENU_QUIT_TOOLTIP"))) {
     game_quit(ctx);
   }
 }
@@ -712,7 +713,7 @@ static void menu_entry_back(const GameUpdateContext* ctx, MAYBE_UNUSED const u32
           .fontSize   = 35,
           .frameColor = ui_color_clear,
           .activate   = input_triggered_lit(ctx->input, "Back"),
-          .tooltip    = string_lit("Back to previous menu."))) {
+          .tooltip    = loc_translate_lit("MENU_BACK_TOOLTIP"))) {
     game_transition(ctx, ctx->game->statePrev);
   }
   ui_layout_pop(ctx->winCanvas);
@@ -727,7 +728,7 @@ static void menu_entry_refresh_levels(const GameUpdateContext* ctx, MAYBE_UNUSED
           .fontSize   = 35,
           .frameColor = ui_color_clear,
           .flags      = ctx->game->levelLoadingMask ? UiWidget_Disabled : UiWidget_Default,
-          .tooltip    = string_lit("Refresh the level list."))) {
+          .tooltip    = loc_translate_lit("MENU_LEVEL_REFRESH_TOOLTIP"))) {
     ctx->game->flags |= GameFlags_RefreshLevels;
   }
   ui_layout_pop(ctx->winCanvas);
@@ -739,9 +740,9 @@ static void menu_entry_level(const GameUpdateContext* ctx, u32 index) {
 
   String tooltip;
   if (ctx->game->flags & GameFlags_EditMode) {
-    tooltip = fmt_write_scratch("Edit the '{}' level.", fmt_text(levelName));
+    tooltip = loc_translate_lit_fmt("MENU_LEVEL_EDIT_TOOLTIP", fmt_text(levelName));
   } else {
-    tooltip = fmt_write_scratch("Play the '{}' level.", fmt_text(levelName));
+    tooltip = loc_translate_lit_fmt("MENU_LEVEL_PLAY_TOOLTIP", fmt_text(levelName));
   }
 
   if (ui_button(ctx->winCanvas, .label = levelName, .fontSize = 25, .tooltip = tooltip)) {
@@ -761,7 +762,7 @@ static void menu_entry_edit_camera(const GameUpdateContext* ctx, MAYBE_UNUSED co
           ctx->winCanvas,
           .label    = ui_shape_scratch(UiShape_PhotoCamera),
           .fontSize = 25,
-          .tooltip  = string_lit("Toggle between the normal and free camera."))) {
+          .tooltip  = loc_translate_lit("MENU_EDIT_CAMERA_TOOLTIP"))) {
     game_toggle_camera(ctx);
   }
 }
@@ -771,7 +772,7 @@ static void menu_entry_edit_play(const GameUpdateContext* ctx, MAYBE_UNUSED cons
           ctx->winCanvas,
           .label    = ui_shape_scratch(UiShape_Play),
           .fontSize = 25,
-          .tooltip  = string_lit("Play the level (saves the current state to disk)."))) {
+          .tooltip  = loc_translate_lit("MENU_EDIT_PLAY_TOOLTIP"))) {
     scene_level_save_reload(ctx->world, scene_level_asset(ctx->levelManager), SceneLevelMode_Play);
     game_transition_delayed(ctx->game, GameState_Loading);
   }
@@ -782,7 +783,7 @@ static void menu_entry_edit_discard(const GameUpdateContext* ctx, MAYBE_UNUSED c
           ctx->winCanvas,
           .label    = ui_shape_scratch(UiShape_Restart),
           .fontSize = 25,
-          .tooltip  = string_lit("Reload the level (discarding any unsaved changes)."))) {
+          .tooltip  = loc_translate_lit("MENU_EDIT_DISCARD_TOOLTIP"))) {
     scene_level_reload(ctx->world, SceneLevelMode_Edit);
     game_notify_level_action(ctx, string_lit("Discard"));
   }
@@ -794,7 +795,7 @@ static void menu_entry_edit_save(const GameUpdateContext* ctx, MAYBE_UNUSED cons
           .label    = ui_shape_scratch(UiShape_Save),
           .fontSize = 25,
           .activate = input_triggered_lit(ctx->input, "SaveLevel"),
-          .tooltip  = string_lit("Save the level."))) {
+          .tooltip  = loc_translate_lit("MENU_EDIT_SAVE_TOOLTIP"))) {
     scene_level_save(ctx->world, scene_level_asset(ctx->levelManager));
     game_notify_level_action(ctx, string_lit("Save"));
   }
@@ -805,7 +806,7 @@ static void menu_entry_edit_stop(const GameUpdateContext* ctx, MAYBE_UNUSED cons
           ctx->winCanvas,
           .label    = ui_shape_scratch(UiShape_Logout),
           .fontSize = 25,
-          .tooltip  = string_lit("Stop editing."))) {
+          .tooltip  = loc_translate_lit("MENU_EDIT_STOP_TOOLTIP"))) {
     game_transition(ctx, GameState_MenuMain);
   }
 }
@@ -1121,9 +1122,9 @@ ecs_system_define(GameUpdateSys) {
       }
       menuEntries[menuEntriesCount++] = &menu_entry_back;
       if (ctx.game->flags & GameFlags_EditMode) {
-        menu_draw(&ctx, string_lit("Edit"), menuEntries, menuEntriesCount);
+        menu_draw(&ctx, loc_translate_lit("MENU_EDIT"), menuEntries, menuEntriesCount);
       } else {
-        menu_draw(&ctx, string_lit("Play"), menuEntries, menuEntriesCount);
+        menu_draw(&ctx, loc_translate_lit("MENU_PLAY"), menuEntries, menuEntriesCount);
       }
       menu_draw_version(&ctx);
     } break;
@@ -1168,7 +1169,7 @@ ecs_system_define(GameUpdateSys) {
       menuEntries[menuEntriesCount++] = &menu_entry_fullscreen;
       menuEntries[menuEntriesCount++] = &menu_entry_menu_main;
       menuEntries[menuEntriesCount++] = &menu_entry_quit;
-      menu_draw(&ctx, string_lit("Pause"), menuEntries, menuEntriesCount);
+      menu_draw(&ctx, loc_translate_lit("MENU_PAUSE"), menuEntries, menuEntriesCount);
       menu_draw_version(&ctx);
       break;
     }
