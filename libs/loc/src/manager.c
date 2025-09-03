@@ -17,8 +17,9 @@ typedef enum {
 typedef enum {
   LocManagerEntry_Initialized = 1 << 0,
   LocManagerEntry_Acquired    = 1 << 1,
-  LocManagerEntry_Failed      = 1 << 2,
-  LocManagerEntry_Default     = 1 << 3,
+  LocManagerEntry_Unloading   = 1 << 2,
+  LocManagerEntry_Failed      = 1 << 3,
+  LocManagerEntry_Default     = 1 << 4,
 } LocManagerEntryFlags;
 
 typedef struct {
@@ -180,13 +181,29 @@ ecs_system_define(LocUpdateSys) {
   case LocManagerState_Ready:
     for (u32 i = 0; i != man->localeCount; ++i) {
       LocManagerEntry* entry = &man->localeEntries[i];
-      if (i != man->localeActive && (entry->flags & LocManagerEntry_Acquired)) {
+
+      const bool shouldLoad  = i == man->localeActive;
+      const bool isAcquired  = (entry->flags & LocManagerEntry_Acquired) != 0;
+      const bool isUnloading = (entry->flags & LocManagerEntry_Unloading) != 0;
+      const bool isLoaded    = ecs_world_has_t(world, entry->asset, AssetLoadedComp);
+      const bool isFailed    = ecs_world_has_t(world, entry->asset, AssetFailedComp);
+      const bool hasChanged  = ecs_world_has_t(world, entry->asset, AssetChangedComp);
+
+      if (shouldLoad && !isAcquired && !isUnloading) {
+        asset_acquire(world, entry->asset);
+        entry->flags |= LocManagerEntry_Acquired;
+      }
+      if (isAcquired && !shouldLoad) {
         asset_release(world, entry->asset);
         entry->flags &= ~LocManagerEntry_Acquired;
       }
-      if (i == man->localeActive && !(entry->flags & LocManagerEntry_Acquired)) {
-        asset_acquire(world, entry->asset);
-        entry->flags |= LocManagerEntry_Acquired;
+      if (isAcquired && hasChanged && (isLoaded || isFailed)) {
+        asset_release(world, entry->asset);
+        entry->flags &= ~LocManagerEntry_Acquired;
+        entry->flags |= LocManagerEntry_Unloading;
+      }
+      if (isUnloading && !(isLoaded || isFailed)) {
+        entry->flags &= ~LocManagerEntry_Unloading; // Unload finished.
       }
     }
     break;
