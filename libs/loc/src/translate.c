@@ -18,6 +18,17 @@ void loc_translate_source_set(const AssetLocaleText* entries, const usize entryC
   thread_spinlock_unlock(&g_locTranslateLock);
 }
 
+void loc_translate_source_unset(const AssetLocaleText* entries) {
+  thread_spinlock_lock(&g_locTranslateLock);
+  {
+    if (g_locTranslateEntries == entries) {
+      g_locTranslateEntries    = null;
+      g_locTranslateEntryCount = 0;
+    }
+  }
+  thread_spinlock_unlock(&g_locTranslateLock);
+}
+
 String loc_translate(const StringHash key) {
   const AssetLocaleText tgt = {.key = key};
 
