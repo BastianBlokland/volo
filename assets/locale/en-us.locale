@@ -8,7 +8,7 @@
     { "key": "MENU_EDIT", "value": "Edit" },
     { "key": "MENU_EDIT_TOOLTIP", "value": "Select a level to edit." },
 
-    { "key": "MENU_PAUSE", "value": "Pause" },
+    { "key": "MENU_PAUSED", "value": "Paused" },
 
     { "key": "MENU_RESUME", "value": "Resume" },
     { "key": "MENU_RESUME_TOOLTIP", "value": "Resume playing." },

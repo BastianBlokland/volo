@@ -456,8 +456,8 @@ typedef void (*MenuEntry)(const GameUpdateContext*, u32 index);
 
 static void menu_draw(
     const GameUpdateContext* ctx, const String header, const MenuEntry entries[], const u32 count) {
-  static const UiVector g_headerSize = {.x = 350.0f, .y = 75.0f};
-  static const UiVector g_entrySize  = {.x = 350.0f, .y = 50.0f};
+  static const UiVector g_headerSize = {.x = 500.0f, .y = 75.0f};
+  static const UiVector g_entrySize  = {.x = 400.0f, .y = 50.0f};
   static const f32      g_spacing    = 8.0f;
 
   ui_style_push(ctx->winCanvas);
@@ -1169,7 +1169,7 @@ ecs_system_define(GameUpdateSys) {
       menuEntries[menuEntriesCount++] = &menu_entry_fullscreen;
       menuEntries[menuEntriesCount++] = &menu_entry_menu_main;
       menuEntries[menuEntriesCount++] = &menu_entry_quit;
-      menu_draw(&ctx, loc_translate_lit("MENU_PAUSE"), menuEntries, menuEntriesCount);
+      menu_draw(&ctx, loc_translate_lit("MENU_PAUSED"), menuEntries, menuEntriesCount);
       menu_draw_version(&ctx);
       break;
     }
