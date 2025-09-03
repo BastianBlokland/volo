@@ -30,6 +30,10 @@
 
     { "key": "MENU_QUALITY", "value": "Quality" },
     { "key": "MENU_QUALITY_TOOLTIP", "value": "Select the rendering quality." },
+    { "key": "MENU_QUALITY_VERY_LOW", "value": "Very low" },
+    { "key": "MENU_QUALITY_LOW", "value": "Low" },
+    { "key": "MENU_QUALITY_MEDIUM", "value": "Medium" },
+    { "key": "MENU_QUALITY_HIGH", "value": "High" },
 
     { "key": "MENU_LOCALE", "value": "Locale" },
     { "key": "MENU_LOCALE_TOOLTIP", "value": "Select the active locale." },

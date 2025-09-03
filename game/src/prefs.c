@@ -15,10 +15,10 @@
 static const usize g_prefsMaxSize = 32 * usize_kibibyte;
 
 const String g_gameQualityLabels[] = {
-    string_static("VeryLow"),
-    string_static("Low"),
-    string_static("Medium"),
-    string_static("High"),
+    string_static("MENU_QUALITY_VERY_LOW"),
+    string_static("MENU_QUALITY_LOW"),
+    string_static("MENU_QUALITY_MEDIUM"),
+    string_static("MENU_QUALITY_HIGH"),
 };
 ASSERT(array_elems(g_gameQualityLabels) == GameQuality_Count, "Incorrect number of quality labels");
 

@@ -29,6 +29,10 @@
 
     { "key": "MENU_QUALITY", "value": "Kwaliteit" },
     { "key": "MENU_QUALITY_TOOLTIP", "value": "Selecteer de renderkwaliteit." },
+    { "key": "MENU_QUALITY_VERY_LOW", "value": "Zeer laag" },
+    { "key": "MENU_QUALITY_LOW", "value": "Laag" },
+    { "key": "MENU_QUALITY_MEDIUM", "value": "Gemiddeld" },
+    { "key": "MENU_QUALITY_HIGH", "value": "Hoog" },
 
     { "key": "MENU_LOCALE", "value": "Taal" },
     { "key": "MENU_LOCALE_TOOLTIP", "value": "Selecteer de actieve landinstelling." },

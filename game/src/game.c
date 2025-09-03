@@ -638,7 +638,8 @@ static void menu_entry_quality(const GameUpdateContext* ctx, MAYBE_UNUSED const 
           quality,
           g_gameQualityLabels,
           GameQuality_Count,
-          .tooltip = loc_translate_lit("MENU_QUALITY_TOOLTIP"))) {
+          .tooltip = loc_translate_lit("MENU_QUALITY_TOOLTIP"),
+          .flags   = UiWidget_Translate)) {
     ctx->prefs->dirty = true;
     game_quality_apply(ctx->prefs, ctx->rendSetGlobal, ctx->winRendSet);
   }

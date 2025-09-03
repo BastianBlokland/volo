@@ -10,7 +10,7 @@ typedef enum {
   GameQuality_Count,
 } GameQuality;
 
-extern const String g_gameQualityLabels[GameQuality_Count];
+extern const String g_gameQualityLabels[GameQuality_Count]; // Localization keys.
 
 ecs_comp_extern_public(GamePrefsComp) {
   bool        dirty; // Indicates that the preference file should be saved to disk.
