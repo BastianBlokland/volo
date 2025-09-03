@@ -7,5 +7,6 @@
 /**
  * Retrieve the localized string for the given key.
  * NOTE: Returns an empty string when the key cannot be found.
+ * NOTE: Returned string is valid until the end of the frame.
  */
 String loc_translate(StringHash key);
