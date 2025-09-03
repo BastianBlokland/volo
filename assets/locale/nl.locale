@@ -1,6 +1,11 @@
 {
   "name": "Nederlands",
   "textEntries": [
+    { "key": "LEVEL_NAME_FRONTLINE", "value": "Frontlinie" },
+    { "key": "LEVEL_NAME_DEFEND", "value": "Verdedigen" },
+    { "key": "LEVEL_NAME_PLAYGROUND", "value": "Zandbak" },
+    { "key": "LEVEL_NAME_UNKNOWN", "value": "Onbekend" },
+
     { "key": "MENU_PLAY", "value": "Spelen" },
     { "key": "MENU_PLAY_TOOLTIP", "value": "Selecteer een level om te spelen." },
 
@@ -44,9 +49,11 @@
     { "key": "MENU_QUIT_TOOLTIP", "value": "Terug naar bureaublad." },
 
     { "key": "MENU_BACK_TOOLTIP", "value": "Terug naar het vorige menu." },
+
     { "key": "MENU_LEVEL_REFRESH_TOOLTIP", "value": "Vernieuw de level lijst." },
     { "key": "MENU_LEVEL_EDIT_TOOLTIP", "value": "Bewerk het '{}' level." },
     { "key": "MENU_LEVEL_PLAY_TOOLTIP", "value": "Speel the '{}' level." },
+
     { "key": "MENU_EDIT_CAMERA_TOOLTIP", "value": "Schakel tussen de normale en de vrije camera." },
     { "key": "MENU_EDIT_PLAY_TOOLTIP", "value": "Speel het level (slaat de huidige status op)." },
     { "key": "MENU_EDIT_DISCARD_TOOLTIP", "value": "Laad het level opnieuw (en gooi alle niet-opgeslagen wijzigingen weg)." },

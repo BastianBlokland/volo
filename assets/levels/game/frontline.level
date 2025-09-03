@@ -1,5 +1,5 @@
 {
-  "name": "Frontline",
+  "name": "LEVEL_NAME_FRONTLINE",
   "terrain": "terrains/desert_big.terrain",
   "fogMode": "VisibilityBased",
   "objects": [

@@ -746,7 +746,11 @@ static void menu_entry_level(const GameUpdateContext* ctx, u32 index) {
     tooltip = loc_translate_lit_fmt("MENU_LEVEL_PLAY_TOOLTIP", fmt_text(levelName));
   }
 
-  if (ui_button(ctx->winCanvas, .label = levelName, .fontSize = 25, .tooltip = tooltip)) {
+  if (ui_button(
+          ctx->winCanvas,
+          .label    = loc_translate_str(levelName),
+          .fontSize = 25,
+          .tooltip  = tooltip)) {
     game_transition(ctx, GameState_Loading);
     SceneLevelMode levelMode;
     if (ctx->game->flags & GameFlags_EditMode) {
@@ -902,7 +906,7 @@ static void game_level_query_update(const GameUpdateContext* ctx) {
     }
     String name = ecs_view_read_t(levelItr, AssetLevelComp)->level.name;
     if (string_is_empty(name)) {
-      name = path_stem(asset_id(ecs_view_read_t(levelItr, AssetComp)));
+      name = string_lit("LEVEL_NAME_UNKNOWN");
     }
     ctx->game->levelMask |= 1 << idx;
     ctx->game->levelNames[idx] = string_dup(g_allocHeap, name);
