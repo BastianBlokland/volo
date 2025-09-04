@@ -83,6 +83,12 @@
     { "key": "MENU_QUALITY_MEDIUM", "value": "Medium" },
     { "key": "MENU_QUALITY_HIGH", "value": "High" },
 
+    { "key": "MENU_UI_SCALE", "value": "Interface" },
+    { "key": "MENU_UI_SCALE_TOOLTIP", "value": "Select the interface scale." },
+    { "key": "MENU_UI_SCALE_SMALL", "value": "Small" },
+    { "key": "MENU_UI_SCALE_NORMAL", "value": "Normal" },
+    { "key": "MENU_UI_SCALE_BIG", "value": "Big" },
+
     { "key": "MENU_LOCALE", "value": "Locale" },
     { "key": "MENU_LOCALE_TOOLTIP", "value": "Select the active locale." },
 

@@ -22,6 +22,13 @@ const String g_gameQualityLabels[] = {
 };
 ASSERT(array_elems(g_gameQualityLabels) == GameQuality_Count, "Incorrect number of quality labels");
 
+const String g_gameUiScaleLabels[] = {
+    string_static("MENU_UI_SCALE_SMALL"),
+    string_static("MENU_UI_SCALE_NORMAL"),
+    string_static("MENU_UI_SCALE_BIG"),
+};
+ASSERT(array_elems(g_gameUiScaleLabels) == GameUiScale_Count, "Incorrect number of scale labels");
+
 static DataMeta g_gamePrefsMeta;
 
 static void prefs_data_init(void) {
@@ -32,6 +39,11 @@ static void prefs_data_init(void) {
     data_reg_const_t(g_dataReg, GameQuality, Medium);
     data_reg_const_t(g_dataReg, GameQuality, High);
 
+    data_reg_enum_t(g_dataReg, GameUiScale);
+    data_reg_const_t(g_dataReg, GameUiScale, Small);
+    data_reg_const_t(g_dataReg, GameUiScale, Normal);
+    data_reg_const_t(g_dataReg, GameUiScale, Big);
+
     data_reg_struct_t(g_dataReg, GamePrefsComp);
     data_reg_field_t(g_dataReg, GamePrefsComp, volume, data_prim_t(f32));
     data_reg_field_t(g_dataReg, GamePrefsComp, powerSaving, data_prim_t(bool));
@@ -39,6 +51,7 @@ static void prefs_data_init(void) {
     data_reg_field_t(g_dataReg, GamePrefsComp, windowWidth, data_prim_t(u16));
     data_reg_field_t(g_dataReg, GamePrefsComp, windowHeight, data_prim_t(u16));
     data_reg_field_t(g_dataReg, GamePrefsComp, quality, t_GameQuality);
+    data_reg_field_t(g_dataReg, GamePrefsComp, uiScale, t_GameUiScale);
     data_reg_field_t(g_dataReg, GamePrefsComp, locale, data_prim_t(String), .flags = DataFlags_Opt);
 
     g_gamePrefsMeta = data_meta_t(t_GamePrefsComp);
@@ -64,6 +77,7 @@ static void prefs_to_default(GamePrefsComp* prefs) {
   prefs->windowWidth  = 1920;
   prefs->windowHeight = 1080;
   prefs->quality      = GameQuality_Medium;
+  prefs->uiScale      = GameUiScale_Normal;
   prefs->locale       = string_empty;
 }
 

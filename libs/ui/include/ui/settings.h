@@ -26,4 +26,6 @@ ecs_comp_extern_public(UiSettingsGlobalComp) {
   UiWeight             defaultWeight : 8;
 };
 
+UiSettingsGlobalComp* ui_settings_global_init(EcsWorld*);
+
 void ui_settings_global_to_default(UiSettingsGlobalComp*);
