@@ -3,7 +3,7 @@
     {
       "name": "InfantryRifle",
       "traits": [
-        { "$type": "AssetPrefabTrait_Name", "name": "Assault Ranger" },
+        { "$type": "AssetPrefabTrait_Name", "name": "UNIT_NAME_INFANTRY_RIFLE" },
         { "$type": "AssetPrefabTrait_SetMember", "sets": [ "destructible", "unit", "minimap", "infantry" ] },
         { "$type": "AssetPrefabTrait_Renderable", "graphic": "graphics/game/infantry_rifle.graphic" },
         { "$type": "AssetPrefabTrait_Vision", "radius": 25 },
@@ -64,7 +64,7 @@
     {
       "name": "InfantryRocket",
       "traits": [
-        { "$type": "AssetPrefabTrait_Name", "name": "Rocket Ranger" },
+        { "$type": "AssetPrefabTrait_Name", "name": "UNIT_NAME_INFANTRY_ROCKET" },
         { "$type": "AssetPrefabTrait_SetMember", "sets": [ "destructible", "unit", "minimap", "infantry" ] },
         { "$type": "AssetPrefabTrait_Renderable", "graphic": "graphics/game/infantry_rocket.graphic" },
         { "$type": "AssetPrefabTrait_Vision", "radius": 25 },
@@ -125,7 +125,7 @@
     {
       "name": "InfantryFlame",
       "traits": [
-        { "$type": "AssetPrefabTrait_Name", "name": "Flame Ranger" },
+        { "$type": "AssetPrefabTrait_Name", "name": "UNIT_NAME_INFANTRY_FLAME" },
         { "$type": "AssetPrefabTrait_SetMember", "sets": [ "destructible", "unit", "minimap", "infantry" ] },
         { "$type": "AssetPrefabTrait_Renderable", "graphic": "graphics/game/infantry_flame.graphic" },
         { "$type": "AssetPrefabTrait_Vision", "radius": 25 },
@@ -194,7 +194,7 @@
     {
       "name": "InfantryMonster",
       "traits": [
-        { "$type": "AssetPrefabTrait_Name", "name": "V'ato Soldier" },
+        { "$type": "AssetPrefabTrait_Name", "name": "UNIT_NAME_INFANTRY_MONSTER" },
         { "$type": "AssetPrefabTrait_SetMember", "sets": [ "destructible", "unit", "minimap", "infantry" ] },
         { "$type": "AssetPrefabTrait_Renderable", "graphic": "graphics/game/infantry_monster.graphic" },
         { "$type": "AssetPrefabTrait_Vision", "radius": 10 },
@@ -262,7 +262,7 @@
     {
       "name": "InfantryTest",
       "traits": [
-        { "$type": "AssetPrefabTrait_Name", "name": "Test Infantry" },
+        { "$type": "AssetPrefabTrait_Name", "name": "UNIT_NAME_INFANTRY_DUMMY" },
         { "$type": "AssetPrefabTrait_SetMember", "sets": [ "destructible", "unit", "minimap", "infantry" ] },
         { "$type": "AssetPrefabTrait_Renderable", "graphic": "graphics/game/infantry_rifle.graphic" },
         { "$type": "AssetPrefabTrait_Vision", "radius": 25 },
@@ -311,7 +311,7 @@
     {
       "name": "VehicleTank",
       "traits": [
-        { "$type": "AssetPrefabTrait_Name", "name": "Sheppard" },
+        { "$type": "AssetPrefabTrait_Name", "name": "UNIT_NAME_VEHICLE_TANK" },
         { "$type": "AssetPrefabTrait_SetMember", "sets": [ "destructible", "unit", "minimap", "vehicle" ] },
         { "$type": "AssetPrefabTrait_Renderable", "graphic": "graphics/game/vehicle_tank.graphic" },
         { "$type": "AssetPrefabTrait_Vision", "radius": 40 },
@@ -384,7 +384,7 @@
     {
       "name": "StructureTurretGun",
       "traits": [
-        { "$type": "AssetPrefabTrait_Name", "name": "Guardian" },
+        { "$type": "AssetPrefabTrait_Name", "name": "UNIT_NAME_STRUCTURE_TURRET_GUN" },
         { "$type": "AssetPrefabTrait_SetMember", "sets": [ "destructible", "unit", "minimap", "structure" ] },
         { "$type": "AssetPrefabTrait_Renderable", "graphic": "graphics/game/structure_turret_gun.graphic" },
         { "$type": "AssetPrefabTrait_Vision", "radius": 35 },
@@ -432,7 +432,7 @@
     {
       "name": "StructureTurretMissile",
       "traits": [
-        { "$type": "AssetPrefabTrait_Name", "name": "Hawk" },
+        { "$type": "AssetPrefabTrait_Name", "name": "UNIT_NAME_STRUCTURE_TURRET_MISSILE" },
         { "$type": "AssetPrefabTrait_SetMember", "sets": [ "destructible", "unit", "minimap", "structure" ] },
         { "$type": "AssetPrefabTrait_Renderable", "graphic": "graphics/game/structure_turret_missile.graphic" },
         { "$type": "AssetPrefabTrait_Vision", "radius": 35 },
@@ -480,7 +480,7 @@
     {
       "name": "StructureBarracks",
       "traits": [
-        { "$type": "AssetPrefabTrait_Name", "name": "Barracks" },
+        { "$type": "AssetPrefabTrait_Name", "name": "UNIT_NAME_STRUCTURE_BARRACKS" },
         { "$type": "AssetPrefabTrait_SetMember", "sets": [ "destructible", "unit", "minimap", "structure" ] },
         { "$type": "AssetPrefabTrait_Renderable", "graphic": "graphics/game/structure_barracks.graphic" },
         { "$type": "AssetPrefabTrait_Vision", "radius": 20 },
@@ -518,7 +518,7 @@
     {
       "name": "StructureFactory",
       "traits": [
-        { "$type": "AssetPrefabTrait_Name", "name": "Factory" },
+        { "$type": "AssetPrefabTrait_Name", "name": "UNIT_NAME_STRUCTURE_FACTORY" },
         { "$type": "AssetPrefabTrait_SetMember", "sets": [ "destructible", "unit", "minimap", "structure" ] },
         { "$type": "AssetPrefabTrait_Renderable", "graphic": "graphics/game/structure_factory.graphic" },
         { "$type": "AssetPrefabTrait_Vision", "radius": 35 },
@@ -557,7 +557,7 @@
     {
       "name": "StructureHeadquarter",
       "traits": [
-        { "$type": "AssetPrefabTrait_Name", "name": "Headquarter" },
+        { "$type": "AssetPrefabTrait_Name", "name": "UNIT_NAME_STRUCTURE_HEADQUARTER" },
         { "$type": "AssetPrefabTrait_SetMember", "sets": [ "destructible", "unit", "minimap", "structure" ] },
         {
           "$type": "AssetPrefabTrait_Renderable",
@@ -599,7 +599,7 @@
     {
       "name": "StructureHospital",
       "traits": [
-        { "$type": "AssetPrefabTrait_Name", "name": "Medic Tent" },
+        { "$type": "AssetPrefabTrait_Name", "name": "UNIT_NAME_STRUCTURE_HOSPITAL" },
         { "$type": "AssetPrefabTrait_SetMember", "sets": [ "destructible", "unit", "minimap", "structure" ] },
         { "$type": "AssetPrefabTrait_Renderable", "graphic": "graphics/game/structure_hospital.graphic" },
         { "$type": "AssetPrefabTrait_Vision", "radius": 10, "showInHud": true },
@@ -680,7 +680,7 @@
     {
       "name": "PropBarrelExplosive",
       "traits": [
-        { "$type": "AssetPrefabTrait_Name", "name": "Barrel" },
+        { "$type": "AssetPrefabTrait_Name", "name": "UNIT_NAME_PROP_BARREL_EXPLOSIVE" },
         { "$type": "AssetPrefabTrait_SetMember", "sets": [ "destructible" ] },
         { "$type": "AssetPrefabTrait_Renderable", "graphic": "graphics/game/prop_barrel_explosive.graphic" },
         {
