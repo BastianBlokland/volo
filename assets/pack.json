@@ -1,6 +1,7 @@
 {
   "roots": [
     "global/*",
+    "locale/*.locale",
 
     "external/sound/builtin/*.wav",
     "external/music/*.wav",

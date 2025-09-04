@@ -364,7 +364,8 @@ typedef struct {
 } PrefabSetupContext;
 
 static void setup_name(PrefabSetupContext* ctx, const AssetPrefabTraitName* t) {
-  ecs_world_add_t(ctx->world, ctx->entity, SceneNameComp, .name = t->name);
+  ecs_world_add_t(
+      ctx->world, ctx->entity, SceneNameComp, .nameLoc = t->name, .nameDebug = ctx->prefab->name);
 }
 
 static void setup_property(PrefabSetupContext* ctx, const AssetPrefabTraitProperty* t) {

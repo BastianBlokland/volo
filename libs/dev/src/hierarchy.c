@@ -484,7 +484,7 @@ static void hierarchy_query(HierarchyContext* ctx) {
 
     *dynarray_push_t(&ctx->panel->entries, HierarchyEntry) = (HierarchyEntry){
         .entity          = entity,
-        .nameHash        = ecs_view_read_t(itr, SceneNameComp)->name,
+        .nameHash        = ecs_view_read_t(itr, SceneNameComp)->nameDebug,
         .linkHead        = sentinel_u32,
         .linkTail        = sentinel_u32,
         .firstHardParent = sentinel_u32,

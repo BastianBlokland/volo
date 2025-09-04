@@ -1,5 +1,5 @@
 {
-  "name": "Playground",
+  "name": "LEVEL_NAME_PLAYGROUND",
   "terrain": "terrains/desert_big.terrain",
   "fogMode": "VisibilityBased",
   "startpoint": { "x": -8.3416, "z": -6.6783 },

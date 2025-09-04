@@ -13,6 +13,7 @@ void asset_register(EcsDef* def) {
   ecs_register_module(def, asset_import_module);
   ecs_register_module(def, asset_inputmap_module);
   ecs_register_module(def, asset_level_module);
+  ecs_register_module(def, asset_locale_module);
   ecs_register_module(def, asset_manager_module);
   ecs_register_module(def, asset_mesh_gltf_module);
   ecs_register_module(def, asset_mesh_module);

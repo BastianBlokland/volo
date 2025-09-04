@@ -315,8 +315,8 @@ static bool memory_draw_entity(UiCanvasComp* c, EcsIterator* entityRefItr, Scrip
     if (assetComp) {
       label = asset_id(assetComp);
     } else if (nameComp) {
-      const String name = stringtable_lookup(g_stringtable, nameComp->name);
-      label             = string_is_empty(name) ? string_lit("< Unnamed >") : name;
+      const String debugName = stringtable_lookup(g_stringtable, nameComp->nameDebug);
+      label                  = string_is_empty(debugName) ? string_lit("< Unnamed >") : debugName;
     }
   }
 

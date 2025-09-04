@@ -226,6 +226,17 @@ String scene_status_name(const SceneStatusType type) {
   return g_names[type];
 }
 
+StringHash scene_status_name_loc(const SceneStatusType type) {
+  static const String g_names[] = {
+      string_static("STATUS_BURNING"),
+      string_static("STATUS_BLEEDING"),
+      string_static("STATUS_HEALING"),
+      string_static("STATUS_VETERAN"),
+  };
+  ASSERT(array_elems(g_names) == SceneStatusType_Count, "Incorrect number of names");
+  return string_hash(g_names[type]);
+}
+
 void scene_status_add(
     EcsWorld*             world,
     const EcsEntityId     target,

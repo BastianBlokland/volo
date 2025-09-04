@@ -24,4 +24,4 @@ add_library(ui STATIC
   )
 target_include_directories(ui PUBLIC include)
 target_link_libraries(ui PUBLIC asset core ecs)
-target_link_libraries(ui PRIVATE gap log rend input snd)
+target_link_libraries(ui PRIVATE gap log rend input snd loc)

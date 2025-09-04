@@ -16,6 +16,7 @@ add_library(asset STATIC
   src/loader_icon.c
   src/loader_inputmap.c
   src/loader_level.c
+  src/loader_locale.c
   src/loader_mesh_gltf.c
   src/loader_mesh_obj.c
   src/loader_mesh_proc.c

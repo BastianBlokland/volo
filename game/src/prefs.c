@@ -15,10 +15,10 @@
 static const usize g_prefsMaxSize = 32 * usize_kibibyte;
 
 const String g_gameQualityLabels[] = {
-    string_static("VeryLow"),
-    string_static("Low"),
-    string_static("Medium"),
-    string_static("High"),
+    string_static("MENU_QUALITY_VERY_LOW"),
+    string_static("MENU_QUALITY_LOW"),
+    string_static("MENU_QUALITY_MEDIUM"),
+    string_static("MENU_QUALITY_HIGH"),
 };
 ASSERT(array_elems(g_gameQualityLabels) == GameQuality_Count, "Incorrect number of quality labels");
 
@@ -39,6 +39,7 @@ static void prefs_data_init(void) {
     data_reg_field_t(g_dataReg, GamePrefsComp, windowWidth, data_prim_t(u16));
     data_reg_field_t(g_dataReg, GamePrefsComp, windowHeight, data_prim_t(u16));
     data_reg_field_t(g_dataReg, GamePrefsComp, quality, t_GameQuality);
+    data_reg_field_t(g_dataReg, GamePrefsComp, locale, data_prim_t(String), .flags = DataFlags_Opt);
 
     g_gamePrefsMeta = data_meta_t(t_GamePrefsComp);
   }
@@ -63,6 +64,7 @@ static void prefs_to_default(GamePrefsComp* prefs) {
   prefs->windowWidth  = 1920;
   prefs->windowHeight = 1080;
   prefs->quality      = GameQuality_Medium;
+  prefs->locale       = string_empty;
 }
 
 static void prefs_save(const GamePrefsComp* prefs) {
@@ -152,4 +154,12 @@ Ret:
     file_destroy(file);
   }
   return prefs;
+}
+
+void game_prefs_locale_set(GamePrefsComp* prefs, const String locale) {
+  if (!string_eq(prefs->locale, locale)) {
+    string_maybe_free(g_allocHeap, prefs->locale);
+    prefs->locale = string_maybe_dup(g_allocHeap, locale);
+    prefs->dirty  = true;
+  }
 }

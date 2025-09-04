@@ -28,10 +28,11 @@ ecs_comp_extern_public(SceneStatusRequestComp) {
   EcsEntityId     instigators[SceneStatusType_Count];
 };
 
-bool   scene_status_active(const SceneStatusComp*, SceneStatusType);
-f32    scene_status_move_speed(const SceneStatusComp*); // Move speed multiplier.
-f32    scene_status_damage(const SceneStatusComp*);     // Damage multiplier.
-String scene_status_name(SceneStatusType);
+bool       scene_status_active(const SceneStatusComp*, SceneStatusType);
+f32        scene_status_move_speed(const SceneStatusComp*); // Move speed multiplier.
+f32        scene_status_damage(const SceneStatusComp*);     // Damage multiplier.
+String     scene_status_name(SceneStatusType);              // Human readable.
+StringHash scene_status_name_loc(SceneStatusType);          // Localization key.
 
 void scene_status_add(EcsWorld*, EcsEntityId target, SceneStatusType, EcsEntityId instigator);
 void scene_status_add_many(EcsWorld*, EcsEntityId target, SceneStatusMask, EcsEntityId instigator);

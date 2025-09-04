@@ -303,7 +303,7 @@ static void dev_camera_draw_input_ray(
     if (ecs_view_maybe_jump(nameItr, hit.entity)) {
       const SceneNameComp* nameComp = ecs_view_read_t(nameItr, SceneNameComp);
       const GeoVector      pos      = geo_vector_add(hit.position, geo_vector_mul(geo_up, 0.1f));
-      dev_text(text, pos, stringtable_lookup(g_stringtable, nameComp->name));
+      dev_text(text, pos, stringtable_lookup(g_stringtable, nameComp->nameDebug));
     }
   } else if (terrainHitT < maxDist) {
     const GeoVector terrainHitPos = geo_ray_position(&ray, terrainHitT);

@@ -16,6 +16,9 @@ typedef enum {
   DataContainer_DynArray,    // eg. 'DynArray values;'.
 } DataContainer;
 
+/**
+ * NOTE: These flags are serialized to disk, do NOT change the order / meaning of existing flags.
+ */
 typedef enum {
   DataFlags_None           = 0,
   DataFlags_Opt            = 1 << 0,

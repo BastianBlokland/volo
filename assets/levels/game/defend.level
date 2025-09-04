@@ -1,5 +1,5 @@
 {
-  "name": "Defend",
+  "name": "LEVEL_NAME_DEFEND",
   "terrain": "terrains/desert_small.terrain",
   "fogMode": "VisibilityBased",
   "startpoint": { "z": -5.0162 },

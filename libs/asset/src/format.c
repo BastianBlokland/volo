@@ -5,6 +5,7 @@
 #include "asset/icon.h"
 #include "asset/inputmap.h"
 #include "asset/level.h"
+#include "asset/locale.h"
 #include "asset/mesh.h"
 #include "asset/prefab.h"
 #include "asset/product.h"
@@ -26,6 +27,7 @@ static const String g_assetFormatExtensions[AssetFormat_Count] = {
     [AssetFormat_Icon]           = string_static("icon"),
     [AssetFormat_Inputs]         = string_static("inputs"),
     [AssetFormat_Level]          = string_static("level"),
+    [AssetFormat_Locale]         = string_static("locale"),
     [AssetFormat_MeshGlb]        = string_static("glb"),
     [AssetFormat_MeshGltf]       = string_static("gltf"),
     [AssetFormat_MeshObj]        = string_static("obj"),
@@ -64,6 +66,8 @@ static const String g_assetFormatNames[AssetFormat_Count] = {
     [AssetFormat_InputsBin]      = string_static("InputsBin"),
     [AssetFormat_Level]          = string_static("Level"),
     [AssetFormat_LevelBin]       = string_static("LevelBin"),
+    [AssetFormat_Locale]         = string_static("Locale"),
+    [AssetFormat_LocaleBin]      = string_static("LocaleBin"),
     [AssetFormat_MeshBin]        = string_static("MeshBin"),
     [AssetFormat_MeshGlb]        = string_static("MeshGlb"),
     [AssetFormat_MeshGltf]       = string_static("MeshGltf"),
@@ -116,6 +120,7 @@ static const DataMeta* g_assetFormatBinMeta[AssetFormat_Count] = {
     [AssetFormat_ShaderBin]   = &g_assetShaderMeta,
     [AssetFormat_SoundBin]    = &g_assetSoundMeta,
     [AssetFormat_TerrainBin]  = &g_assetTerrainDefMeta,
+    [AssetFormat_LocaleBin]   = &g_assetLocaleDefMeta,
     [AssetFormat_TexAtlasBin] = &g_assetAtlasBundleMeta,
     [AssetFormat_TexBin]      = &g_assetTexMeta,
     [AssetFormat_TexFontBin]  = &g_assetFontTexBundleMeta,

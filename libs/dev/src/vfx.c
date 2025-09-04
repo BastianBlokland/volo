@@ -138,12 +138,12 @@ static void vfx_info_query(DevVfxPanelComp* panelComp, EcsWorld* world) {
       const EcsEntityId    entity   = ecs_view_entity(itr);
       const SceneNameComp* nameComp = ecs_view_read_t(itr, SceneNameComp);
 
-      if (!vfx_panel_filter(panelComp, vfx_entity_name(nameComp->name), entity)) {
+      if (!vfx_panel_filter(panelComp, vfx_entity_name(nameComp->nameDebug), entity)) {
         continue;
       }
       DevVfxInfo* info = dynarray_push_t(&panelComp->objects, DevVfxInfo);
       info->entity     = entity;
-      info->nameHash   = nameComp->name;
+      info->nameHash   = nameComp->nameDebug;
       mem_set(mem_var(info->stats), 0);
 
       const VfxSystemStatsComp* systemStats = ecs_view_read_t(itr, VfxSystemStatsComp);

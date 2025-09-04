@@ -1,0 +1,107 @@
+{
+  "name": "English",
+  "isDefault": true,
+  "textEntries": [
+    { "key": "STATUS_BURNING", "value": "Burning" },
+    { "key": "STATUS_BLEEDING", "value": "Bleeding" },
+    { "key": "STATUS_HEALING", "value": "Healing" },
+    { "key": "STATUS_VETERAN", "value": "Veteran" },
+
+    { "key": "HUD_FACTION_PLAYER", "value": "Player" },
+    { "key": "HUD_FACTION_ENEMY", "value": "Enemy" },
+
+    { "key": "HUD_STATS_DEALT_DAMAGE", "value": "Dealt Dmg" },
+    { "key": "HUD_STATS_DEALT_HEALING", "value": "Dealt Heal" },
+    { "key": "HUD_STATS_DEALT_KILLS", "value": "Kills" },
+
+    { "key": "HUD_INFO_NAME", "value": "Name" },
+    { "key": "HUD_INFO_FACTION", "value": "Faction" },
+    { "key": "HUD_INFO_HEALTH", "value": "Health" },
+    { "key": "HUD_INFO_STATUS", "value": "Status" },
+    { "key": "HUD_INFO_RANGE", "value": "Range" },
+    { "key": "HUD_INFO_DAMAGE", "value": "Damage" },
+    { "key": "HUD_INFO_APPLY", "value": "Apply" },
+    { "key": "HUD_INFO_SPEED", "value": "Speed" },
+    { "key": "HUD_INFO_TIME", "value": "Time" },
+    { "key": "HUD_INFO_COUNT", "value": "Count" },
+    { "key": "HUD_INFO_READY", "value": "Ready" },
+    { "key": "HUD_INFO_SIZE", "value": "Size" },
+
+    { "key": "HUD_PAUSE_TOOLTIP", "value": "Pause the game." },
+    { "key": "HUD_CAMERA_RESET_TOOLTIP", "value": "Reset the camera." },
+    { "key": "HUD_ORDER_STOP_TOOLTIP", "value": "Order the selected unit to stop." },
+
+    { "key": "UNIT_NAME_INFANTRY_RIFLE", "value": "Assault Ranger" },
+    { "key": "UNIT_NAME_INFANTRY_ROCKET", "value": "Rocket Ranger" },
+    { "key": "UNIT_NAME_INFANTRY_FLAME", "value": "Flame Ranger" },
+    { "key": "UNIT_NAME_INFANTRY_MONSTER", "value": "V'ato Soldier" },
+    { "key": "UNIT_NAME_INFANTRY_DUMMY", "value": "Dummy Ranger" },
+    { "key": "UNIT_NAME_VEHICLE_TANK", "value": "Sheppard" },
+    { "key": "UNIT_NAME_STRUCTURE_TURRET_GUN", "value": "Guardian" },
+    { "key": "UNIT_NAME_STRUCTURE_TURRET_MISSILE", "value": "Hawk" },
+    { "key": "UNIT_NAME_STRUCTURE_BARRACKS", "value": "Barracks" },
+    { "key": "UNIT_NAME_STRUCTURE_FACTORY", "value": "Factory" },
+    { "key": "UNIT_NAME_STRUCTURE_HEADQUARTER", "value": "Headquarter" },
+    { "key": "UNIT_NAME_STRUCTURE_HOSPITAL", "value": "Medic Tent" },
+    { "key": "UNIT_NAME_PROP_BARREL_EXPLOSIVE", "value": "Barrel" },
+
+    { "key": "LEVEL_NAME_FRONTLINE", "value": "Frontline" },
+    { "key": "LEVEL_NAME_DEFEND", "value": "Defend" },
+    { "key": "LEVEL_NAME_PLAYGROUND", "value": "Playground" },
+    { "key": "LEVEL_NAME_UNKNOWN", "value": "Unknown" },
+
+    { "key": "MENU_PLAY", "value": "Play" },
+    { "key": "MENU_PLAY_TOOLTIP", "value": "Select a level to play." },
+
+    { "key": "MENU_EDIT", "value": "Edit" },
+    { "key": "MENU_EDIT_TOOLTIP", "value": "Select a level to edit." },
+
+    { "key": "MENU_PAUSED", "value": "Paused" },
+
+    { "key": "MENU_RESUME", "value": "Resume" },
+    { "key": "MENU_RESUME_TOOLTIP", "value": "Resume playing." },
+
+    { "key": "MENU_RESTART", "value": "Restart" },
+    { "key": "MENU_RESTART_TOOLTIP", "value": "Restart the current level." },
+
+    { "key": "MENU_EDIT_CURRENT", "value": "Edit" },
+    { "key": "MENU_EDIT_CURRENT_TOOLTIP", "value": "Start editing the current level." },
+
+    { "key": "MENU_MAINMENU", "value": "Main-menu" },
+    { "key": "MENU_MAINMENU_TOOLTIP", "value": "Go back to the main-menu." },
+
+    { "key": "MENU_VOLUME", "value": "Volume" },
+    { "key": "MENU_VOLUME_TOOLTIP", "value": "Change the sound volume." },
+
+    { "key": "MENU_POWERSAVING", "value": "Power saving" },
+    { "key": "MENU_POWERSAVING_TOOLTIP", "value": "Save power by limiting the frame-rate to 30hz." },
+
+    { "key": "MENU_QUALITY", "value": "Quality" },
+    { "key": "MENU_QUALITY_TOOLTIP", "value": "Select the rendering quality." },
+    { "key": "MENU_QUALITY_VERY_LOW", "value": "Very low" },
+    { "key": "MENU_QUALITY_LOW", "value": "Low" },
+    { "key": "MENU_QUALITY_MEDIUM", "value": "Medium" },
+    { "key": "MENU_QUALITY_HIGH", "value": "High" },
+
+    { "key": "MENU_LOCALE", "value": "Locale" },
+    { "key": "MENU_LOCALE_TOOLTIP", "value": "Select the active locale." },
+
+    { "key": "MENU_FULLSCREEN", "value": "Fullscreen" },
+    { "key": "MENU_FULLSCREEN_TOOLTIP", "value": "Switch between fullscreen and windowed modes." },
+
+    { "key": "MENU_QUIT", "value": "Quit" },
+    { "key": "MENU_QUIT_TOOLTIP", "value": "Quit to desktop." },
+
+    { "key": "MENU_BACK_TOOLTIP", "value": "Back to previous menu." },
+
+    { "key": "MENU_LEVEL_REFRESH_TOOLTIP", "value": "Refresh the level list." },
+    { "key": "MENU_LEVEL_EDIT_TOOLTIP", "value": "Edit the '{}' level." },
+    { "key": "MENU_LEVEL_PLAY_TOOLTIP", "value": "Play the '{}' level." },
+
+    { "key": "MENU_EDIT_CAMERA_TOOLTIP", "value": "Toggle between the normal and free camera." },
+    { "key": "MENU_EDIT_PLAY_TOOLTIP", "value": "Play the level (saves the current state to disk)." },
+    { "key": "MENU_EDIT_DISCARD_TOOLTIP", "value": "Reload the level (discarding any unsaved changes)." },
+    { "key": "MENU_EDIT_SAVE_TOOLTIP", "value": "Save the level." },
+    { "key": "MENU_EDIT_STOP_TOOLTIP", "value": "Stop editing." }
+  ]
+}
