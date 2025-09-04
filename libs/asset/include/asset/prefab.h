@@ -49,7 +49,7 @@ typedef enum {
 } AssetPrefabTraitType;
 
 typedef struct {
-  StringHash name;
+  StringHash name; // Localization key.
 } AssetPrefabTraitName;
 
 typedef struct {

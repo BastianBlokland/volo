@@ -558,9 +558,9 @@ static void inspector_panel_draw_entity(InspectorContext* ctx, const EcsEntityId
       label = asset_id(assetComp);
       fmt_write(&tooltipBuffer, "Asset:\a>0C{}\n", fmt_text(label));
     } else if (nameComp) {
-      const String name = stringtable_lookup(g_stringtable, nameComp->name);
-      label             = string_is_empty(name) ? string_lit("< Unnamed >") : name;
-      selectable        = true;
+      const String debugName = stringtable_lookup(g_stringtable, nameComp->nameDebug);
+      label                  = string_is_empty(debugName) ? string_lit("< Unnamed >") : debugName;
+      selectable             = true;
       fmt_write(&tooltipBuffer, "Name:\a>0C{}\n", fmt_text(label));
     }
   }
@@ -624,8 +624,8 @@ static void inspector_panel_draw_general(InspectorContext* ctx, UiTable* table) 
   if (ctx->subject) {
     const SceneNameComp* nameComp = ecs_view_read_t(ctx->subject, SceneNameComp);
     if (nameComp) {
-      const String name = stringtable_lookup(g_stringtable, nameComp->name);
-      inspector_panel_draw_string(ctx, name);
+      const String debugName = stringtable_lookup(g_stringtable, nameComp->nameDebug);
+      inspector_panel_draw_string(ctx, debugName);
     }
   } else {
     inspector_panel_draw_none(ctx);
@@ -799,7 +799,7 @@ static bool inspector_panel_prop_edit_level_entity(InspectorContext* ctx, Script
   if (ecs_view_maybe_jump(ctx->entityRefItr, entity)) {
     const SceneNameComp* nameComp = ecs_view_read_t(ctx->entityRefItr, SceneNameComp);
     if (nameComp) {
-      entityName = stringtable_lookup(g_stringtable, nameComp->name);
+      entityName = stringtable_lookup(g_stringtable, nameComp->nameDebug);
       if (string_is_empty(entityName)) {
         entityName = string_lit("< Unnamed >");
       }
@@ -2040,7 +2040,7 @@ static void inspector_tool_picker_update(
       const SceneTransformComp* transComp  = ecs_view_read_t(entityRefItr, SceneTransformComp);
       const SceneScaleComp*     scaleComp  = ecs_view_read_t(entityRefItr, SceneScaleComp);
       if (nameComp) {
-        hitName = stringtable_lookup(g_stringtable, nameComp->name);
+        hitName = stringtable_lookup(g_stringtable, nameComp->nameDebug);
         if (transComp) {
           dev_text(text, transComp->position, hitName, .fontSize = 16);
         }
@@ -2461,9 +2461,9 @@ static void inspector_vis_draw_subject(
     }
   }
   if (transformComp && nameComp && set->visFlags & (1 << DevInspectorVis_Name)) {
-    const String    name = stringtable_lookup(g_stringtable, nameComp->name);
-    const GeoVector pos  = geo_vector_add(transformComp->position, geo_vector_mul(geo_up, 0.1f));
-    dev_text(text, pos, name);
+    const String    debugName = stringtable_lookup(g_stringtable, nameComp->nameDebug);
+    const GeoVector pos = geo_vector_add(transformComp->position, geo_vector_mul(geo_up, 0.1f));
+    dev_text(text, pos, debugName);
   }
   if (locoComp && set->visFlags & (1 << DevInspectorVis_Locomotion)) {
     inspector_vis_draw_locomotion(shape, locoComp, transformComp, scaleComp);

@@ -3,7 +3,6 @@
 #include "core/stringtable.h"
 #include "ecs/view.h"
 #include "ecs/world.h"
-#include "scene/light.h"
 #include "scene/name.h"
 #include "scene/prefab.h"
 #include "scene/renderable.h"
@@ -72,12 +71,12 @@ ecs_system_define(SceneNameInitSys) {
   EcsIterator* assetItr = ecs_view_itr(ecs_world_view_t(world, AssetView));
 
   /**
-   * For level entity that don't have a name automatically assign one for debug purposes.
+   * Assign a debug name to all level entities without a name.
    */
   EcsView* initView = ecs_world_view_t(world, InitDebugView);
   for (EcsIterator* itr = ecs_view_itr(initView); ecs_view_walk(itr);) {
     const StringHash debugName = scene_name_find(world, itr, assetItr);
-    ecs_world_add_t(world, ecs_view_entity(itr), SceneNameComp, .name = debugName);
+    ecs_world_add_t(world, ecs_view_entity(itr), SceneNameComp, .nameDebug = debugName);
   }
 }
 

@@ -478,7 +478,7 @@ static ScriptVal eval_scale(EvalContext* ctx, ScriptBinderCall* call) {
 static ScriptVal eval_name(EvalContext* ctx, ScriptBinderCall* call) {
   const EcsEntityId  e   = script_arg_entity(call, 0);
   const EcsIterator* itr = ecs_view_maybe_jump(ctx->nameItr, e);
-  return itr ? script_str_or_null(ecs_view_read_t(itr, SceneNameComp)->name) : script_null();
+  return itr ? script_str_or_null(ecs_view_read_t(itr, SceneNameComp)->nameDebug) : script_null();
 }
 
 static ScriptVal eval_faction(EvalContext* ctx, ScriptBinderCall* call) {
