@@ -19,7 +19,7 @@
 DataMeta g_assetProductDefMeta;
 
 typedef struct {
-  String            name;
+  StringHash        name; // Localization key.
   StringHash        iconImage;
   TimeDuration      costTime;
   u16               queueMax;
@@ -84,7 +84,7 @@ static String product_error_str(const ProductError err) {
 
 static void product_build_meta(const AssetProductMetaDef* def, AssetProduct* out) {
   out->iconImage     = def->iconImage;
-  out->name          = string_maybe_dup(g_allocHeap, def->name);
+  out->name          = def->name;
   out->costTime      = def->costTime;
   out->queueMax      = def->queueMax;
   out->queueBulkSize = def->queueBulkSize;
@@ -170,9 +170,6 @@ static void ecs_destruct_productmap_comp(void* data) {
     alloc_free_array_t(g_allocHeap, comp->sets.values, comp->sets.count);
   }
   if (comp->products.values) {
-    for (u32 i = 0; i != comp->products.count; ++i) {
-      string_maybe_free(g_allocHeap, comp->products.values[i].name);
-    }
     alloc_free_array_t(g_allocHeap, comp->products.values, comp->products.count);
   }
 }
@@ -259,7 +256,6 @@ ecs_system_define(LoadProductAssetSys) {
     goto Cleanup;
 
   Error:
-    dynarray_for_t(&products, AssetProduct, prod) { string_maybe_free(g_allocHeap, prod->name); }
     asset_mark_load_failure(world, entity, id, errMsg, -1 /* errorCode */);
 
   Cleanup:
@@ -300,7 +296,7 @@ void asset_data_init_product(void) {
   data_reg_normalizer_t(g_dataReg, AssetProductSound, product_data_normalizer_sound);
 
   data_reg_struct_t(g_dataReg, AssetProductMetaDef);
-  data_reg_field_t(g_dataReg, AssetProductMetaDef, name, data_prim_t(String), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetProductMetaDef, name, data_prim_t(StringHash), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AssetProductMetaDef, iconImage, data_prim_t(StringHash), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AssetProductMetaDef, costTime, data_prim_t(TimeDuration), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AssetProductMetaDef, queueMax, data_prim_t(u16), .flags = DataFlags_Opt);

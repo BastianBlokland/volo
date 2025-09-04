@@ -6,7 +6,7 @@
         {
           "$type": "AssetProduct_Unit",
           "meta": {
-            "name": "Assault Ranger",
+            "name": "UNIT_NAME_INFANTRY_RIFLE",
             "iconImage": "icon_infantry_rifle",
             "costTime": 3,
             "queueMax": 99,
@@ -21,7 +21,7 @@
         {
           "$type": "AssetProduct_Unit",
           "meta": {
-            "name": "Rocket Ranger",
+            "name": "UNIT_NAME_INFANTRY_ROCKET",
             "iconImage": "icon_infantry_rocket",
             "costTime": 5,
             "queueMax": 99,
@@ -36,7 +36,7 @@
         {
           "$type": "AssetProduct_Unit",
           "meta": {
-            "name": "Flame Ranger",
+            "name": "UNIT_NAME_INFANTRY_FLAME",
             "iconImage": "icon_infantry_flame",
             "costTime": 5,
             "queueMax": 99,
@@ -56,7 +56,7 @@
         {
           "$type": "AssetProduct_Placable",
           "meta": {
-            "name": "Guardian",
+            "name": "UNIT_NAME_STRUCTURE_TURRET_GUN",
             "iconImage": "icon_structure_turret_gun",
             "costTime": 12,
             "cooldown": 1,
@@ -73,7 +73,7 @@
         {
           "$type": "AssetProduct_Placable",
           "meta": {
-            "name": "Hawk",
+            "name": "UNIT_NAME_STRUCTURE_TURRET_MISSILE",
             "iconImage": "icon_structure_turret_missile",
             "costTime": 15,
             "cooldown": 1,
@@ -90,7 +90,7 @@
         {
           "$type": "AssetProduct_Unit",
           "meta": {
-            "name": "Sheppard",
+            "name": "UNIT_NAME_VEHICLE_TANK",
             "iconImage": "icon_vehicle_tank",
             "costTime": 25,
             "queueMax": 99,
@@ -105,7 +105,7 @@
         {
           "$type": "AssetProduct_Placable",
           "meta": {
-            "name": "Medic Tent",
+            "name": "UNIT_NAME_STRUCTURE_HOSPITAL",
             "iconImage": "icon_structure_hospital",
             "costTime": 20,
             "cooldown": 1,
@@ -122,7 +122,7 @@
         {
           "$type": "AssetProduct_Placable",
           "meta": {
-            "name": "Barracks",
+            "name": "UNIT_NAME_STRUCTURE_BARRACKS",
             "iconImage": "icon_structure_barracks",
             "costTime": 30,
             "cooldown": 1,
@@ -139,7 +139,7 @@
         {
           "$type": "AssetProduct_Placable",
           "meta": {
-            "name": "Factory",
+            "name": "UNIT_NAME_STRUCTURE_FACTORY",
             "iconImage": "icon_structure_factory",
             "costTime": 60,
             "cooldown": 1,

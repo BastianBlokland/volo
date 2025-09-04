@@ -29,7 +29,7 @@ typedef struct {
 } AssetProductPlaceable;
 
 typedef struct sAssetProduct {
-  String            name;
+  StringHash        name; // Localization key.
   AssetProductType  type;
   StringHash        iconImage; // Identifier in the Ui image atlas.
   TimeDuration      costTime;
