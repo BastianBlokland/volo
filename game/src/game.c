@@ -53,6 +53,7 @@
 #include "ui/canvas.h"
 #include "ui/layout.h"
 #include "ui/register.h"
+#include "ui/settings.h"
 #include "ui/shape.h"
 #include "ui/style.h"
 #include "ui/widget.h"
@@ -236,6 +237,22 @@ static void game_quality_apply(
   }
 }
 
+static void game_ui_settings_apply(const GamePrefsComp* prefs, UiSettingsGlobalComp* uiSettings) {
+  switch (prefs->uiScale) {
+  case GameUiScale_Small:
+    uiSettings->scale = 0.75f;
+    break;
+  case GameUiScale_Normal:
+    uiSettings->scale = 1.0f;
+    break;
+  case GameUiScale_Big:
+    uiSettings->scale = 1.25f;
+    break;
+  case GameUiScale_Count:
+    UNREACHABLE
+  }
+}
+
 typedef struct {
   EcsWorld*               world;
   GameComp*               game;
@@ -251,6 +268,7 @@ typedef struct {
   AssetManagerComp*       assets;
   SceneVisibilityEnvComp* visibilityEnv;
   RendSettingsGlobalComp* rendSetGlobal;
+  UiSettingsGlobalComp*   uiSetGlobal;
   DevStatsGlobalComp*     devStatsGlobal;
 
   EcsEntityId         winEntity;
@@ -647,6 +665,35 @@ static void menu_entry_quality(const GameUpdateContext* ctx, MAYBE_UNUSED const 
   ui_layout_pop(ctx->winCanvas);
 }
 
+static void menu_entry_ui_scale(const GameUpdateContext* ctx, MAYBE_UNUSED const u32 index) {
+  menu_draw_entry_frame(ctx);
+
+  ui_layout_push(ctx->winCanvas);
+  static const UiVector g_frameInset = {-40, -10};
+  ui_layout_grow(ctx->winCanvas, UiAlign_MiddleCenter, g_frameInset, UiBase_Absolute, Ui_XY);
+  ui_label(ctx->winCanvas, loc_translate_lit("MENU_UI_SCALE"));
+  ui_layout_inner(
+      ctx->winCanvas, UiBase_Current, UiAlign_MiddleRight, ui_vector(0.5f, 0.6f), UiBase_Current);
+
+  ui_style_push(ctx->winCanvas);
+  ui_style_transform(ctx->winCanvas, UiTransform_None);
+
+  i32* uiScale = (i32*)&ctx->prefs->uiScale;
+  if (ui_select(
+          ctx->winCanvas,
+          uiScale,
+          g_gameUiScaleLabels,
+          GameUiScale_Count,
+          .tooltip = loc_translate_lit("MENU_UI_SCALE_TOOLTIP"),
+          .flags   = UiWidget_Translate)) {
+    ctx->prefs->dirty = true;
+    game_ui_settings_apply(ctx->prefs, ctx->uiSetGlobal);
+  }
+
+  ui_style_pop(ctx->winCanvas);
+  ui_layout_pop(ctx->winCanvas);
+}
+
 static void menu_entry_locale(const GameUpdateContext* ctx, MAYBE_UNUSED const u32 index) {
   menu_draw_entry_frame(ctx);
 
@@ -826,6 +873,7 @@ ecs_view_define(UpdateGlobalView) {
   ecs_access_write(GamePrefsComp);
   ecs_access_write(InputManagerComp);
   ecs_access_write(RendSettingsGlobalComp);
+  ecs_access_write(UiSettingsGlobalComp);
   ecs_access_write(SceneLevelManagerComp);
   ecs_access_write(SceneTimeSettingsComp);
   ecs_access_write(SceneVisibilityEnvComp);
@@ -989,6 +1037,7 @@ ecs_system_define(GameUpdateSys) {
       .assets              = ecs_view_write_t(globalItr, AssetManagerComp),
       .visibilityEnv       = ecs_view_write_t(globalItr, SceneVisibilityEnvComp),
       .rendSetGlobal       = ecs_view_write_t(globalItr, RendSettingsGlobalComp),
+      .uiSetGlobal         = ecs_view_write_t(globalItr, UiSettingsGlobalComp),
       .devStatsGlobal      = ecs_view_write_t(globalItr, DevStatsGlobalComp),
       .levelRenderableView = ecs_world_view_t(world, LevelRenderableView),
       .devPanelView        = ecs_world_view_t(world, DevPanelView),
@@ -1103,6 +1152,7 @@ ecs_system_define(GameUpdateSys) {
       menuEntries[menuEntriesCount++] = &menu_entry_volume;
       menuEntries[menuEntriesCount++] = &menu_entry_powersaving;
       menuEntries[menuEntriesCount++] = &menu_entry_quality;
+      menuEntries[menuEntriesCount++] = &menu_entry_ui_scale;
       menuEntries[menuEntriesCount++] = &menu_entry_locale;
       menuEntries[menuEntriesCount++] = &menu_entry_fullscreen;
       menuEntries[menuEntriesCount++] = &menu_entry_quit;
@@ -1166,6 +1216,7 @@ ecs_system_define(GameUpdateSys) {
       menuEntries[menuEntriesCount++] = &menu_entry_volume;
       menuEntries[menuEntriesCount++] = &menu_entry_powersaving;
       menuEntries[menuEntriesCount++] = &menu_entry_quality;
+      menuEntries[menuEntriesCount++] = &menu_entry_ui_scale;
       menuEntries[menuEntriesCount++] = &menu_entry_fullscreen;
       menuEntries[menuEntriesCount++] = &menu_entry_menu_main;
       menuEntries[menuEntriesCount++] = &menu_entry_quit;
@@ -1327,6 +1378,7 @@ bool app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
   loc_manager_init(world, prefs->locale);
 
   RendSettingsGlobalComp* rendSettingsGlobal = rend_settings_global_init(world, devSupport);
+  UiSettingsGlobalComp*   uiSettingsGlobal   = ui_settings_global_init(world);
 
   SndMixerComp* soundMixer = snd_mixer_init(world);
   snd_mixer_gain_set(soundMixer, prefs->volume * 1e-2f);
@@ -1337,6 +1389,7 @@ bool app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
   rendSettingsWin->flags |= RendFlags_2D;
 
   game_quality_apply(prefs, rendSettingsGlobal, rendSettingsWin);
+  game_ui_settings_apply(prefs, uiSettingsGlobal);
 
   GameFlags gameFlags = GameFlags_RefreshLevels;
   if (devSupport) {
