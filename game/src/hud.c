@@ -8,7 +8,6 @@
 #include "core/float.h"
 #include "core/format.h"
 #include "core/math.h"
-#include "core/stringtable.h"
 #include "ecs/view.h"
 #include "ecs/world.h"
 #include "gap/input.h"
@@ -16,6 +15,7 @@
 #include "geo/color.h"
 #include "geo/matrix.h"
 #include "input/manager.h"
+#include "loc/translate.h"
 #include "rend/object.h"
 #include "scene/attack.h"
 #include "scene/camera.h"
@@ -271,12 +271,12 @@ static UiColor hud_health_color(const f32 norm) {
   return ui_color_lerp(g_colorWarn, g_colorFull, (norm - 0.5f) * 2.0f);
 }
 
-static String hud_faction_name(const SceneFaction faction) {
+static StringHash hud_faction_name_loc(const SceneFaction faction) {
   switch (faction) {
   case SceneFaction_A:
-    return string_lit("Player");
+    return string_hash_lit("HUD_FACTION_PLAYER");
   default:
-    return string_lit("Enemy");
+    return string_hash_lit("HUD_FACTION_ENEMY");
   }
 }
 
@@ -382,7 +382,8 @@ static void hud_groups_draw(UiCanvasComp* c, GameCmdComp* cmd) {
             .label      = fmt_write_scratch("\a|02{}\ar {}", fmt_int(i + 1), fmt_ui_shape(Group)),
             .fontSize   = 20,
             .frameColor = ui_color(32, 32, 32, 192),
-            .tooltip    = fmt_write_scratch("Size: {}.", fmt_int(size)))) {
+            .tooltip    = fmt_write_scratch(
+                "{}: {}.", fmt_text(loc_translate_lit("HUD_INFO_SIZE")), fmt_int(size)))) {
       game_cmd_push_select_group(cmd, i);
     }
     ui_layout_next(c, Ui_Up, g_spacing);
@@ -410,21 +411,22 @@ static void hud_info_status_mask_write(const SceneStatusMask statusMask, DynStri
     if (!first) {
       dynstring_append(out, string_lit(", "));
     }
-    first = false;
+    first                    = false;
+    const StringHash nameLoc = scene_status_name_loc((SceneStatusType)typeIndex);
     fmt_write(
         out,
         "\a|02{}{}\ar {}",
         fmt_ui_color(g_hudStatusIconColors[typeIndex]),
         fmt_text(ui_shape_scratch(g_hudStatusIcons[typeIndex])),
-        fmt_text(scene_status_name((SceneStatusType)typeIndex)));
+        fmt_text(loc_translate(nameLoc)));
   }
 }
 
 static void hud_info_health_stats_write(const SceneHealthStatsComp* stats, DynString* out) {
   static const String g_healthStatNames[SceneHealthStat_Count] = {
-      [SceneHealthStat_DealtDamage]  = string_static("Dealt Dmg"),
-      [SceneHealthStat_DealtHealing] = string_static("Dealt Heal"),
-      [SceneHealthStat_Kills]        = string_static("Kills"),
+      [SceneHealthStat_DealtDamage]  = string_static("HUD_STATS_DEALT_DAMAGE"),
+      [SceneHealthStat_DealtHealing] = string_static("HUD_STATS_DEALT_HEALING"),
+      [SceneHealthStat_Kills]        = string_static("HUD_STATS_DEALT_KILLS"),
   };
   for (SceneHealthStat stat = 0; stat != SceneHealthStat_Count; ++stat) {
     const f32 value        = stats->values[stat];
@@ -432,7 +434,11 @@ static void hud_info_health_stats_write(const SceneHealthStatsComp* stats, DynSt
     if (string_is_empty(g_healthStatNames[stat]) || !valueRounded) {
       continue;
     }
-    fmt_write(out, "\a.b{}\ar:\a>15{}\n", fmt_text(g_healthStatNames[stat]), fmt_int(valueRounded));
+    fmt_write(
+        out,
+        "\a.b{}\ar:\a>15{}\n",
+        fmt_text(loc_translate_str(g_healthStatNames[stat])),
+        fmt_int(valueRounded));
   }
 }
 
@@ -451,31 +457,46 @@ static void hud_info_draw(UiCanvasComp* c, EcsIterator* infoItr, EcsIterator* we
     return; // TODO: Make the local faction configurable instead of hardcoding 'A'.
   }
 
-  const String entityName = stringtable_lookup(g_stringtable, nameComp->name);
+  const String entityName = loc_translate(nameComp->nameLoc);
 
   Mem       bufferMem = alloc_alloc(g_allocScratch, 4 * usize_kibibyte, 1);
   DynString buffer    = dynstring_create_over(bufferMem);
 
-  fmt_write(&buffer, "\a.bName\ar:\a>15{}\n", fmt_text(entityName));
+  fmt_write(
+      &buffer,
+      "\a.b{}\ar:\a>15{}\n",
+      fmt_text(loc_translate_lit("HUD_INFO_NAME")),
+      fmt_text(entityName));
   if (factionComp) {
-    const String  name  = hud_faction_name(factionComp->id);
-    const UiColor color = hud_faction_color(factionComp->id);
-    fmt_write(&buffer, "\a.bFaction\ar:\a>15{}{}\ar\n", fmt_ui_color(color), fmt_text(name));
+    const String  factionName = loc_translate(hud_faction_name_loc(factionComp->id));
+    const UiColor color       = hud_faction_color(factionComp->id);
+    fmt_write(
+        &buffer,
+        "\a.b{}\ar:\a>15{}{}\ar\n",
+        fmt_text(loc_translate_lit("HUD_INFO_FACTION")),
+        fmt_ui_color(color),
+        fmt_text(factionName));
   }
   if (healthComp) {
     const u32 healthVal    = (u32)math_round_up_f32(healthComp->max * healthComp->norm);
     const u32 healthMaxVal = (u32)math_round_up_f32(healthComp->max);
-    fmt_write(&buffer, "\a.bHealth\ar:\a>15{} / {}\n", fmt_int(healthVal), fmt_int(healthMaxVal));
+    fmt_write(
+        &buffer,
+        "\a.b{}\ar:\a>15{} / {}\n",
+        fmt_text(loc_translate_lit("HUD_INFO_HEALTH")),
+        fmt_int(healthVal),
+        fmt_int(healthMaxVal));
   }
   if (statusComp && statusComp->active) {
-    fmt_write(&buffer, "\a.bStatus\ar:\a>15");
+    fmt_write(&buffer, "\a.b{}\ar:\a>15", fmt_text(loc_translate_lit("HUD_INFO_STATUS")));
     hud_info_status_mask_write(statusComp->active, &buffer);
     dynstring_append_char(&buffer, '\n');
   }
   if (targetFinderComp) {
     fmt_write(
         &buffer,
-        "\a.bRange\ar:\a>15{} - {}\n",
+        "\a.b{}\ar:\a>15{} - {}\n",
+        fmt_text(loc_translate_lit("HUD_INFO_RANGE")),
         fmt_float(targetFinderComp->rangeMin, .maxDecDigits = 1),
         fmt_float(targetFinderComp->rangeMax, .maxDecDigits = 1));
   }
@@ -487,13 +508,13 @@ static void hud_info_draw(UiCanvasComp* c, EcsIterator* infoItr, EcsIterator* we
       const f32 damageOrg  = asset_weapon_damage(weaponMap, weapon);
       const f32 damageMod  = damageOrg * damageMult;
       if (damageOrg > f32_epsilon) {
-        fmt_write(&buffer, "\a.bDamage\ar:\a>15");
+        fmt_write(&buffer, "\a.b{}\ar:\a>15", fmt_text(loc_translate_lit("HUD_INFO_DAMAGE")));
         hud_info_stat_write(damageOrg, damageMod, &buffer);
         dynstring_append_char(&buffer, '\n');
       }
       const SceneStatusMask appliesStatus = asset_weapon_applies_status(weaponMap, weapon);
       if (appliesStatus) {
-        fmt_write(&buffer, "\a.bApply\ar:\a>15");
+        fmt_write(&buffer, "\a.b{}\ar:\a>15", fmt_text(loc_translate_lit("HUD_INFO_APPLY")));
         hud_info_status_mask_write(appliesStatus, &buffer);
         dynstring_append_char(&buffer, '\n');
       }
@@ -503,7 +524,7 @@ static void hud_info_draw(UiCanvasComp* c, EcsIterator* infoItr, EcsIterator* we
     const f32 speedMult = scene_status_move_speed(statusComp);
     const f32 speedOrg  = locoComp->maxSpeed;
     const f32 speedMod  = speedOrg * speedMult;
-    fmt_write(&buffer, "\a.bSpeed\ar:\a>15");
+    fmt_write(&buffer, "\a.b{}\ar:\a>15", fmt_text(loc_translate_lit("HUD_INFO_SPEED")));
     hud_info_stat_write(speedOrg, speedMod, &buffer);
     dynstring_append_char(&buffer, '\n');
   }
@@ -725,19 +746,19 @@ static void hud_actions_draw(UiCanvasComp* c, GameHudComp* hud, const InputManag
       {
           .action  = GameHudAction_Pause,
           .icon    = UiShape_Pause,
-          .tooltip = string_static("Pause the game."),
+          .tooltip = string_static("HUD_PAUSE_TOOLTIP"),
           .hotkey  = string_static("Pause"),
       },
       {
           .action  = GameHudAction_CameraReset,
           .icon    = UiShape_ResetTv,
-          .tooltip = string_static("Reset the camera."),
+          .tooltip = string_static("HUD_CAMERA_RESET_TOOLTIP"),
           .hotkey  = string_static("CameraReset"),
       },
       {
           .action  = GameHudAction_OrderStop,
           .icon    = UiShape_Halt,
-          .tooltip = string_static("Order the selected unit to stop."),
+          .tooltip = string_static("HUD_ORDER_STOP_TOOLTIP"),
           .hotkey  = string_static("OrderStop"),
       },
   };
@@ -758,7 +779,7 @@ static void hud_actions_draw(UiCanvasComp* c, GameHudComp* hud, const InputManag
             .label      = ui_shape_scratch(g_actionDefs[i].icon),
             .fontSize   = 20,
             .frameColor = ui_color(32, 32, 32, 192),
-            .tooltip    = g_actionDefs[i].tooltip,
+            .tooltip    = loc_translate_str(g_actionDefs[i].tooltip),
             .activate   = hotkeyActivate)) {
       hud->requestedActions = 1 << g_actionDefs[i].action;
     }
@@ -787,7 +808,7 @@ static UiId hud_production_header_draw(UiCanvasComp* c, EcsIterator* itr) {
   static const f32 g_height = 30;
 
   const SceneNameComp* nameComp   = ecs_view_read_t(itr, SceneNameComp);
-  const String         entityName = stringtable_lookup(g_stringtable, nameComp->name);
+  const String         entityName = loc_translate(nameComp->nameLoc);
 
   ui_layout_push(c);
   ui_style_push(c);
@@ -921,12 +942,24 @@ static void hud_production_queue_tooltip(UiCanvasComp* c, const AssetProduct* pr
   Mem       bufferMem = alloc_alloc(g_allocScratch, 4 * usize_kibibyte, 1);
   DynString buffer    = dynstring_create_over(bufferMem);
 
-  if (!string_is_empty(prod->name)) {
-    fmt_write(&buffer, "\a.bName\ar:\a>10{}\n", fmt_text(prod->name));
+  if (prod->name) {
+    fmt_write(
+        &buffer,
+        "\a.b{}\ar:\a>10{}\n",
+        fmt_text(loc_translate_lit("HUD_INFO_NAME")),
+        fmt_text(loc_translate(prod->name)));
   }
-  fmt_write(&buffer, "\a.bTime\ar:\a>10{}\n", fmt_duration(prod->costTime));
+  fmt_write(
+      &buffer,
+      "\a.b{}\ar:\a>10{}\n",
+      fmt_text(loc_translate_lit("HUD_INFO_TIME")),
+      fmt_duration(prod->costTime));
   if (prod->type == AssetProduct_Unit) {
-    fmt_write(&buffer, "\a.bCount\ar:\a>10{}\n", fmt_int(prod->data_unit.unitCount));
+    fmt_write(
+        &buffer,
+        "\a.b{}\ar:\a>10{}\n",
+        fmt_text(loc_translate_lit("HUD_INFO_COUNT")),
+        fmt_int(prod->data_unit.unitCount));
   }
   ui_tooltip(c, id, dynstring_view(&buffer));
 }
@@ -958,7 +991,8 @@ static void hud_production_queue_draw(
   if (queue->state == SceneProductState_Ready) {
     ui_style_push(c);
     ui_style_weight(c, UiWeight_Heavy);
-    ui_label(c, string_lit("READY"), .align = UiAlign_MiddleCenter, .fontSize = 20);
+    ui_style_transform(c, UiTransform_ToUpper);
+    ui_label(c, loc_translate_lit("HUD_INFO_READY"), .align = UiAlign_MiddleCenter, .fontSize = 20);
     ui_style_pop(c);
   }
   hud_production_queue_cost_draw(c, product);
