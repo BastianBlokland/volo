@@ -129,7 +129,7 @@ ecs_view_define(InfoView) {
   ecs_access_read(SceneNameComp);
 }
 
-ecs_view_define(MinimapMarkerView) {
+ecs_view_define(MinimapUnitView) {
   ecs_access_maybe_read(SceneFactionComp);
   ecs_access_maybe_read(SceneVisibilityComp);
   ecs_access_read(SceneHealthComp);
@@ -1107,15 +1107,15 @@ ecs_system_define(GameHudDrawSys) {
   const SceneTerrainComp*        terrain   = ecs_view_read_t(globalItr, SceneTerrainComp);
   const SceneWeaponResourceComp* weaponRes = ecs_view_read_t(globalItr, SceneWeaponResourceComp);
 
-  EcsView* hudView           = ecs_world_view_t(world, HudView);
-  EcsView* canvasView        = ecs_world_view_t(world, UiCanvasView);
-  EcsView* rendObjView       = ecs_world_view_t(world, RendObjView);
-  EcsView* healthView        = ecs_world_view_t(world, HealthView);
-  EcsView* infoView          = ecs_world_view_t(world, InfoView);
-  EcsView* weaponMapView     = ecs_world_view_t(world, WeaponMapView);
-  EcsView* minimapMarkerView = ecs_world_view_t(world, MinimapMarkerView);
-  EcsView* productionView    = ecs_world_view_t(world, ProductionView);
-  EcsView* visionView        = ecs_world_view_t(world, VisionView);
+  EcsView* hudView         = ecs_world_view_t(world, HudView);
+  EcsView* canvasView      = ecs_world_view_t(world, UiCanvasView);
+  EcsView* rendObjView     = ecs_world_view_t(world, RendObjView);
+  EcsView* healthView      = ecs_world_view_t(world, HealthView);
+  EcsView* infoView        = ecs_world_view_t(world, InfoView);
+  EcsView* weaponMapView   = ecs_world_view_t(world, WeaponMapView);
+  EcsView* minimapUnitView = ecs_world_view_t(world, MinimapUnitView);
+  EcsView* productionView  = ecs_world_view_t(world, ProductionView);
+  EcsView* visionView      = ecs_world_view_t(world, VisionView);
 
   EcsIterator* canvasItr     = ecs_view_itr(canvasView);
   EcsIterator* rendObjItr    = ecs_view_itr(rendObjView);
@@ -1160,7 +1160,7 @@ ecs_system_define(GameHudDrawSys) {
     hud_groups_draw(c, cmd);
 
     trace_begin("game_hud_minimap", TraceColor_White);
-    hud_minimap_draw(c, hud, inputState, terrain, cam, camTrans, minimapMarkerView);
+    hud_minimap_draw(c, hud, inputState, terrain, cam, camTrans, minimapUnitView);
     trace_end();
 
     hud_actions_draw(c, hud, input);
@@ -1192,7 +1192,7 @@ ecs_module_init(game_hud_module) {
   ecs_register_view(HealthView);
   ecs_register_view(InfoView);
   ecs_register_view(WeaponMapView);
-  ecs_register_view(MinimapMarkerView);
+  ecs_register_view(MinimapUnitView);
   ecs_register_view(ProductionView);
   ecs_register_view(VisionView);
 
@@ -1205,7 +1205,7 @@ ecs_module_init(game_hud_module) {
       ecs_view_id(HealthView),
       ecs_view_id(InfoView),
       ecs_view_id(WeaponMapView),
-      ecs_view_id(MinimapMarkerView),
+      ecs_view_id(MinimapUnitView),
       ecs_view_id(ProductionView),
       ecs_view_id(VisionView));
 
