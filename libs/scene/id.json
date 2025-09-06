@@ -1,0 +1,10 @@
+{
+  "outputPath": "include/scene/id.h",
+  "prefix": "scene",
+  "entries": [
+    "STATUS_BURNING",
+    "STATUS_BLEEDING",
+    "STATUS_HEALING",
+    "STATUS_VETERAN"
+  ]
+}
