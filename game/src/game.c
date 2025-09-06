@@ -556,7 +556,7 @@ static void menu_entry_resume(const GameUpdateContext* ctx, MAYBE_UNUSED const u
           .label    = loc_translate_lit("MENU_RESUME"),
           .fontSize = 25,
           .tooltip  = loc_translate_lit("MENU_RESUME_TOOLTIP"),
-          .activate = input_triggered_hash(ctx->input, GameId_Pause), )) {
+          .activate = input_triggered(ctx->input, GameId_Pause), )) {
     game_transition_delayed(ctx->game, GameState_Play);
   }
 }
@@ -760,7 +760,7 @@ static void menu_entry_back(const GameUpdateContext* ctx, MAYBE_UNUSED const u32
           .label      = ui_shape_scratch(UiShape_ArrowLeft),
           .fontSize   = 35,
           .frameColor = ui_color_clear,
-          .activate   = input_triggered_hash(ctx->input, GameId_Back),
+          .activate   = input_triggered(ctx->input, GameId_Back),
           .tooltip    = loc_translate_lit("MENU_BACK_TOOLTIP"))) {
     game_transition(ctx, ctx->game->statePrev);
   }
@@ -842,7 +842,7 @@ static void menu_entry_edit_save(const GameUpdateContext* ctx, MAYBE_UNUSED cons
           ctx->winCanvas,
           .label    = ui_shape_scratch(UiShape_Save),
           .fontSize = 25,
-          .activate = input_triggered_hash(ctx->input, GameId_SaveLevel),
+          .activate = input_triggered(ctx->input, GameId_SaveLevel),
           .tooltip  = loc_translate_lit("MENU_EDIT_SAVE_TOOLTIP"))) {
     scene_level_save(ctx->world, scene_level_asset(ctx->levelManager));
     game_notify_level_action(ctx, string_lit("Save"));
@@ -1084,10 +1084,10 @@ ecs_system_define(GameUpdateSys) {
       }
     }
 
-    if (input_triggered_hash(ctx.input, GameId_Quit)) {
+    if (input_triggered(ctx.input, GameId_Quit)) {
       game_quit(&ctx);
     }
-    if (input_triggered_hash(ctx.input, GameId_Fullscreen)) {
+    if (input_triggered(ctx.input, GameId_Fullscreen)) {
       game_fullscreen_toggle(&ctx);
     }
 
@@ -1125,7 +1125,7 @@ ecs_system_define(GameUpdateSys) {
     }
 
     if (debugReq) {
-      if (input_triggered_hash(ctx.input, GameId_DevFreeCamera)) {
+      if (input_triggered(ctx.input, GameId_DevFreeCamera)) {
         game_toggle_camera(&ctx);
       }
       input_layer_enable(ctx.input, GameId_Dev);

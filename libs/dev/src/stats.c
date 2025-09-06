@@ -708,7 +708,7 @@ stats_draw_controls(UiCanvasComp* c, const InputManagerComp* input, DevStatsComp
             .noFrame  = true,
             .fontSize = 18,
             .tooltip  = debugTooltip,
-            .activate = input_triggered_hash(input, DevId_Debug))) {
+            .activate = input_triggered(input, DevId_Debug))) {
       stats->debug = stats->debug == DevStatDebug_On ? DevStatDebug_Off : DevStatDebug_On;
     }
     ui_style_pop(c);

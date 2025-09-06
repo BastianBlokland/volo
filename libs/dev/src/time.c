@@ -145,7 +145,7 @@ ecs_system_define(DevTimeUpdateSys) {
   const SceneTimeComp*    time         = ecs_view_read_t(globalItr, SceneTimeComp);
   SceneTimeSettingsComp*  timeSettings = ecs_view_write_t(globalItr, SceneTimeSettingsComp);
 
-  if (input_triggered_hash(input, DevId_DevTimePauseToggle)) {
+  if (input_triggered(input, DevId_DevTimePauseToggle)) {
     timeSettings->flags ^= SceneTimeFlags_Paused;
     if (timeSettings->flags & SceneTimeFlags_Paused) {
       dev_time_notify_pause(stats, true);
@@ -153,15 +153,15 @@ ecs_system_define(DevTimeUpdateSys) {
       dev_time_notify_pause(stats, false);
     }
   }
-  if (input_triggered_hash(input, DevId_DevTimeScaleUp)) {
+  if (input_triggered(input, DevId_DevTimeScaleUp)) {
     timeSettings->scale += 0.1f;
     dev_time_notify_scale(stats, timeSettings->scale);
   }
-  if (input_triggered_hash(input, DevId_DevTimeScaleDown)) {
+  if (input_triggered(input, DevId_DevTimeScaleDown)) {
     timeSettings->scale = math_max(0.0f, timeSettings->scale - 0.1f);
     dev_time_notify_scale(stats, timeSettings->scale);
   }
-  if (input_triggered_hash(input, DevId_DevTimeStep)) {
+  if (input_triggered(input, DevId_DevTimeStep)) {
     timeSettings->flags |= SceneTimeFlags_Step;
   }
 

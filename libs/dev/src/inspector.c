@@ -2005,7 +2005,7 @@ static void inspector_tool_picker_update(
   bool shouldClose = false;
   shouldClose |= set->toolPickerClose;
   shouldClose |= cameraItr == null;
-  shouldClose |= input_triggered_hash(input, DevId_DevInspectorPickerClose);
+  shouldClose |= input_triggered(input, DevId_DevInspectorPickerClose);
 
   if (shouldClose) {
     set->tool = set->toolPickerPrevTool;
@@ -2095,39 +2095,39 @@ ecs_system_define(DevInspectorToolUpdateSys) {
     }
     return; // Tools are only active in development mode.
   }
-  if (input_triggered_hash(input, DevId_DevInspectorToolTranslation)) {
+  if (input_triggered(input, DevId_DevInspectorToolTranslation)) {
     inspector_tool_toggle(set, DevInspectorTool_Translation);
     dev_stats_notify(stats, string_lit("Tool"), g_toolNames[set->tool]);
   }
-  if (input_triggered_hash(input, DevId_DevInspectorToolRotation)) {
+  if (input_triggered(input, DevId_DevInspectorToolRotation)) {
     inspector_tool_toggle(set, DevInspectorTool_Rotation);
     dev_stats_notify(stats, string_lit("Tool"), g_toolNames[set->tool]);
   }
-  if (input_triggered_hash(input, DevId_DevInspectorToolScale)) {
+  if (input_triggered(input, DevId_DevInspectorToolScale)) {
     inspector_tool_toggle(set, DevInspectorTool_Scale);
     dev_stats_notify(stats, string_lit("Tool"), g_toolNames[set->tool]);
   }
-  if (input_triggered_hash(input, DevId_DevInspectorToggleSpace)) {
+  if (input_triggered(input, DevId_DevInspectorToggleSpace)) {
     set->space = (set->space + 1) % DevInspectorSpace_Count;
     dev_stats_notify(stats, string_lit("Space"), g_spaceNames[set->space]);
   }
-  if (input_triggered_hash(input, DevId_DevInspectorToggleNavLayer)) {
+  if (input_triggered(input, DevId_DevInspectorToggleNavLayer)) {
     set->visNavLayer = (set->visNavLayer + 1) % SceneNavLayer_Count;
     dev_stats_notify(stats, string_lit("Space"), g_sceneNavLayerNames[set->visNavLayer]);
   }
-  if (input_triggered_hash(input, DevId_DevInspectorDestroy)) {
+  if (input_triggered(input, DevId_DevInspectorDestroy)) {
     inspector_tool_destroy(world, setEnv);
     dev_stats_notify(stats, string_lit("Tool"), string_lit("Destroy"));
   }
-  if (input_triggered_hash(input, DevId_DevInspectorDrop)) {
+  if (input_triggered(input, DevId_DevInspectorDrop)) {
     inspector_tool_drop(world, setEnv, terrain);
     dev_stats_notify(stats, string_lit("Tool"), string_lit("Drop"));
   }
-  if (input_triggered_hash(input, DevId_DevInspectorDuplicate)) {
+  if (input_triggered(input, DevId_DevInspectorDuplicate)) {
     inspector_tool_duplicate(world, setEnv);
     dev_stats_notify(stats, string_lit("Tool"), string_lit("Duplicate"));
   }
-  if (input_triggered_hash(input, DevId_DevInspectorSelectAll)) {
+  if (input_triggered(input, DevId_DevInspectorSelectAll)) {
     inspector_tool_select_all(world, setEnv);
     dev_stats_notify(stats, string_lit("Tool"), string_lit("Select all"));
   }
@@ -2702,13 +2702,13 @@ ecs_system_define(DevInspectorVisDrawSys) {
       [DevInspectorVis_Target]         = DevId_DevInspectorVisTarget,
   };
   for (DevInspectorVis vis = 0; vis != DevInspectorVis_Count; ++vis) {
-    if (g_drawHotkeys[vis] && input_triggered_hash(input, g_drawHotkeys[vis])) {
+    if (g_drawHotkeys[vis] && input_triggered(input, g_drawHotkeys[vis])) {
       set->visFlags ^= (1 << vis);
       inspector_notify_vis(set, stats, vis);
     }
   }
 
-  if (input_triggered_hash(input, DevId_DevInspectorVisMode)) {
+  if (input_triggered(input, DevId_DevInspectorVisMode)) {
     set->visMode = (set->visMode + 1) % DevInspectorVisMode_Count;
     inspector_notify_vis_mode(stats, set->visMode);
   }

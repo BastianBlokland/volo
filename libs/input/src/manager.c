@@ -306,7 +306,7 @@ TimeDuration input_doubleclick_interval(const InputManagerComp* manager) {
   return manager->doubleclickInterval;
 }
 
-bool input_triggered_hash(const InputManagerComp* manager, const StringHash actionHash) {
+bool input_triggered(const InputManagerComp* manager, const StringHash actionHash) {
   InputManagerComp* manMut = (InputManagerComp*)manager;
   return dynarray_search_linear(&manMut->triggeredActions, compare_stringhash, &actionHash) != null;
 }

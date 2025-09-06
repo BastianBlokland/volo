@@ -329,7 +329,7 @@ static void prefab_create_update(const PrefabPanelContext* ctx) {
     prefab_create_cancel(ctx); // Dev input no longer active.
     return;
   }
-  if (input_triggered_hash(ctx->input, DevId_DevPrefabCreateCancel)) {
+  if (input_triggered(ctx->input, DevId_DevPrefabCreateCancel)) {
     prefab_create_cancel(ctx); // Cancel requested.
     return;
   }
@@ -360,7 +360,7 @@ static void prefab_create_update(const PrefabPanelContext* ctx) {
           fmt_float(pos.x, .minDecDigits = 1, .maxDecDigits = 1, .expThresholdNeg = 0),
           fmt_float(pos.z, .minDecDigits = 1, .maxDecDigits = 1, .expThresholdNeg = 0)));
 
-  if (input_triggered_hash(ctx->input, DevId_DevPrefabCreate)) {
+  if (input_triggered(ctx->input, DevId_DevPrefabCreate)) {
     prefab_create_accept(ctx, pos);
   }
 }

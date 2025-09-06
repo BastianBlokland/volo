@@ -774,7 +774,7 @@ static void hud_actions_draw(UiCanvasComp* c, GameHudComp* hud, const InputManag
   for (u32 i = 0; i != array_elems(g_actionDefs); ++i) {
     bool hotkeyActivate = false;
     if (g_actionDefs[i].hotkey) {
-      hotkeyActivate = input_triggered_hash(input, g_actionDefs[i].hotkey);
+      hotkeyActivate = input_triggered(input, g_actionDefs[i].hotkey);
     }
     if (ui_button(
             c,
@@ -1002,7 +1002,7 @@ static void hud_production_queue_draw(
   if (status >= UiStatus_Hovered) {
     ui_canvas_interact_type(c, UiInteractType_Action);
   }
-  if (status == UiStatus_Activated || input_triggered_hash(input, hotkey)) {
+  if (status == UiStatus_Activated || input_triggered(input, hotkey)) {
     if (queue->state == SceneProductState_Ready) {
       queue->requests |= SceneProductRequest_Activate;
     } else {

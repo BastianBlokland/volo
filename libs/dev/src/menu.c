@@ -280,7 +280,7 @@ static bool menu_child_hotkey_pressed(const InputManagerComp* input, const u32 c
   if (g_menuChildConfig[childIndex].hotkey) {
     return false;
   }
-  return input_triggered_hash(input, g_menuChildConfig[childIndex].hotkey);
+  return input_triggered(input, g_menuChildConfig[childIndex].hotkey);
 }
 
 static void menu_action_bar_draw(
@@ -362,7 +362,7 @@ ecs_system_define(DevMenuUpdateSys) {
 
     menu_action_bar_draw(world, panelEntity, canvas, input, menu, statsGlobal, menu->window, win);
 
-    if (input_triggered_hash(input, DevId_DevPanelClose)) {
+    if (input_triggered(input, DevId_DevPanelClose)) {
       const EcsEntityId topmostChild = menu_child_topmost(world, menu);
       if (topmostChild) {
         ui_canvas_sound(canvas, UiSoundType_ClickAlt);
