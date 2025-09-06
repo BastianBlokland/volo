@@ -64,13 +64,13 @@ static const UiColor g_hudStatusIconColors[SceneStatusType_Count] = {
     [SceneStatusType_Healing]  = {.r = 0, .g = 255, .b = 0, .a = 255},
     [SceneStatusType_Veteran]  = {.r = 255, .g = 175, .b = 55, .a = 255},
 };
-static const UiVector g_hudStatusIconSize   = {.x = 15.0f, .y = 15.0f};
-static const UiVector g_hudStatusSpacing    = {.x = 2.0f, .y = 4.0f};
-static const UiVector g_hudMinimapSize      = {.x = 400.0f, .y = 400.0f};
-static const f32      g_hudMinimapAlpha     = 0.95f;
-static const f32      g_hudMinimapDotRadius = 2.0f;
-static const f32      g_hudMinimapLineWidth = 2.5f;
-static const UiVector g_hudProductionSize   = {.x = 400.0f, .y = 500.0f};
+static const UiVector g_hudStatusIconSize    = {.x = 15.0f, .y = 15.0f};
+static const UiVector g_hudStatusSpacing     = {.x = 2.0f, .y = 4.0f};
+static const UiVector g_hudMinimapSize       = {.x = 400.0f, .y = 400.0f};
+static const f32      g_hudMinimapAlpha      = 0.95f;
+static const f32      g_hudMinimapMarkerSize = 5.0f;
+static const f32      g_hudMinimapLineWidth  = 2.5f;
+static const UiVector g_hudProductionSize    = {.x = 400.0f, .y = 500.0f};
 static StringHash     g_hudProductQueueActions[3];
 
 ecs_comp_define(GameHudComp) {
@@ -616,6 +616,7 @@ static bool hud_minimap_camera_frustum(
 typedef struct {
   UiVector pos;
   UiColor  color;
+  Unicode  glyph;
 } HudMinimapMarker;
 
 #define hud_minimap_marker_max 2048
@@ -647,6 +648,7 @@ static u32 hud_minimap_marker_collect(
     out[count++] = (HudMinimapMarker){
         .pos   = hud_minimap_pos(transComp->position, areaSize),
         .color = hud_faction_color(factionComp ? factionComp->id : SceneFaction_None),
+        .glyph = UiShape_Circle,
     };
 
     if (UNLIKELY(count == hud_minimap_marker_max)) {
@@ -695,21 +697,24 @@ static void hud_minimap_draw(
     game_input_camera_center(inputState, geo_vector(x, 0, z));
   }
 
-  const UiCircleOpts circleOpts = {.base = UiBase_Container, .radius = g_hudMinimapDotRadius};
-  const UiLineOpts   lineOpts   = {.base = UiBase_Container, .width = g_hudMinimapLineWidth};
-
   ui_layout_container_push(c, UiClip_Rect, UiLayer_Normal);
 
   // Collect markers.
   HudMinimapMarker markers[hud_minimap_marker_max];
   const u32        markerCount = hud_minimap_marker_collect(markerView, areaSize, markers);
 
-  // Draw marker outlines.
+  // Draw markers.
+  ui_layout_push(c);
+  const UiVector markerSize = ui_vector(g_hudMinimapMarkerSize, g_hudMinimapMarkerSize);
+  ui_layout_resize(c, UiAlign_MiddleCenter, markerSize, UiBase_Absolute, Ui_XY);
+
+  // Draw marker outlines..
   ui_style_outline(c, 2);
   ui_style_color(c, ui_color_black);
   for (u32 i = 0; i != markerCount; ++i) {
     const HudMinimapMarker* marker = &markers[i];
-    ui_circle_with_opts(c, marker->pos, &circleOpts);
+    ui_layout_set_pos(c, UiBase_Container, marker->pos, UiBase_Container);
+    ui_canvas_draw_glyph(c, marker->glyph, 0 /* maxCorner */, UiFlags_None);
   }
 
   // Draw marker fill.
@@ -717,12 +722,15 @@ static void hud_minimap_draw(
   for (u32 i = 0; i != markerCount; ++i) {
     const HudMinimapMarker* marker = &markers[i];
     ui_style_color(c, marker->color);
-    ui_circle_with_opts(c, marker->pos, &circleOpts);
+    ui_layout_set_pos(c, UiBase_Container, marker->pos, UiBase_Container);
+    ui_canvas_draw_glyph(c, marker->glyph, 0 /* maxCorner */, UiFlags_None);
   }
+  ui_layout_pop(c);
 
   // Draw camera frustum.
   ui_style_outline(c, 0);
-  UiVector camFrustumPoints[4];
+  const UiLineOpts lineOpts = {.base = UiBase_Container, .width = g_hudMinimapLineWidth};
+  UiVector         camFrustumPoints[4];
   if (hud_minimap_camera_frustum(cam, camTrans, canvasAspect, areaSize, camFrustumPoints)) {
     ui_style_color(c, ui_color_white);
     ui_line_with_opts(c, camFrustumPoints[0], camFrustumPoints[1], &lineOpts);
