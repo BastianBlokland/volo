@@ -6,6 +6,7 @@
 #include "ecs/view.h"
 #include "ecs/world.h"
 #include "scene/faction.h"
+#include "scene/id.h"
 #include "scene/product.h"
 #include "scene/property.h"
 #include "scene/set.h"
@@ -175,7 +176,7 @@ cmd_execute_move(EcsWorld* world, const SceneSetEnvComp* setEnv, const CmdMove* 
     return;
   }
 
-  if (cmdMove->object == scene_set_main(setEnv, g_sceneSetSelected)) {
+  if (cmdMove->object == scene_set_main(setEnv, SceneId_selected)) {
     EcsIterator* prodItr = ecs_view_maybe_at(ecs_world_view_t(world, ProdView), cmdMove->object);
     if (prodItr && cmd_is_player_owned(prodItr)) {
       SceneProductionComp* prod = ecs_view_write_t(prodItr, SceneProductionComp);
@@ -214,20 +215,20 @@ cmd_execute(EcsWorld* world, const GameCmdComp* comp, SceneSetEnvComp* setEnv, c
       if (cmd->select.mainObject) {
         setFlags |= SceneSetFlags_MakeMain;
       }
-      scene_set_add(setEnv, g_sceneSetSelected, cmd->select.object, setFlags);
+      scene_set_add(setEnv, SceneId_selected, cmd->select.object, setFlags);
     }
     break;
   case Cmd_SelectGroup:
-    scene_set_clear(setEnv, g_sceneSetSelected);
+    scene_set_clear(setEnv, SceneId_selected);
     dynarray_for_t(&comp->groups[cmd->selectGroup.groupIndex].entities, EcsEntityId, entity) {
-      scene_set_add(setEnv, g_sceneSetSelected, *entity, SceneSetFlags_None);
+      scene_set_add(setEnv, SceneId_selected, *entity, SceneSetFlags_None);
     }
     break;
   case Cmd_Deselect:
-    scene_set_remove(setEnv, g_sceneSetSelected, cmd->deselect.object);
+    scene_set_remove(setEnv, SceneId_selected, cmd->deselect.object);
     break;
   case Cmd_DeselectAll:
-    scene_set_clear(setEnv, g_sceneSetSelected);
+    scene_set_clear(setEnv, SceneId_selected);
     break;
   case Cmd_Move:
     cmd_execute_move(world, setEnv, &cmd->move);

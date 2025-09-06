@@ -7,6 +7,7 @@
 #include "scene/attachment.h"
 #include "scene/camera.h"
 #include "scene/collision.h"
+#include "scene/id.h"
 #include "scene/level.h"
 #include "scene/nav.h"
 #include "scene/prefab.h"
@@ -23,6 +24,7 @@
 
 #include "cmd.h"
 #include "hud.h"
+#include "id.h"
 #include "input.h"
 
 static const f32  g_inputInteractMinDist       = 1.0f;
@@ -95,7 +97,7 @@ static SceneQueryFilter input_query_filter(const InputManagerComp* input, const 
   SceneQueryFilter filter = {0};
   switch (t) {
   case InputQuery_Select:
-    if (input_layer_active(input, string_hash_lit("Dev"))) {
+    if (input_layer_active(input, GameId_Dev)) {
       // Allow selecting all objects (including debug shapes) in development mode.
       filter.layerMask = SceneLayer_AllIncludingDebug;
     } else {
@@ -133,7 +135,7 @@ static void input_indicator_move(EcsWorld* world, const GeoVector pos) {
       world,
       &(ScenePrefabSpec){
           .flags    = ScenePrefabFlags_Volatile,
-          .prefabId = string_hash_lit("EffectIndicatorMove"),
+          .prefabId = GameId_EffectIndicatorMove,
           .faction  = SceneFaction_None,
           .position = pos,
           .rotation = geo_quat_ident});
@@ -144,7 +146,7 @@ static void input_indicator_attack(EcsWorld* world, const EcsEntityId target) {
       world,
       &(ScenePrefabSpec){
           .flags    = ScenePrefabFlags_Volatile,
-          .prefabId = string_hash_lit("EffectIndicatorAttack"),
+          .prefabId = GameId_EffectIndicatorAttack,
           .faction  = SceneFaction_None,
           .rotation = geo_quat_ident});
 
@@ -166,7 +168,7 @@ static void update_group_input(
     const SceneSetEnvComp* setEnv,
     const SceneTimeComp*   time) {
   for (u32 i = 0; i != game_cmd_group_count; ++i) {
-    if (!input_triggered_hash(input, g_inputGroupActions[i])) {
+    if (!input_triggered(input, g_inputGroupActions[i])) {
       continue;
     }
     const bool doublePress =
@@ -179,7 +181,7 @@ static void update_group_input(
     if (input_modifiers(input) & InputModifier_Control) {
       // Assign the current selection to this group.
       game_cmd_group_clear(cmd, i);
-      const StringHash s = g_sceneSetSelected;
+      const StringHash s = SceneId_selected;
       for (const EcsEntityId* e = scene_set_begin(setEnv, s); e != scene_set_end(setEnv, s); ++e) {
         game_cmd_group_add(cmd, i, *e);
       }
@@ -206,17 +208,17 @@ static void update_camera_movement(
 
   // Update pan.
   GeoVector panDeltaRel = {0};
-  if (!lockCursor && input_triggered_lit(input, "CameraPanCursor")) {
+  if (!lockCursor && input_triggered(input, GameId_CameraPanCursor)) {
     const f32 panX = -input_cursor_delta_x(input);
     const f32 panY = -input_cursor_delta_y(input);
     panDeltaRel    = geo_vector_mul(geo_vector(panX, 0, panY), g_inputCamPanCursorMult);
     lockCursor     = true;
   } else {
     // clang-format off
-    if (input_triggered_lit(input, "CameraPanForward"))  { panDeltaRel.z += 1; }
-    if (input_triggered_lit(input, "CameraPanBackward")) { panDeltaRel.z -= 1; }
-    if (input_triggered_lit(input, "CameraPanRight"))    { panDeltaRel.x += 1; }
-    if (input_triggered_lit(input, "CameraPanLeft"))     { panDeltaRel.x -= 1; }
+    if (input_triggered(input, GameId_CameraPanForward))  { panDeltaRel.z += 1; }
+    if (input_triggered(input, GameId_CameraPanBackward)) { panDeltaRel.z -= 1; }
+    if (input_triggered(input, GameId_CameraPanRight))    { panDeltaRel.x += 1; }
+    if (input_triggered(input, GameId_CameraPanLeft))     { panDeltaRel.x -= 1; }
     if (input_blockers(input) & InputBlocker_CursorConfined) {
       const f32 cursorX = input_cursor_x(input), cursorY = input_cursor_y(input);
       if(cursorY >= (1.0f - g_inputCamCursorPanThreshold)) { panDeltaRel.z += 1; }
@@ -241,7 +243,7 @@ static void update_camera_movement(
   }
 
   // Update Y rotation.
-  if (!lockCursor && input_triggered_lit(input, "CameraRotate")) {
+  if (!lockCursor && input_triggered(input, GameId_CameraRotate)) {
     const f32 rotDelta = input_cursor_delta_x(input) * g_inputCamRotYMult;
     state->camRotYTgt  = math_mod_f32(state->camRotYTgt + rotDelta, math_pi_f32 * 2.0f);
     lockCursor         = true;
@@ -293,10 +295,10 @@ static void update_camera_movement_dev(
 
   GeoVector panDelta = {0};
   // clang-format off
-  if (input_triggered_lit(input, "CameraPanForward"))  { panDelta.z += 1; }
-  if (input_triggered_lit(input, "CameraPanBackward")) { panDelta.z -= 1; }
-  if (input_triggered_lit(input, "CameraPanRight"))    { panDelta.x += 1; }
-  if (input_triggered_lit(input, "CameraPanLeft"))     { panDelta.x -= 1; }
+  if (input_triggered(input, GameId_CameraPanForward))  { panDelta.z += 1; }
+  if (input_triggered(input, GameId_CameraPanBackward)) { panDelta.z -= 1; }
+  if (input_triggered(input, GameId_CameraPanRight))    { panDelta.x += 1; }
+  if (input_triggered(input, GameId_CameraPanLeft))     { panDelta.x -= 1; }
   // clang-format on
   if (geo_vector_mag_sqr(panDelta) > 0) {
     panDelta = geo_vector_mul(geo_vector_norm(panDelta), deltaSeconds * g_panSpeed);
@@ -308,7 +310,7 @@ static void update_camera_movement_dev(
     camTrans->position = geo_vector_add(camTrans->position, panDelta);
   }
 
-  if (input_triggered_lit(input, "CameraRotate")) {
+  if (input_triggered(input, GameId_CameraRotate)) {
     const f32 deltaX = input_cursor_delta_x(input) * g_rotateSensitivity;
     const f32 deltaY = input_cursor_delta_y(input) * -g_rotateSensitivity;
 
@@ -333,7 +335,7 @@ static bool placement_update(
     if (!scene_product_placement_active(production)) {
       continue; // No placement active.
     }
-    if (ecs_view_entity(itr) == scene_set_main(setEnv, g_sceneSetSelected)) {
+    if (ecs_view_entity(itr) == scene_set_main(setEnv, SceneId_selected)) {
       placementActive = true;
 
       // Update placement position.
@@ -346,14 +348,14 @@ static bool placement_update(
       if (rayT > g_inputInteractMinDist) {
         production->placementPos = geo_ray_position(inputRay, rayT);
       }
-      if (input_triggered_lit(input, "PlacementAccept")) {
+      if (input_triggered(input, GameId_PlacementAccept)) {
         scene_product_placement_accept(production);
-      } else if (input_triggered_lit(input, "PlacementCancel")) {
+      } else if (input_triggered(input, GameId_PlacementCancel)) {
         scene_product_placement_cancel(production);
       }
-      if (input_triggered_lit(input, "PlacementRotateLeft")) {
+      if (input_triggered(input, GameId_PlacementRotateLeft)) {
         production->placementAngle -= math_pi_f32 * 0.25f;
-      } else if (input_triggered_lit(input, "PlacementRotateRight")) {
+      } else if (input_triggered(input, GameId_PlacementRotateRight)) {
         production->placementAngle += math_pi_f32 * 0.25f;
       }
     } else {
@@ -402,7 +404,7 @@ static void select_update_drag(
     const SceneCameraComp*       camera,
     const SceneTransformComp*    cameraTrans,
     const f32                    inputAspect) {
-  const EcsEntityId oldMainObj = scene_set_main(setEnv, g_sceneSetSelected);
+  const EcsEntityId oldMainObj = scene_set_main(setEnv, SceneId_selected);
   if (state->selectMode == InputSelectMode_Replace) {
     game_cmd_push_deselect_all(cmd);
   }
@@ -440,7 +442,7 @@ static void input_order_attack(
   input_indicator_attack(world, target);
 
   // Push attack commands.
-  const StringHash s = g_sceneSetSelected;
+  const StringHash s = SceneId_selected;
   for (const EcsEntityId* e = scene_set_begin(setEnv, s); e != scene_set_end(setEnv, s); ++e) {
     game_cmd_push_attack(cmd, *e, target);
   }
@@ -461,7 +463,7 @@ static void input_order_move(
   const GeoNavGrid* grid = scene_nav_grid(nav, SceneNavLayer_Normal);
 
   // Find unblocked cells on the nav-grid to move to.
-  const u32                 selectionCount = scene_set_count(setEnv, g_sceneSetSelected);
+  const u32                 selectionCount = scene_set_count(setEnv, SceneId_selected);
   GeoNavCell                navCells[1024];
   const GeoNavCellContainer navCellContainer = {
       .cells    = navCells,
@@ -472,7 +474,7 @@ static void input_order_move(
   const u32        navCellCount = geo_nav_closest_n(grid, targetNavCell, navCond, navCellContainer);
 
   // Push the move commands.
-  const EcsEntityId* selection = scene_set_begin(setEnv, g_sceneSetSelected);
+  const EcsEntityId* selection = scene_set_begin(setEnv, SceneId_selected);
   for (u32 i = 0; i != selectionCount; ++i) {
     const EcsEntityId entity = selection[i];
     GeoVector         pos;
@@ -488,7 +490,7 @@ static void input_order_move(
 }
 
 static void input_order_stop(GameCmdComp* cmd, const SceneSetEnvComp* setEnv) {
-  const StringHash s = g_sceneSetSelected;
+  const StringHash s = SceneId_selected;
   for (const EcsEntityId* e = scene_set_begin(setEnv, s); e != scene_set_end(setEnv, s); ++e) {
     game_cmd_push_stop(cmd, *e);
   }
@@ -591,7 +593,7 @@ static void update_camera_interact(
     state->selectMode = InputSelectMode_Add;
   }
 
-  const bool         selectActive  = !placementActive && input_triggered_lit(input, "Select");
+  const bool         selectActive  = !placementActive && input_triggered(input, GameId_Select);
   const InputBlocker inputBlockers = InputBlocker_HoveringUi | InputBlocker_HoveringGizmo;
   switch (state->selectState) {
   case InputSelectState_None:
@@ -624,8 +626,8 @@ static void update_camera_interact(
     break;
   }
 
-  const bool hasSelection = scene_set_count(setEnv, g_sceneSetSelected) != 0;
-  if (!placementActive && !selectActive && hasSelection && input_triggered_lit(input, "Order")) {
+  const bool hasSelection = scene_set_count(setEnv, SceneId_selected) != 0;
+  if (!placementActive && !selectActive && hasSelection && input_triggered(input, GameId_Order)) {
     input_order(world, state, cmd, setEnv, terrain, nav, &inputRay);
   }
   const u32 newLevelCounter = scene_level_counter(levelManager);
@@ -649,7 +651,7 @@ static void update_camera_interact(
  */
 static void input_update_collision_mask(SceneCollisionEnvComp* env, const InputManagerComp* input) {
   SceneLayer ignoreMask = scene_collision_ignore_mask(env);
-  if (input_layer_active(input, string_hash_lit("Dev"))) {
+  if (input_layer_active(input, GameId_Dev)) {
     ignoreMask &= ~SceneLayer_Debug; // Include debug layer.
   } else {
     ignoreMask |= SceneLayer_Debug; // Ignore debug layer;
@@ -718,7 +720,7 @@ ecs_system_define(GameInputUpdateSys) {
       input_order_stop(cmd, setEnv);
     }
 
-    state->lastSelectionCount = scene_set_count(setEnv, g_sceneSetSelected);
+    state->lastSelectionCount = scene_set_count(setEnv, SceneId_selected);
 
     bool windowActive = input_active_window(input) == ecs_view_entity(camItr);
     switch (state->type) {

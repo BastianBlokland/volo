@@ -1,0 +1,56 @@
+{
+  "outputPath": "include/dev/id.h",
+  "prefix": "Dev",
+  "entries": [
+    "Dev",
+    "Debug",
+
+    "DevGridScaleDown",
+    "DevGridScaleUp",
+    "DevGridShow",
+
+    "DevInspectorDestroy",
+    "DevInspectorDrop",
+    "DevInspectorDuplicate",
+    "DevInspectorPickerClose",
+    "DevInspectorSelectAll",
+    "DevInspectorToggleNavLayer",
+    "DevInspectorToggleSpace",
+    "DevInspectorToolRotation",
+    "DevInspectorToolScale",
+    "DevInspectorToolTranslation",
+    "DevInspectorVisAttack",
+    "DevInspectorVisCollision",
+    "DevInspectorVisHealth",
+    "DevInspectorVisIcon",
+    "DevInspectorVisLight",
+    "DevInspectorVisLocomotion",
+    "DevInspectorVisMode",
+    "DevInspectorVisName",
+    "DevInspectorVisNavigationGrid",
+    "DevInspectorVisNavigationPath",
+    "DevInspectorVisTarget",
+    "DevInspectorVisVision",
+
+    "DevPanelClose",
+    "DevPanelEcs",
+    "DevPanelHierarchy",
+    "DevPanelInspector",
+    "DevPanelLevel",
+    "DevPanelPrefab",
+    "DevPanelRenderer",
+    "DevPanelScript",
+    "DevPanelSkeleton",
+    "DevPanelSound",
+    "DevPanelTime",
+    "DevPanelTrace",
+
+    "DevTimePauseToggle",
+    "DevTimeScaleDown",
+    "DevTimeScaleUp",
+    "DevTimeStep",
+
+    "DevPrefabCreate",
+    "DevPrefabCreateCancel"
+  ]
+}

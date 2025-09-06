@@ -12,6 +12,7 @@
 #include "geo/matrix.h"
 #include "log/logger.h"
 #include "rend/object.h"
+#include "scene/id.h"
 #include "scene/lifetime.h"
 #include "scene/set.h"
 #include "scene/tag.h"
@@ -449,7 +450,7 @@ static void vfx_decal_single_update(
 
   const f32  ageSec     = vfx_time_to_seconds(timeComp->time - inst->creationTime);
   const f32  timeRemSec = lifetime ? vfx_time_to_seconds(lifetime->duration) : f32_max;
-  const bool debug      = setMember && scene_set_member_contains(setMember, g_sceneSetSelected);
+  const bool debug      = setMember && scene_set_member_contains(setMember, SceneId_selected);
 
   GeoVector pos = trans->position;
   if (inst->snapToTerrain) {
@@ -701,7 +702,7 @@ static void vfx_decal_trail_update(
 
   const f32  ageSec     = vfx_time_to_seconds(timeComp->time - inst->creationTime);
   const f32  timeRemSec = lifetime ? vfx_time_to_seconds(lifetime->duration) : f32_max;
-  const bool debug      = setMember && scene_set_member_contains(setMember, g_sceneSetSelected);
+  const bool debug      = setMember && scene_set_member_contains(setMember, SceneId_selected);
 
   const GeoVector projAxisRef = geo_up; // TODO: Make the projection axis configurable.
 

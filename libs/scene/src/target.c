@@ -9,6 +9,7 @@
 #include "scene/attack.h"
 #include "scene/collision.h"
 #include "scene/faction.h"
+#include "scene/id.h"
 #include "scene/location.h"
 #include "scene/nav.h"
 #include "scene/set.h"
@@ -252,7 +253,7 @@ ecs_system_define(SceneTargetUpdateSys) {
 
   // Only target entities in the 'unit' set.
   // TODO: Make this configurable.
-  const StringHash targetSet = g_sceneSetUnit;
+  const StringHash targetSet = SceneId_unit;
 
   // Limit the amount of refreshes per-frame, to avoid spikes when a large amount of units want to
   // refresh simultaneously.

@@ -32,5 +32,8 @@ target_link_libraries(zipu PRIVATE app_cli log)
 add_executable(httpu httpu.c)
 target_link_libraries(httpu PRIVATE app_cli net log)
 
+add_executable(idgen idgen.c)
+target_link_libraries(idgen PRIVATE app_cli data log)
+
 add_executable(vkgen vkgen.c)
 target_link_libraries(vkgen PRIVATE app_cli net xml log)

@@ -1,0 +1,15 @@
+{
+  "outputPath": "include/script/id.h",
+  "prefix": "Script",
+  "entries": [
+    "any",
+    "if",
+    "else",
+    "var",
+    "while",
+    "continue",
+    "break",
+    "for",
+    "return"
+  ]
+}

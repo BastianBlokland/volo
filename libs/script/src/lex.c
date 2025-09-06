@@ -6,6 +6,7 @@
 #include "core/stringtable.h"
 #include "core/thread.h"
 #include "core/utf8.h"
+#include "script/id.h"
 #include "script/lex.h"
 
 #define script_token_diag(_DIAG_)                                                                  \
@@ -18,30 +19,18 @@ INLINE_HINT static String script_consume_chars(const String str, const usize amo
   };
 }
 
+// clang-format off
 static ScriptLexKeyword g_lexKeywords[] = {
-    {.id = string_static("if"), .token = ScriptTokenKind_If},
-    {.id = string_static("else"), .token = ScriptTokenKind_Else},
-    {.id = string_static("var"), .token = ScriptTokenKind_Var},
-    {.id = string_static("while"), .token = ScriptTokenKind_While},
-    {.id = string_static("continue"), .token = ScriptTokenKind_Continue},
-    {.id = string_static("break"), .token = ScriptTokenKind_Break},
-    {.id = string_static("for"), .token = ScriptTokenKind_For},
-    {.id = string_static("return"), .token = ScriptTokenKind_Return},
+    {.id = string_static("if"), .idHash = ScriptId_if, .token = ScriptTokenKind_If},
+    {.id = string_static("else"), .idHash = ScriptId_else, .token = ScriptTokenKind_Else},
+    {.id = string_static("var"), .idHash = ScriptId_var, .token = ScriptTokenKind_Var},
+    {.id = string_static("while"), .idHash = ScriptId_while, .token = ScriptTokenKind_While},
+    {.id = string_static("continue"), .idHash = ScriptId_continue, .token = ScriptTokenKind_Continue},
+    {.id = string_static("break"), .idHash = ScriptId_break, .token = ScriptTokenKind_Break},
+    {.id = string_static("for"), .idHash = ScriptId_for, .token = ScriptTokenKind_For},
+    {.id = string_static("return"), .idHash = ScriptId_return, .token = ScriptTokenKind_Return},
 };
-
-static void script_lex_keywords_init(void) {
-  static bool           g_init;
-  static ThreadSpinLock g_initLock;
-  if (g_init) {
-    return;
-  }
-  thread_spinlock_lock(&g_initLock);
-  if (!g_init) {
-    array_for_t(g_lexKeywords, ScriptLexKeyword, kw) { kw->idHash = string_hash(kw->id); }
-    g_init = true;
-  }
-  thread_spinlock_unlock(&g_initLock);
-}
+// clang-format on
 
 static bool script_is_word_start(const u8 c) {
   // Either ascii letter or start of non-ascii utf8 character.
@@ -254,7 +243,6 @@ static String script_lex_identifier(const String str, ScriptToken* out) {
   }
   const StringHash idHash = string_hash(id);
 
-  script_lex_keywords_init();
   array_for_t(g_lexKeywords, ScriptLexKeyword, keyword) {
     if (idHash == keyword->idHash) {
       return out->kind = keyword->token, script_consume_chars(str, end);
@@ -436,12 +424,8 @@ String script_lex_trim(String str, const ScriptLexFlags fl) {
   return string_empty;
 }
 
-u32 script_lex_keyword_count(void) { return (u32)array_elems(g_lexKeywords); }
-
-const ScriptLexKeyword* script_lex_keyword_data(void) {
-  script_lex_keywords_init();
-  return g_lexKeywords;
-}
+u32                     script_lex_keyword_count(void) { return (u32)array_elems(g_lexKeywords); }
+const ScriptLexKeyword* script_lex_keyword_data(void) { return g_lexKeywords; }
 
 bool script_token_equal(const ScriptToken* a, const ScriptToken* b) {
   if (a->kind != b->kind) {

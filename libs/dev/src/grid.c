@@ -3,6 +3,7 @@
 #include "core/float.h"
 #include "core/math.h"
 #include "dev/grid.h"
+#include "dev/id.h"
 #include "dev/panel.h"
 #include "dev/stats.h"
 #include "ecs/view.h"
@@ -10,6 +11,7 @@
 #include "geo/box.h"
 #include "input/manager.h"
 #include "rend/object.h"
+#include "scene/id.h"
 #include "scene/lifetime.h"
 #include "scene/set.h"
 #include "scene/tag.h"
@@ -259,7 +261,7 @@ static void grid_panel_draw(
 }
 
 static f32 dev_selection_height(const SceneSetEnvComp* setEnv, EcsView* transformView) {
-  const StringHash set = g_sceneSetSelected;
+  const StringHash set = SceneId_selected;
 
   EcsIterator* transformItr  = ecs_view_itr(transformView);
   f32          averageHeight = 0.0f;
@@ -291,16 +293,16 @@ ecs_system_define(DevGridUpdateSys) {
     if (grid->flags & DevGridFlags_HeightAuto) {
       grid->height = dev_selection_height(setEnv, transformView);
     }
-    if (input_triggered_lit(input, "DevGridShow")) {
+    if (input_triggered(input, DevId_DevGridShow)) {
       grid->flags ^= DevGridFlags_Show;
       grid_notify_show(stats, (grid->flags & DevGridFlags_Show) != 0);
     }
-    if (input_triggered_lit(input, "DevGridScaleUp")) {
+    if (input_triggered(input, DevId_DevGridScaleUp)) {
       grid->cellSize = math_min(grid->cellSize * 2.0f, g_gridCellSizeMax);
       grid->flags |= DevGridFlags_Show;
       grid_notify_cell_size(stats, grid->cellSize);
     }
-    if (input_triggered_lit(input, "DevGridScaleDown")) {
+    if (input_triggered(input, DevId_DevGridScaleDown)) {
       grid->cellSize = math_max(grid->cellSize * 0.5f, g_gridCellSizeMin);
       grid->flags |= DevGridFlags_Show;
       grid_notify_cell_size(stats, grid->cellSize);
@@ -310,7 +312,7 @@ ecs_system_define(DevGridUpdateSys) {
   // NOTE: Enable grid draw when requested and when in dev mode.
   for (EcsIterator* itr = ecs_view_itr_reset(gridItr); ecs_view_walk(itr);) {
     DevGridComp* grid = ecs_view_write_t(itr, DevGridComp);
-    if (grid->flags & DevGridFlags_Show && input_layer_active(input, string_hash_lit("Dev"))) {
+    if (grid->flags & DevGridFlags_Show && input_layer_active(input, DevId_Dev)) {
       grid->flags |= DevGridFlags_Draw;
     } else {
       grid->flags &= ~DevGridFlags_Draw;

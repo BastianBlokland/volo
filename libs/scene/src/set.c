@@ -10,6 +10,7 @@
 #include "ecs/view.h"
 #include "ecs/world.h"
 #include "log/logger.h"
+#include "scene/id.h"
 #include "scene/register.h"
 #include "scene/set.h"
 #include "scene/tag.h"
@@ -212,28 +213,22 @@ static const EcsEntityId* set_storage_end(const SetStorage* s, const StringHash 
   return null;
 }
 
-StringHash g_sceneSetUnit;
-StringHash g_sceneSetSelected;
-
 static struct {
-  String      setName;
-  StringHash* setPtr;
-  SceneTags   tags;
-  SetFlags    flags;
+  String     setName;
+  StringHash setHash;
+  SceneTags  tags;
+  SetFlags   flags;
 } g_setWellknownTagEntries[] = {
-    {string_static("unit"), &g_sceneSetUnit, SceneTags_Unit, SetFlags_None},
-    {string_static("selected"), &g_sceneSetSelected, SceneTags_Selected, SetFlags_Volatile},
+    {string_static("unit"), SceneId_unit, SceneTags_Unit, SetFlags_None},
+    {string_static("selected"), SceneId_selected, SceneTags_Selected, SetFlags_Volatile},
 };
 
 static void set_wellknown_tags_init_locked(void) {
-  for (u32 i = 0; i != array_elems(g_setWellknownTagEntries); ++i) {
-    const String name = g_setWellknownTagEntries[i].setName;
 #if scene_set_wellknown_names
-    *g_setWellknownTagEntries[i].setPtr = stringtable_add(g_stringtable, name);
-#else
-    *g_setWellknownTagEntries[i].setPtr = string_hash(name);
-#endif
+  for (u32 i = 0; i != array_elems(g_setWellknownTagEntries); ++i) {
+    stringtable_add(g_stringtable, g_setWellknownTagEntries[i].setName);
   }
+#endif
 }
 
 static void set_wellknown_tags_init(void) {
@@ -251,7 +246,7 @@ static void set_wellknown_tags_init(void) {
 
 static SceneTags set_wellknown_tags(const StringHash set) {
   for (u32 i = 0; i != array_elems(g_setWellknownTagEntries); ++i) {
-    if (*g_setWellknownTagEntries[i].setPtr == set) {
+    if (g_setWellknownTagEntries[i].setHash == set) {
       return g_setWellknownTagEntries[i].tags;
     }
   }
@@ -260,7 +255,7 @@ static SceneTags set_wellknown_tags(const StringHash set) {
 
 static bool set_is_volatile(const StringHash set) {
   for (u32 i = 0; i != array_elems(g_setWellknownTagEntries); ++i) {
-    if (*g_setWellknownTagEntries[i].setPtr == set) {
+    if (g_setWellknownTagEntries[i].setHash == set) {
       return (g_setWellknownTagEntries[i].flags & SetFlags_Volatile) != 0;
     }
   }

@@ -6,6 +6,7 @@
 #include "core/rng.h"
 #include "core/stringtable.h"
 #include "dev/grid.h"
+#include "dev/id.h"
 #include "dev/panel.h"
 #include "dev/prefab.h"
 #include "dev/shape.h"
@@ -17,6 +18,7 @@
 #include "input/manager.h"
 #include "scene/camera.h"
 #include "scene/collision.h"
+#include "scene/id.h"
 #include "scene/level.h"
 #include "scene/prefab.h"
 #include "scene/set.h"
@@ -157,7 +159,7 @@ static void prefab_select_all(const PrefabPanelContext* ctx, const StringHash pr
   dev_stats_notify(ctx->globalStats, string_lit("Prefab action"), string_lit("Select all"));
 
   if (!(input_modifiers(ctx->input) & InputModifier_Control)) {
-    scene_set_clear(ctx->setEnv, g_sceneSetSelected);
+    scene_set_clear(ctx->setEnv, SceneId_selected);
   }
 
   EcsView* prefabInstanceView = ecs_world_view_t(ctx->world, PrefabInstanceView);
@@ -165,7 +167,7 @@ static void prefab_select_all(const PrefabPanelContext* ctx, const StringHash pr
     const ScenePrefabInstanceComp* instComp = ecs_view_read_t(itr, ScenePrefabInstanceComp);
 
     if (instComp->prefabId == prefabId && instComp->variant != ScenePrefabVariant_Preview) {
-      scene_set_add(ctx->setEnv, g_sceneSetSelected, ecs_view_entity(itr), SceneSetFlags_None);
+      scene_set_add(ctx->setEnv, SceneId_selected, ecs_view_entity(itr), SceneSetFlags_None);
     }
   }
 }
@@ -264,9 +266,9 @@ static void prefab_create_accept(const PrefabPanelContext* ctx, const GeoVector 
 
   if (ctx->panelComp->createFlags & PrefabCreateFlags_AutoSelect) {
     if ((input_modifiers(ctx->input) & InputModifier_Shift) == 0) {
-      scene_set_clear(ctx->setEnv, g_sceneSetSelected);
+      scene_set_clear(ctx->setEnv, SceneId_selected);
     }
-    scene_set_add(ctx->setEnv, g_sceneSetSelected, spawnedEntity, SceneSetFlags_None);
+    scene_set_add(ctx->setEnv, SceneId_selected, spawnedEntity, SceneSetFlags_None);
   }
 
   if (ctx->panelComp->createFlags & PrefabCreateFlags_Multiple) {
@@ -323,11 +325,11 @@ static void prefab_create_update(const PrefabPanelContext* ctx) {
   EcsView*     cameraView = ecs_world_view_t(ctx->world, CameraView);
   EcsIterator* cameraItr  = ecs_view_maybe_at(cameraView, input_active_window(ctx->input));
 
-  if (!input_layer_active(ctx->input, string_hash_lit("Dev"))) {
+  if (!input_layer_active(ctx->input, DevId_Dev)) {
     prefab_create_cancel(ctx); // Dev input no longer active.
     return;
   }
-  if (input_triggered_lit(ctx->input, "DevPrefabCreateCancel")) {
+  if (input_triggered(ctx->input, DevId_DevPrefabCreateCancel)) {
     prefab_create_cancel(ctx); // Cancel requested.
     return;
   }
@@ -358,7 +360,7 @@ static void prefab_create_update(const PrefabPanelContext* ctx) {
           fmt_float(pos.x, .minDecDigits = 1, .maxDecDigits = 1, .expThresholdNeg = 0),
           fmt_float(pos.z, .minDecDigits = 1, .maxDecDigits = 1, .expThresholdNeg = 0)));
 
-  if (input_triggered_lit(ctx->input, "DevPrefabCreate")) {
+  if (input_triggered(ctx->input, DevId_DevPrefabCreate)) {
     prefab_create_accept(ctx, pos);
   }
 }
@@ -371,7 +373,7 @@ static bool prefab_allow_create(const PrefabPanelContext* ctx) {
      */
     return false;
   }
-  if (!input_layer_active(ctx->input, string_hash_lit("Dev"))) {
+  if (!input_layer_active(ctx->input, DevId_Dev)) {
     /**
      * NOTE: Disable creating when dev input is not active, reason is placing prefabs uses dev input
      * to detect place accept / cancel. This can happen when pinning the window.
@@ -446,7 +448,7 @@ static void prefab_panel_normal_draw(UiCanvasComp* canvas, const PrefabPanelCont
     ui_table_draw_row_bg(canvas, &table, ui_color(48, 48, 48, 192));
 
     const String nameTooltip = fmt_write_scratch(
-        "Index: {}\nId (hash): {}", fmt_int(prefabIdx), string_hash_fmt(string_hash(nameStr)));
+        "Index: {}\nId (hash): {}", fmt_int(prefabIdx), string_hash_fmt(prefab->name));
 
     ui_label(canvas, nameStr, .selectable = true, .tooltip = nameTooltip);
     ui_table_next_column(canvas, &table);

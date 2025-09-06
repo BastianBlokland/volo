@@ -12,12 +12,6 @@ typedef enum {
 } SceneSetFlags;
 
 /**
- * Well-known sets.
- */
-extern StringHash g_sceneSetUnit;
-extern StringHash g_sceneSetSelected;
-
-/**
  * Set environment.
  */
 ecs_comp_extern(SceneSetEnvComp);

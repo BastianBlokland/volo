@@ -12,6 +12,7 @@
 #include "core/utf8.h"
 #include "dev/finder.h"
 #include "dev/gizmo.h"
+#include "dev/id.h"
 #include "dev/inspector.h"
 #include "dev/panel.h"
 #include "dev/prefab.h"
@@ -37,6 +38,7 @@
 #include "scene/debug.h"
 #include "scene/faction.h"
 #include "scene/health.h"
+#include "scene/id.h"
 #include "scene/lifetime.h"
 #include "scene/light.h"
 #include "scene/location.h"
@@ -590,8 +592,8 @@ static void inspector_panel_draw_entity(InspectorContext* ctx, const EcsEntityId
             .fontSize   = 18,
             .frameColor = ui_color(0, 16, 255, 192),
             .tooltip    = string_lit("Select entity."))) {
-      scene_set_clear(ctx->setEnv, g_sceneSetSelected);
-      scene_set_add(ctx->setEnv, g_sceneSetSelected, value, SceneSetFlags_None);
+      scene_set_clear(ctx->setEnv, SceneId_selected);
+      scene_set_add(ctx->setEnv, SceneId_selected, value, SceneSetFlags_None);
     }
   }
   ui_style_pop(ctx->canvas);
@@ -1702,7 +1704,7 @@ ecs_system_define(DevInspectorUpdatePanelSys) {
   ScenePrefabEnvComp*       prefabEnv = ecs_view_write_t(globalItr, ScenePrefabEnvComp);
   const AssetPrefabMapComp* prefabMap = inspector_prefab_map(world, prefabEnv);
 
-  const StringHash selectedSet = g_sceneSetSelected;
+  const StringHash selectedSet = SceneId_selected;
 
   EcsView*     subjectView = ecs_world_view_t(world, SubjectView);
   EcsIterator* subjectItr  = ecs_view_maybe_at(subjectView, scene_set_main(setEnv, selectedSet));
@@ -1762,7 +1764,7 @@ static void inspector_tool_toggle(DevInspectorSettingsComp* set, const DevInspec
 }
 
 static void inspector_tool_destroy(EcsWorld* w, const SceneSetEnvComp* setEnv) {
-  const StringHash s = g_sceneSetSelected;
+  const StringHash s = SceneId_selected;
   for (const EcsEntityId* e = scene_set_begin(setEnv, s); e != scene_set_end(setEnv, s); ++e) {
     if (ecs_world_exists(w, *e)) {
       ecs_world_entity_destroy(w, *e);
@@ -1775,7 +1777,7 @@ inspector_tool_drop(EcsWorld* w, const SceneSetEnvComp* setEnv, const SceneTerra
   if (!scene_terrain_loaded(terrain)) {
     return;
   }
-  const StringHash s   = g_sceneSetSelected;
+  const StringHash s   = SceneId_selected;
   EcsIterator*     itr = ecs_view_itr(ecs_world_view_t(w, SubjectView));
   for (const EcsEntityId* e = scene_set_begin(setEnv, s); e != scene_set_end(setEnv, s); ++e) {
     if (!ecs_view_maybe_jump(itr, *e)) {
@@ -1788,7 +1790,7 @@ inspector_tool_drop(EcsWorld* w, const SceneSetEnvComp* setEnv, const SceneTerra
 static void inspector_tool_duplicate(EcsWorld* w, SceneSetEnvComp* setEnv) {
   EcsIterator* itr = ecs_view_itr(ecs_world_view_t(w, SubjectView));
 
-  const StringHash s = g_sceneSetSelected;
+  const StringHash s = SceneId_selected;
   for (const EcsEntityId* e = scene_set_begin(setEnv, s); e != scene_set_end(setEnv, s); ++e) {
     if (ecs_view_maybe_jump(itr, *e)) {
       inspector_prefab_duplicate(w, itr);
@@ -1809,7 +1811,7 @@ static void inspector_tool_select_all(EcsWorld* w, SceneSetEnvComp* setEnv) {
   bitset_clear_all(ignoredCompMask);
   bitset_set(ignoredCompMask, ecs_comp_id(SceneCameraComp));
 
-  scene_set_clear(setEnv, g_sceneSetSelected);
+  scene_set_clear(setEnv, SceneId_selected);
 
   EcsView* subjectView = ecs_world_view_t(w, SubjectView);
   for (EcsIterator* itr = ecs_view_itr(subjectView); ecs_view_walk(itr);) {
@@ -1818,7 +1820,7 @@ static void inspector_tool_select_all(EcsWorld* w, SceneSetEnvComp* setEnv) {
     if (bitset_any_of(ecs_world_component_mask(w, archetype), ignoredCompMask)) {
       continue;
     }
-    scene_set_add(setEnv, g_sceneSetSelected, e, SceneSetFlags_None);
+    scene_set_add(setEnv, SceneId_selected, e, SceneSetFlags_None);
   }
 }
 
@@ -1826,7 +1828,7 @@ static GeoVector inspector_tool_pivot(EcsWorld* w, const SceneSetEnvComp* setEnv
   EcsIterator*     itr = ecs_view_itr(ecs_world_view_t(w, SubjectView));
   GeoVector        pivot;
   u32              count = 0;
-  const StringHash s     = g_sceneSetSelected;
+  const StringHash s     = SceneId_selected;
   for (const EcsEntityId* e = scene_set_begin(setEnv, s); e != scene_set_end(setEnv, s); ++e) {
     if (ecs_view_maybe_jump(itr, *e)) {
       const SceneTransformComp* transComp = ecs_view_read_t(itr, SceneTransformComp);
@@ -1846,7 +1848,7 @@ static void inspector_tool_group_update(
     const SceneSetEnvComp*    setEnv,
     DevGizmoComp*             gizmo) {
   EcsIterator* itr = ecs_view_itr(ecs_world_view_t(w, SubjectView));
-  if (!ecs_view_maybe_jump(itr, scene_set_main(setEnv, g_sceneSetSelected))) {
+  if (!ecs_view_maybe_jump(itr, scene_set_main(setEnv, SceneId_selected))) {
     return; // No main selected entity or its missing required components.
   }
   const SceneTransformComp* mainTrans = ecs_view_read_t(itr, SceneTransformComp);
@@ -1891,7 +1893,7 @@ static void inspector_tool_group_update(
     const GeoVector  posDelta   = geo_vector_sub(posEdit, pos);
     const GeoQuat    rotDelta   = geo_quat_from_to(set->toolRotation, rotEdit);
     const f32        scaleDelta = scaleEdit / scale;
-    const StringHash s          = g_sceneSetSelected;
+    const StringHash s          = SceneId_selected;
     for (const EcsEntityId* e = scene_set_begin(setEnv, s); e != scene_set_end(setEnv, s); ++e) {
       if (ecs_view_maybe_jump(itr, *e)) {
         SceneTransformComp* transform = ecs_view_write_t(itr, SceneTransformComp);
@@ -1921,7 +1923,7 @@ static void inspector_tool_individual_update(
     const SceneSetEnvComp*    setEnv,
     DevGizmoComp*             gizmo) {
   EcsIterator*     itr = ecs_view_itr(ecs_world_view_t(w, SubjectView));
-  const StringHash s   = g_sceneSetSelected;
+  const StringHash s   = SceneId_selected;
 
   bool rotActive = false;
   for (const EcsEntityId* e = scene_set_begin(setEnv, s); e != scene_set_end(setEnv, s); ++e) {
@@ -2003,7 +2005,7 @@ static void inspector_tool_picker_update(
   bool shouldClose = false;
   shouldClose |= set->toolPickerClose;
   shouldClose |= cameraItr == null;
-  shouldClose |= input_triggered_lit(input, "DevInspectorPickerClose");
+  shouldClose |= input_triggered(input, DevId_DevInspectorPickerClose);
 
   if (shouldClose) {
     set->tool = set->toolPickerPrevTool;
@@ -2080,52 +2082,52 @@ ecs_system_define(DevInspectorToolUpdateSys) {
   DevInspectorSettingsComp*    set          = ecs_view_write_t(globalItr, DevInspectorSettingsComp);
   DevStatsGlobalComp*          stats        = ecs_view_write_t(globalItr, DevStatsGlobalComp);
 
-  if (scene_set_count(setEnv, g_sceneSetSelected) != set->lastSelectionCount) {
-    set->lastSelectionCount = scene_set_count(setEnv, g_sceneSetSelected);
+  if (scene_set_count(setEnv, SceneId_selected) != set->lastSelectionCount) {
+    set->lastSelectionCount = scene_set_count(setEnv, SceneId_selected);
     dev_stats_notify(
         stats, string_lit("Selected"), fmt_write_scratch("{}", fmt_int(set->lastSelectionCount)));
   }
 
-  if (!input_layer_active(input, string_hash_lit("Dev"))) {
+  if (!input_layer_active(input, DevId_Dev)) {
     if (set->tool == DevInspectorTool_Picker) {
       set->tool = set->toolPickerPrevTool;
       input_blocker_update(input, InputBlocker_EntityPicker, false);
     }
     return; // Tools are only active in development mode.
   }
-  if (input_triggered_lit(input, "DevInspectorToolTranslation")) {
+  if (input_triggered(input, DevId_DevInspectorToolTranslation)) {
     inspector_tool_toggle(set, DevInspectorTool_Translation);
     dev_stats_notify(stats, string_lit("Tool"), g_toolNames[set->tool]);
   }
-  if (input_triggered_lit(input, "DevInspectorToolRotation")) {
+  if (input_triggered(input, DevId_DevInspectorToolRotation)) {
     inspector_tool_toggle(set, DevInspectorTool_Rotation);
     dev_stats_notify(stats, string_lit("Tool"), g_toolNames[set->tool]);
   }
-  if (input_triggered_lit(input, "DevInspectorToolScale")) {
+  if (input_triggered(input, DevId_DevInspectorToolScale)) {
     inspector_tool_toggle(set, DevInspectorTool_Scale);
     dev_stats_notify(stats, string_lit("Tool"), g_toolNames[set->tool]);
   }
-  if (input_triggered_lit(input, "DevInspectorToggleSpace")) {
+  if (input_triggered(input, DevId_DevInspectorToggleSpace)) {
     set->space = (set->space + 1) % DevInspectorSpace_Count;
     dev_stats_notify(stats, string_lit("Space"), g_spaceNames[set->space]);
   }
-  if (input_triggered_lit(input, "DevInspectorToggleNavLayer")) {
+  if (input_triggered(input, DevId_DevInspectorToggleNavLayer)) {
     set->visNavLayer = (set->visNavLayer + 1) % SceneNavLayer_Count;
     dev_stats_notify(stats, string_lit("Space"), g_sceneNavLayerNames[set->visNavLayer]);
   }
-  if (input_triggered_lit(input, "DevInspectorDestroy")) {
+  if (input_triggered(input, DevId_DevInspectorDestroy)) {
     inspector_tool_destroy(world, setEnv);
     dev_stats_notify(stats, string_lit("Tool"), string_lit("Destroy"));
   }
-  if (input_triggered_lit(input, "DevInspectorDrop")) {
+  if (input_triggered(input, DevId_DevInspectorDrop)) {
     inspector_tool_drop(world, setEnv, terrain);
     dev_stats_notify(stats, string_lit("Tool"), string_lit("Drop"));
   }
-  if (input_triggered_lit(input, "DevInspectorDuplicate")) {
+  if (input_triggered(input, DevId_DevInspectorDuplicate)) {
     inspector_tool_duplicate(world, setEnv);
     dev_stats_notify(stats, string_lit("Tool"), string_lit("Duplicate"));
   }
-  if (input_triggered_lit(input, "DevInspectorSelectAll")) {
+  if (input_triggered(input, DevId_DevInspectorSelectAll)) {
     inspector_tool_select_all(world, setEnv);
     dev_stats_notify(stats, string_lit("Tool"), string_lit("Select all"));
   }
@@ -2660,7 +2662,7 @@ static void inspector_vis_draw_icon(EcsWorld* w, DevTextComp* text, EcsIterator*
     size  = 20;
   }
 
-  if (setMember && scene_set_member_contains(setMember, g_sceneSetSelected)) {
+  if (setMember && scene_set_member_contains(setMember, SceneId_selected)) {
     color = geo_color_add(geo_color_with_alpha(color, 1.0), geo_color(0.25f, 0.25f, 0.25f, 0.0f));
   }
 
@@ -2682,32 +2684,31 @@ ecs_system_define(DevInspectorVisDrawSys) {
   DevInspectorSettingsComp* set   = ecs_view_write_t(globalItr, DevInspectorSettingsComp);
   DevStatsGlobalComp*       stats = ecs_view_write_t(globalItr, DevStatsGlobalComp);
 
-  if (!set->drawVisInGame && !input_layer_active(input, string_hash_lit("Dev"))) {
+  if (!set->drawVisInGame && !input_layer_active(input, DevId_Dev)) {
     return;
   }
 
-  static const String g_drawHotkeys[DevInspectorVis_Count] = {
-      [DevInspectorVis_Icon]           = string_static("DevInspectorVisIcon"),
-      [DevInspectorVis_Name]           = string_static("DevInspectorVisName"),
-      [DevInspectorVis_Collision]      = string_static("DevInspectorVisCollision"),
-      [DevInspectorVis_Locomotion]     = string_static("DevInspectorVisLocomotion"),
-      [DevInspectorVis_NavigationPath] = string_static("DevInspectorVisNavigationPath"),
-      [DevInspectorVis_NavigationGrid] = string_static("DevInspectorVisNavigationGrid"),
-      [DevInspectorVis_Light]          = string_static("DevInspectorVisLight"),
-      [DevInspectorVis_Vision]         = string_static("DevInspectorVisVision"),
-      [DevInspectorVis_Health]         = string_static("DevInspectorVisHealth"),
-      [DevInspectorVis_Attack]         = string_static("DevInspectorVisAttack"),
-      [DevInspectorVis_Target]         = string_static("DevInspectorVisTarget"),
+  static const StringHash g_drawHotkeys[DevInspectorVis_Count] = {
+      [DevInspectorVis_Icon]           = DevId_DevInspectorVisIcon,
+      [DevInspectorVis_Name]           = DevId_DevInspectorVisName,
+      [DevInspectorVis_Collision]      = DevId_DevInspectorVisCollision,
+      [DevInspectorVis_Locomotion]     = DevId_DevInspectorVisLocomotion,
+      [DevInspectorVis_NavigationPath] = DevId_DevInspectorVisNavigationPath,
+      [DevInspectorVis_NavigationGrid] = DevId_DevInspectorVisNavigationGrid,
+      [DevInspectorVis_Light]          = DevId_DevInspectorVisLight,
+      [DevInspectorVis_Vision]         = DevId_DevInspectorVisVision,
+      [DevInspectorVis_Health]         = DevId_DevInspectorVisHealth,
+      [DevInspectorVis_Attack]         = DevId_DevInspectorVisAttack,
+      [DevInspectorVis_Target]         = DevId_DevInspectorVisTarget,
   };
   for (DevInspectorVis vis = 0; vis != DevInspectorVis_Count; ++vis) {
-    const u32 hotKeyHash = string_hash(g_drawHotkeys[vis]);
-    if (hotKeyHash && input_triggered_hash(input, hotKeyHash)) {
+    if (g_drawHotkeys[vis] && input_triggered(input, g_drawHotkeys[vis])) {
       set->visFlags ^= (1 << vis);
       inspector_notify_vis(set, stats, vis);
     }
   }
 
-  if (input_triggered_hash(input, string_hash_lit("DevInspectorVisMode"))) {
+  if (input_triggered(input, DevId_DevInspectorVisMode)) {
     set->visMode = (set->visMode + 1) % DevInspectorVisMode_Count;
     inspector_notify_vis_mode(stats, set->visMode);
   }
@@ -2754,7 +2755,7 @@ ecs_system_define(DevInspectorVisDrawSys) {
   }
   switch (set->visMode) {
   case DevInspectorVisMode_SelectedOnly: {
-    const StringHash s = g_sceneSetSelected;
+    const StringHash s = SceneId_selected;
     for (const EcsEntityId* e = scene_set_begin(setEnv, s); e != scene_set_end(setEnv, s); ++e) {
       if (ecs_view_maybe_jump(subjectItr, *e)) {
         inspector_vis_draw_subject(shape, text, set, navEnv, subjectItr);
@@ -2770,7 +2771,7 @@ ecs_system_define(DevInspectorVisDrawSys) {
     UNREACHABLE
   }
   if (set->visFlags & (1 << DevInspectorVis_Target)) {
-    if (ecs_view_maybe_jump(subjectItr, scene_set_main(setEnv, g_sceneSetSelected))) {
+    if (ecs_view_maybe_jump(subjectItr, scene_set_main(setEnv, SceneId_selected))) {
       SceneTargetFinderComp* tgtFinder = ecs_view_write_t(subjectItr, SceneTargetFinderComp);
       if (tgtFinder) {
         tgtFinder->config |= SceneTargetConfig_Trace; // Enable diagnostic tracing for this entity.

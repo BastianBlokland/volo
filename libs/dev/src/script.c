@@ -17,6 +17,7 @@
 #include "log/logger.h"
 #include "scene/camera.h"
 #include "scene/debug.h"
+#include "scene/id.h"
 #include "scene/name.h"
 #include "scene/prefab.h"
 #include "scene/property.h"
@@ -709,8 +710,8 @@ static void output_panel_tab_draw(
             .frameColor = ui_color(0, 16, 255, 192),
             .fontSize   = 18,
             .tooltip    = g_tooltipSelectEntity)) {
-      scene_set_clear(setEnv, g_sceneSetSelected);
-      scene_set_add(setEnv, g_sceneSetSelected, entry->entity, SceneSetFlags_None);
+      scene_set_clear(setEnv, SceneId_selected);
+      scene_set_add(setEnv, SceneId_selected, entry->entity, SceneSetFlags_None);
     }
     ui_layout_pop(c);
 
@@ -959,7 +960,7 @@ ecs_system_define(DevScriptUpdatePanelSys) {
 
   EcsView* panelView = ecs_world_view_t(world, PanelUpdateView);
 
-  const StringHash selectedSet = g_sceneSetSelected;
+  const StringHash selectedSet = SceneId_selected;
 
   EcsView*     subjectView = ecs_world_view_t(world, SubjectView);
   EcsIterator* subjectItr  = ecs_view_maybe_at(subjectView, scene_set_main(setEnv, selectedSet));

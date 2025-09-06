@@ -1,0 +1,19 @@
+{
+  "outputPath": "include/scene/id.h",
+  "prefix": "Scene",
+  "entries": [
+    "hit",
+    "death",
+    "selected",
+    "unit",
+
+    "EffectBurning",
+    "EffectBleeding",
+    "EffectVeteran",
+
+    "STATUS_BURNING",
+    "STATUS_BLEEDING",
+    "STATUS_HEALING",
+    "STATUS_VETERAN"
+  ]
+}

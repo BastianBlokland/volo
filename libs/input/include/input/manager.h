@@ -61,9 +61,9 @@ TimeDuration    input_doubleclick_interval(const InputManagerComp*);
  * Check if an input action was triggered this tick.
  */
 #define input_triggered_lit(_MANAGER_, _ACTION_LIT_)                                               \
-  input_triggered_hash((_MANAGER_), string_hash_lit(_ACTION_LIT_))
+  input_triggered((_MANAGER_), string_hash_lit(_ACTION_LIT_))
 
-bool input_triggered_hash(const InputManagerComp*, StringHash actionHash);
+bool input_triggered(const InputManagerComp*, StringHash actionHash);
 
 GapKey input_primary_key(const InputManagerComp*, StringHash actionHash);
 
