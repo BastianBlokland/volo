@@ -172,8 +172,8 @@ add_custom_target(run.repl
 add_custom_target(run.vkgen
   COMMAND vkgen "${CMAKE_SOURCE_DIR}/libs/rend/src/rvk/vulkan_api" VERBATIM USES_TERMINAL)
 
-add_custom_target(run.dbgsetup
-  COMMAND dbgsetup
+add_custom_target(run.dbggen
+  COMMAND dbggen
     "--debugger" "$<IF:$<STREQUAL:${VOLO_COMPILER},msvc>,cppvsdbg,lldb>"
     "--workspace" "${PROJECT_SOURCE_DIR}"
     "--targets" "$<TARGET_FILE:volo>"
