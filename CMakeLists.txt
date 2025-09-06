@@ -173,7 +173,8 @@ add_custom_target(run.vkgen
   COMMAND vkgen "${CMAKE_SOURCE_DIR}/libs/rend/src/rvk/vulkan_api" VERBATIM USES_TERMINAL)
 
 add_custom_target(run.idgen
-  COMMAND idgen "${CMAKE_SOURCE_DIR}/libs/scene/id.json" VERBATIM USES_TERMINAL)
+  COMMAND idgen "${CMAKE_SOURCE_DIR}/libs/scene/id.json" VERBATIM USES_TERMINAL
+  COMMAND idgen "${CMAKE_SOURCE_DIR}/libs/dev/id.json" VERBATIM USES_TERMINAL)
 
 add_custom_target(run.dbggen
   COMMAND dbggen
