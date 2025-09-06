@@ -7,6 +7,7 @@
 #include "scene/attachment.h"
 #include "scene/creator.h"
 #include "scene/health.h"
+#include "scene/id.h"
 #include "scene/lifetime.h"
 #include "scene/prefab.h"
 #include "scene/status.h"
@@ -227,14 +228,14 @@ String scene_status_name(const SceneStatusType type) {
 }
 
 StringHash scene_status_name_loc(const SceneStatusType type) {
-  static const String g_names[] = {
-      string_static("STATUS_BURNING"),
-      string_static("STATUS_BLEEDING"),
-      string_static("STATUS_HEALING"),
-      string_static("STATUS_VETERAN"),
+  static const StringHash g_namesLoc[] = {
+      SceneId_STATUS_BURNING,
+      SceneId_STATUS_BLEEDING,
+      SceneId_STATUS_HEALING,
+      SceneId_STATUS_VETERAN,
   };
-  ASSERT(array_elems(g_names) == SceneStatusType_Count, "Incorrect number of names");
-  return string_hash(g_names[type]);
+  ASSERT(array_elems(g_namesLoc) == SceneStatusType_Count, "Incorrect number of names");
+  return g_namesLoc[type];
 }
 
 void scene_status_add(
