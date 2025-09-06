@@ -25,6 +25,7 @@
 #include "scene/id.h"
 #include "scene/lifetime.h"
 #include "scene/locomotion.h"
+#include "scene/marker.h"
 #include "scene/name.h"
 #include "scene/product.h"
 #include "scene/set.h"
@@ -127,6 +128,11 @@ ecs_view_define(InfoView) {
   ecs_access_maybe_read(SceneTargetFinderComp);
   ecs_access_maybe_read(SceneVisibilityComp);
   ecs_access_read(SceneNameComp);
+}
+
+ecs_view_define(MinimapMarkerView) {
+  ecs_access_read(SceneTransformComp);
+  ecs_access_read(SceneMarkerComp);
 }
 
 ecs_view_define(MinimapUnitView) {
@@ -623,12 +629,45 @@ typedef struct {
 
 static u32 hud_minimap_marker_collect(
     EcsView*         markerView,
+    EcsView*         unitView,
     const GeoVector  areaSize,
     HudMinimapMarker out[PARAM_ARRAY_SIZE(hud_minimap_marker_max)]) {
   const StringHash minimapSet = GameId_minimap;
+  u32              count      = 0;
 
-  u32 count = 0;
+  // Add explicit markers.
   for (EcsIterator* itr = ecs_view_itr(markerView); ecs_view_walk(itr);) {
+    const SceneTransformComp* transComp  = ecs_view_read_t(itr, SceneTransformComp);
+    const SceneMarkerComp*    markerComp = ecs_view_read_t(itr, SceneMarkerComp);
+
+    UiColor color;
+    Unicode glyph;
+    switch (markerComp->type) {
+    case SceneMarkerType_Info:
+      color = ui_color_white;
+      glyph = 'i';
+      break;
+    case SceneMarkerType_Danger:
+      color = ui_color_orange;
+      glyph = '!';
+      break;
+    case SceneMarkerType_Count:
+      UNREACHABLE
+    }
+
+    out[count++] = (HudMinimapMarker){
+        .pos   = hud_minimap_pos(transComp->position, areaSize),
+        .color = color,
+        .glyph = glyph,
+    };
+
+    if (UNLIKELY(count == hud_minimap_marker_max)) {
+      break;
+    }
+  }
+
+  // Add unit markers.
+  for (EcsIterator* itr = ecs_view_itr(unitView); ecs_view_walk(itr);) {
     const SceneFactionComp*    factionComp = ecs_view_read_t(itr, SceneFactionComp);
     const SceneHealthComp*     health      = ecs_view_read_t(itr, SceneHealthComp);
     const SceneTransformComp*  transComp   = ecs_view_read_t(itr, SceneTransformComp);
@@ -665,7 +704,8 @@ static void hud_minimap_draw(
     const SceneTerrainComp*   terrain,
     const SceneCameraComp*    cam,
     const SceneTransformComp* camTrans,
-    EcsView*                  markerView) {
+    EcsView*                  markerView,
+    EcsView*                  unitView) {
   const UiVector canvasRes    = ui_canvas_resolution(c);
   const f32      canvasAspect = (f32)canvasRes.width / (f32)canvasRes.height;
 
@@ -701,7 +741,7 @@ static void hud_minimap_draw(
 
   // Collect markers.
   HudMinimapMarker markers[hud_minimap_marker_max];
-  const u32        markerCount = hud_minimap_marker_collect(markerView, areaSize, markers);
+  const u32 markerCount = hud_minimap_marker_collect(markerView, unitView, areaSize, markers);
 
   // Draw markers.
   ui_layout_push(c);
@@ -1107,15 +1147,16 @@ ecs_system_define(GameHudDrawSys) {
   const SceneTerrainComp*        terrain   = ecs_view_read_t(globalItr, SceneTerrainComp);
   const SceneWeaponResourceComp* weaponRes = ecs_view_read_t(globalItr, SceneWeaponResourceComp);
 
-  EcsView* hudView         = ecs_world_view_t(world, HudView);
-  EcsView* canvasView      = ecs_world_view_t(world, UiCanvasView);
-  EcsView* rendObjView     = ecs_world_view_t(world, RendObjView);
-  EcsView* healthView      = ecs_world_view_t(world, HealthView);
-  EcsView* infoView        = ecs_world_view_t(world, InfoView);
-  EcsView* weaponMapView   = ecs_world_view_t(world, WeaponMapView);
-  EcsView* minimapUnitView = ecs_world_view_t(world, MinimapUnitView);
-  EcsView* productionView  = ecs_world_view_t(world, ProductionView);
-  EcsView* visionView      = ecs_world_view_t(world, VisionView);
+  EcsView* hudView           = ecs_world_view_t(world, HudView);
+  EcsView* canvasView        = ecs_world_view_t(world, UiCanvasView);
+  EcsView* rendObjView       = ecs_world_view_t(world, RendObjView);
+  EcsView* healthView        = ecs_world_view_t(world, HealthView);
+  EcsView* infoView          = ecs_world_view_t(world, InfoView);
+  EcsView* weaponMapView     = ecs_world_view_t(world, WeaponMapView);
+  EcsView* minimapMarkerView = ecs_world_view_t(world, MinimapMarkerView);
+  EcsView* minimapUnitView   = ecs_world_view_t(world, MinimapUnitView);
+  EcsView* productionView    = ecs_world_view_t(world, ProductionView);
+  EcsView* visionView        = ecs_world_view_t(world, VisionView);
 
   EcsIterator* canvasItr     = ecs_view_itr(canvasView);
   EcsIterator* rendObjItr    = ecs_view_itr(rendObjView);
@@ -1160,7 +1201,8 @@ ecs_system_define(GameHudDrawSys) {
     hud_groups_draw(c, cmd);
 
     trace_begin("game_hud_minimap", TraceColor_White);
-    hud_minimap_draw(c, hud, inputState, terrain, cam, camTrans, minimapUnitView);
+    hud_minimap_draw(
+        c, hud, inputState, terrain, cam, camTrans, minimapMarkerView, minimapUnitView);
     trace_end();
 
     hud_actions_draw(c, hud, input);
@@ -1192,6 +1234,7 @@ ecs_module_init(game_hud_module) {
   ecs_register_view(HealthView);
   ecs_register_view(InfoView);
   ecs_register_view(WeaponMapView);
+  ecs_register_view(MinimapMarkerView);
   ecs_register_view(MinimapUnitView);
   ecs_register_view(ProductionView);
   ecs_register_view(VisionView);
@@ -1205,6 +1248,7 @@ ecs_module_init(game_hud_module) {
       ecs_view_id(HealthView),
       ecs_view_id(InfoView),
       ecs_view_id(WeaponMapView),
+      ecs_view_id(MinimapMarkerView),
       ecs_view_id(MinimapUnitView),
       ecs_view_id(ProductionView),
       ecs_view_id(VisionView));
