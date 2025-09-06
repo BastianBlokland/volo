@@ -64,11 +64,11 @@ static const UiColor g_hudStatusIconColors[SceneStatusType_Count] = {
 };
 static const UiVector g_hudStatusIconSize   = {.x = 15.0f, .y = 15.0f};
 static const UiVector g_hudStatusSpacing    = {.x = 2.0f, .y = 4.0f};
-static const UiVector g_hudMinimapSize      = {.x = 300.0f, .y = 300.0f};
+static const UiVector g_hudMinimapSize      = {.x = 400.0f, .y = 400.0f};
 static const f32      g_hudMinimapAlpha     = 0.95f;
 static const f32      g_hudMinimapDotRadius = 2.0f;
 static const f32      g_hudMinimapLineWidth = 2.5f;
-static const UiVector g_hudProductionSize   = {.x = 300.0f, .y = 400.0f};
+static const UiVector g_hudProductionSize   = {.x = 400.0f, .y = 500.0f};
 static StringHash     g_hudProductQueueActions[3];
 
 ecs_comp_define(GameHudComp) {
@@ -365,7 +365,7 @@ static void hud_health_draw(
 }
 
 static void hud_groups_draw(UiCanvasComp* c, GameCmdComp* cmd) {
-  static const UiVector g_size    = {50, 25};
+  static const UiVector g_size    = {65, 40};
   static const f32      g_spacing = 8.0f;
 
   ui_layout_move_to(c, UiBase_Container, UiAlign_BottomRight, Ui_XY);
@@ -380,7 +380,7 @@ static void hud_groups_draw(UiCanvasComp* c, GameCmdComp* cmd) {
     if (ui_button(
             c,
             .label      = fmt_write_scratch("\a|02{}\ar {}", fmt_int(i + 1), fmt_ui_shape(Group)),
-            .fontSize   = 20,
+            .fontSize   = 30,
             .frameColor = ui_color(32, 32, 32, 192),
             .tooltip    = fmt_write_scratch(
                 "{}: {}.", fmt_text(loc_translate_lit("HUD_INFO_SIZE")), fmt_int(size)))) {
@@ -766,7 +766,7 @@ static void hud_actions_draw(UiCanvasComp* c, GameHudComp* hud, const InputManag
   ui_layout_push(c);
   ui_layout_set(c, hud->minimapRect, UiBase_Absolute);
   ui_layout_move_to(c, UiBase_Current, UiAlign_BottomRight, Ui_XY);
-  ui_layout_resize(c, UiAlign_TopRight, ui_vector(30, 30), UiBase_Absolute, Ui_XY);
+  ui_layout_resize(c, UiAlign_TopRight, ui_vector(50, 50), UiBase_Absolute, Ui_XY);
   ui_layout_move(c, ui_vector(-5, -7), UiBase_Absolute, Ui_XY);
 
   for (u32 i = 0; i != array_elems(g_actionDefs); ++i) {
@@ -777,7 +777,7 @@ static void hud_actions_draw(UiCanvasComp* c, GameHudComp* hud, const InputManag
     if (ui_button(
             c,
             .label      = ui_shape_scratch(g_actionDefs[i].icon),
-            .fontSize   = 20,
+            .fontSize   = 35,
             .frameColor = ui_color(32, 32, 32, 192),
             .tooltip    = loc_translate_str(g_actionDefs[i].tooltip),
             .activate   = hotkeyActivate)) {
@@ -992,7 +992,7 @@ static void hud_production_queue_draw(
     ui_style_push(c);
     ui_style_weight(c, UiWeight_Heavy);
     ui_style_transform(c, UiTransform_ToUpper);
-    ui_label(c, loc_translate_lit("HUD_INFO_READY"), .align = UiAlign_MiddleCenter, .fontSize = 20);
+    ui_label(c, loc_translate_lit("HUD_INFO_READY"), .align = UiAlign_MiddleCenter, .fontSize = 25);
     ui_style_pop(c);
   }
   hud_production_queue_cost_draw(c, product);
