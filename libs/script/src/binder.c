@@ -10,6 +10,7 @@
 #include "json/read.h"
 #include "json/write.h"
 #include "script/binder.h"
+#include "script/id.h"
 #include "script/panic.h"
 #include "script/sig.h"
 #include "script/val.h"
@@ -306,7 +307,7 @@ static ScriptMask binder_mask_from_json(const JsonDoc* d, const JsonVal v) {
     return script_mask_none;
   }
   if (json_type(d, v) == JsonType_String) {
-    if (json_string_hash(d, v) == string_hash_lit("any")) {
+    if (json_string_hash(d, v) == ScriptId_any) {
       return script_mask_any;
     }
     return script_mask(script_val_type_from_hash(json_string_hash(d, v)));
