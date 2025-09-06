@@ -8,6 +8,7 @@
 #include "dev/ecs.h"
 #include "dev/grid.h"
 #include "dev/hierarchy.h"
+#include "dev/id.h"
 #include "dev/inspector.h"
 #include "dev/interface.h"
 #include "dev/level.h"
@@ -52,7 +53,7 @@ static const struct {
   bool          openOnEdit;
   GapVector     detachedSize;
   ChildOpenFunc openFunc;
-  String        hotkeyName;
+  StringHash    hotkey;
 } g_menuChildConfig[] = {
     {
         .name         = string_static("Inspector"),
@@ -60,7 +61,7 @@ static const struct {
         .openOnEdit   = true,
         .detachedSize = {.x = 500, .y = 500},
         .openFunc     = dev_inspector_panel_open,
-        .hotkeyName   = string_static("DevPanelInspector"),
+        .hotkey       = DevId_DevPanelInspector,
     },
     {
         .name         = string_static("Hierarchy"),
@@ -68,63 +69,63 @@ static const struct {
         .openOnEdit   = true,
         .detachedSize = {.x = 500, .y = 350},
         .openFunc     = dev_hierarchy_panel_open,
-        .hotkeyName   = string_static("DevPanelHierarchy"),
+        .hotkey       = DevId_DevPanelHierarchy,
     },
     {
         .name         = string_static("Prefab"),
         .iconShape    = UiShape_Construction,
         .detachedSize = {.x = 500, .y = 350},
         .openFunc     = dev_prefab_panel_open,
-        .hotkeyName   = string_static("DevPanelPrefab"),
+        .hotkey       = DevId_DevPanelPrefab,
     },
     {
         .name         = string_static("Level"),
         .iconShape    = UiShape_Globe,
         .detachedSize = {.x = 500, .y = 300},
         .openFunc     = dev_level_panel_open,
-        .hotkeyName   = string_static("DevPanelLevel"),
+        .hotkey       = DevId_DevPanelLevel,
     },
     {
         .name         = string_static("Sound"),
         .iconShape    = UiShape_MusicNote,
         .detachedSize = {.x = 800, .y = 685},
         .openFunc     = dev_sound_panel_open,
-        .hotkeyName   = string_static("DevPanelSound"),
+        .hotkey       = DevId_DevPanelSound,
     },
     {
         .name         = string_static("Time"),
         .iconShape    = UiShape_Timer,
         .detachedSize = {.x = 500, .y = 250},
         .openFunc     = dev_time_panel_open,
-        .hotkeyName   = string_static("DevPanelTime"),
+        .hotkey       = DevId_DevPanelTime,
     },
     {
         .name         = string_static("Skeleton"),
         .iconShape    = UiShape_Body,
         .detachedSize = {.x = 950, .y = 350},
         .openFunc     = dev_skeleton_panel_open,
-        .hotkeyName   = string_static("DevPanelSkeleton"),
+        .hotkey       = DevId_DevPanelSkeleton,
     },
     {
         .name         = string_static("Script"),
         .iconShape    = UiShape_Description,
         .detachedSize = {.x = 800, .y = 600},
         .openFunc     = dev_script_panel_open,
-        .hotkeyName   = string_static("DevPanelScript"),
+        .hotkey       = DevId_DevPanelScript,
     },
     {
         .name         = string_static("Ecs"),
         .iconShape    = UiShape_Extension,
         .detachedSize = {.x = 800, .y = 500},
         .openFunc     = dev_ecs_panel_open,
-        .hotkeyName   = string_static("DevPanelEcs"),
+        .hotkey       = DevId_DevPanelEcs,
     },
     {
         .name         = string_static("Renderer"),
         .iconShape    = UiShape_Brush,
         .detachedSize = {.x = 800, .y = 520},
         .openFunc     = dev_rend_panel_open,
-        .hotkeyName   = string_static("DevPanelRenderer"),
+        .hotkey       = DevId_DevPanelRenderer,
     },
 #ifdef VOLO_TRACE
     {
@@ -132,7 +133,7 @@ static const struct {
         .iconShape    = UiShape_QueryStats,
         .detachedSize = {.x = 800, .y = 500},
         .openFunc     = dev_trace_panel_open,
-        .hotkeyName   = string_static("DevPanelTrace"),
+        .hotkey       = DevId_DevPanelTrace,
     },
 #endif
     {
@@ -276,11 +277,10 @@ static EcsEntityId menu_child_topmost(EcsWorld* world, const DevMenuComp* menu) 
 }
 
 static bool menu_child_hotkey_pressed(const InputManagerComp* input, const u32 childIndex) {
-  const String hotkeyName = g_menuChildConfig[childIndex].hotkeyName;
-  if (string_is_empty(hotkeyName)) {
+  if (g_menuChildConfig[childIndex].hotkey) {
     return false;
   }
-  return input_triggered_hash(input, string_hash(hotkeyName));
+  return input_triggered_hash(input, g_menuChildConfig[childIndex].hotkey);
 }
 
 static void menu_action_bar_draw(

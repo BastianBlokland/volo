@@ -12,6 +12,7 @@
 #include "core/utf8.h"
 #include "dev/finder.h"
 #include "dev/gizmo.h"
+#include "dev/id.h"
 #include "dev/inspector.h"
 #include "dev/panel.h"
 #include "dev/prefab.h"
@@ -2086,7 +2087,7 @@ ecs_system_define(DevInspectorToolUpdateSys) {
         stats, string_lit("Selected"), fmt_write_scratch("{}", fmt_int(set->lastSelectionCount)));
   }
 
-  if (!input_layer_active(input, string_hash_lit("Dev"))) {
+  if (!input_layer_active(input, DevId_Dev)) {
     if (set->tool == DevInspectorTool_Picker) {
       set->tool = set->toolPickerPrevTool;
       input_blocker_update(input, InputBlocker_EntityPicker, false);
@@ -2682,32 +2683,31 @@ ecs_system_define(DevInspectorVisDrawSys) {
   DevInspectorSettingsComp* set   = ecs_view_write_t(globalItr, DevInspectorSettingsComp);
   DevStatsGlobalComp*       stats = ecs_view_write_t(globalItr, DevStatsGlobalComp);
 
-  if (!set->drawVisInGame && !input_layer_active(input, string_hash_lit("Dev"))) {
+  if (!set->drawVisInGame && !input_layer_active(input, DevId_Dev)) {
     return;
   }
 
-  static const String g_drawHotkeys[DevInspectorVis_Count] = {
-      [DevInspectorVis_Icon]           = string_static("DevInspectorVisIcon"),
-      [DevInspectorVis_Name]           = string_static("DevInspectorVisName"),
-      [DevInspectorVis_Collision]      = string_static("DevInspectorVisCollision"),
-      [DevInspectorVis_Locomotion]     = string_static("DevInspectorVisLocomotion"),
-      [DevInspectorVis_NavigationPath] = string_static("DevInspectorVisNavigationPath"),
-      [DevInspectorVis_NavigationGrid] = string_static("DevInspectorVisNavigationGrid"),
-      [DevInspectorVis_Light]          = string_static("DevInspectorVisLight"),
-      [DevInspectorVis_Vision]         = string_static("DevInspectorVisVision"),
-      [DevInspectorVis_Health]         = string_static("DevInspectorVisHealth"),
-      [DevInspectorVis_Attack]         = string_static("DevInspectorVisAttack"),
-      [DevInspectorVis_Target]         = string_static("DevInspectorVisTarget"),
+  static const StringHash g_drawHotkeys[DevInspectorVis_Count] = {
+      [DevInspectorVis_Icon]           = DevId_DevInspectorVisIcon,
+      [DevInspectorVis_Name]           = DevId_DevInspectorVisName,
+      [DevInspectorVis_Collision]      = DevId_DevInspectorVisCollision,
+      [DevInspectorVis_Locomotion]     = DevId_DevInspectorVisLocomotion,
+      [DevInspectorVis_NavigationPath] = DevId_DevInspectorVisNavigationPath,
+      [DevInspectorVis_NavigationGrid] = DevId_DevInspectorVisNavigationGrid,
+      [DevInspectorVis_Light]          = DevId_DevInspectorVisLight,
+      [DevInspectorVis_Vision]         = DevId_DevInspectorVisVision,
+      [DevInspectorVis_Health]         = DevId_DevInspectorVisHealth,
+      [DevInspectorVis_Attack]         = DevId_DevInspectorVisAttack,
+      [DevInspectorVis_Target]         = DevId_DevInspectorVisTarget,
   };
   for (DevInspectorVis vis = 0; vis != DevInspectorVis_Count; ++vis) {
-    const u32 hotKeyHash = string_hash(g_drawHotkeys[vis]);
-    if (hotKeyHash && input_triggered_hash(input, hotKeyHash)) {
+    if (g_drawHotkeys[vis] && input_triggered_hash(input, g_drawHotkeys[vis])) {
       set->visFlags ^= (1 << vis);
       inspector_notify_vis(set, stats, vis);
     }
   }
 
-  if (input_triggered_hash(input, string_hash_lit("DevInspectorVisMode"))) {
+  if (input_triggered_hash(input, DevId_DevInspectorVisMode)) {
     set->visMode = (set->visMode + 1) % DevInspectorVisMode_Count;
     inspector_notify_vis_mode(stats, set->visMode);
   }

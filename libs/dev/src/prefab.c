@@ -6,6 +6,7 @@
 #include "core/rng.h"
 #include "core/stringtable.h"
 #include "dev/grid.h"
+#include "dev/id.h"
 #include "dev/panel.h"
 #include "dev/prefab.h"
 #include "dev/shape.h"
@@ -323,11 +324,11 @@ static void prefab_create_update(const PrefabPanelContext* ctx) {
   EcsView*     cameraView = ecs_world_view_t(ctx->world, CameraView);
   EcsIterator* cameraItr  = ecs_view_maybe_at(cameraView, input_active_window(ctx->input));
 
-  if (!input_layer_active(ctx->input, string_hash_lit("Dev"))) {
+  if (!input_layer_active(ctx->input, DevId_Dev)) {
     prefab_create_cancel(ctx); // Dev input no longer active.
     return;
   }
-  if (input_triggered_lit(ctx->input, "DevPrefabCreateCancel")) {
+  if (input_triggered_hash(ctx->input, DevId_DevPrefabCreateCancel)) {
     prefab_create_cancel(ctx); // Cancel requested.
     return;
   }
@@ -371,7 +372,7 @@ static bool prefab_allow_create(const PrefabPanelContext* ctx) {
      */
     return false;
   }
-  if (!input_layer_active(ctx->input, string_hash_lit("Dev"))) {
+  if (!input_layer_active(ctx->input, DevId_Dev)) {
     /**
      * NOTE: Disable creating when dev input is not active, reason is placing prefabs uses dev input
      * to detect place accept / cancel. This can happen when pinning the window.
@@ -446,7 +447,7 @@ static void prefab_panel_normal_draw(UiCanvasComp* canvas, const PrefabPanelCont
     ui_table_draw_row_bg(canvas, &table, ui_color(48, 48, 48, 192));
 
     const String nameTooltip = fmt_write_scratch(
-        "Index: {}\nId (hash): {}", fmt_int(prefabIdx), string_hash_fmt(string_hash(nameStr)));
+        "Index: {}\nId (hash): {}", fmt_int(prefabIdx), string_hash_fmt(prefab->name));
 
     ui_label(canvas, nameStr, .selectable = true, .tooltip = nameTooltip);
     ui_table_next_column(canvas, &table);

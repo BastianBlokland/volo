@@ -4,5 +4,29 @@
 // clang-format off
 enum {
   DevId_Dev = 2547616407, // Dev
+  DevId_DevInspectorVisIcon = 1634548357, // DevInspectorVisIcon
+  DevId_DevInspectorVisName = 685338671, // DevInspectorVisName
+  DevId_DevInspectorVisCollision = 1793676054, // DevInspectorVisCollision
+  DevId_DevInspectorVisLocomotion = 2458237107, // DevInspectorVisLocomotion
+  DevId_DevInspectorVisNavigationPath = 698286930, // DevInspectorVisNavigationPath
+  DevId_DevInspectorVisNavigationGrid = 1035447104, // DevInspectorVisNavigationGrid
+  DevId_DevInspectorVisLight = 3803428553, // DevInspectorVisLight
+  DevId_DevInspectorVisVision = 1006273319, // DevInspectorVisVision
+  DevId_DevInspectorVisHealth = 3895311548, // DevInspectorVisHealth
+  DevId_DevInspectorVisAttack = 1069027844, // DevInspectorVisAttack
+  DevId_DevInspectorVisTarget = 3170194590, // DevInspectorVisTarget
+  DevId_DevInspectorVisMode = 3917645724, // DevInspectorVisMode
+  DevId_DevPanelInspector = 3688163297, // DevPanelInspector
+  DevId_DevPanelHierarchy = 345095034, // DevPanelHierarchy
+  DevId_DevPanelPrefab = 205469752, // DevPanelPrefab
+  DevId_DevPanelLevel = 1279901324, // DevPanelLevel
+  DevId_DevPanelSound = 4051400737, // DevPanelSound
+  DevId_DevPanelTime = 1086967750, // DevPanelTime
+  DevId_DevPanelSkeleton = 3621104430, // DevPanelSkeleton
+  DevId_DevPanelScript = 3118876660, // DevPanelScript
+  DevId_DevPanelEcs = 2791786667, // DevPanelEcs
+  DevId_DevPanelRenderer = 2341646233, // DevPanelRenderer
+  DevId_DevPanelTrace = 1438144397, // DevPanelTrace
+  DevId_DevPrefabCreateCancel = 3047481622, // DevPrefabCreateCancel
 };
 // clang-format on

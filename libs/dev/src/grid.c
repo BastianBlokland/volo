@@ -3,6 +3,7 @@
 #include "core/float.h"
 #include "core/math.h"
 #include "dev/grid.h"
+#include "dev/id.h"
 #include "dev/panel.h"
 #include "dev/stats.h"
 #include "ecs/view.h"
@@ -310,7 +311,7 @@ ecs_system_define(DevGridUpdateSys) {
   // NOTE: Enable grid draw when requested and when in dev mode.
   for (EcsIterator* itr = ecs_view_itr_reset(gridItr); ecs_view_walk(itr);) {
     DevGridComp* grid = ecs_view_write_t(itr, DevGridComp);
-    if (grid->flags & DevGridFlags_Show && input_layer_active(input, string_hash_lit("Dev"))) {
+    if (grid->flags & DevGridFlags_Show && input_layer_active(input, DevId_Dev)) {
       grid->flags |= DevGridFlags_Draw;
     } else {
       grid->flags &= ~DevGridFlags_Draw;

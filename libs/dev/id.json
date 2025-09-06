@@ -2,6 +2,33 @@
   "outputPath": "include/dev/id.h",
   "prefix": "Dev",
   "entries": [
-    "Dev"
+    "Dev",
+
+    "DevInspectorVisIcon",
+    "DevInspectorVisName",
+    "DevInspectorVisCollision",
+    "DevInspectorVisLocomotion",
+    "DevInspectorVisNavigationPath",
+    "DevInspectorVisNavigationGrid",
+    "DevInspectorVisLight",
+    "DevInspectorVisVision",
+    "DevInspectorVisHealth",
+    "DevInspectorVisAttack",
+    "DevInspectorVisTarget",
+    "DevInspectorVisMode",
+
+    "DevPanelInspector",
+    "DevPanelHierarchy",
+    "DevPanelPrefab",
+    "DevPanelLevel",
+    "DevPanelSound",
+    "DevPanelTime",
+    "DevPanelSkeleton",
+    "DevPanelScript",
+    "DevPanelEcs",
+    "DevPanelRenderer",
+    "DevPanelTrace",
+
+    "DevPrefabCreateCancel"
   ]
 }
