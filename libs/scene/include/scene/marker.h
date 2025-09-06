@@ -1,0 +1,12 @@
+#pragma once
+#include "ecs/module.h"
+
+typedef enum {
+  SceneMarkerType_Info,
+
+  SceneMarkerType_Count,
+} SceneMarkerType;
+
+ecs_comp_extern_public(SceneMarkerComp) { SceneMarkerType type; };
+
+String scene_marker_name(SceneMarkerType);
