@@ -62,6 +62,7 @@
 #include "cmd.h"
 #include "game.h"
 #include "hud.h"
+#include "id.h"
 #include "input.h"
 #include "prefs.h"
 
@@ -350,12 +351,12 @@ static void game_transition(const GameUpdateContext* ctx, const GameState state)
     ctx->timeSet->flags &= ~SceneTimeFlags_Paused;
     break;
   case GameState_Play:
-    input_layer_disable(ctx->input, string_hash_lit("Game"));
+    input_layer_disable(ctx->input, GameId_Game);
     game_input_type_set(ctx->winGameInput, GameInputType_None);
     asset_loading_budget_set(ctx->assets, 0); // Infinite budget while not in gameplay.
     break;
   case GameState_Edit:
-    input_layer_disable(ctx->input, string_hash_lit("Edit"));
+    input_layer_disable(ctx->input, GameId_Edit);
     game_input_type_set(ctx->winGameInput, GameInputType_None);
     dev_stats_debug_set(ctx->winDevStats, DevStatDebug_Off);
     if (ctx->winDevMenu) {
@@ -396,7 +397,7 @@ static void game_transition(const GameUpdateContext* ctx, const GameState state)
   case GameState_Edit:
     ctx->winRendSet->flags &= ~RendFlags_2D;
     game_input_type_set(ctx->winGameInput, GameInputType_Normal);
-    input_layer_enable(ctx->input, string_hash_lit("Edit"));
+    input_layer_enable(ctx->input, GameId_Edit);
     if (ctx->winDevMenu) {
       dev_menu_edit_panels_open(ctx->world, ctx->winDevMenu);
     }
@@ -1127,15 +1128,15 @@ ecs_system_define(GameUpdateSys) {
       if (input_triggered_lit(ctx.input, "DevFreeCamera")) {
         game_toggle_camera(&ctx);
       }
-      input_layer_enable(ctx.input, string_hash_lit("Dev"));
-      input_layer_disable(ctx.input, string_hash_lit("Game"));
+      input_layer_enable(ctx.input, GameId_Dev);
+      input_layer_disable(ctx.input, GameId_Game);
     } else {
       if (ctx.game->state == GameState_Play) {
-        input_layer_enable(ctx.input, string_hash_lit("Game"));
+        input_layer_enable(ctx.input, GameId_Game);
       } else {
-        input_layer_disable(ctx.input, string_hash_lit("Game"));
+        input_layer_disable(ctx.input, GameId_Game);
       }
-      input_layer_disable(ctx.input, string_hash_lit("Dev"));
+      input_layer_disable(ctx.input, GameId_Dev);
     }
 
     MenuEntry menuEntries[32];

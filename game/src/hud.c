@@ -46,6 +46,7 @@
 #include "cmd.h"
 #include "game.h"
 #include "hud.h"
+#include "id.h"
 #include "input.h"
 
 static const f32      g_hudHealthBarOffsetY = 10.0f;
@@ -275,9 +276,9 @@ static UiColor hud_health_color(const f32 norm) {
 static StringHash hud_faction_name_loc(const SceneFaction faction) {
   switch (faction) {
   case SceneFaction_A:
-    return string_hash_lit("HUD_FACTION_PLAYER");
+    return GameId_HUD_FACTION_PLAYER;
   default:
-    return string_hash_lit("HUD_FACTION_ENEMY");
+    return GameId_HUD_FACTION_ENEMY;
   }
 }
 
@@ -623,7 +624,7 @@ static u32 hud_minimap_marker_collect(
     EcsView*         markerView,
     const GeoVector  areaSize,
     HudMinimapMarker out[PARAM_ARRAY_SIZE(hud_minimap_marker_max)]) {
-  const StringHash minimapSet = string_hash_lit("minimap");
+  const StringHash minimapSet = GameId_minimap;
 
   u32 count = 0;
   for (EcsIterator* itr = ecs_view_itr(markerView); ecs_view_walk(itr);) {
@@ -741,26 +742,26 @@ static void hud_actions_draw(UiCanvasComp* c, GameHudComp* hud, const InputManag
   static const struct {
     GameHudAction action;
     Unicode       icon;
-    String        tooltip;
-    String        hotkey;
+    StringHash    tooltip; // Localization key.
+    StringHash    hotkey;
   } g_actionDefs[] = {
       {
           .action  = GameHudAction_Pause,
           .icon    = UiShape_Pause,
-          .tooltip = string_static("HUD_PAUSE_TOOLTIP"),
-          .hotkey  = string_static("Pause"),
+          .tooltip = GameId_HUD_PAUSE_TOOLTIP,
+          .hotkey  = GameId_Pause,
       },
       {
           .action  = GameHudAction_CameraReset,
           .icon    = UiShape_ResetTv,
-          .tooltip = string_static("HUD_CAMERA_RESET_TOOLTIP"),
-          .hotkey  = string_static("CameraReset"),
+          .tooltip = GameId_HUD_CAMERA_RESET_TOOLTIP,
+          .hotkey  = GameId_CameraReset,
       },
       {
           .action  = GameHudAction_OrderStop,
           .icon    = UiShape_Halt,
-          .tooltip = string_static("HUD_ORDER_STOP_TOOLTIP"),
-          .hotkey  = string_static("OrderStop"),
+          .tooltip = GameId_HUD_ORDER_STOP_TOOLTIP,
+          .hotkey  = GameId_OrderStop,
       },
   };
 
@@ -772,15 +773,15 @@ static void hud_actions_draw(UiCanvasComp* c, GameHudComp* hud, const InputManag
 
   for (u32 i = 0; i != array_elems(g_actionDefs); ++i) {
     bool hotkeyActivate = false;
-    if (!string_is_empty(g_actionDefs[i].hotkey)) {
-      hotkeyActivate = input_triggered_hash(input, string_hash(g_actionDefs[i].hotkey));
+    if (g_actionDefs[i].hotkey) {
+      hotkeyActivate = input_triggered_hash(input, g_actionDefs[i].hotkey);
     }
     if (ui_button(
             c,
             .label      = ui_shape_scratch(g_actionDefs[i].icon),
             .fontSize   = 35,
             .frameColor = ui_color(32, 32, 32, 192),
-            .tooltip    = loc_translate_str(g_actionDefs[i].tooltip),
+            .tooltip    = loc_translate(g_actionDefs[i].tooltip),
             .activate   = hotkeyActivate)) {
       hud->requestedActions = 1 << g_actionDefs[i].action;
     }

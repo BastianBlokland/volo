@@ -24,6 +24,7 @@
 
 #include "cmd.h"
 #include "hud.h"
+#include "id.h"
 #include "input.h"
 
 static const f32  g_inputInteractMinDist       = 1.0f;
@@ -96,7 +97,7 @@ static SceneQueryFilter input_query_filter(const InputManagerComp* input, const 
   SceneQueryFilter filter = {0};
   switch (t) {
   case InputQuery_Select:
-    if (input_layer_active(input, string_hash_lit("Dev"))) {
+    if (input_layer_active(input, GameId_Dev)) {
       // Allow selecting all objects (including debug shapes) in development mode.
       filter.layerMask = SceneLayer_AllIncludingDebug;
     } else {
@@ -134,7 +135,7 @@ static void input_indicator_move(EcsWorld* world, const GeoVector pos) {
       world,
       &(ScenePrefabSpec){
           .flags    = ScenePrefabFlags_Volatile,
-          .prefabId = string_hash_lit("EffectIndicatorMove"),
+          .prefabId = GameId_EffectIndicatorMove,
           .faction  = SceneFaction_None,
           .position = pos,
           .rotation = geo_quat_ident});
@@ -145,7 +146,7 @@ static void input_indicator_attack(EcsWorld* world, const EcsEntityId target) {
       world,
       &(ScenePrefabSpec){
           .flags    = ScenePrefabFlags_Volatile,
-          .prefabId = string_hash_lit("EffectIndicatorAttack"),
+          .prefabId = GameId_EffectIndicatorAttack,
           .faction  = SceneFaction_None,
           .rotation = geo_quat_ident});
 
@@ -650,7 +651,7 @@ static void update_camera_interact(
  */
 static void input_update_collision_mask(SceneCollisionEnvComp* env, const InputManagerComp* input) {
   SceneLayer ignoreMask = scene_collision_ignore_mask(env);
-  if (input_layer_active(input, string_hash_lit("Dev"))) {
+  if (input_layer_active(input, GameId_Dev)) {
     ignoreMask &= ~SceneLayer_Debug; // Include debug layer.
   } else {
     ignoreMask |= SceneLayer_Debug; // Ignore debug layer;

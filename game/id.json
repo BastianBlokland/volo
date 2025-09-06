@@ -1,0 +1,24 @@
+{
+  "outputPath": "src/id.h",
+  "prefix": "Game",
+  "entries": [
+    "Game",
+    "Edit",
+    "Dev",
+
+    "minimap",
+
+    "Pause",
+    "CameraReset",
+    "OrderStop",
+
+    "EffectIndicatorMove",
+    "EffectIndicatorAttack",
+
+    "HUD_FACTION_PLAYER",
+    "HUD_FACTION_ENEMY",
+    "HUD_PAUSE_TOOLTIP",
+    "HUD_CAMERA_RESET_TOOLTIP",
+    "HUD_ORDER_STOP_TOOLTIP"
+  ]
+}
