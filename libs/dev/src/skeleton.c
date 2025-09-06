@@ -10,6 +10,7 @@
 #include "dev/text.h"
 #include "ecs/view.h"
 #include "ecs/world.h"
+#include "scene/id.h"
 #include "scene/renderable.h"
 #include "scene/set.h"
 #include "scene/skeleton.h"
@@ -429,7 +430,7 @@ ecs_system_define(DevSkeletonUpdatePanelSys) {
   DevSkelSettingsComp* settings = skel_settings_get_or_create(world);
 
   const SceneSetEnvComp* setEnv      = ecs_view_read_t(globalItr, SceneSetEnvComp);
-  const StringHash       selectedSet = g_sceneSetSelected;
+  const StringHash       selectedSet = SceneId_selected;
   const DevSkelSubject   subject     = dev_skel_subject(world, scene_set_main(setEnv, selectedSet));
 
   EcsView* panelView = ecs_world_view_t(world, PanelUpdateView);
@@ -559,7 +560,7 @@ ecs_system_define(DevSkeletonDrawSys) {
 
   GeoMatrix jointMatrices[scene_skeleton_joints_max];
 
-  const StringHash s = g_sceneSetSelected;
+  const StringHash s = SceneId_selected;
   for (const EcsEntityId* e = scene_set_begin(setEnv, s); e != scene_set_end(setEnv, s); ++e) {
     const DevSkelSubject subject = dev_skel_subject(world, *e);
     if (!subject.valid) {

@@ -22,6 +22,7 @@
 #include "scene/collision.h"
 #include "scene/faction.h"
 #include "scene/health.h"
+#include "scene/id.h"
 #include "scene/lifetime.h"
 #include "scene/locomotion.h"
 #include "scene/name.h"
@@ -1154,10 +1155,10 @@ ecs_system_define(GameHudDrawSys) {
 
     hud_actions_draw(c, hud, input);
 
-    if (ecs_view_maybe_jump(visionItr, scene_set_main(setEnv, g_sceneSetSelected))) {
+    if (ecs_view_maybe_jump(visionItr, scene_set_main(setEnv, SceneId_selected))) {
       hud_vision_draw(hud, rendObjItr, visionItr);
     }
-    if (ecs_view_maybe_jump(productionItr, scene_set_main(setEnv, g_sceneSetSelected))) {
+    if (ecs_view_maybe_jump(productionItr, scene_set_main(setEnv, SceneId_selected))) {
       hud_production_draw(c, hud, input, rendObjItr, productionItr);
     }
 

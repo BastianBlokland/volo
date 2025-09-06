@@ -11,6 +11,7 @@
 #include "geo/box.h"
 #include "input/manager.h"
 #include "rend/object.h"
+#include "scene/id.h"
 #include "scene/lifetime.h"
 #include "scene/set.h"
 #include "scene/tag.h"
@@ -260,7 +261,7 @@ static void grid_panel_draw(
 }
 
 static f32 dev_selection_height(const SceneSetEnvComp* setEnv, EcsView* transformView) {
-  const StringHash set = g_sceneSetSelected;
+  const StringHash set = SceneId_selected;
 
   EcsIterator* transformItr  = ecs_view_itr(transformView);
   f32          averageHeight = 0.0f;

@@ -19,6 +19,7 @@
 #include "scene/attachment.h"
 #include "scene/creator.h"
 #include "scene/forward.h"
+#include "scene/id.h"
 #include "scene/lifetime.h"
 #include "scene/name.h"
 #include "scene/property.h"
@@ -537,7 +538,7 @@ static void hierarchy_query(HierarchyContext* ctx) {
     if (!set) {
       continue; // Empty slot.
     }
-    if (!set || set == g_sceneSetSelected) {
+    if (!set || set == SceneId_selected) {
       continue; // Filter out selected set as it doesn't add much value
     }
     *dynarray_push_t(&ctx->panel->entries, HierarchyEntry) = (HierarchyEntry){
@@ -710,15 +711,15 @@ static void hierarchy_entry_select_add(HierarchyContext* ctx, const HierarchyEnt
     return; // Only entities can be selected.
   }
   if (input_modifiers(ctx->input) & InputModifier_Shift) {
-    scene_set_remove(ctx->setEnv, g_sceneSetSelected, entry->entity);
+    scene_set_remove(ctx->setEnv, SceneId_selected, entry->entity);
   } else {
-    scene_set_add(ctx->setEnv, g_sceneSetSelected, entry->entity, SceneSetFlags_None);
+    scene_set_add(ctx->setEnv, SceneId_selected, entry->entity, SceneSetFlags_None);
   }
 }
 
 static void hierarchy_entry_select(HierarchyContext* ctx, const HierarchyEntry* entry) {
   if (!(input_modifiers(ctx->input) & (InputModifier_Control | InputModifier_Shift))) {
-    scene_set_clear(ctx->setEnv, g_sceneSetSelected);
+    scene_set_clear(ctx->setEnv, SceneId_selected);
   }
   hierarchy_entry_select_add(ctx, entry);
 }
@@ -726,7 +727,7 @@ static void hierarchy_entry_select(HierarchyContext* ctx, const HierarchyEntry* 
 static void hierarchy_entry_select_rec(HierarchyContext* ctx, const HierarchyEntry* entry) {
   const InputModifier modifiers = input_modifiers(ctx->input);
   if (!(modifiers & (InputModifier_Control | InputModifier_Shift))) {
-    scene_set_clear(ctx->setEnv, g_sceneSetSelected);
+    scene_set_clear(ctx->setEnv, SceneId_selected);
   }
 
   hierarchy_entry_select_add(ctx, entry);
@@ -810,7 +811,7 @@ static bool hierarchy_is_selected(HierarchyContext* ctx, const HierarchyEntry* e
   if (!ecs_entity_valid(entry->entity)) {
     return false; // Only entities can be selected.
   }
-  return scene_set_contains(ctx->setEnv, g_sceneSetSelected, entry->entity);
+  return scene_set_contains(ctx->setEnv, SceneId_selected, entry->entity);
 }
 
 static void hierarchy_entry_draw(
@@ -1100,7 +1101,7 @@ ecs_system_define(DevHierarchyUpdatePanelSys) {
       .inspector  = ecs_view_write_t(globalItr, DevInspectorSettingsComp),
       .focusEntry = sentinel_u32,
   };
-  const EcsEntityId mainSelection = scene_set_main(ctx.setEnv, g_sceneSetSelected);
+  const EcsEntityId mainSelection = scene_set_main(ctx.setEnv, SceneId_selected);
 
   EcsView* panelView = ecs_world_view_t(world, PanelUpdateView);
   for (EcsIterator* itr = ecs_view_itr(panelView); ecs_view_walk(itr);) {

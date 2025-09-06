@@ -5,6 +5,8 @@
 enum {
   SceneId_hit = 2729598185, // hit
   SceneId_death = 2899093826, // death
+  SceneId_selected = 892713080, // selected
+  SceneId_unit = 541917106, // unit
   SceneId_EffectBurning = 1512305492, // EffectBurning
   SceneId_EffectBleeding = 4111375714, // EffectBleeding
   SceneId_EffectVeteran = 781462266, // EffectVeteran

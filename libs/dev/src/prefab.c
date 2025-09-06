@@ -18,6 +18,7 @@
 #include "input/manager.h"
 #include "scene/camera.h"
 #include "scene/collision.h"
+#include "scene/id.h"
 #include "scene/level.h"
 #include "scene/prefab.h"
 #include "scene/set.h"
@@ -158,7 +159,7 @@ static void prefab_select_all(const PrefabPanelContext* ctx, const StringHash pr
   dev_stats_notify(ctx->globalStats, string_lit("Prefab action"), string_lit("Select all"));
 
   if (!(input_modifiers(ctx->input) & InputModifier_Control)) {
-    scene_set_clear(ctx->setEnv, g_sceneSetSelected);
+    scene_set_clear(ctx->setEnv, SceneId_selected);
   }
 
   EcsView* prefabInstanceView = ecs_world_view_t(ctx->world, PrefabInstanceView);
@@ -166,7 +167,7 @@ static void prefab_select_all(const PrefabPanelContext* ctx, const StringHash pr
     const ScenePrefabInstanceComp* instComp = ecs_view_read_t(itr, ScenePrefabInstanceComp);
 
     if (instComp->prefabId == prefabId && instComp->variant != ScenePrefabVariant_Preview) {
-      scene_set_add(ctx->setEnv, g_sceneSetSelected, ecs_view_entity(itr), SceneSetFlags_None);
+      scene_set_add(ctx->setEnv, SceneId_selected, ecs_view_entity(itr), SceneSetFlags_None);
     }
   }
 }
@@ -265,9 +266,9 @@ static void prefab_create_accept(const PrefabPanelContext* ctx, const GeoVector 
 
   if (ctx->panelComp->createFlags & PrefabCreateFlags_AutoSelect) {
     if ((input_modifiers(ctx->input) & InputModifier_Shift) == 0) {
-      scene_set_clear(ctx->setEnv, g_sceneSetSelected);
+      scene_set_clear(ctx->setEnv, SceneId_selected);
     }
-    scene_set_add(ctx->setEnv, g_sceneSetSelected, spawnedEntity, SceneSetFlags_None);
+    scene_set_add(ctx->setEnv, SceneId_selected, spawnedEntity, SceneSetFlags_None);
   }
 
   if (ctx->panelComp->createFlags & PrefabCreateFlags_Multiple) {

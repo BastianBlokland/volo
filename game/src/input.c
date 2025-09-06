@@ -7,6 +7,7 @@
 #include "scene/attachment.h"
 #include "scene/camera.h"
 #include "scene/collision.h"
+#include "scene/id.h"
 #include "scene/level.h"
 #include "scene/nav.h"
 #include "scene/prefab.h"
@@ -179,7 +180,7 @@ static void update_group_input(
     if (input_modifiers(input) & InputModifier_Control) {
       // Assign the current selection to this group.
       game_cmd_group_clear(cmd, i);
-      const StringHash s = g_sceneSetSelected;
+      const StringHash s = SceneId_selected;
       for (const EcsEntityId* e = scene_set_begin(setEnv, s); e != scene_set_end(setEnv, s); ++e) {
         game_cmd_group_add(cmd, i, *e);
       }
@@ -333,7 +334,7 @@ static bool placement_update(
     if (!scene_product_placement_active(production)) {
       continue; // No placement active.
     }
-    if (ecs_view_entity(itr) == scene_set_main(setEnv, g_sceneSetSelected)) {
+    if (ecs_view_entity(itr) == scene_set_main(setEnv, SceneId_selected)) {
       placementActive = true;
 
       // Update placement position.
@@ -402,7 +403,7 @@ static void select_update_drag(
     const SceneCameraComp*       camera,
     const SceneTransformComp*    cameraTrans,
     const f32                    inputAspect) {
-  const EcsEntityId oldMainObj = scene_set_main(setEnv, g_sceneSetSelected);
+  const EcsEntityId oldMainObj = scene_set_main(setEnv, SceneId_selected);
   if (state->selectMode == InputSelectMode_Replace) {
     game_cmd_push_deselect_all(cmd);
   }
@@ -440,7 +441,7 @@ static void input_order_attack(
   input_indicator_attack(world, target);
 
   // Push attack commands.
-  const StringHash s = g_sceneSetSelected;
+  const StringHash s = SceneId_selected;
   for (const EcsEntityId* e = scene_set_begin(setEnv, s); e != scene_set_end(setEnv, s); ++e) {
     game_cmd_push_attack(cmd, *e, target);
   }
@@ -461,7 +462,7 @@ static void input_order_move(
   const GeoNavGrid* grid = scene_nav_grid(nav, SceneNavLayer_Normal);
 
   // Find unblocked cells on the nav-grid to move to.
-  const u32                 selectionCount = scene_set_count(setEnv, g_sceneSetSelected);
+  const u32                 selectionCount = scene_set_count(setEnv, SceneId_selected);
   GeoNavCell                navCells[1024];
   const GeoNavCellContainer navCellContainer = {
       .cells    = navCells,
@@ -472,7 +473,7 @@ static void input_order_move(
   const u32        navCellCount = geo_nav_closest_n(grid, targetNavCell, navCond, navCellContainer);
 
   // Push the move commands.
-  const EcsEntityId* selection = scene_set_begin(setEnv, g_sceneSetSelected);
+  const EcsEntityId* selection = scene_set_begin(setEnv, SceneId_selected);
   for (u32 i = 0; i != selectionCount; ++i) {
     const EcsEntityId entity = selection[i];
     GeoVector         pos;
@@ -488,7 +489,7 @@ static void input_order_move(
 }
 
 static void input_order_stop(GameCmdComp* cmd, const SceneSetEnvComp* setEnv) {
-  const StringHash s = g_sceneSetSelected;
+  const StringHash s = SceneId_selected;
   for (const EcsEntityId* e = scene_set_begin(setEnv, s); e != scene_set_end(setEnv, s); ++e) {
     game_cmd_push_stop(cmd, *e);
   }
@@ -624,7 +625,7 @@ static void update_camera_interact(
     break;
   }
 
-  const bool hasSelection = scene_set_count(setEnv, g_sceneSetSelected) != 0;
+  const bool hasSelection = scene_set_count(setEnv, SceneId_selected) != 0;
   if (!placementActive && !selectActive && hasSelection && input_triggered_lit(input, "Order")) {
     input_order(world, state, cmd, setEnv, terrain, nav, &inputRay);
   }
@@ -718,7 +719,7 @@ ecs_system_define(GameInputUpdateSys) {
       input_order_stop(cmd, setEnv);
     }
 
-    state->lastSelectionCount = scene_set_count(setEnv, g_sceneSetSelected);
+    state->lastSelectionCount = scene_set_count(setEnv, SceneId_selected);
 
     bool windowActive = input_active_window(input) == ecs_view_entity(camItr);
     switch (state->type) {

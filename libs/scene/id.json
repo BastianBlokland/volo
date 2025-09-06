@@ -4,6 +4,8 @@
   "entries": [
     "hit",
     "death",
+    "selected",
+    "unit",
 
     "EffectBurning",
     "EffectBleeding",

@@ -8,6 +8,7 @@
 #include "ecs/entity.h"
 #include "ecs/view.h"
 #include "ecs/world.h"
+#include "scene/id.h"
 #include "scene/name.h"
 #include "scene/set.h"
 #include "ui/canvas.h"
@@ -263,7 +264,7 @@ vfx_panel_draw(UiCanvasComp* canvas, DevVfxPanelComp* panelComp, SceneSetEnvComp
 
     ui_table_jump_row(canvas, &table, objIdx);
 
-    const bool    selected = scene_set_contains(setEnv, g_sceneSetSelected, info->entity);
+    const bool    selected = scene_set_contains(setEnv, SceneId_selected, info->entity);
     const UiColor color    = selected ? ui_color(32, 32, 255, 192) : ui_color(48, 48, 48, 192);
     ui_table_draw_row_bg(canvas, &table, color);
     ui_canvas_id_block_index(canvas, ecs_entity_id_index(info->entity) * 10); // Set a stable id.
@@ -281,8 +282,8 @@ vfx_panel_draw(UiCanvasComp* canvas, DevVfxPanelComp* panelComp, SceneSetEnvComp
             .frameColor = ui_color(0, 16, 255, 192),
             .fontSize   = 18,
             .tooltip    = g_tooltipSelectEntity)) {
-      scene_set_clear(setEnv, g_sceneSetSelected);
-      scene_set_add(setEnv, g_sceneSetSelected, info->entity, SceneSetFlags_None);
+      scene_set_clear(setEnv, SceneId_selected);
+      scene_set_add(setEnv, SceneId_selected, info->entity, SceneSetFlags_None);
     }
 
     ui_layout_pop(canvas);
