@@ -101,7 +101,7 @@ static SceneQueryFilter input_query_filter(const InputManagerComp* input, const 
       // Allow selecting all objects (including debug shapes) in development mode.
       filter.layerMask = SceneLayer_AllIncludingDebug;
     } else {
-      // In node mode only allow selecting your own units.
+      // In normal mode only allow selecting your own units.
       filter.layerMask = SceneLayer_UnitFactionA;
     }
     break;
