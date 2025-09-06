@@ -3,13 +3,30 @@
 
 // clang-format off
 enum {
-  GameId_Game = 2551442255, // Game
-  GameId_Edit = 2684623067, // Edit
-  GameId_Dev = 2547616407, // Dev
-  GameId_minimap = 3582479288, // minimap
-  GameId_Pause = 152424741, // Pause
+  GameId_Back = 1137858108, // Back
+  GameId_CameraPanBackward = 1537695709, // CameraPanBackward
+  GameId_CameraPanCursor = 738650744, // CameraPanCursor
+  GameId_CameraPanForward = 4178040762, // CameraPanForward
+  GameId_CameraPanLeft = 719002654, // CameraPanLeft
+  GameId_CameraPanRight = 1561855215, // CameraPanRight
   GameId_CameraReset = 476230800, // CameraReset
+  GameId_CameraRotate = 3858704105, // CameraRotate
+  GameId_Dev = 2547616407, // Dev
+  GameId_DevFreeCamera = 3019337394, // DevFreeCamera
+  GameId_Edit = 2684623067, // Edit
+  GameId_Fullscreen = 2447595539, // Fullscreen
+  GameId_Game = 2551442255, // Game
+  GameId_Order = 3068264324, // Order
   GameId_OrderStop = 3674266003, // OrderStop
+  GameId_Pause = 152424741, // Pause
+  GameId_PlacementAccept = 4005290086, // PlacementAccept
+  GameId_PlacementCancel = 4274203696, // PlacementCancel
+  GameId_PlacementRotateLeft = 1622780714, // PlacementRotateLeft
+  GameId_PlacementRotateRight = 3062273, // PlacementRotateRight
+  GameId_Quit = 1165054792, // Quit
+  GameId_SaveLevel = 3882009144, // SaveLevel
+  GameId_Select = 414324572, // Select
+  GameId_minimap = 3582479288, // minimap
   GameId_EffectIndicatorMove = 1884579441, // EffectIndicatorMove
   GameId_EffectIndicatorAttack = 3489365775, // EffectIndicatorAttack
   GameId_HUD_FACTION_PLAYER = 1256886660, // HUD_FACTION_PLAYER

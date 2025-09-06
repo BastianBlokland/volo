@@ -208,17 +208,17 @@ static void update_camera_movement(
 
   // Update pan.
   GeoVector panDeltaRel = {0};
-  if (!lockCursor && input_triggered_lit(input, "CameraPanCursor")) {
+  if (!lockCursor && input_triggered_hash(input, GameId_CameraPanCursor)) {
     const f32 panX = -input_cursor_delta_x(input);
     const f32 panY = -input_cursor_delta_y(input);
     panDeltaRel    = geo_vector_mul(geo_vector(panX, 0, panY), g_inputCamPanCursorMult);
     lockCursor     = true;
   } else {
     // clang-format off
-    if (input_triggered_lit(input, "CameraPanForward"))  { panDeltaRel.z += 1; }
-    if (input_triggered_lit(input, "CameraPanBackward")) { panDeltaRel.z -= 1; }
-    if (input_triggered_lit(input, "CameraPanRight"))    { panDeltaRel.x += 1; }
-    if (input_triggered_lit(input, "CameraPanLeft"))     { panDeltaRel.x -= 1; }
+    if (input_triggered_hash(input, GameId_CameraPanForward))  { panDeltaRel.z += 1; }
+    if (input_triggered_hash(input, GameId_CameraPanBackward)) { panDeltaRel.z -= 1; }
+    if (input_triggered_hash(input, GameId_CameraPanRight))    { panDeltaRel.x += 1; }
+    if (input_triggered_hash(input, GameId_CameraPanLeft))     { panDeltaRel.x -= 1; }
     if (input_blockers(input) & InputBlocker_CursorConfined) {
       const f32 cursorX = input_cursor_x(input), cursorY = input_cursor_y(input);
       if(cursorY >= (1.0f - g_inputCamCursorPanThreshold)) { panDeltaRel.z += 1; }
@@ -243,7 +243,7 @@ static void update_camera_movement(
   }
 
   // Update Y rotation.
-  if (!lockCursor && input_triggered_lit(input, "CameraRotate")) {
+  if (!lockCursor && input_triggered_hash(input, GameId_CameraRotate)) {
     const f32 rotDelta = input_cursor_delta_x(input) * g_inputCamRotYMult;
     state->camRotYTgt  = math_mod_f32(state->camRotYTgt + rotDelta, math_pi_f32 * 2.0f);
     lockCursor         = true;
@@ -295,10 +295,10 @@ static void update_camera_movement_dev(
 
   GeoVector panDelta = {0};
   // clang-format off
-  if (input_triggered_lit(input, "CameraPanForward"))  { panDelta.z += 1; }
-  if (input_triggered_lit(input, "CameraPanBackward")) { panDelta.z -= 1; }
-  if (input_triggered_lit(input, "CameraPanRight"))    { panDelta.x += 1; }
-  if (input_triggered_lit(input, "CameraPanLeft"))     { panDelta.x -= 1; }
+  if (input_triggered_hash(input, GameId_CameraPanForward))  { panDelta.z += 1; }
+  if (input_triggered_hash(input, GameId_CameraPanBackward)) { panDelta.z -= 1; }
+  if (input_triggered_hash(input, GameId_CameraPanRight))    { panDelta.x += 1; }
+  if (input_triggered_hash(input, GameId_CameraPanLeft))     { panDelta.x -= 1; }
   // clang-format on
   if (geo_vector_mag_sqr(panDelta) > 0) {
     panDelta = geo_vector_mul(geo_vector_norm(panDelta), deltaSeconds * g_panSpeed);
@@ -310,7 +310,7 @@ static void update_camera_movement_dev(
     camTrans->position = geo_vector_add(camTrans->position, panDelta);
   }
 
-  if (input_triggered_lit(input, "CameraRotate")) {
+  if (input_triggered_hash(input, GameId_CameraRotate)) {
     const f32 deltaX = input_cursor_delta_x(input) * g_rotateSensitivity;
     const f32 deltaY = input_cursor_delta_y(input) * -g_rotateSensitivity;
 
@@ -348,14 +348,14 @@ static bool placement_update(
       if (rayT > g_inputInteractMinDist) {
         production->placementPos = geo_ray_position(inputRay, rayT);
       }
-      if (input_triggered_lit(input, "PlacementAccept")) {
+      if (input_triggered_hash(input, GameId_PlacementAccept)) {
         scene_product_placement_accept(production);
-      } else if (input_triggered_lit(input, "PlacementCancel")) {
+      } else if (input_triggered_hash(input, GameId_PlacementCancel)) {
         scene_product_placement_cancel(production);
       }
-      if (input_triggered_lit(input, "PlacementRotateLeft")) {
+      if (input_triggered_hash(input, GameId_PlacementRotateLeft)) {
         production->placementAngle -= math_pi_f32 * 0.25f;
-      } else if (input_triggered_lit(input, "PlacementRotateRight")) {
+      } else if (input_triggered_hash(input, GameId_PlacementRotateRight)) {
         production->placementAngle += math_pi_f32 * 0.25f;
       }
     } else {
@@ -593,7 +593,7 @@ static void update_camera_interact(
     state->selectMode = InputSelectMode_Add;
   }
 
-  const bool         selectActive  = !placementActive && input_triggered_lit(input, "Select");
+  const bool         selectActive  = !placementActive && input_triggered_hash(input, GameId_Select);
   const InputBlocker inputBlockers = InputBlocker_HoveringUi | InputBlocker_HoveringGizmo;
   switch (state->selectState) {
   case InputSelectState_None:
@@ -627,7 +627,8 @@ static void update_camera_interact(
   }
 
   const bool hasSelection = scene_set_count(setEnv, SceneId_selected) != 0;
-  if (!placementActive && !selectActive && hasSelection && input_triggered_lit(input, "Order")) {
+  if (!placementActive && !selectActive && hasSelection &&
+      input_triggered_hash(input, GameId_Order)) {
     input_order(world, state, cmd, setEnv, terrain, nav, &inputRay);
   }
   const u32 newLevelCounter = scene_level_counter(levelManager);
