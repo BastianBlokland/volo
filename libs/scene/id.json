@@ -1,6 +1,6 @@
 {
   "outputPath": "include/scene/id.h",
-  "prefix": "scene",
+  "prefix": "Scene",
   "entries": [
     "STATUS_BURNING",
     "STATUS_BLEEDING",
