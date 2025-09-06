@@ -4,6 +4,8 @@
 #include "cli/read.h"
 #include "cli/validate.h"
 #include "core/alloc.h"
+#include "core/array.h"
+#include "core/dynstring.h"
 #include "core/file.h"
 #include "core/path.h"
 #include "core/version.h"
@@ -74,7 +76,6 @@ static String idgen_config_out_path_scratch(const IdGenConfig* cfg, const String
 }
 
 static bool idgen_run(const IdGenConfig* cfg, const String outPath) {
-
   log_i(
       "Generating ids",
       log_param("version", fmt_text(version_str_scratch(g_versionExecutable))),
@@ -82,7 +83,31 @@ static bool idgen_run(const IdGenConfig* cfg, const String outPath) {
       log_param("entries", fmt_int(cfg->entries.count)),
       log_param("output-path", fmt_path(outPath)));
 
-  return true; // Success.
+  bool      success   = true;
+  DynString outBuffer = dynstring_create(g_allocHeap, usize_kibibyte * 16);
+
+  fmt_write(&outBuffer, "#pragma once\n\n");
+  fmt_write(&outBuffer, "// clang-format off\n");
+  fmt_write(&outBuffer, "enum {\n");
+  heap_array_for_t(cfg->entries, String, val) {
+    fmt_write(&outBuffer, "  ");
+    dynstring_append(&outBuffer, cfg->prefix);
+    fmt_write(&outBuffer, "Id_");
+    dynstring_append(&outBuffer, *val); // TODO: Either validate or escape invalid chars (eg space).
+    fmt_write(&outBuffer, " = {},\n", fmt_int(string_hash(*val)));
+  }
+  fmt_write(&outBuffer, "};\n");
+  fmt_write(&outBuffer, "// clang-format on\n");
+
+  if (file_write_to_path_sync(outPath, dynstring_view(&outBuffer)) != FileResult_Success) {
+    log_e("Failed to write output", log_param("path", fmt_path(outPath)));
+    success = false;
+    goto Ret;
+  }
+
+Ret:
+  dynstring_destroy(&outBuffer);
+  return success;
 }
 
 static CliId g_optConfigPath, g_optVerbose;
