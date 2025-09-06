@@ -2,6 +2,9 @@
   "outputPath": "include/scene/id.h",
   "prefix": "Scene",
   "entries": [
+    "hit",
+    "death",
+
     "EffectBurning",
     "EffectBleeding",
     "EffectVeteran",

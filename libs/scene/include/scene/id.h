@@ -2,12 +2,14 @@
 
 // clang-format off
 enum {
-  SceneId_EffectBurning = 1512305492,
-  SceneId_EffectBleeding = 4111375714,
-  SceneId_EffectVeteran = 781462266,
-  SceneId_STATUS_BURNING = 3417612726,
-  SceneId_STATUS_BLEEDING = 481228918,
-  SceneId_STATUS_HEALING = 293953976,
-  SceneId_STATUS_VETERAN = 3162569135,
+  SceneId_hit = 2729598185, // hit
+  SceneId_death = 2899093826, // death
+  SceneId_EffectBurning = 1512305492, // EffectBurning
+  SceneId_EffectBleeding = 4111375714, // EffectBleeding
+  SceneId_EffectVeteran = 781462266, // EffectVeteran
+  SceneId_STATUS_BURNING = 3417612726, // STATUS_BURNING
+  SceneId_STATUS_BLEEDING = 481228918, // STATUS_BLEEDING
+  SceneId_STATUS_HEALING = 293953976, // STATUS_HEALING
+  SceneId_STATUS_VETERAN = 3162569135, // STATUS_VETERAN
 };
 // clang-format on

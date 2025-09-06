@@ -11,6 +11,7 @@
 #include "scene/bark.h"
 #include "scene/creator.h"
 #include "scene/health.h"
+#include "scene/id.h"
 #include "scene/lifetime.h"
 #include "scene/prefab.h"
 #include "scene/renderable.h"
@@ -22,8 +23,6 @@
 #define health_anim_min_norm_dmg 0.025f
 #define health_anim_speed_min 0.8f
 #define health_anim_speed_max 1.2f
-
-static StringHash g_healthHitAnimHash, g_healthDeathAnimHash;
 
 ecs_comp_define(SceneHealthComp);
 ecs_comp_define(SceneHealthRequestComp);
@@ -106,7 +105,7 @@ static void health_clear_damaged(EcsWorld* world, const EcsEntityId entity, Scen
 
 static void health_anim_play_hit(SceneAnimationComp* anim) {
   SceneAnimLayer* hitAnimLayer;
-  if ((hitAnimLayer = scene_animation_layer_mut(anim, g_healthHitAnimHash))) {
+  if ((hitAnimLayer = scene_animation_layer_mut(anim, SceneId_hit))) {
     // Restart the animation if it has reached the end but don't rewind if its already playing.
     if (hitAnimLayer->time == hitAnimLayer->duration) {
       hitAnimLayer->flags |= SceneAnimFlags_Active;
@@ -118,7 +117,7 @@ static void health_anim_play_hit(SceneAnimationComp* anim) {
 
 static void health_anim_play_death(SceneAnimationComp* anim) {
   SceneAnimLayer* deathAnimLayer;
-  if ((deathAnimLayer = scene_animation_layer_mut(anim, g_healthDeathAnimHash))) {
+  if ((deathAnimLayer = scene_animation_layer_mut(anim, SceneId_death))) {
     deathAnimLayer->flags |= SceneAnimFlags_Active;
   }
 }
@@ -288,9 +287,6 @@ ecs_system_define(SceneHealthUpdateSys) {
 }
 
 ecs_module_init(scene_health_module) {
-  g_healthHitAnimHash   = string_hash_lit("hit");
-  g_healthDeathAnimHash = string_hash_lit("death");
-
   ecs_register_comp(SceneHealthComp);
   ecs_register_comp(
       SceneHealthRequestComp,
