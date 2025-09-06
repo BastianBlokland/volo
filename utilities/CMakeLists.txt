@@ -2,8 +2,8 @@
 # Utility applications cmake file.
 # --------------------------------------------------------------------------------------------------
 
-add_executable(schemasetup schemasetup.c)
-target_link_libraries(schemasetup PRIVATE app_cli asset log)
+add_executable(schemagen schemagen.c)
+target_link_libraries(schemagen PRIVATE app_cli asset log)
 
 add_executable(fetch fetch.c)
 target_link_libraries(fetch PRIVATE app_cli net log data)
@@ -11,8 +11,8 @@ target_link_libraries(fetch PRIVATE app_cli net log data)
 add_executable(pack pack.c)
 target_link_libraries(pack PRIVATE app_ecs log asset)
 
-add_executable(dbgsetup dbgsetup.c)
-target_link_libraries(dbgsetup PRIVATE app_cli json log)
+add_executable(dbggen dbggen.c)
+target_link_libraries(dbggen PRIVATE app_cli json log)
 
 add_executable(repl repl.c)
 target_link_libraries(repl PRIVATE app_cli script)

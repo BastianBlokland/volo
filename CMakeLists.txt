@@ -149,8 +149,8 @@ add_custom_target(run.volo
   COMMAND fetch "${CMAKE_SOURCE_DIR}/assets/fetch.json" VERBATIM USES_TERMINAL
   COMMAND volo "-wd" "--assets" "${CMAKE_SOURCE_DIR}/assets" VERBATIM USES_TERMINAL)
 
-add_custom_target(run.schemasetup
-  COMMAND schemasetup "${CMAKE_SOURCE_DIR}/assets/schemas/" VERBATIM USES_TERMINAL)
+add_custom_target(run.schemagen
+  COMMAND schemagen "${CMAKE_SOURCE_DIR}/assets/schemas/" VERBATIM USES_TERMINAL)
 
 add_custom_target(run.fetch
   COMMAND fetch "${CMAKE_SOURCE_DIR}/assets/fetch.json" VERBATIM USES_TERMINAL)
@@ -172,12 +172,12 @@ add_custom_target(run.repl
 add_custom_target(run.vkgen
   COMMAND vkgen "${CMAKE_SOURCE_DIR}/libs/rend/src/rvk/vulkan_api" VERBATIM USES_TERMINAL)
 
-add_custom_target(run.dbgsetup
-  COMMAND dbgsetup
+add_custom_target(run.dbggen
+  COMMAND dbggen
     "--debugger" "$<IF:$<STREQUAL:${VOLO_COMPILER},msvc>,cppvsdbg,lldb>"
     "--workspace" "${PROJECT_SOURCE_DIR}"
     "--targets" "$<TARGET_FILE:volo>"
-                "$<TARGET_FILE:schemasetup>"
+                "$<TARGET_FILE:schemagen>"
                 "$<TARGET_FILE:fetch>"
                 "$<TARGET_FILE:pack>"
                 "$<TARGET_FILE:repl>"
