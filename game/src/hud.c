@@ -385,7 +385,7 @@ static void hud_groups_draw(UiCanvasComp* c, GameCmdComp* cmd) {
             .fontSize   = 30,
             .frameColor = ui_color(32, 32, 32, 192),
             .tooltip    = fmt_write_scratch(
-                "{}: {}.", fmt_text(loc_translate_lit("HUD_INFO_SIZE")), fmt_int(size)))) {
+                "{}: {}.", fmt_text(loc_translate(GameId_HUD_INFO_SIZE)), fmt_int(size)))) {
       game_cmd_push_select_group(cmd, i);
     }
     ui_layout_next(c, Ui_Up, g_spacing);
@@ -467,7 +467,7 @@ static void hud_info_draw(UiCanvasComp* c, EcsIterator* infoItr, EcsIterator* we
   fmt_write(
       &buffer,
       "\a.b{}\ar:\a>15{}\n",
-      fmt_text(loc_translate_lit("HUD_INFO_NAME")),
+      fmt_text(loc_translate(GameId_HUD_INFO_NAME)),
       fmt_text(entityName));
   if (factionComp) {
     const String  factionName = loc_translate(hud_faction_name_loc(factionComp->id));
@@ -475,7 +475,7 @@ static void hud_info_draw(UiCanvasComp* c, EcsIterator* infoItr, EcsIterator* we
     fmt_write(
         &buffer,
         "\a.b{}\ar:\a>15{}{}\ar\n",
-        fmt_text(loc_translate_lit("HUD_INFO_FACTION")),
+        fmt_text(loc_translate(GameId_HUD_INFO_FACTION)),
         fmt_ui_color(color),
         fmt_text(factionName));
   }
@@ -485,12 +485,12 @@ static void hud_info_draw(UiCanvasComp* c, EcsIterator* infoItr, EcsIterator* we
     fmt_write(
         &buffer,
         "\a.b{}\ar:\a>15{} / {}\n",
-        fmt_text(loc_translate_lit("HUD_INFO_HEALTH")),
+        fmt_text(loc_translate(GameId_HUD_INFO_HEALTH)),
         fmt_int(healthVal),
         fmt_int(healthMaxVal));
   }
   if (statusComp && statusComp->active) {
-    fmt_write(&buffer, "\a.b{}\ar:\a>15", fmt_text(loc_translate_lit("HUD_INFO_STATUS")));
+    fmt_write(&buffer, "\a.b{}\ar:\a>15", fmt_text(loc_translate(GameId_HUD_INFO_STATUS)));
     hud_info_status_mask_write(statusComp->active, &buffer);
     dynstring_append_char(&buffer, '\n');
   }
@@ -498,7 +498,7 @@ static void hud_info_draw(UiCanvasComp* c, EcsIterator* infoItr, EcsIterator* we
     fmt_write(
         &buffer,
         "\a.b{}\ar:\a>15{} - {}\n",
-        fmt_text(loc_translate_lit("HUD_INFO_RANGE")),
+        fmt_text(loc_translate(GameId_HUD_INFO_RANGE)),
         fmt_float(targetFinderComp->rangeMin, .maxDecDigits = 1),
         fmt_float(targetFinderComp->rangeMax, .maxDecDigits = 1));
   }
@@ -510,13 +510,13 @@ static void hud_info_draw(UiCanvasComp* c, EcsIterator* infoItr, EcsIterator* we
       const f32 damageOrg  = asset_weapon_damage(weaponMap, weapon);
       const f32 damageMod  = damageOrg * damageMult;
       if (damageOrg > f32_epsilon) {
-        fmt_write(&buffer, "\a.b{}\ar:\a>15", fmt_text(loc_translate_lit("HUD_INFO_DAMAGE")));
+        fmt_write(&buffer, "\a.b{}\ar:\a>15", fmt_text(loc_translate(GameId_HUD_INFO_DAMAGE)));
         hud_info_stat_write(damageOrg, damageMod, &buffer);
         dynstring_append_char(&buffer, '\n');
       }
       const SceneStatusMask appliesStatus = asset_weapon_applies_status(weaponMap, weapon);
       if (appliesStatus) {
-        fmt_write(&buffer, "\a.b{}\ar:\a>15", fmt_text(loc_translate_lit("HUD_INFO_APPLY")));
+        fmt_write(&buffer, "\a.b{}\ar:\a>15", fmt_text(loc_translate(GameId_HUD_INFO_APPLY)));
         hud_info_status_mask_write(appliesStatus, &buffer);
         dynstring_append_char(&buffer, '\n');
       }
@@ -526,7 +526,7 @@ static void hud_info_draw(UiCanvasComp* c, EcsIterator* infoItr, EcsIterator* we
     const f32 speedMult = scene_status_move_speed(statusComp);
     const f32 speedOrg  = locoComp->maxSpeed;
     const f32 speedMod  = speedOrg * speedMult;
-    fmt_write(&buffer, "\a.b{}\ar:\a>15", fmt_text(loc_translate_lit("HUD_INFO_SPEED")));
+    fmt_write(&buffer, "\a.b{}\ar:\a>15", fmt_text(loc_translate(GameId_HUD_INFO_SPEED)));
     hud_info_stat_write(speedOrg, speedMod, &buffer);
     dynstring_append_char(&buffer, '\n');
   }
@@ -948,19 +948,19 @@ static void hud_production_queue_tooltip(UiCanvasComp* c, const AssetProduct* pr
     fmt_write(
         &buffer,
         "\a.b{}\ar:\a>10{}\n",
-        fmt_text(loc_translate_lit("HUD_INFO_NAME")),
+        fmt_text(loc_translate(GameId_HUD_INFO_NAME)),
         fmt_text(loc_translate(prod->name)));
   }
   fmt_write(
       &buffer,
       "\a.b{}\ar:\a>10{}\n",
-      fmt_text(loc_translate_lit("HUD_INFO_TIME")),
+      fmt_text(loc_translate(GameId_HUD_INFO_TIME)),
       fmt_duration(prod->costTime));
   if (prod->type == AssetProduct_Unit) {
     fmt_write(
         &buffer,
         "\a.b{}\ar:\a>10{}\n",
-        fmt_text(loc_translate_lit("HUD_INFO_COUNT")),
+        fmt_text(loc_translate(GameId_HUD_INFO_COUNT)),
         fmt_int(prod->data_unit.unitCount));
   }
   ui_tooltip(c, id, dynstring_view(&buffer));
@@ -994,7 +994,8 @@ static void hud_production_queue_draw(
     ui_style_push(c);
     ui_style_weight(c, UiWeight_Heavy);
     ui_style_transform(c, UiTransform_ToUpper);
-    ui_label(c, loc_translate_lit("HUD_INFO_READY"), .align = UiAlign_MiddleCenter, .fontSize = 25);
+    ui_label(
+        c, loc_translate(GameId_HUD_INFO_READY), .align = UiAlign_MiddleCenter, .fontSize = 25);
     ui_style_pop(c);
   }
   hud_production_queue_cost_draw(c, product);
