@@ -7,6 +7,12 @@
 /**
  * NOTE: Resulting string is allocated in scratch memory.
  */
+#define loc_translate_fmt(_KEY_, ...)                                                              \
+  format_write_formatted_scratch(loc_translate(_KEY_), fmt_args(__VA_ARGS__))
+
+/**
+ * NOTE: Resulting string is allocated in scratch memory.
+ */
 #define loc_translate_lit_fmt(_KEY_LIT_, ...)                                                      \
   format_write_formatted_scratch(loc_translate(string_hash_lit(_KEY_LIT_)), fmt_args(__VA_ARGS__))
 
