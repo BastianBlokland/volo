@@ -160,16 +160,25 @@ i32 app_cli_run(MAYBE_UNUSED const CliApp* app, const CliInvocation* invoc) {
   log_add_sink(g_logger, log_sink_pretty_default(g_allocHeap, g_fileStdOut, ~LogMask_Debug));
   log_add_sink(g_logger, log_sink_json_default(g_allocHeap, LogMask_All));
 
+  const CliParseValues targets = cli_parse_values(invoc, g_optTargets);
+
+  // Sort targets alphabetically.
+  String* targetsSorted = null;
+  if (targets.count) {
+    targetsSorted = alloc_array_t(g_allocHeap, String, targets.count);
+
+    const usize memSize = targets.count * sizeof(String);
+    mem_cpy(mem_create(targetsSorted, memSize), mem_create(targets.values, memSize));
+
+    sort_quicksort_t(targetsSorted, targetsSorted + targets.count, String, compare_string);
+  }
+
   DbgGenCtx ctx = {
       .dbg       = (DbgGenDbg)cli_read_choice_array(invoc, g_optDbg, g_dbgStrs, DbgGenDbg_Default),
       .workspace = cli_read_string(invoc, g_optWorkspace, string_empty),
-      .targets   = cli_parse_values(invoc, g_optTargets).values,
-      .targetCount = cli_parse_values(invoc, g_optTargets).count,
+      .targets   = targetsSorted,
+      .targetCount = targets.count,
   };
-
-  // Sort targets alphabetically.
-  // TODO: Its very questionable to modify the collection owned by the cli library.
-  sort_quicksort_t(ctx.targets, ctx.targets + ctx.targetCount, String, compare_string);
 
   log_i(
       "Generating debugger setup",
@@ -177,5 +186,9 @@ i32 app_cli_run(MAYBE_UNUSED const CliApp* app, const CliInvocation* invoc) {
       log_param("debugger", fmt_text(g_dbgStrs[ctx.dbg])),
       log_param("targets", fmt_int(ctx.targetCount)));
 
-  return dbggen_vscode_generate_launch_file(&ctx) ? 0 : 1;
+  const i32 res = dbggen_vscode_generate_launch_file(&ctx) ? 0 : 1;
+  if (targetsSorted) {
+    alloc_free_array_t(g_allocHeap, targetsSorted, targets.count);
+  }
+  return res;
 }
