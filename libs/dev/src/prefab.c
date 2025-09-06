@@ -360,7 +360,7 @@ static void prefab_create_update(const PrefabPanelContext* ctx) {
           fmt_float(pos.x, .minDecDigits = 1, .maxDecDigits = 1, .expThresholdNeg = 0),
           fmt_float(pos.z, .minDecDigits = 1, .maxDecDigits = 1, .expThresholdNeg = 0)));
 
-  if (input_triggered_lit(ctx->input, "DevPrefabCreate")) {
+  if (input_triggered_hash(ctx->input, DevId_DevPrefabCreate)) {
     prefab_create_accept(ctx, pos);
   }
 }

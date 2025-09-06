@@ -2005,7 +2005,7 @@ static void inspector_tool_picker_update(
   bool shouldClose = false;
   shouldClose |= set->toolPickerClose;
   shouldClose |= cameraItr == null;
-  shouldClose |= input_triggered_lit(input, "DevInspectorPickerClose");
+  shouldClose |= input_triggered_hash(input, DevId_DevInspectorPickerClose);
 
   if (shouldClose) {
     set->tool = set->toolPickerPrevTool;
@@ -2095,39 +2095,39 @@ ecs_system_define(DevInspectorToolUpdateSys) {
     }
     return; // Tools are only active in development mode.
   }
-  if (input_triggered_lit(input, "DevInspectorToolTranslation")) {
+  if (input_triggered_hash(input, DevId_DevInspectorToolTranslation)) {
     inspector_tool_toggle(set, DevInspectorTool_Translation);
     dev_stats_notify(stats, string_lit("Tool"), g_toolNames[set->tool]);
   }
-  if (input_triggered_lit(input, "DevInspectorToolRotation")) {
+  if (input_triggered_hash(input, DevId_DevInspectorToolRotation)) {
     inspector_tool_toggle(set, DevInspectorTool_Rotation);
     dev_stats_notify(stats, string_lit("Tool"), g_toolNames[set->tool]);
   }
-  if (input_triggered_lit(input, "DevInspectorToolScale")) {
+  if (input_triggered_hash(input, DevId_DevInspectorToolScale)) {
     inspector_tool_toggle(set, DevInspectorTool_Scale);
     dev_stats_notify(stats, string_lit("Tool"), g_toolNames[set->tool]);
   }
-  if (input_triggered_lit(input, "DevInspectorToggleSpace")) {
+  if (input_triggered_hash(input, DevId_DevInspectorToggleSpace)) {
     set->space = (set->space + 1) % DevInspectorSpace_Count;
     dev_stats_notify(stats, string_lit("Space"), g_spaceNames[set->space]);
   }
-  if (input_triggered_lit(input, "DevInspectorToggleNavLayer")) {
+  if (input_triggered_hash(input, DevId_DevInspectorToggleNavLayer)) {
     set->visNavLayer = (set->visNavLayer + 1) % SceneNavLayer_Count;
     dev_stats_notify(stats, string_lit("Space"), g_sceneNavLayerNames[set->visNavLayer]);
   }
-  if (input_triggered_lit(input, "DevInspectorDestroy")) {
+  if (input_triggered_hash(input, DevId_DevInspectorDestroy)) {
     inspector_tool_destroy(world, setEnv);
     dev_stats_notify(stats, string_lit("Tool"), string_lit("Destroy"));
   }
-  if (input_triggered_lit(input, "DevInspectorDrop")) {
+  if (input_triggered_hash(input, DevId_DevInspectorDrop)) {
     inspector_tool_drop(world, setEnv, terrain);
     dev_stats_notify(stats, string_lit("Tool"), string_lit("Drop"));
   }
-  if (input_triggered_lit(input, "DevInspectorDuplicate")) {
+  if (input_triggered_hash(input, DevId_DevInspectorDuplicate)) {
     inspector_tool_duplicate(world, setEnv);
     dev_stats_notify(stats, string_lit("Tool"), string_lit("Duplicate"));
   }
-  if (input_triggered_lit(input, "DevInspectorSelectAll")) {
+  if (input_triggered_hash(input, DevId_DevInspectorSelectAll)) {
     inspector_tool_select_all(world, setEnv);
     dev_stats_notify(stats, string_lit("Tool"), string_lit("Select all"));
   }

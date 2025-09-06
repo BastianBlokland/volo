@@ -293,16 +293,16 @@ ecs_system_define(DevGridUpdateSys) {
     if (grid->flags & DevGridFlags_HeightAuto) {
       grid->height = dev_selection_height(setEnv, transformView);
     }
-    if (input_triggered_lit(input, "DevGridShow")) {
+    if (input_triggered_hash(input, DevId_DevGridShow)) {
       grid->flags ^= DevGridFlags_Show;
       grid_notify_show(stats, (grid->flags & DevGridFlags_Show) != 0);
     }
-    if (input_triggered_lit(input, "DevGridScaleUp")) {
+    if (input_triggered_hash(input, DevId_DevGridScaleUp)) {
       grid->cellSize = math_min(grid->cellSize * 2.0f, g_gridCellSizeMax);
       grid->flags |= DevGridFlags_Show;
       grid_notify_cell_size(stats, grid->cellSize);
     }
-    if (input_triggered_lit(input, "DevGridScaleDown")) {
+    if (input_triggered_hash(input, DevId_DevGridScaleDown)) {
       grid->cellSize = math_max(grid->cellSize * 0.5f, g_gridCellSizeMin);
       grid->flags |= DevGridFlags_Show;
       grid_notify_cell_size(stats, grid->cellSize);

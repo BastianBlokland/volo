@@ -362,7 +362,7 @@ ecs_system_define(DevMenuUpdateSys) {
 
     menu_action_bar_draw(world, panelEntity, canvas, input, menu, statsGlobal, menu->window, win);
 
-    if (input_triggered_lit(input, "DevPanelClose")) {
+    if (input_triggered_hash(input, DevId_DevPanelClose)) {
       const EcsEntityId topmostChild = menu_child_topmost(world, menu);
       if (topmostChild) {
         ui_canvas_sound(canvas, UiSoundType_ClickAlt);
