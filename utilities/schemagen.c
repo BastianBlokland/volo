@@ -31,7 +31,7 @@
 #include "script/binder.h"
 
 /**
- * SchemaSetup - Utility to generate schema's for various asset formats used in Volo.
+ * SchemaGenerator - Utility to generate schema's for various asset formats used in Volo.
  *
  * Types of schemas:
  * - JsonSchema:   Validation schema supported for all of the json asset types.

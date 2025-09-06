@@ -2,8 +2,8 @@
 # Utility applications cmake file.
 # --------------------------------------------------------------------------------------------------
 
-add_executable(schemasetup schemasetup.c)
-target_link_libraries(schemasetup PRIVATE app_cli asset log)
+add_executable(schemagen schemagen.c)
+target_link_libraries(schemagen PRIVATE app_cli asset log)
 
 add_executable(fetch fetch.c)
 target_link_libraries(fetch PRIVATE app_cli net log data)
