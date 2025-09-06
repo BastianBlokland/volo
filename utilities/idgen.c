@@ -94,7 +94,7 @@ static bool idgen_run(const IdGenConfig* cfg, const String outPath) {
     dynstring_append(&outBuffer, cfg->prefix);
     fmt_write(&outBuffer, "Id_");
     dynstring_append(&outBuffer, *val); // TODO: Either validate or escape invalid chars (eg space).
-    fmt_write(&outBuffer, " = {},\n", fmt_int(string_hash(*val)));
+    fmt_write(&outBuffer, " = {}, // {}\n", fmt_int(string_hash(*val)), fmt_text(*val));
   }
   fmt_write(&outBuffer, "};\n");
   fmt_write(&outBuffer, "// clang-format on\n");
