@@ -2,6 +2,10 @@
   "outputPath": "include/scene/id.h",
   "prefix": "Scene",
   "entries": [
+    "EffectBurning",
+    "EffectBleeding",
+    "EffectVeteran",
+
     "STATUS_BURNING",
     "STATUS_BLEEDING",
     "STATUS_HEALING",

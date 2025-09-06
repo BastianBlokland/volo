@@ -36,10 +36,10 @@ static const f32 g_sceneStatusDamage[SceneStatusType_Count] = {
     [SceneStatusType_Healing]  = 1.0f,
     [SceneStatusType_Veteran]  = 1.25f,
 };
-static const String g_sceneStatusEffectPrefabs[SceneStatusType_Count] = {
-    [SceneStatusType_Burning]  = string_static("EffectBurning"),
-    [SceneStatusType_Bleeding] = string_static("EffectBleeding"),
-    [SceneStatusType_Veteran]  = string_static("EffectVeteran"),
+static const StringHash g_sceneStatusEffectPrefabs[SceneStatusType_Count] = {
+    [SceneStatusType_Burning]  = SceneId_EffectBurning,
+    [SceneStatusType_Bleeding] = SceneId_EffectBleeding,
+    [SceneStatusType_Veteran]  = SceneId_EffectVeteran,
 };
 static const TimeDuration g_sceneStatusTimeout[SceneStatusType_Count] = {
     [SceneStatusType_Burning]  = time_seconds(4),
@@ -69,14 +69,14 @@ static EcsEntityId status_effect_create(
     const EcsEntityId      owner,
     const SceneStatusComp* status,
     const SceneStatusType  type) {
-  if (string_is_empty(g_sceneStatusEffectPrefabs[type])) {
+  if (!g_sceneStatusEffectPrefabs[type]) {
     return 0;
   }
   const EcsEntityId result = scene_prefab_spawn(
       world,
       &(ScenePrefabSpec){
           .flags    = ScenePrefabFlags_Volatile,
-          .prefabId = string_hash(g_sceneStatusEffectPrefabs[type]), // TODO: Cache hashed name.
+          .prefabId = g_sceneStatusEffectPrefabs[type],
           .faction  = SceneFaction_None,
           .rotation = geo_quat_ident,
       });
