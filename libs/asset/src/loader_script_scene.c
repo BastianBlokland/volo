@@ -674,6 +674,7 @@ void asset_data_init_script_scene(void) {
     const ScriptSigArg args[] = {
         {string_lit("pos"), script_mask_vec3},
         {string_lit("type"), script_mask_str},
+        {string_lit("radius"), script_mask_num | script_mask_null},
     };
     bind(binder, name, doc, ret, args, array_elems(args));
   }

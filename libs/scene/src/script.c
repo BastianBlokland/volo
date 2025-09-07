@@ -1698,14 +1698,15 @@ static ScriptVal eval_joint_position(EvalContext* ctx, ScriptBinderCall* call) {
 }
 
 static ScriptVal eval_marker_spawn(EvalContext* ctx, ScriptBinderCall* call) {
-  const GeoVector       pos  = script_arg_vec3(call, 0);
-  const SceneMarkerType type = script_arg_enum(call, 1, &g_scriptEnumMarkerType);
+  const GeoVector       pos    = script_arg_vec3(call, 0);
+  const SceneMarkerType type   = script_arg_enum(call, 1, &g_scriptEnumMarkerType);
+  const f32             radius = (f32)script_arg_opt_num_range(call, 2, 0.0, 100.0, 0.0);
 
   const EcsEntityId result = ecs_world_entity_create(ctx->world);
   ecs_world_add_t(ctx->world, result, SceneCreatorComp, .creator = ctx->instigator);
   ecs_world_add_t(
       ctx->world, result, SceneTransformComp, .position = pos, .rotation = geo_quat_ident);
-  ecs_world_add_t(ctx->world, result, SceneMarkerComp, .type = type);
+  ecs_world_add_t(ctx->world, result, SceneMarkerComp, .type = type, .radius = radius);
   ecs_world_add_empty_t(ctx->world, result, SceneLevelInstanceComp);
   return script_entity(result);
 }

@@ -327,7 +327,11 @@
         "ret": "entity",
         "args": [
           { "name": "pos", "mask": "vec3" },
-          { "name": "type", "mask": "str" }
+          { "name": "type", "mask": "str" },
+          {
+            "name": "radius",
+            "mask": [ "null", "num" ]
+          }
         ]
       }
     },
