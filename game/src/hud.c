@@ -65,13 +65,12 @@ static const UiColor g_hudStatusIconColors[SceneStatusType_Count] = {
     [SceneStatusType_Healing]  = {.r = 0, .g = 255, .b = 0, .a = 255},
     [SceneStatusType_Veteran]  = {.r = 255, .g = 175, .b = 55, .a = 255},
 };
-static const UiVector g_hudStatusIconSize    = {.x = 15.0f, .y = 15.0f};
-static const UiVector g_hudStatusSpacing     = {.x = 2.0f, .y = 4.0f};
-static const UiVector g_hudMinimapSize       = {.x = 400.0f, .y = 400.0f};
-static const f32      g_hudMinimapAlpha      = 0.95f;
-static const f32      g_hudMinimapMarkerSize = 5.0f;
-static const f32      g_hudMinimapLineWidth  = 2.5f;
-static const UiVector g_hudProductionSize    = {.x = 400.0f, .y = 500.0f};
+static const UiVector g_hudStatusIconSize   = {.x = 15.0f, .y = 15.0f};
+static const UiVector g_hudStatusSpacing    = {.x = 2.0f, .y = 4.0f};
+static const UiVector g_hudMinimapSize      = {.x = 400.0f, .y = 400.0f};
+static const f32      g_hudMinimapAlpha     = 0.95f;
+static const f32      g_hudMinimapLineWidth = 2.5f;
+static const UiVector g_hudProductionSize   = {.x = 400.0f, .y = 500.0f};
 static StringHash     g_hudProductQueueActions[3];
 
 ecs_comp_define(GameHudComp) {
@@ -623,6 +622,7 @@ typedef struct {
   UiVector pos;
   UiColor  color;
   Unicode  glyph;
+  f32      size;
 } HudMinimapMarker;
 
 #define hud_minimap_marker_max 2048
@@ -648,8 +648,8 @@ static u32 hud_minimap_marker_collect(
       glyph = 'i';
       break;
     case SceneMarkerType_Danger:
-      color = ui_color_orange;
-      glyph = '!';
+      color = ui_color_red;
+      glyph = UiShape_Error;
       break;
     case SceneMarkerType_Count:
       UNREACHABLE
@@ -659,6 +659,7 @@ static u32 hud_minimap_marker_collect(
         .pos   = hud_minimap_pos(transComp->position, areaSize),
         .color = color,
         .glyph = glyph,
+        .size  = 15.0f,
     };
 
     if (UNLIKELY(count == hud_minimap_marker_max)) {
@@ -688,6 +689,7 @@ static u32 hud_minimap_marker_collect(
         .pos   = hud_minimap_pos(transComp->position, areaSize),
         .color = hud_faction_color(factionComp ? factionComp->id : SceneFaction_None),
         .glyph = UiShape_Circle,
+        .size  = 5.0f,
     };
 
     if (UNLIKELY(count == hud_minimap_marker_max)) {
@@ -745,14 +747,14 @@ static void hud_minimap_draw(
 
   // Draw markers.
   ui_layout_push(c);
-  const UiVector markerSize = ui_vector(g_hudMinimapMarkerSize, g_hudMinimapMarkerSize);
-  ui_layout_resize(c, UiAlign_MiddleCenter, markerSize, UiBase_Absolute, Ui_XY);
 
-  // Draw marker outlines..
+  // Draw marker outlines.
   ui_style_outline(c, 2);
   ui_style_color(c, ui_color_black);
   for (u32 i = 0; i != markerCount; ++i) {
-    const HudMinimapMarker* marker = &markers[i];
+    const HudMinimapMarker* marker     = &markers[i];
+    const UiVector          markerSize = ui_vector(marker->size, marker->size);
+    ui_layout_resize(c, UiAlign_MiddleCenter, markerSize, UiBase_Absolute, Ui_XY);
     ui_layout_set_pos(c, UiBase_Container, marker->pos, UiBase_Container);
     ui_canvas_draw_glyph(c, marker->glyph, 0 /* maxCorner */, UiFlags_None);
   }
@@ -762,6 +764,8 @@ static void hud_minimap_draw(
   for (u32 i = 0; i != markerCount; ++i) {
     const HudMinimapMarker* marker = &markers[i];
     ui_style_color(c, marker->color);
+    const UiVector markerSize = ui_vector(marker->size, marker->size);
+    ui_layout_resize(c, UiAlign_MiddleCenter, markerSize, UiBase_Absolute, Ui_XY);
     ui_layout_set_pos(c, UiBase_Container, marker->pos, UiBase_Container);
     ui_canvas_draw_glyph(c, marker->glyph, 0 /* maxCorner */, UiFlags_None);
   }
