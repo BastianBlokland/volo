@@ -22,6 +22,7 @@
 #include "scene/light.h"
 #include "scene/location.h"
 #include "scene/locomotion.h"
+#include "scene/marker.h"
 #include "scene/name.h"
 #include "scene/nav.h"
 #include "scene/prefab.h"
@@ -97,7 +98,8 @@ static ScriptEnum g_scriptEnumFaction,
                   g_scriptEnumQueryOption,
                   g_scriptEnumStatus,
                   g_scriptEnumBark,
-                  g_scriptEnumHealthStat;
+                  g_scriptEnumHealthStat,
+                  g_scriptEnumMarkerType;
 
 // clang-format on
 
@@ -243,6 +245,12 @@ static void eval_enum_init_bark(void) {
 static void eval_enum_init_health_stat(void) {
   for (SceneHealthStat stat = 0; stat != SceneHealthStat_Count; ++stat) {
     script_enum_push(&g_scriptEnumHealthStat, scene_health_stat_name(stat), stat);
+  }
+}
+
+static void eval_enum_init_marker_type(void) {
+  for (SceneMarkerType type = 0; type != SceneMarkerType_Count; ++type) {
+    script_enum_push(&g_scriptEnumMarkerType, scene_marker_name(type), type);
   }
 }
 
@@ -1689,6 +1697,19 @@ static ScriptVal eval_joint_position(EvalContext* ctx, ScriptBinderCall* call) {
   return script_vec3(jointPos);
 }
 
+static ScriptVal eval_marker_spawn(EvalContext* ctx, ScriptBinderCall* call) {
+  const GeoVector       pos  = script_arg_vec3(call, 0);
+  const SceneMarkerType type = script_arg_enum(call, 1, &g_scriptEnumMarkerType);
+
+  const EcsEntityId result = ecs_world_entity_create(ctx->world);
+  ecs_world_add_t(ctx->world, result, SceneCreatorComp, .creator = ctx->instigator);
+  ecs_world_add_t(
+      ctx->world, result, SceneTransformComp, .position = pos, .rotation = geo_quat_ident);
+  ecs_world_add_t(ctx->world, result, SceneMarkerComp, .type = type);
+  ecs_world_add_empty_t(ctx->world, result, SceneLevelInstanceComp);
+  return script_entity(result);
+}
+
 static ScriptVal eval_random_of(EvalContext* ctx, ScriptBinderCall* call) {
   (void)ctx;
   /**
@@ -1957,6 +1978,7 @@ static void eval_binder_init(void) {
     eval_enum_init_status();
     eval_enum_init_bark();
     eval_enum_init_health_stat();
+    eval_enum_init_marker_type();
 
     // clang-format off
     eval_bind(b, string_lit("self"),                   eval_self);
@@ -2020,6 +2042,7 @@ static void eval_binder_init(void) {
     eval_bind(b, string_lit("sound_param"),            eval_sound_param);
     eval_bind(b, string_lit("anim_param"),             eval_anim_param);
     eval_bind(b, string_lit("joint_position"),         eval_joint_position);
+    eval_bind(b, string_lit("marker_spawn"),           eval_marker_spawn);
     eval_bind(b, string_lit("random_of"),              eval_random_of);
     eval_bind(b, string_lit("debug_log"),              eval_debug_log);
     eval_bind(b, string_lit("debug_line"),             eval_debug_line);

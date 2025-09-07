@@ -321,6 +321,17 @@
       }
     },
     {
+      "name": "marker_spawn",
+      "doc": "Spawn a new marker.\n\n*Note*: Resulting entity is not automatically destroyed.\n\nSupported types:\n\n-`Info`\n\n-`Danger`",
+      "sig": {
+        "ret": "entity",
+        "args": [
+          { "name": "pos", "mask": "vec3" },
+          { "name": "type", "mask": "str" }
+        ]
+      }
+    },
+    {
       "name": "debug_orientation",
       "doc": "Draw a 3D orientation gizmos.",
       "sig": {
@@ -349,7 +360,7 @@
       "name": "sound_spawn",
       "doc": "Spawn a sound instance.\n\n*Note*: Resulting entity is not automatically destroyed.\n\n*Note*: It takes one frame before it can be used with the 'sound_param()' api.",
       "sig": {
-        "ret": [ "null", "entity" ],
+        "ret": "entity",
         "args": [
           { "name": "asset", "mask": "entity" },
           {
