@@ -28,4 +28,7 @@ if ($nextWaveTime <= time()) {
 
     prefab_spawn(unitPrefab, posUnblocked, rot, scale, faction)
   }
+
+  var marker = marker_spawn(center, "Danger")
+  destroy_after(marker, 3.0)
 }
