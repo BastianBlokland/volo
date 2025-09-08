@@ -25,6 +25,7 @@
 #include "scene/id.h"
 #include "scene/lifetime.h"
 #include "scene/locomotion.h"
+#include "scene/marker.h"
 #include "scene/name.h"
 #include "scene/product.h"
 #include "scene/set.h"
@@ -68,7 +69,6 @@ static const UiVector g_hudStatusIconSize   = {.x = 15.0f, .y = 15.0f};
 static const UiVector g_hudStatusSpacing    = {.x = 2.0f, .y = 4.0f};
 static const UiVector g_hudMinimapSize      = {.x = 400.0f, .y = 400.0f};
 static const f32      g_hudMinimapAlpha     = 0.95f;
-static const f32      g_hudMinimapDotRadius = 2.0f;
 static const f32      g_hudMinimapLineWidth = 2.5f;
 static const UiVector g_hudProductionSize   = {.x = 400.0f, .y = 500.0f};
 static StringHash     g_hudProductQueueActions[3];
@@ -130,6 +130,11 @@ ecs_view_define(InfoView) {
 }
 
 ecs_view_define(MinimapMarkerView) {
+  ecs_access_read(SceneTransformComp);
+  ecs_access_read(SceneMarkerComp);
+}
+
+ecs_view_define(MinimapUnitView) {
   ecs_access_maybe_read(SceneFactionComp);
   ecs_access_maybe_read(SceneVisibilityComp);
   ecs_access_read(SceneHealthComp);
@@ -616,18 +621,23 @@ static bool hud_minimap_camera_frustum(
 typedef struct {
   UiVector pos;
   UiColor  color;
+  Unicode  glyph;
+  f32      glyphSize;
+  f32      radius;
 } HudMinimapMarker;
 
 #define hud_minimap_marker_max 2048
 
 static u32 hud_minimap_marker_collect(
     EcsView*         markerView,
+    EcsView*         unitView,
     const GeoVector  areaSize,
     HudMinimapMarker out[PARAM_ARRAY_SIZE(hud_minimap_marker_max)]) {
   const StringHash minimapSet = GameId_minimap;
+  u32              count      = 0;
 
-  u32 count = 0;
-  for (EcsIterator* itr = ecs_view_itr(markerView); ecs_view_walk(itr);) {
+  // Add unit markers.
+  for (EcsIterator* itr = ecs_view_itr(unitView); ecs_view_walk(itr);) {
     const SceneFactionComp*    factionComp = ecs_view_read_t(itr, SceneFactionComp);
     const SceneHealthComp*     health      = ecs_view_read_t(itr, SceneHealthComp);
     const SceneTransformComp*  transComp   = ecs_view_read_t(itr, SceneTransformComp);
@@ -645,14 +655,51 @@ static u32 hud_minimap_marker_collect(
     }
 
     out[count++] = (HudMinimapMarker){
-        .pos   = hud_minimap_pos(transComp->position, areaSize),
-        .color = hud_faction_color(factionComp ? factionComp->id : SceneFaction_None),
+        .pos       = hud_minimap_pos(transComp->position, areaSize),
+        .color     = hud_faction_color(factionComp ? factionComp->id : SceneFaction_None),
+        .glyph     = UiShape_Circle,
+        .glyphSize = 5.0f,
     };
 
     if (UNLIKELY(count == hud_minimap_marker_max)) {
-      break;
+      goto Ret;
     }
   }
+
+  // Add explicit markers.
+  for (EcsIterator* itr = ecs_view_itr(markerView); ecs_view_walk(itr);) {
+    const SceneTransformComp* transComp  = ecs_view_read_t(itr, SceneTransformComp);
+    const SceneMarkerComp*    markerComp = ecs_view_read_t(itr, SceneMarkerComp);
+
+    UiColor color;
+    Unicode glyph;
+    switch (markerComp->type) {
+    case SceneMarkerType_Info:
+      color = ui_color_white;
+      glyph = UiShape_Error; // Exclamation mark.
+      break;
+    case SceneMarkerType_Danger:
+      color = ui_color_red;
+      glyph = UiShape_Error; // Exclamation mark.
+      break;
+    case SceneMarkerType_Count:
+      UNREACHABLE
+    }
+
+    out[count++] = (HudMinimapMarker){
+        .pos       = hud_minimap_pos(transComp->position, areaSize),
+        .color     = color,
+        .glyph     = glyph,
+        .glyphSize = 15.0f,
+        .radius    = markerComp->radius / areaSize.x, // NOTE: Only supports square play area.
+    };
+
+    if (UNLIKELY(count == hud_minimap_marker_max)) {
+      goto Ret;
+    }
+  }
+
+Ret:
   return count;
 }
 
@@ -663,7 +710,8 @@ static void hud_minimap_draw(
     const SceneTerrainComp*   terrain,
     const SceneCameraComp*    cam,
     const SceneTransformComp* camTrans,
-    EcsView*                  markerView) {
+    EcsView*                  markerView,
+    EcsView*                  unitView) {
   const UiVector canvasRes    = ui_canvas_resolution(c);
   const f32      canvasAspect = (f32)canvasRes.width / (f32)canvasRes.height;
 
@@ -695,21 +743,38 @@ static void hud_minimap_draw(
     game_input_camera_center(inputState, geo_vector(x, 0, z));
   }
 
-  const UiCircleOpts circleOpts = {.base = UiBase_Container, .radius = g_hudMinimapDotRadius};
-  const UiLineOpts   lineOpts   = {.base = UiBase_Container, .width = g_hudMinimapLineWidth};
-
   ui_layout_container_push(c, UiClip_Rect, UiLayer_Normal);
 
   // Collect markers.
   HudMinimapMarker markers[hud_minimap_marker_max];
-  const u32        markerCount = hud_minimap_marker_collect(markerView, areaSize, markers);
+  const u32 markerCount = hud_minimap_marker_collect(markerView, unitView, areaSize, markers);
+
+  // Draw markers.
+  ui_layout_push(c);
+
+  // Draw radius area.
+  ui_style_outline(c, 1);
+  for (u32 i = 0; i != markerCount; ++i) {
+    const HudMinimapMarker* marker = &markers[i];
+    if (marker->radius < f32_epsilon) {
+      continue;
+    }
+    ui_style_color(c, ui_color(marker->color.r, marker->color.g, marker->color.b, 32));
+    const UiVector size = ui_vector(marker->radius * 2.0f, marker->radius * 2.0f);
+    ui_layout_set_pos(c, UiBase_Container, marker->pos, UiBase_Container);
+    ui_layout_resize(c, UiAlign_MiddleCenter, size, UiBase_Container, Ui_XY);
+    ui_canvas_draw_glyph(c, UiShape_Circle, 0 /* maxCorner */, UiFlags_None);
+  }
 
   // Draw marker outlines.
   ui_style_outline(c, 2);
   ui_style_color(c, ui_color_black);
   for (u32 i = 0; i != markerCount; ++i) {
-    const HudMinimapMarker* marker = &markers[i];
-    ui_circle_with_opts(c, marker->pos, &circleOpts);
+    const HudMinimapMarker* marker     = &markers[i];
+    const UiVector          markerSize = ui_vector(marker->glyphSize, marker->glyphSize);
+    ui_layout_set_pos(c, UiBase_Container, marker->pos, UiBase_Container);
+    ui_layout_resize(c, UiAlign_MiddleCenter, markerSize, UiBase_Absolute, Ui_XY);
+    ui_canvas_draw_glyph(c, marker->glyph, 0 /* maxCorner */, UiFlags_None);
   }
 
   // Draw marker fill.
@@ -717,12 +782,17 @@ static void hud_minimap_draw(
   for (u32 i = 0; i != markerCount; ++i) {
     const HudMinimapMarker* marker = &markers[i];
     ui_style_color(c, marker->color);
-    ui_circle_with_opts(c, marker->pos, &circleOpts);
+    const UiVector markerSize = ui_vector(marker->glyphSize, marker->glyphSize);
+    ui_layout_set_pos(c, UiBase_Container, marker->pos, UiBase_Container);
+    ui_layout_resize(c, UiAlign_MiddleCenter, markerSize, UiBase_Absolute, Ui_XY);
+    ui_canvas_draw_glyph(c, marker->glyph, 0 /* maxCorner */, UiFlags_None);
   }
+  ui_layout_pop(c);
 
   // Draw camera frustum.
   ui_style_outline(c, 0);
-  UiVector camFrustumPoints[4];
+  const UiLineOpts lineOpts = {.base = UiBase_Container, .width = g_hudMinimapLineWidth};
+  UiVector         camFrustumPoints[4];
   if (hud_minimap_camera_frustum(cam, camTrans, canvasAspect, areaSize, camFrustumPoints)) {
     ui_style_color(c, ui_color_white);
     ui_line_with_opts(c, camFrustumPoints[0], camFrustumPoints[1], &lineOpts);
@@ -736,6 +806,28 @@ static void hud_minimap_draw(
 
   ui_style_pop(c);
   ui_layout_pop(c);
+}
+
+static void
+hud_markers_draw(GameHudComp* hud, EcsIterator* rendObjItr, EcsView* minimapMarkerView) {
+  for (EcsIterator* itr = ecs_view_itr(minimapMarkerView); ecs_view_walk(itr);) {
+    const SceneTransformComp* transComp  = ecs_view_read_t(itr, SceneTransformComp);
+    const SceneMarkerComp*    markerComp = ecs_view_read_t(itr, SceneMarkerComp);
+    const f32                 radius = markerComp->radius < f32_epsilon ? 0.25 : markerComp->radius;
+
+    UiColor color;
+    switch (markerComp->type) {
+    case SceneMarkerType_Info:
+      color = ui_color(255, 255, 255, 64);
+      break;
+    case SceneMarkerType_Danger:
+      color = ui_color(255, 0, 0, 64);
+      break;
+    case SceneMarkerType_Count:
+      UNREACHABLE
+    }
+    hud_indicator_ring_draw(hud, rendObjItr, transComp->position, radius, color);
+  }
 }
 
 static void hud_actions_draw(UiCanvasComp* c, GameHudComp* hud, const InputManagerComp* input) {
@@ -1106,6 +1198,7 @@ ecs_system_define(GameHudDrawSys) {
   EcsView* infoView          = ecs_world_view_t(world, InfoView);
   EcsView* weaponMapView     = ecs_world_view_t(world, WeaponMapView);
   EcsView* minimapMarkerView = ecs_world_view_t(world, MinimapMarkerView);
+  EcsView* minimapUnitView   = ecs_world_view_t(world, MinimapUnitView);
   EcsView* productionView    = ecs_world_view_t(world, ProductionView);
   EcsView* visionView        = ecs_world_view_t(world, VisionView);
 
@@ -1152,9 +1245,11 @@ ecs_system_define(GameHudDrawSys) {
     hud_groups_draw(c, cmd);
 
     trace_begin("game_hud_minimap", TraceColor_White);
-    hud_minimap_draw(c, hud, inputState, terrain, cam, camTrans, minimapMarkerView);
+    hud_minimap_draw(
+        c, hud, inputState, terrain, cam, camTrans, minimapMarkerView, minimapUnitView);
     trace_end();
 
+    hud_markers_draw(hud, rendObjItr, minimapMarkerView);
     hud_actions_draw(c, hud, input);
 
     if (ecs_view_maybe_jump(visionItr, scene_set_main(setEnv, SceneId_selected))) {
@@ -1185,6 +1280,7 @@ ecs_module_init(game_hud_module) {
   ecs_register_view(InfoView);
   ecs_register_view(WeaponMapView);
   ecs_register_view(MinimapMarkerView);
+  ecs_register_view(MinimapUnitView);
   ecs_register_view(ProductionView);
   ecs_register_view(VisionView);
 
@@ -1198,6 +1294,7 @@ ecs_module_init(game_hud_module) {
       ecs_view_id(InfoView),
       ecs_view_id(WeaponMapView),
       ecs_view_id(MinimapMarkerView),
+      ecs_view_id(MinimapUnitView),
       ecs_view_id(ProductionView),
       ecs_view_id(VisionView));
 
