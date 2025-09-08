@@ -622,7 +622,8 @@ typedef struct {
   UiVector pos;
   UiColor  color;
   Unicode  glyph;
-  f32      size;
+  f32      glyphSize;
+  f32      radius;
 } HudMinimapMarker;
 
 #define hud_minimap_marker_max 2048
@@ -645,21 +646,22 @@ static u32 hud_minimap_marker_collect(
     switch (markerComp->type) {
     case SceneMarkerType_Info:
       color = ui_color_white;
-      glyph = 'i';
+      glyph = UiShape_Error; // Exclamation mark.
       break;
     case SceneMarkerType_Danger:
       color = ui_color_red;
-      glyph = UiShape_Error;
+      glyph = UiShape_Error; // Exclamation mark.
       break;
     case SceneMarkerType_Count:
       UNREACHABLE
     }
 
     out[count++] = (HudMinimapMarker){
-        .pos   = hud_minimap_pos(transComp->position, areaSize),
-        .color = color,
-        .glyph = glyph,
-        .size  = 15.0f,
+        .pos       = hud_minimap_pos(transComp->position, areaSize),
+        .color     = color,
+        .glyph     = glyph,
+        .glyphSize = 15.0f,
+        .radius    = markerComp->radius / areaSize.x, // NOTE: Only supports square play area.
     };
 
     if (UNLIKELY(count == hud_minimap_marker_max)) {
@@ -686,10 +688,10 @@ static u32 hud_minimap_marker_collect(
     }
 
     out[count++] = (HudMinimapMarker){
-        .pos   = hud_minimap_pos(transComp->position, areaSize),
-        .color = hud_faction_color(factionComp ? factionComp->id : SceneFaction_None),
-        .glyph = UiShape_Circle,
-        .size  = 5.0f,
+        .pos       = hud_minimap_pos(transComp->position, areaSize),
+        .color     = hud_faction_color(factionComp ? factionComp->id : SceneFaction_None),
+        .glyph     = UiShape_Circle,
+        .glyphSize = 5.0f,
     };
 
     if (UNLIKELY(count == hud_minimap_marker_max)) {
@@ -748,12 +750,26 @@ static void hud_minimap_draw(
   // Draw markers.
   ui_layout_push(c);
 
+  // Draw radius area.
+  ui_style_outline(c, 1);
+  for (u32 i = 0; i != markerCount; ++i) {
+    const HudMinimapMarker* marker = &markers[i];
+    if (marker->radius < f32_epsilon) {
+      continue;
+    }
+    ui_style_color(c, ui_color(marker->color.r, marker->color.g, marker->color.b, 32));
+    const UiVector size = ui_vector(marker->radius * 2.0f, marker->radius * 2.0f);
+    ui_layout_set_pos(c, UiBase_Container, marker->pos, UiBase_Container);
+    ui_layout_resize(c, UiAlign_MiddleCenter, size, UiBase_Container, Ui_XY);
+    ui_canvas_draw_glyph(c, UiShape_Circle, 0 /* maxCorner */, UiFlags_None);
+  }
+
   // Draw marker outlines.
   ui_style_outline(c, 2);
   ui_style_color(c, ui_color_black);
   for (u32 i = 0; i != markerCount; ++i) {
     const HudMinimapMarker* marker     = &markers[i];
-    const UiVector          markerSize = ui_vector(marker->size, marker->size);
+    const UiVector          markerSize = ui_vector(marker->glyphSize, marker->glyphSize);
     ui_layout_set_pos(c, UiBase_Container, marker->pos, UiBase_Container);
     ui_layout_resize(c, UiAlign_MiddleCenter, markerSize, UiBase_Absolute, Ui_XY);
     ui_canvas_draw_glyph(c, marker->glyph, 0 /* maxCorner */, UiFlags_None);
@@ -764,7 +780,7 @@ static void hud_minimap_draw(
   for (u32 i = 0; i != markerCount; ++i) {
     const HudMinimapMarker* marker = &markers[i];
     ui_style_color(c, marker->color);
-    const UiVector markerSize = ui_vector(marker->size, marker->size);
+    const UiVector markerSize = ui_vector(marker->glyphSize, marker->glyphSize);
     ui_layout_set_pos(c, UiBase_Container, marker->pos, UiBase_Container);
     ui_layout_resize(c, UiAlign_MiddleCenter, markerSize, UiBase_Absolute, Ui_XY);
     ui_canvas_draw_glyph(c, marker->glyph, 0 /* maxCorner */, UiFlags_None);
