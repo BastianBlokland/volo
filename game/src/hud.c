@@ -636,6 +636,36 @@ static u32 hud_minimap_marker_collect(
   const StringHash minimapSet = GameId_minimap;
   u32              count      = 0;
 
+  // Add unit markers.
+  for (EcsIterator* itr = ecs_view_itr(unitView); ecs_view_walk(itr);) {
+    const SceneFactionComp*    factionComp = ecs_view_read_t(itr, SceneFactionComp);
+    const SceneHealthComp*     health      = ecs_view_read_t(itr, SceneHealthComp);
+    const SceneTransformComp*  transComp   = ecs_view_read_t(itr, SceneTransformComp);
+    const SceneVisibilityComp* visComp     = ecs_view_read_t(itr, SceneVisibilityComp);
+    const SceneSetMemberComp*  setMember   = ecs_view_read_t(itr, SceneSetMemberComp);
+
+    if (visComp && !scene_visible(visComp, SceneFaction_A)) {
+      continue; // TODO: Make the local faction configurable instead of hardcoding 'A'.
+    }
+    if (health->norm < f32_epsilon) {
+      continue;
+    }
+    if (!scene_set_member_contains(setMember, minimapSet)) {
+      continue;
+    }
+
+    out[count++] = (HudMinimapMarker){
+        .pos       = hud_minimap_pos(transComp->position, areaSize),
+        .color     = hud_faction_color(factionComp ? factionComp->id : SceneFaction_None),
+        .glyph     = UiShape_Circle,
+        .glyphSize = 5.0f,
+    };
+
+    if (UNLIKELY(count == hud_minimap_marker_max)) {
+      goto Ret;
+    }
+  }
+
   // Add explicit markers.
   for (EcsIterator* itr = ecs_view_itr(markerView); ecs_view_walk(itr);) {
     const SceneTransformComp* transComp  = ecs_view_read_t(itr, SceneTransformComp);
@@ -662,36 +692,6 @@ static u32 hud_minimap_marker_collect(
         .glyph     = glyph,
         .glyphSize = 15.0f,
         .radius    = markerComp->radius / areaSize.x, // NOTE: Only supports square play area.
-    };
-
-    if (UNLIKELY(count == hud_minimap_marker_max)) {
-      goto Ret;
-    }
-  }
-
-  // Add unit markers.
-  for (EcsIterator* itr = ecs_view_itr(unitView); ecs_view_walk(itr);) {
-    const SceneFactionComp*    factionComp = ecs_view_read_t(itr, SceneFactionComp);
-    const SceneHealthComp*     health      = ecs_view_read_t(itr, SceneHealthComp);
-    const SceneTransformComp*  transComp   = ecs_view_read_t(itr, SceneTransformComp);
-    const SceneVisibilityComp* visComp     = ecs_view_read_t(itr, SceneVisibilityComp);
-    const SceneSetMemberComp*  setMember   = ecs_view_read_t(itr, SceneSetMemberComp);
-
-    if (visComp && !scene_visible(visComp, SceneFaction_A)) {
-      continue; // TODO: Make the local faction configurable instead of hardcoding 'A'.
-    }
-    if (health->norm < f32_epsilon) {
-      continue;
-    }
-    if (!scene_set_member_contains(setMember, minimapSet)) {
-      continue;
-    }
-
-    out[count++] = (HudMinimapMarker){
-        .pos       = hud_minimap_pos(transComp->position, areaSize),
-        .color     = hud_faction_color(factionComp ? factionComp->id : SceneFaction_None),
-        .glyph     = UiShape_Circle,
-        .glyphSize = 5.0f,
     };
 
     if (UNLIKELY(count == hud_minimap_marker_max)) {
