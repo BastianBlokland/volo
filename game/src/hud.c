@@ -808,6 +808,28 @@ static void hud_minimap_draw(
   ui_layout_pop(c);
 }
 
+static void
+hud_markers_draw(GameHudComp* hud, EcsIterator* rendObjItr, EcsView* minimapMarkerView) {
+  for (EcsIterator* itr = ecs_view_itr(minimapMarkerView); ecs_view_walk(itr);) {
+    const SceneTransformComp* transComp  = ecs_view_read_t(itr, SceneTransformComp);
+    const SceneMarkerComp*    markerComp = ecs_view_read_t(itr, SceneMarkerComp);
+    const f32                 radius = markerComp->radius < f32_epsilon ? 0.25 : markerComp->radius;
+
+    UiColor color;
+    switch (markerComp->type) {
+    case SceneMarkerType_Info:
+      color = ui_color(255, 255, 255, 64);
+      break;
+    case SceneMarkerType_Danger:
+      color = ui_color(255, 0, 0, 64);
+      break;
+    case SceneMarkerType_Count:
+      UNREACHABLE
+    }
+    hud_indicator_ring_draw(hud, rendObjItr, transComp->position, radius, color);
+  }
+}
+
 static void hud_actions_draw(UiCanvasComp* c, GameHudComp* hud, const InputManagerComp* input) {
   static const struct {
     GameHudAction action;
@@ -1227,6 +1249,7 @@ ecs_system_define(GameHudDrawSys) {
         c, hud, inputState, terrain, cam, camTrans, minimapMarkerView, minimapUnitView);
     trace_end();
 
+    hud_markers_draw(hud, rendObjItr, minimapMarkerView);
     hud_actions_draw(c, hud, input);
 
     if (ecs_view_maybe_jump(visionItr, scene_set_main(setEnv, SceneId_selected))) {
