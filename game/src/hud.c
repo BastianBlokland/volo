@@ -665,7 +665,7 @@ static u32 hud_minimap_marker_collect(
     };
 
     if (UNLIKELY(count == hud_minimap_marker_max)) {
-      break;
+      goto Ret;
     }
   }
 
@@ -695,9 +695,11 @@ static u32 hud_minimap_marker_collect(
     };
 
     if (UNLIKELY(count == hud_minimap_marker_max)) {
-      break;
+      goto Ret;
     }
   }
+
+Ret:
   return count;
 }
 
