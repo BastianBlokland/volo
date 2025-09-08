@@ -21,6 +21,7 @@ add_library(scene STATIC
   src/location.c
   src/locomotion.c
   src/marker.c
+  src/mission.c
   src/name.c
   src/nav.c
   src/prefab.c
