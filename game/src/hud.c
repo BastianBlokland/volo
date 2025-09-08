@@ -754,8 +754,8 @@ static void hud_minimap_draw(
   for (u32 i = 0; i != markerCount; ++i) {
     const HudMinimapMarker* marker     = &markers[i];
     const UiVector          markerSize = ui_vector(marker->size, marker->size);
-    ui_layout_resize(c, UiAlign_MiddleCenter, markerSize, UiBase_Absolute, Ui_XY);
     ui_layout_set_pos(c, UiBase_Container, marker->pos, UiBase_Container);
+    ui_layout_resize(c, UiAlign_MiddleCenter, markerSize, UiBase_Absolute, Ui_XY);
     ui_canvas_draw_glyph(c, marker->glyph, 0 /* maxCorner */, UiFlags_None);
   }
 
@@ -765,8 +765,8 @@ static void hud_minimap_draw(
     const HudMinimapMarker* marker = &markers[i];
     ui_style_color(c, marker->color);
     const UiVector markerSize = ui_vector(marker->size, marker->size);
-    ui_layout_resize(c, UiAlign_MiddleCenter, markerSize, UiBase_Absolute, Ui_XY);
     ui_layout_set_pos(c, UiBase_Container, marker->pos, UiBase_Container);
+    ui_layout_resize(c, UiAlign_MiddleCenter, markerSize, UiBase_Absolute, Ui_XY);
     ui_canvas_draw_glyph(c, marker->glyph, 0 /* maxCorner */, UiFlags_None);
   }
   ui_layout_pop(c);
