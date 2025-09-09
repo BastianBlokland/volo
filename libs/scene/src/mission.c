@@ -114,13 +114,13 @@ void scene_mission_clear(SceneMissionComp* m) {
   dynarray_clear(&m->objectives);
 }
 
-SceneMissionErr scene_mission_begin(SceneMissionComp* m, const StringHash nameLoc) {
+SceneMissionErr scene_mission_begin(SceneMissionComp* m, const StringHash name) {
   if (UNLIKELY(m->state == SceneMissionState_InProgress)) {
     return SceneMissionErr_AlreadyActive;
   }
   scene_mission_clear(m);
 
-  m->name  = nameLoc;
+  m->name  = name;
   m->state = SceneMissionState_InProgress;
   return SceneMissionErr_None;
 }

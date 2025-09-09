@@ -40,7 +40,7 @@ String scene_mission_state_str(SceneMissionState);
 String scene_mission_err_str(SceneMissionErr);
 
 void              scene_mission_clear(SceneMissionComp*);
-SceneMissionErr   scene_mission_begin(SceneMissionComp*, StringHash nameLoc);
+SceneMissionErr   scene_mission_begin(SceneMissionComp*, StringHash name);
 SceneMissionErr   scene_mission_end(SceneMissionComp*, SceneMissionState result);
 SceneMissionState scene_mission_state(const SceneMissionComp*);
 StringHash        scene_mission_name(const SceneMissionComp*); // Localization key.
