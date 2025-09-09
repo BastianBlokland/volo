@@ -20,6 +20,7 @@ typedef struct {
   StringHash        nameLoc;
   SceneMissionState state;
   f32               goal, progress;
+  TimeDuration      startTime; // -1 until available (potentially delayed until the next tick).
 } SceneObjective;
 
 typedef u16 SceneObjectiveId;

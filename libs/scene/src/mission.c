@@ -53,8 +53,17 @@ ecs_system_define(SceneMissionUpdateSys) {
   }
   const SceneTimeComp* time = ecs_view_read_t(globalItr, SceneTimeComp);
 
-  (void)mission;
-  (void)time;
+  switch (mission->state) {
+  case SceneMissionState_InProgress: {
+    dynarray_for_t(&mission->objectives, SceneObjective, obj) {
+      if (obj->startTime < 0) {
+        obj->startTime = time->time;
+      }
+    }
+  } break;
+  default:
+    break;
+  }
 }
 
 ecs_module_init(scene_mission_module) {
@@ -105,10 +114,11 @@ scene_mission_obj_begin(SceneMissionComp* m, const StringHash nameLoc, SceneObje
   SceneObjective* obj = dynarray_push_t(&m->objectives, SceneObjective);
 
   *obj = (SceneObjective){
-      .nameLoc  = nameLoc,
-      .state    = SceneMissionState_InProgress,
-      .goal     = -1.0f,
-      .progress = -1.0f,
+      .nameLoc   = nameLoc,
+      .state     = SceneMissionState_InProgress,
+      .goal      = -1.0f,
+      .progress  = -1.0f,
+      .startTime = -1,
   };
 
   return SceneMissionErr_None;
