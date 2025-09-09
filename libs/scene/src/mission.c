@@ -27,10 +27,12 @@ static SceneMissionComp* mission_init(EcsWorld* world) {
 }
 
 static const SceneObjective* obj_get(const SceneMissionComp* m, const SceneObjectiveId id) {
-  if (UNLIKELY(id >= m->objectives.size)) {
-    return null;
+  dynarray_for_t(&m->objectives, SceneObjective, obj) {
+    if (obj->id == id) {
+      return obj;
+    }
   }
-  return dynarray_at_t(&m->objectives, id, SceneObjective);
+  return null;
 }
 
 static SceneObjective* obj_get_mut(SceneMissionComp* m, const SceneObjectiveId id) {
@@ -140,15 +142,18 @@ SceneMissionState scene_mission_state(const SceneMissionComp* m) { return m->sta
 StringHash        scene_mission_name(const SceneMissionComp* m) { return m->name; }
 
 SceneMissionErr
-scene_mission_obj_begin(SceneMissionComp* m, const StringHash nameLoc, SceneObjectiveId* out) {
+scene_mission_obj_begin(SceneMissionComp* m, const SceneObjectiveId id, const StringHash nameLoc) {
   if (UNLIKELY(m->state != SceneMissionState_InProgress)) {
     return SceneMissionErr_NotActive;
   }
-  *out = m->objectives.size;
+  if (UNLIKELY(obj_get(m, id))) {
+    return SceneMissionErr_InvalidObjective; // Id already used.
+  }
 
   SceneObjective* obj = dynarray_push_t(&m->objectives, SceneObjective);
 
   *obj = (SceneObjective){
+      .id        = id,
       .nameLoc   = nameLoc,
       .state     = SceneMissionState_InProgress,
       .goal      = -1.0f,

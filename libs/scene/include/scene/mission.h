@@ -20,7 +20,10 @@ typedef enum {
   SceneMissionErr_Count,
 } SceneMissionErr;
 
+typedef u64 SceneObjectiveId;
+
 typedef struct {
+  SceneObjectiveId  id;
   StringHash        nameLoc;
   SceneMissionState state;
   f32               goal, progress;
@@ -28,8 +31,6 @@ typedef struct {
   TimeDuration      timeoutDuration;
   SceneMissionState timeoutResult;
 } SceneObjective;
-
-typedef u16 SceneObjectiveId;
 
 /**
  * Global mission manager.
@@ -45,7 +46,7 @@ SceneMissionErr   scene_mission_end(SceneMissionComp*, SceneMissionState result)
 SceneMissionState scene_mission_state(const SceneMissionComp*);
 StringHash        scene_mission_name(const SceneMissionComp*); // Localization key.
 
-SceneMissionErr scene_mission_obj_begin(SceneMissionComp*, StringHash name, SceneObjectiveId* out);
+SceneMissionErr scene_mission_obj_begin(SceneMissionComp*, SceneObjectiveId, StringHash name);
 SceneMissionErr scene_mission_obj_goal(SceneMissionComp*, SceneObjectiveId, f32 goal, f32 progress);
 SceneMissionErr scene_mission_obj_timeout(
     SceneMissionComp*, SceneObjectiveId, TimeDuration rem, SceneMissionState res);
