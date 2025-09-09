@@ -36,6 +36,20 @@ static SceneObjective* obj_get_mut(SceneMissionComp* m, const SceneObjectiveId i
   return (SceneObjective*)obj_get(m, id);
 }
 
+static void obj_update(SceneMissionComp* m, SceneObjective* obj, const SceneTimeComp* time) {
+  (void)m;
+  if (obj->startTime < 0) {
+    obj->startTime = time->time;
+  }
+  if (obj->state != SceneMissionState_InProgress) {
+    return;
+  }
+  const TimeDuration timeElapsed = time->time - obj->startTime;
+  if (obj->timeoutDuration > 0 && timeElapsed >= obj->timeoutDuration) {
+    obj->state = obj->timeoutResult;
+  }
+}
+
 ecs_view_define(UpdateGlobalView) {
   ecs_access_maybe_write(SceneMissionComp);
   ecs_access_read(SceneTimeComp);
@@ -54,13 +68,9 @@ ecs_system_define(SceneMissionUpdateSys) {
   const SceneTimeComp* time = ecs_view_read_t(globalItr, SceneTimeComp);
 
   switch (mission->state) {
-  case SceneMissionState_InProgress: {
-    dynarray_for_t(&mission->objectives, SceneObjective, obj) {
-      if (obj->startTime < 0) {
-        obj->startTime = time->time;
-      }
-    }
-  } break;
+  case SceneMissionState_InProgress:
+    dynarray_for_t(&mission->objectives, SceneObjective, obj) { obj_update(mission, obj, time); }
+    break;
   default:
     break;
   }
@@ -138,8 +148,11 @@ SceneMissionErr scene_mission_obj_goal(
   return SceneMissionErr_None;
 }
 
-SceneMissionErr scene_mission_obj_end(
-    SceneMissionComp* m, const SceneObjectiveId id, const SceneMissionState result) {
+SceneMissionErr scene_mission_obj_timeout(
+    SceneMissionComp*       m,
+    const SceneObjectiveId  id,
+    const TimeDuration      rem,
+    const SceneMissionState res) {
   if (UNLIKELY(m->state != SceneMissionState_InProgress)) {
     return SceneMissionErr_NotActive;
   }
@@ -147,11 +160,27 @@ SceneMissionErr scene_mission_obj_end(
   if (UNLIKELY(!obj || obj->state != SceneMissionState_InProgress)) {
     return SceneMissionErr_InvalidObjective;
   }
-  if (UNLIKELY(result != SceneMissionState_Successful && result != SceneMissionState_Failed)) {
+  if (UNLIKELY(res != SceneMissionState_Successful && res != SceneMissionState_Failed)) {
     return SceneMissionErr_InvalidResult;
   }
+  obj->timeoutDuration = rem;
+  obj->timeoutResult   = res;
+  return SceneMissionErr_None;
+}
 
-  obj->state = result;
+SceneMissionErr
+scene_mission_obj_end(SceneMissionComp* m, const SceneObjectiveId id, const SceneMissionState res) {
+  if (UNLIKELY(m->state != SceneMissionState_InProgress)) {
+    return SceneMissionErr_NotActive;
+  }
+  SceneObjective* obj = obj_get_mut(m, id);
+  if (UNLIKELY(!obj || obj->state != SceneMissionState_InProgress)) {
+    return SceneMissionErr_InvalidObjective;
+  }
+  if (UNLIKELY(res != SceneMissionState_Successful && res != SceneMissionState_Failed)) {
+    return SceneMissionErr_InvalidResult;
+  }
+  obj->state = res;
   return SceneMissionErr_None;
 }
 
