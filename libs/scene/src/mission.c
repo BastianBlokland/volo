@@ -105,10 +105,26 @@ scene_mission_obj_begin(SceneMissionComp* m, const StringHash nameLoc, SceneObje
   SceneObjective* obj = dynarray_push_t(&m->objectives, SceneObjective);
 
   *obj = (SceneObjective){
-      .nameLoc = nameLoc,
-      .state   = SceneMissionState_InProgress,
+      .nameLoc  = nameLoc,
+      .state    = SceneMissionState_InProgress,
+      .goal     = -1.0f,
+      .progress = -1.0f,
   };
 
+  return SceneMissionErr_None;
+}
+
+SceneMissionErr scene_mission_obj_goal(
+    SceneMissionComp* m, const SceneObjectiveId id, const f32 goal, const f32 progress) {
+  if (UNLIKELY(m->state != SceneMissionState_InProgress)) {
+    return SceneMissionErr_NotActive;
+  }
+  SceneObjective* obj = obj_get_mut(m, id);
+  if (UNLIKELY(!obj || obj->state != SceneMissionState_InProgress)) {
+    return SceneMissionErr_InvalidObjective;
+  }
+  obj->goal     = goal;
+  obj->progress = progress;
   return SceneMissionErr_None;
 }
 
@@ -118,14 +134,11 @@ SceneMissionErr scene_mission_obj_end(
     return SceneMissionErr_NotActive;
   }
   SceneObjective* obj = obj_get_mut(m, id);
-  if (UNLIKELY(!obj)) {
+  if (UNLIKELY(!obj || obj->state != SceneMissionState_InProgress)) {
     return SceneMissionErr_InvalidObjective;
   }
   if (UNLIKELY(result != SceneMissionState_Successful && result != SceneMissionState_Failed)) {
     return SceneMissionErr_InvalidResult;
-  }
-  if (UNLIKELY(obj->state != SceneMissionState_InProgress)) {
-    return SceneMissionErr_NotActive;
   }
 
   obj->state = result;

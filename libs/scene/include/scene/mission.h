@@ -19,6 +19,7 @@ typedef enum {
 typedef struct {
   StringHash        nameLoc;
   SceneMissionState state;
+  f32               goal, progress;
 } SceneObjective;
 
 typedef u16 SceneObjectiveId;
@@ -34,6 +35,7 @@ SceneMissionErr   scene_mission_end(SceneMissionComp*, SceneMissionState result)
 SceneMissionState scene_mission_state(const SceneMissionComp*);
 
 SceneMissionErr scene_mission_obj_begin(SceneMissionComp*, StringHash name, SceneObjectiveId* out);
+SceneMissionErr scene_mission_obj_goal(SceneMissionComp*, SceneObjectiveId, f32 goal, f32 progress);
 SceneMissionErr scene_mission_obj_end(SceneMissionComp*, SceneObjectiveId, SceneMissionState res);
 
 const SceneObjective* scene_mission_obj_get(const SceneMissionComp*, SceneObjectiveId);
