@@ -468,6 +468,26 @@ static void action_mission_end(ActionContext* ctx, const SceneActionMissionEnd* 
   scene_mission_end(mission, a->result);
 }
 
+static void action_objective_begin(ActionContext* ctx, const SceneActionObjectiveBegin* a) {
+  SceneMissionComp* mission = ecs_view_write_t(ctx->globalItr, SceneMissionComp);
+  scene_mission_obj_begin(mission, a->id, a->name);
+}
+
+static void action_objective_end(ActionContext* ctx, const SceneActionObjectiveEnd* a) {
+  SceneMissionComp* mission = ecs_view_write_t(ctx->globalItr, SceneMissionComp);
+  scene_mission_obj_end(mission, a->id, a->result);
+}
+
+static void action_objective_goal(ActionContext* ctx, const SceneActionObjectiveGoal* a) {
+  SceneMissionComp* mission = ecs_view_write_t(ctx->globalItr, SceneMissionComp);
+  scene_mission_obj_goal(mission, a->id, a->goal, a->progress);
+}
+
+static void action_objective_timeout(ActionContext* ctx, const SceneActionObjectiveTimeout* a) {
+  SceneMissionComp* mission = ecs_view_write_t(ctx->globalItr, SceneMissionComp);
+  scene_mission_obj_timeout(mission, a->id, a->remaining, a->result);
+}
+
 ecs_view_define(ActionQueueView) { ecs_access_write(SceneActionQueueComp); }
 
 ecs_system_define(SceneActionUpdateSys) {
@@ -581,6 +601,18 @@ ecs_system_define(SceneActionUpdateSys) {
         break;
       case SceneActionType_MissionEnd:
         action_mission_end(&ctx, &defs[i].missionEnd);
+        break;
+      case SceneActionType_ObjectiveBegin:
+        action_objective_begin(&ctx, &defs[i].objectiveBegin);
+        break;
+      case SceneActionType_ObjectiveEnd:
+        action_objective_end(&ctx, &defs[i].objectiveEnd);
+        break;
+      case SceneActionType_ObjectiveGoal:
+        action_objective_goal(&ctx, &defs[i].objectiveGoal);
+        break;
+      case SceneActionType_ObjectiveTimeout:
+        action_objective_timeout(&ctx, &defs[i].objectiveTimeout);
         break;
       }
     }

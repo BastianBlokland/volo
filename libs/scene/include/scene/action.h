@@ -33,6 +33,10 @@ typedef enum {
   SceneActionType_UpdateAnimParam,
   SceneActionType_MissionBegin,
   SceneActionType_MissionEnd,
+  SceneActionType_ObjectiveBegin,
+  SceneActionType_ObjectiveEnd,
+  SceneActionType_ObjectiveGoal,
+  SceneActionType_ObjectiveTimeout,
 } SceneActionType;
 
 typedef struct {
@@ -193,6 +197,27 @@ typedef struct {
   SceneMissionState result;
 } SceneActionMissionEnd;
 
+typedef struct {
+  SceneObjectiveId id;
+  StringHash       name;
+} SceneActionObjectiveBegin;
+
+typedef struct {
+  SceneObjectiveId  id;
+  SceneMissionState result;
+} SceneActionObjectiveEnd;
+
+typedef struct {
+  SceneObjectiveId id;
+  f32              goal, progress;
+} SceneActionObjectiveGoal;
+
+typedef struct {
+  SceneObjectiveId  id;
+  TimeDuration      remaining;
+  SceneMissionState result;
+} SceneActionObjectiveTimeout;
+
 typedef union {
   SceneActionTell                  tell;
   SceneActionAsk                   ask;
@@ -214,6 +239,10 @@ typedef union {
   SceneActionUpdateAnimParam       updateAnimParam;
   SceneActionMissionBegin          missionBegin;
   SceneActionMissionEnd            missionEnd;
+  SceneActionObjectiveBegin        objectiveBegin;
+  SceneActionObjectiveEnd          objectiveEnd;
+  SceneActionObjectiveGoal         objectiveGoal;
+  SceneActionObjectiveTimeout      objectiveTimeout;
 } SceneAction;
 
 ecs_comp_extern(SceneActionQueueComp);
