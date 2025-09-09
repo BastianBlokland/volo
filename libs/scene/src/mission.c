@@ -1,4 +1,5 @@
 #include "core/alloc.h"
+#include "core/array.h"
 #include "core/dynarray.h"
 #include "ecs/module.h"
 #include "ecs/view.h"
@@ -84,7 +85,28 @@ ecs_module_init(scene_mission_module) {
   ecs_register_system(SceneMissionUpdateSys, ecs_view_id(UpdateGlobalView));
 }
 
-SceneMissionState scene_mission_state(const SceneMissionComp* m) { return m->state; }
+String scene_mission_state_str(const SceneMissionState state) {
+  static const String g_names[] = {
+      string_static("Inactive"),
+      string_static("InProgress"),
+      string_static("Successful"),
+      string_static("Failed"),
+  };
+  ASSERT(array_elems(g_names) == SceneMissionState_Count, "Incorrect number of names");
+  return g_names[state];
+}
+
+String scene_mission_err_str(const SceneMissionErr err) {
+  static const String g_names[] = {
+      string_static("None"),
+      string_static("NotActive"),
+      string_static("AlreadyActive"),
+      string_static("InvalidResult"),
+      string_static("InvalidObjective"),
+  };
+  ASSERT(array_elems(g_names) == SceneMissionErr_Count, "Incorrect number of names");
+  return g_names[err];
+}
 
 void scene_mission_clear(SceneMissionComp* m) {
   m->state = SceneMissionState_Inactive;
@@ -113,6 +135,8 @@ SceneMissionErr scene_mission_end(SceneMissionComp* m, const SceneMissionState r
   m->state = result;
   return SceneMissionErr_None;
 }
+
+SceneMissionState scene_mission_state(const SceneMissionComp* m) { return m->state; }
 
 SceneMissionErr
 scene_mission_obj_begin(SceneMissionComp* m, const StringHash nameLoc, SceneObjectiveId* out) {

@@ -6,6 +6,8 @@ typedef enum {
   SceneMissionState_InProgress,
   SceneMissionState_Successful,
   SceneMissionState_Failed,
+
+  SceneMissionState_Count
 } SceneMissionState;
 
 typedef enum {
@@ -14,6 +16,8 @@ typedef enum {
   SceneMissionErr_AlreadyActive,
   SceneMissionErr_InvalidResult,
   SceneMissionErr_InvalidObjective,
+
+  SceneMissionErr_Count,
 } SceneMissionErr;
 
 typedef struct {
@@ -31,6 +35,9 @@ typedef u16 SceneObjectiveId;
  * Global mission manager.
  */
 ecs_comp_extern(SceneMissionComp);
+
+String scene_mission_state_str(SceneMissionState);
+String scene_mission_err_str(SceneMissionErr);
 
 void              scene_mission_clear(SceneMissionComp*);
 SceneMissionErr   scene_mission_begin(SceneMissionComp*, StringHash nameLoc);
