@@ -99,6 +99,7 @@ NO_INLINE_HINT static void action_queue_grow(SceneActionQueueComp* q) {
 
 ecs_view_define(ActionGlobalView) {
   ecs_access_read(SceneLevelManagerComp);
+  ecs_access_write(SceneMissionComp);
   ecs_access_write(ScenePrefabEnvComp);
   ecs_access_write(ScenePropertyComp);
   ecs_access_write(SceneSetEnvComp);
@@ -456,6 +457,16 @@ static void action_update_anim_param(ActionContext* ctx, const SceneActionUpdate
   }
 }
 
+static void action_mission_begin(ActionContext* ctx, const SceneActionMissionBegin* a) {
+  SceneMissionComp* mission = ecs_view_write_t(ctx->globalItr, SceneMissionComp);
+  scene_mission_begin(mission, a->name);
+}
+
+static void action_mission_end(ActionContext* ctx, const SceneActionMissionEnd* a) {
+  SceneMissionComp* mission = ecs_view_write_t(ctx->globalItr, SceneMissionComp);
+  scene_mission_end(mission, a->result);
+}
+
 ecs_view_define(ActionQueueView) { ecs_access_write(SceneActionQueueComp); }
 
 ecs_system_define(SceneActionUpdateSys) {
@@ -563,6 +574,12 @@ ecs_system_define(SceneActionUpdateSys) {
         break;
       case SceneActionType_UpdateAnimParam:
         action_update_anim_param(&ctx, &defs[i].updateAnimParam);
+        break;
+      case SceneActionType_MissionBegin:
+        action_mission_begin(&ctx, &defs[i].missionBegin);
+        break;
+      case SceneActionType_MissionEnd:
+        action_mission_end(&ctx, &defs[i].missionEnd);
         break;
       }
     }

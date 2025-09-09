@@ -5,6 +5,7 @@
 #include "geo/vector.h"
 #include "scene/bark.h"
 #include "scene/faction.h"
+#include "scene/mission.h"
 #include "script/val.h"
 
 /**
@@ -30,6 +31,8 @@ typedef enum {
   SceneActionType_UpdateLightParam,
   SceneActionType_UpdateSoundParam,
   SceneActionType_UpdateAnimParam,
+  SceneActionType_MissionBegin,
+  SceneActionType_MissionEnd,
 } SceneActionType;
 
 typedef struct {
@@ -182,6 +185,14 @@ typedef struct {
   };
 } SceneActionUpdateAnimParam;
 
+typedef struct {
+  StringHash name;
+} SceneActionMissionBegin;
+
+typedef struct {
+  SceneMissionState result;
+} SceneActionMissionEnd;
+
 typedef union {
   SceneActionTell                  tell;
   SceneActionAsk                   ask;
@@ -201,6 +212,8 @@ typedef union {
   SceneActionUpdateLightParam      updateLightParam;
   SceneActionUpdateSoundParam      updateSoundParam;
   SceneActionUpdateAnimParam       updateAnimParam;
+  SceneActionMissionBegin          missionBegin;
+  SceneActionMissionEnd            missionEnd;
 } SceneAction;
 
 ecs_comp_extern(SceneActionQueueComp);
