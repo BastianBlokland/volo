@@ -23,6 +23,7 @@
 #include "scene/location.h"
 #include "scene/locomotion.h"
 #include "scene/marker.h"
+#include "scene/mission.h"
 #include "scene/name.h"
 #include "scene/nav.h"
 #include "scene/prefab.h"
@@ -102,7 +103,8 @@ static ScriptEnum g_scriptEnumCombinator,
                   g_scriptEnumStatus,
                   g_scriptEnumBark,
                   g_scriptEnumHealthStat,
-                  g_scriptEnumMarkerType;
+                  g_scriptEnumMarkerType,
+                  g_scriptEnumMissionState;
 
 // clang-format on
 
@@ -267,6 +269,12 @@ static void eval_enum_init_health_stat(void) {
 static void eval_enum_init_marker_type(void) {
   for (SceneMarkerType type = 0; type != SceneMarkerType_Count; ++type) {
     script_enum_push(&g_scriptEnumMarkerType, scene_marker_name(type), type);
+  }
+}
+
+static void eval_enum_init_mission_state(void) {
+  for (SceneMissionState state = 0; state != SceneMissionState_Count; ++state) {
+    script_enum_push(&g_scriptEnumMissionState, scene_mission_state_str(state), state);
   }
 }
 
@@ -2071,6 +2079,7 @@ static void eval_binder_init(void) {
     eval_enum_init_bark();
     eval_enum_init_health_stat();
     eval_enum_init_marker_type();
+    eval_enum_init_mission_state();
 
     // clang-format off
     eval_bind(b, string_lit("self"),                   eval_self);
