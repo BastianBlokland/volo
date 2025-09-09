@@ -33,6 +33,7 @@ typedef u8 ActionTypeStorage;
 ecs_comp_define(SceneActionQueueComp) {
   void* data;
   u32   count, cap;
+  u64   counter; // Ever incrementing count of pushed actions.
 };
 
 static usize action_queue_mem_size(const u32 cap) {
@@ -622,6 +623,8 @@ SceneActionQueueComp* scene_action_queue_add(EcsWorld* w, const EcsEntityId enti
   return ecs_world_add_t(w, entity, SceneActionQueueComp);
 }
 
+u64 scene_action_queue_counter(SceneActionQueueComp* q) { return q->counter; }
+
 SceneAction* scene_action_push(SceneActionQueueComp* q, const SceneActionType type) {
   if (q->count == q->cap) {
     action_queue_grow(q);
@@ -630,6 +633,7 @@ SceneAction* scene_action_push(SceneActionQueueComp* q, const SceneActionType ty
   ActionTypeStorage* entryType = action_entry_type(q->data, q->cap, q->count);
   SceneAction*       entryDef  = action_entry_def(q->data, q->cap, q->count);
   ++q->count;
+  ++q->counter;
 
   *entryType = (ActionTypeStorage)type;
   return entryDef;

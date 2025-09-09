@@ -220,6 +220,8 @@ ecs_comp_extern(SceneActionQueueComp);
 
 SceneActionQueueComp* scene_action_queue_add(EcsWorld*, EcsEntityId entity);
 
+u64 scene_action_queue_counter(SceneActionQueueComp*); // Ever incrementing count of pushed actions.
+
 /**
  * Queue an action to be executed at the next 'SceneOrder_ActionUpdate' update.
  * NOTE: Returned pointer is invalidated on the next push to the same queue.
