@@ -2,6 +2,7 @@
 #include "ecs/module.h"
 
 typedef enum {
+  SceneMissionState_Inactive,
   SceneMissionState_InProgress,
   SceneMissionState_Successful,
   SceneMissionState_Failed,
@@ -9,13 +10,16 @@ typedef enum {
 
 typedef enum {
   SceneMissionErr_None,
+  SceneMissionErr_NotActive,
   SceneMissionErr_AlreadyActive,
+  SceneMissionErr_InvalidResult,
+  SceneMissionErr_InvalidObjective,
 } SceneMissionErr;
 
 typedef struct {
-  StringHash nameLoc;
-  f32        progress, goal;
-} SceneMissionObjective;
+  StringHash        nameLoc;
+  SceneMissionState state;
+} SceneObjective;
 
 typedef u16 SceneObjectiveId;
 
@@ -24,27 +28,14 @@ typedef u16 SceneObjectiveId;
  */
 ecs_comp_extern(SceneMissionComp);
 
-/**
- * TODO:
- */
-SceneMissionErr scene_mission_begin(SceneMissionComp*, StringHash nameLoc);
+void              scene_mission_clear(SceneMissionComp*);
+SceneMissionErr   scene_mission_begin(SceneMissionComp*, StringHash nameLoc);
+SceneMissionErr   scene_mission_end(SceneMissionComp*, SceneMissionState result);
+SceneMissionState scene_mission_state(const SceneMissionComp*);
 
-/**
- * TODO:
- */
-SceneMissionErr scene_mission_end(SceneMissionComp*, SceneMissionState result);
+SceneMissionErr scene_mission_obj_begin(SceneMissionComp*, StringHash name, SceneObjectiveId* out);
+SceneMissionErr scene_mission_obj_end(SceneMissionComp*, SceneObjectiveId, SceneMissionState res);
 
-/**
- * TODO:
- */
-SceneObjectiveId scene_objective_begin(SceneMissionComp*, StringHash nameLoc, f32 goal);
-
-/**
- * TODO:
- */
-SceneMissionErr scene_objective_update(SceneMissionComp*, SceneObjectiveId, f32 progress);
-
-/**
- * TODO:
- */
-SceneMissionErr scene_objective_end(SceneMissionComp*, SceneObjectiveId, SceneMissionState result);
+const SceneObjective* scene_mission_obj_get(const SceneMissionComp*, SceneObjectiveId);
+usize                 scene_mission_obj_count(const SceneMissionComp*);
+const SceneObjective* scene_mission_obj_data(const SceneMissionComp*);
