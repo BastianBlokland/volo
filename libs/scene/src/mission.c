@@ -137,6 +137,7 @@ SceneMissionErr scene_mission_end(SceneMissionComp* m, const SceneMissionState r
 }
 
 SceneMissionState scene_mission_state(const SceneMissionComp* m) { return m->state; }
+StringHash        scene_mission_name(const SceneMissionComp* m) { return m->name; }
 
 SceneMissionErr
 scene_mission_obj_begin(SceneMissionComp* m, const StringHash nameLoc, SceneObjectiveId* out) {
