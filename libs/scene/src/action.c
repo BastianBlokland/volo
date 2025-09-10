@@ -98,9 +98,10 @@ NO_INLINE_HINT static void action_queue_grow(SceneActionQueueComp* q) {
 }
 
 ecs_view_define(ActionGlobalView) {
-  ecs_access_write(ScenePrefabEnvComp);
-  ecs_access_write(SceneSetEnvComp);
   ecs_access_read(SceneLevelManagerComp);
+  ecs_access_write(ScenePrefabEnvComp);
+  ecs_access_write(ScenePropertyComp);
+  ecs_access_write(SceneSetEnvComp);
 }
 
 ecs_view_define(ActionPropertyView) { ecs_access_write(ScenePropertyComp); }
@@ -169,9 +170,15 @@ static void action_prop_set(
 }
 
 static void action_tell(ActionContext* ctx, const SceneActionTell* a) {
+  if (!a->entity) {
+    ScenePropertyComp* props = ecs_view_write_t(ctx->globalItr, ScenePropertyComp);
+    action_prop_set(props, a->prop, a->value, a->combinator);
+    return;
+  }
+
   if (ecs_view_maybe_jump(ctx->propertyItr, a->entity)) {
-    ScenePropertyComp* propComp = ecs_view_write_t(ctx->propertyItr, ScenePropertyComp);
-    action_prop_set(propComp, a->prop, a->value, a->combinator);
+    ScenePropertyComp* props = ecs_view_write_t(ctx->propertyItr, ScenePropertyComp);
+    action_prop_set(props, a->prop, a->value, a->combinator);
   }
 }
 
