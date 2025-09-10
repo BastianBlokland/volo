@@ -36,12 +36,14 @@ typedef struct {
   EcsEntityId entity;
   StringHash  prop;
   ScriptVal   value;
+  ScriptVal (*combinator)(ScriptVal, ScriptVal);
 } SceneActionTell;
 
 typedef struct {
   EcsEntityId entity;
   EcsEntityId target;
   StringHash  prop;
+  ScriptVal (*combinator)(ScriptVal, ScriptVal);
 } SceneActionAsk;
 
 typedef struct {

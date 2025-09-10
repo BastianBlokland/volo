@@ -153,10 +153,25 @@ static u32 action_update_flag(u32 mask, const u32 flag, const bool enable) {
   return mask;
 }
 
+static void action_prop_set(
+    ScenePropertyComp* comp,
+    const StringHash   prop,
+    const ScriptVal    val,
+    ScriptVal (*combinator)(ScriptVal, ScriptVal)) {
+  if (combinator) {
+    const ScriptVal existingVal = scene_prop_load(comp, prop);
+    if (script_non_null(existingVal)) {
+      scene_prop_store(comp, prop, combinator(existingVal, val));
+      return;
+    }
+  }
+  scene_prop_store(comp, prop, val);
+}
+
 static void action_tell(ActionContext* ctx, const SceneActionTell* a) {
   if (ecs_view_maybe_jump(ctx->propertyItr, a->entity)) {
     ScenePropertyComp* propComp = ecs_view_write_t(ctx->propertyItr, ScenePropertyComp);
-    scene_prop_store(propComp, a->prop, a->value);
+    action_prop_set(propComp, a->prop, a->value, a->combinator);
   }
 }
 
@@ -165,7 +180,7 @@ static void action_ask(ActionContext* ctx, const SceneActionAsk* a) {
     ScenePropertyComp* propComp = ecs_view_write_t(ctx->propertyItr, ScenePropertyComp);
     if (ecs_view_maybe_jump(ctx->propertyItr, a->target)) {
       const ScenePropertyComp* target = ecs_view_read_t(ctx->propertyItr, ScenePropertyComp);
-      scene_prop_store(propComp, a->prop, scene_prop_load(target, a->prop));
+      action_prop_set(propComp, a->prop, scene_prop_load(target, a->prop), a->combinator);
     }
   }
 }
