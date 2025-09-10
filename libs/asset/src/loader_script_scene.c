@@ -23,6 +23,7 @@ void asset_data_init_script_scene(void) {
   script_binder_filter_set(binder, string_lit("scene/*.script"));
 
   // clang-format off
+  static const String g_combinatorDoc      = string_static("Supported combinators:\n\n-`Add`\n\n-`Sub`");
   static const String g_layerDoc           = string_static("Supported layers:\n\n-`Environment`\n\n-`Destructible`\n\n-`Infantry`\n\n-`Vehicle`\n\n-`Structure`\n\n-`Unit`\n\n-`Debug`\n\n-`AllIncludingDebug`\n\n-`AllNonDebug` (default)");
   static const String g_factionDoc         = string_static("Supported factions:\n\n-`FactionA`\n\n-`FactionB`\n\n-`FactionC`\n\n-`FactionD`\n\n-`FactionNone`");
   static const String g_queryOptionDoc     = string_static("Supported options:\n\n-`FactionSelf`\n\n-`FactionOther`");
@@ -312,23 +313,25 @@ void asset_data_init_script_scene(void) {
   }
   {
     const String       name   = string_lit("tell");
-    const String       doc    = string_lit("Set a property value for the given entity.\n\n*Note*: The updated property is visible to scripts in the next frame.");
+    const String       doc    = fmt_write_scratch("Set a property value for the given entity.\n\n*Note*: The updated property is visible to scripts in the next frame.\n\n{}", fmt_text(g_combinatorDoc));
     const ScriptMask   ret    = script_mask_null;
     const ScriptSigArg args[] = {
         {string_lit("target"), script_mask_entity},
         {string_lit("key"), script_mask_str},
         {string_lit("value"), script_mask_any},
+        {string_lit("combinator"), script_mask_str | script_mask_null},
     };
     bind(binder, name, doc, ret, args, array_elems(args));
   }
   {
     const String       name   = string_lit("ask");
-    const String       doc    = string_lit("Ask a target entity for a property value.\n\n*Note*: The result value is visible to this entity under the same key in the next frame.");
+    const String       doc    = fmt_write_scratch("Ask a target entity for a property value.\n\n*Note*: The result value is visible to this entity under the same key in the next frame.\n\n{}", fmt_text(g_combinatorDoc));
     const ScriptMask   ret    = script_mask_null;
     const ScriptSigArg args[] = {
         {string_lit("this"), script_mask_entity},
         {string_lit("target"), script_mask_entity},
         {string_lit("key"), script_mask_str},
+        {string_lit("combinator"), script_mask_str | script_mask_null},
     };
     bind(binder, name, doc, ret, args, array_elems(args));
   }
