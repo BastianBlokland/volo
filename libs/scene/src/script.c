@@ -416,7 +416,7 @@ static EvalQuery* context_query_get(EvalContext* ctx, const u32 id) {
 }
 
 static SceneValCombinator arg_combinator(ScriptBinderCall* call, const u16 i) {
-  switch (script_arg_opt_enum(call, i, &g_scriptEnumLayer, -1)) {
+  switch (script_arg_opt_enum(call, i, &g_scriptEnumCombinator, -1)) {
   case 0 /* Add */:
     return script_val_add;
   case 1 /* Sub */:
