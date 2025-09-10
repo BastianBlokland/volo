@@ -41,6 +41,10 @@ static void slot_data_free(void* data, const u32 slotCount) {
   alloc_free(g_allocHeap, mem_create(data, slot_data_size(slotCount)));
 }
 
+static void slot_data_reset(void* data, const u32 slotCount) {
+  mem_set(mem_create(data, slot_data_size(slotCount)), 0);
+}
+
 INLINE_HINT static u32 slot_index(const void* slotData, const u32 slotCount, const StringHash key) {
   diag_assert_msg(key, "Empty memory key is not valid");
 
@@ -114,6 +118,11 @@ ScriptMem script_mem_create(void) {
 }
 
 void script_mem_destroy(ScriptMem* mem) { slot_data_free(mem->slotData, mem->slotCount); }
+
+void script_mem_clear(ScriptMem* mem) {
+  slot_data_reset(mem->slotData, mem->slotCount);
+  mem->slotCountUsed = 0;
+}
 
 ScriptVal script_mem_load(const ScriptMem* mem, const StringHash key) {
   const u32 slotIndex = slot_index(mem->slotData, mem->slotCount, key);

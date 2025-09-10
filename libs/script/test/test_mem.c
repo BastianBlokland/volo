@@ -63,6 +63,19 @@ spec(mem) {
     check_eq_val(script_mem_load(&m, string_hash_lit("test")), script_num(42));
   }
 
+  it("can be cleared") {
+    script_mem_store(&m, string_hash_lit("test1"), script_num(42));
+    script_mem_store(&m, string_hash_lit("test2"), script_num(1337));
+
+    check_eq_val(script_mem_load(&m, string_hash_lit("test1")), script_num(42));
+    check_eq_val(script_mem_load(&m, string_hash_lit("test2")), script_num(1337));
+
+    script_mem_clear(&m);
+
+    check_eq_val(script_mem_load(&m, string_hash_lit("test1")), script_null());
+    check_eq_val(script_mem_load(&m, string_hash_lit("test2")), script_null());
+  }
+
   it("can iterate an empty memory instance") {
     const ScriptMemItr itr = script_mem_begin(&m);
     check_eq_int(itr.key, 0);
