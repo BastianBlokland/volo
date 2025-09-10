@@ -993,6 +993,12 @@ static ScriptVal eval_ask_global(EvalContext* ctx, ScriptBinderCall* call) {
   return script_null();
 }
 
+static ScriptVal eval_get_global(EvalContext* ctx, ScriptBinderCall* call) {
+  const StringHash         key         = script_arg_str(call, 0);
+  const ScenePropertyComp* globalProps = ecs_view_read_t(ctx->globalItr, ScenePropertyComp);
+  return scene_prop_load(globalProps, key);
+}
+
 static ScriptVal eval_prefab_spawn(EvalContext* ctx, ScriptBinderCall* call) {
   const StringHash prefabId = script_arg_str(call, 0);
 
@@ -2058,6 +2064,7 @@ static void eval_binder_init(void) {
     eval_bind(b, string_lit("tell_global"),            eval_tell_global);
     eval_bind(b, string_lit("ask"),                    eval_ask);
     eval_bind(b, string_lit("ask_global"),             eval_ask_global);
+    eval_bind(b, string_lit("get_global"),             eval_get_global);
     eval_bind(b, string_lit("prefab_spawn"),           eval_prefab_spawn);
     eval_bind(b, string_lit("prefab_id"),              eval_prefab_id);
     eval_bind(b, string_lit("destroy"),                eval_destroy);
