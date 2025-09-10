@@ -390,11 +390,9 @@ static void memory_panel_tab_draw(
     UiCanvasComp*       c,
     DevScriptPanelComp* panelComp,
     EcsIterator*        entityRefItr,
-    EcsIterator*        subject) {
-  diag_assert(subject);
+    ScenePropertyComp*  propComp) {
 
-  ScenePropertyComp* propComp = ecs_view_write_t(subject, ScenePropertyComp);
-  ScriptMem*         memory   = scene_prop_memory_mut(propComp);
+  ScriptMem* memory = scene_prop_memory_mut(propComp);
 
   memory_options_draw(c, panelComp);
   ui_layout_grow(c, UiAlign_BottomCenter, ui_vector(0, -35), UiBase_Absolute, Ui_Y);
@@ -823,6 +821,7 @@ static void script_panel_draw(
     UiCanvasComp*         c,
     DevScriptPanelComp*   panelComp,
     DevScriptTrackerComp* tracker,
+    ScenePropertyComp*    globalProps,
     SceneSetEnvComp*      setEnv,
     EcsIterator*          entityRefItr,
     EcsIterator*          assetItr,
@@ -846,9 +845,10 @@ static void script_panel_draw(
     break;
   case DevScriptTab_Memory:
     if (subjectItr) {
-      memory_panel_tab_draw(c, panelComp, entityRefItr, subjectItr);
+      ScenePropertyComp* propComp = ecs_view_write_t(subjectItr, ScenePropertyComp);
+      memory_panel_tab_draw(c, panelComp, entityRefItr, propComp);
     } else {
-      ui_label(c, string_lit("Select a scripted entity."), .align = UiAlign_MiddleCenter);
+      memory_panel_tab_draw(c, panelComp, entityRefItr, globalProps);
     }
     break;
   case DevScriptTab_Output:
@@ -879,6 +879,7 @@ static void script_panel_draw_output_only(
 ecs_view_define(PanelUpdateGlobalView) {
   ecs_access_maybe_write(DevScriptTrackerComp);
   ecs_access_read(AssetManagerComp);
+  ecs_access_write(ScenePropertyComp);
   ecs_access_write(SceneSetEnvComp);
 }
 
@@ -954,6 +955,7 @@ ecs_system_define(DevScriptUpdatePanelSys) {
 
   SceneSetEnvComp*        setEnv       = ecs_view_write_t(globalItr, SceneSetEnvComp);
   const AssetManagerComp* assetManager = ecs_view_read_t(globalItr, AssetManagerComp);
+  ScenePropertyComp*      globalProps  = ecs_view_write_t(globalItr, ScenePropertyComp);
 
   EcsIterator* entityRefItr = ecs_view_itr(ecs_world_view_t(world, EntityRefView));
   EcsIterator* assetItr     = ecs_view_itr(ecs_world_view_t(world, AssetView));
@@ -994,7 +996,15 @@ ecs_system_define(DevScriptUpdatePanelSys) {
       script_panel_draw_output_only(canvas, panelComp, tracker, setEnv, subjectItr);
     } else {
       script_panel_draw(
-          world, canvas, panelComp, tracker, setEnv, entityRefItr, assetItr, subjectItr);
+          world,
+          canvas,
+          panelComp,
+          tracker,
+          globalProps,
+          setEnv,
+          entityRefItr,
+          assetItr,
+          subjectItr);
     }
 
     if (ui_panel_closed(&panelComp->panel)) {

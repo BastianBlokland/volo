@@ -98,9 +98,10 @@ NO_INLINE_HINT static void action_queue_grow(SceneActionQueueComp* q) {
 }
 
 ecs_view_define(ActionGlobalView) {
-  ecs_access_write(ScenePrefabEnvComp);
-  ecs_access_write(SceneSetEnvComp);
   ecs_access_read(SceneLevelManagerComp);
+  ecs_access_write(ScenePrefabEnvComp);
+  ecs_access_write(ScenePropertyComp);
+  ecs_access_write(SceneSetEnvComp);
 }
 
 ecs_view_define(ActionPropertyView) { ecs_access_write(ScenePropertyComp); }
@@ -169,6 +170,12 @@ static void action_prop_set(
 }
 
 static void action_tell(ActionContext* ctx, const SceneActionTell* a) {
+  if (!a->entity) {
+    ScenePropertyComp* propComp = ecs_view_write_t(ctx->globalItr, ScenePropertyComp);
+    action_prop_set(propComp, a->prop, a->value, a->combinator);
+    return;
+  }
+
   if (ecs_view_maybe_jump(ctx->propertyItr, a->entity)) {
     ScenePropertyComp* propComp = ecs_view_write_t(ctx->propertyItr, ScenePropertyComp);
     action_prop_set(propComp, a->prop, a->value, a->combinator);
@@ -176,12 +183,26 @@ static void action_tell(ActionContext* ctx, const SceneActionTell* a) {
 }
 
 static void action_ask(ActionContext* ctx, const SceneActionAsk* a) {
-  if (ecs_view_maybe_jump(ctx->propertyItr, a->entity)) {
-    ScenePropertyComp* propComp = ecs_view_write_t(ctx->propertyItr, ScenePropertyComp);
-    if (ecs_view_maybe_jump(ctx->propertyItr, a->target)) {
-      const ScenePropertyComp* target = ecs_view_read_t(ctx->propertyItr, ScenePropertyComp);
-      action_prop_set(propComp, a->prop, scene_prop_load(target, a->prop), a->combinator);
+  ScenePropertyComp* propComp = null;
+  if (a->entity) {
+    if (ecs_view_maybe_jump(ctx->propertyItr, a->entity)) {
+      propComp = ecs_view_write_t(ctx->propertyItr, ScenePropertyComp);
     }
+  } else {
+    propComp = ecs_view_write_t(ctx->globalItr, ScenePropertyComp);
+  }
+
+  const ScenePropertyComp* tgtComp = null;
+  if (a->target) {
+    if (ecs_view_maybe_jump(ctx->propertyItr, a->target)) {
+      tgtComp = ecs_view_read_t(ctx->propertyItr, ScenePropertyComp);
+    }
+  } else {
+    tgtComp = ecs_view_read_t(ctx->globalItr, ScenePropertyComp);
+  }
+
+  if (propComp && tgtComp) {
+    action_prop_set(propComp, a->prop, scene_prop_load(tgtComp, a->prop), a->combinator);
   }
 }
 

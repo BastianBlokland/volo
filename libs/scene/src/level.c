@@ -255,6 +255,7 @@ static void level_process_load(
 
 ecs_view_define(LoadGlobalView) {
   ecs_access_maybe_write(SceneLevelManagerComp);
+  ecs_access_maybe_write(ScenePropertyComp);
   ecs_access_write(AssetManagerComp);
   ecs_access_write(ScenePrefabEnvComp);
 }
@@ -270,9 +271,10 @@ ecs_system_define(SceneLevelLoadSys) {
   if (!globalItr) {
     return;
   }
-  AssetManagerComp*      assets    = ecs_view_write_t(globalItr, AssetManagerComp);
-  ScenePrefabEnvComp*    prefabEnv = ecs_view_write_t(globalItr, ScenePrefabEnvComp);
-  SceneLevelManagerComp* manager   = ecs_view_write_t(globalItr, SceneLevelManagerComp);
+  AssetManagerComp*      assets      = ecs_view_write_t(globalItr, AssetManagerComp);
+  ScenePropertyComp*     globalProps = ecs_view_write_t(globalItr, ScenePropertyComp);
+  ScenePrefabEnvComp*    prefabEnv   = ecs_view_write_t(globalItr, ScenePrefabEnvComp);
+  SceneLevelManagerComp* manager     = ecs_view_write_t(globalItr, SceneLevelManagerComp);
   if (!manager) {
     manager = ecs_world_add_t(world, ecs_world_global(world), SceneLevelManagerComp);
   }
@@ -298,6 +300,9 @@ ecs_system_define(SceneLevelLoadSys) {
           goto Done;
         }
         req->levelAsset = manager->levelAsset;
+      }
+      if (globalProps) {
+        scene_prop_clear(globalProps);
       }
       manager->isLoading = true;
       manager->isError   = false;

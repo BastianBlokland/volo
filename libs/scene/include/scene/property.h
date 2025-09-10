@@ -9,6 +9,7 @@ ecs_comp_extern(ScenePropertyComp);
  */
 ScriptVal        scene_prop_load(const ScenePropertyComp*, StringHash key);
 void             scene_prop_store(ScenePropertyComp*, StringHash key, ScriptVal);
+void             scene_prop_clear(ScenePropertyComp*);
 const ScriptMem* scene_prop_memory(const ScenePropertyComp*);
 ScriptMem*       scene_prop_memory_mut(ScenePropertyComp*);
 
