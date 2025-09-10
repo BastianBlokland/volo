@@ -277,7 +277,7 @@ static EcsEntityId menu_child_topmost(EcsWorld* world, const DevMenuComp* menu) 
 }
 
 static bool menu_child_hotkey_pressed(const InputManagerComp* input, const u32 childIndex) {
-  if (g_menuChildConfig[childIndex].hotkey) {
+  if (!g_menuChildConfig[childIndex].hotkey) {
     return false;
   }
   return input_triggered(input, g_menuChildConfig[childIndex].hotkey);

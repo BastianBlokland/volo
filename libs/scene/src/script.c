@@ -51,6 +51,8 @@
 #define scene_script_query_values_max 512
 #define scene_script_query_max 10
 
+typedef ScriptVal (*SceneValCombinator)(ScriptVal, ScriptVal);
+
 typedef enum {
   SceneScriptCapability_NavTravel,
   SceneScriptCapability_Animation,
@@ -82,7 +84,8 @@ ASSERT(array_elems(g_sceneScriptCapabilityNames) == SceneScriptCapability_Count,
 
 // clang-format off
 
-static ScriptEnum g_scriptEnumFaction,
+static ScriptEnum g_scriptEnumCombinator,
+                  g_scriptEnumFaction,
                   g_scriptEnumClock,
                   g_scriptEnumNavLayer,
                   g_scriptEnumNavFind,
@@ -102,6 +105,12 @@ static ScriptEnum g_scriptEnumFaction,
                   g_scriptEnumMarkerType;
 
 // clang-format on
+
+static void eval_enum_init_combinator(void) {
+  script_enum_push(&g_scriptEnumCombinator, string_lit("None"), -1);
+  script_enum_push(&g_scriptEnumCombinator, string_lit("Add"), 0);
+  script_enum_push(&g_scriptEnumCombinator, string_lit("Sub"), 1);
+}
 
 static void eval_enum_init_faction(void) {
   script_enum_push(&g_scriptEnumFaction, string_lit("FactionA"), SceneFaction_A);
@@ -404,6 +413,17 @@ static u32 context_query_id(EvalContext* ctx, const EvalQuery* query) {
 
 static EvalQuery* context_query_get(EvalContext* ctx, const u32 id) {
   return id < ctx->usedQueries ? &ctx->queries[id] : null;
+}
+
+static SceneValCombinator arg_combinator(ScriptBinderCall* call, const u16 i) {
+  switch (script_arg_opt_enum(call, i, &g_scriptEnumCombinator, -1)) {
+  case 0 /* Add */:
+    return script_val_add;
+  case 1 /* Sub */:
+    return script_val_sub;
+  default:
+    return null;
+  }
 }
 
 static EcsEntityId arg_asset(EvalContext* ctx, ScriptBinderCall* call, const u16 i) {
@@ -931,22 +951,24 @@ static ScriptVal eval_target_exclude(EvalContext* ctx, ScriptBinderCall* call) {
 }
 
 static ScriptVal eval_tell(EvalContext* ctx, ScriptBinderCall* call) {
-  const EcsEntityId e     = script_arg_entity(call, 0);
-  const StringHash  key   = script_arg_str(call, 1);
-  const ScriptVal   value = script_arg_any(call, 2);
+  const EcsEntityId        e          = script_arg_entity(call, 0);
+  const StringHash         key        = script_arg_str(call, 1);
+  const ScriptVal          value      = script_arg_any(call, 2);
+  const SceneValCombinator combinator = arg_combinator(call, 3);
 
   SceneAction* act = scene_action_push(ctx->actions, SceneActionType_Tell);
-  act->tell        = (SceneActionTell){.entity = e, .prop = key, .value = value};
+  act->tell = (SceneActionTell){.entity = e, .prop = key, .value = value, .combinator = combinator};
   return script_null();
 }
 
 static ScriptVal eval_ask(EvalContext* ctx, ScriptBinderCall* call) {
-  const EcsEntityId e      = script_arg_entity(call, 0);
-  const EcsEntityId target = script_arg_entity(call, 1);
-  const StringHash  key    = script_arg_str(call, 2);
+  const EcsEntityId        e          = script_arg_entity(call, 0);
+  const EcsEntityId        target     = script_arg_entity(call, 1);
+  const StringHash         key        = script_arg_str(call, 2);
+  const SceneValCombinator combinator = arg_combinator(call, 3);
 
   SceneAction* act = scene_action_push(ctx->actions, SceneActionType_Ask);
-  act->ask         = (SceneActionAsk){.entity = e, .target = target, .prop = key};
+  act->ask = (SceneActionAsk){.entity = e, .target = target, .prop = key, .combinator = combinator};
   return script_null();
 }
 
@@ -1962,6 +1984,7 @@ static void eval_binder_init(void) {
     const ScriptBinderFlags flags = ScriptBinderFlags_None;
     ScriptBinder*           b = script_binder_create(g_allocPersist, string_lit("scene"), flags);
 
+    eval_enum_init_combinator();
     eval_enum_init_faction();
     eval_enum_init_clock();
     eval_enum_init_nav_layer();
