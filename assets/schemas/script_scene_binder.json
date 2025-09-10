@@ -270,6 +270,21 @@
       }
     },
     {
+      "name": "tell_global",
+      "doc": "Set a global property value.\n\n*Note*: The updated property is visible to scripts in the next frame.\n\nSupported combinators:\n\n-`Add`\n\n-`Sub`",
+      "sig": {
+        "ret": "null",
+        "args": [
+          { "name": "key", "mask": "str" },
+          { "name": "value", "mask": "any" },
+          {
+            "name": "combinator",
+            "mask": [ "null", "str" ]
+          }
+        ]
+      }
+    },
+    {
       "name": "vision",
       "doc": "Lookup the vision radius of the given entity.",
       "sig": {
@@ -635,6 +650,16 @@
       }
     },
     {
+      "name": "get_global",
+      "doc": "Get a global property value.",
+      "sig": {
+        "ret": "any",
+        "args": [
+          { "name": "key", "mask": "str" }
+        ]
+      }
+    },
+    {
       "name": "collision_box_spawn",
       "doc": "Spawn a collision box.\n\n*Note*: Resulting entity is not automatically destroyed.",
       "sig": {
@@ -671,6 +696,21 @@
           {
             "name": "color",
             "mask": [ "null", "color" ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "ask_global",
+      "doc": "Ask a global property value.\n\n*Note*: The result value is visible to this entity under the same key in the next frame.\n\nSupported combinators:\n\n-`Add`\n\n-`Sub`",
+      "sig": {
+        "ret": "null",
+        "args": [
+          { "name": "this", "mask": "entity" },
+          { "name": "key", "mask": "str" },
+          {
+            "name": "combinator",
+            "mask": [ "null", "str" ]
           }
         ]
       }

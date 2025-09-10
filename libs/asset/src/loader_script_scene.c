@@ -324,6 +324,17 @@ void asset_data_init_script_scene(void) {
     bind(binder, name, doc, ret, args, array_elems(args));
   }
   {
+    const String       name   = string_lit("tell_global");
+    const String       doc    = fmt_write_scratch("Set a global property value.\n\n*Note*: The updated property is visible to scripts in the next frame.\n\n{}", fmt_text(g_combinatorDoc));
+    const ScriptMask   ret    = script_mask_null;
+    const ScriptSigArg args[] = {
+        {string_lit("key"), script_mask_str},
+        {string_lit("value"), script_mask_any},
+        {string_lit("combinator"), script_mask_str | script_mask_null},
+    };
+    bind(binder, name, doc, ret, args, array_elems(args));
+  }
+  {
     const String       name   = string_lit("ask");
     const String       doc    = fmt_write_scratch("Ask a target entity for a property value.\n\n*Note*: The result value is visible to this entity under the same key in the next frame.\n\n{}", fmt_text(g_combinatorDoc));
     const ScriptMask   ret    = script_mask_null;
@@ -332,6 +343,26 @@ void asset_data_init_script_scene(void) {
         {string_lit("target"), script_mask_entity},
         {string_lit("key"), script_mask_str},
         {string_lit("combinator"), script_mask_str | script_mask_null},
+    };
+    bind(binder, name, doc, ret, args, array_elems(args));
+  }
+  {
+    const String       name   = string_lit("ask_global");
+    const String       doc    = fmt_write_scratch("Ask a global property value.\n\n*Note*: The result value is visible to this entity under the same key in the next frame.\n\n{}", fmt_text(g_combinatorDoc));
+    const ScriptMask   ret    = script_mask_null;
+    const ScriptSigArg args[] = {
+        {string_lit("this"), script_mask_entity},
+        {string_lit("key"), script_mask_str},
+        {string_lit("combinator"), script_mask_str | script_mask_null},
+    };
+    bind(binder, name, doc, ret, args, array_elems(args));
+  }
+  {
+    const String       name   = string_lit("get_global");
+    const String       doc    = string_lit("Get a global property value.");
+    const ScriptMask   ret    = script_mask_any;
+    const ScriptSigArg args[] = {
+        {string_lit("key"), script_mask_str},
     };
     bind(binder, name, doc, ret, args, array_elems(args));
   }
