@@ -1,5 +1,6 @@
 #include "ecs/module.h"
 #include "ecs/world.h"
+#include "scene/property.h"
 #include "script/mem.h"
 #include "script/val.h"
 
@@ -23,9 +24,18 @@ static void ecs_combine_prop_comp(void* dataA, void* dataB) {
   script_mem_destroy(&compB->memory);
 }
 
+ecs_system_define(ScenePropertyInitSys) {
+  const EcsEntityId globalEntity = ecs_world_global(world);
+  if (!ecs_world_has_t(world, globalEntity, ScenePropertyComp)) {
+    scene_prop_add(world, globalEntity);
+  }
+}
+
 ecs_module_init(scene_property_module) {
   ecs_register_comp(
       ScenePropertyComp, .destructor = ecs_destruct_prop_comp, .combinator = ecs_combine_prop_comp);
+
+  ecs_register_system(ScenePropertyInitSys);
 }
 
 ScriptVal scene_prop_load(const ScenePropertyComp* k, const StringHash key) {
