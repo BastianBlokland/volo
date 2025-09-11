@@ -448,11 +448,9 @@ static void inspector_prefab_replace(
 }
 
 static void inspector_prop_find_inputs(
-    EcsIterator* subject, EcsIterator* scriptAssetItr, DynArray* outInputKeys /* String[] */) {
-  const SceneScriptComp* scriptComp = ecs_view_read_t(subject, SceneScriptComp);
-  if (!scriptComp) {
-    return;
-  }
+    const SceneScriptComp* scriptComp,
+    EcsIterator*           scriptAssetItr,
+    DynArray*              outInputKeys /* String[] */) {
   const u32 scriptCount = scene_script_count(scriptComp);
   for (SceneScriptSlot scriptSlot = 0; scriptSlot != scriptCount; ++scriptSlot) {
     if (!ecs_view_maybe_jump(scriptAssetItr, scene_script_asset(scriptComp, scriptSlot))) {
@@ -468,12 +466,8 @@ static void inspector_prop_find_inputs(
   }
 }
 
-static void
-inspector_prop_collect(EcsIterator* subject, DynArray* outEntries /* DevPropEntry[] */) {
-  const ScenePropertyComp* propComp = ecs_view_read_t(subject, ScenePropertyComp);
-  if (!propComp) {
-    return;
-  }
+static void inspector_prop_collect(
+    const ScenePropertyComp* propComp, DynArray* outEntries /* DevPropEntry[] */) {
   const ScriptMem* memory = scene_prop_memory(propComp);
   for (ScriptMemItr itr = script_mem_begin(memory); itr.key; itr = script_mem_next(memory, itr)) {
     const ScriptVal val = script_mem_load(memory, itr.key);
@@ -868,7 +862,12 @@ static void inspector_panel_prop_labels(UiCanvasComp* canvas, const String* inpu
 }
 
 static void inspector_panel_draw_properties(InspectorContext* ctx, UiTable* table) {
-  ScenePropertyComp* propComp = ecs_view_write_t(ctx->subject, ScenePropertyComp);
+  ScenePropertyComp*     propComp   = ctx->globalProps;
+  const SceneScriptComp* scriptComp = null;
+  if (ctx->subject) {
+    propComp   = ecs_view_write_t(ctx->subject, ScenePropertyComp);
+    scriptComp = ecs_view_read_t(ctx->subject, SceneScriptComp);
+  }
   if (!propComp) {
     return;
   }
@@ -879,10 +878,12 @@ static void inspector_panel_draw_properties(InspectorContext* ctx, UiTable* tabl
     return;
   }
   DynArray entries = dynarray_create_t(g_allocScratch, DevPropEntry, 128);
-  inspector_prop_collect(ctx->subject, &entries);
+  inspector_prop_collect(propComp, &entries);
 
   DynArray inputKeys = dynarray_create_t(g_allocScratch, String, 128);
-  inspector_prop_find_inputs(ctx->subject, ctx->scriptAssetItr, &inputKeys);
+  if (scriptComp) {
+    inspector_prop_find_inputs(scriptComp, ctx->scriptAssetItr, &inputKeys);
+  }
 
   dynarray_for_t(&entries, DevPropEntry, entry) {
     inspector_panel_next(ctx, table);
@@ -1649,6 +1650,8 @@ static void inspector_panel_draw(InspectorContext* ctx) {
 
     inspector_panel_draw_tags(ctx, &table);
     ui_canvas_id_block_next(ctx->canvas);
+  } else {
+    inspector_panel_draw_properties(ctx, &table);
   }
   ui_canvas_id_block_next(ctx->canvas);
 
