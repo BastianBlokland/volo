@@ -973,27 +973,27 @@ static ScriptVal eval_tell_global(EvalContext* ctx, ScriptBinderCall* call) {
 }
 
 static ScriptVal eval_ask(EvalContext* ctx, ScriptBinderCall* call) {
-  const EcsEntityId        e          = script_arg_entity(call, 0);
-  const EcsEntityId        target     = script_arg_entity(call, 1);
-  const StringHash         key        = script_arg_str(call, 2);
+  const EcsEntityId        src        = script_arg_entity(call, 0);
+  const StringHash         key        = script_arg_str(call, 1);
+  const EcsEntityId        dst        = script_arg_entity(call, 2);
   const SceneValCombinator combinator = arg_combinator(call, 3);
 
   SceneAction* act = scene_action_push(ctx->actions, SceneActionType_Ask);
 
   act->ask = (SceneActionAsk){
-      .src = target, .dst = e, .srcProp = key, .dstProp = key, .combinator = combinator};
+      .src = src, .dst = dst, .srcProp = key, .dstProp = key, .combinator = combinator};
 
   return script_null();
 }
 
 static ScriptVal eval_ask_global(EvalContext* ctx, ScriptBinderCall* call) {
-  const EcsEntityId        e          = script_arg_entity(call, 0);
-  const StringHash         key        = script_arg_str(call, 1);
+  const StringHash         key        = script_arg_str(call, 0);
+  const EcsEntityId        dst        = script_arg_entity(call, 1);
   const SceneValCombinator combinator = arg_combinator(call, 2);
 
   SceneAction* act = scene_action_push(ctx->actions, SceneActionType_Ask);
 
-  act->ask = (SceneActionAsk){.dst = e, .srcProp = key, .dstProp = key, .combinator = combinator};
+  act->ask = (SceneActionAsk){.dst = dst, .srcProp = key, .dstProp = key, .combinator = combinator};
 
   return script_null();
 }
