@@ -177,7 +177,7 @@ static ScriptVal level_property_load(
   case AssetProperty_Str:
     return script_str_or_null(levelProp->data_str);
   case AssetProperty_EntitySelf:
-    return script_entity(entitySelf);
+    return script_entity_or_null(entitySelf);
   case AssetProperty_EntityLevel: {
     const u32 refIdx = asset_level_find_index(level, levelProp->data_levelEntity.persistentId);
     const EcsEntityId refEntity = sentinel_check(refIdx) ? 0 : objectEntities[refIdx];
@@ -198,6 +198,7 @@ static void level_process_load(
     SceneLevelManagerComp* manager,
     AssetManagerComp*      assets,
     ScenePrefabEnvComp*    prefabEnv,
+    ScenePropertyComp*     globalProps,
     const SceneLevelMode   levelMode,
     const EcsEntityId      levelAsset,
     const AssetLevel*      level) {
@@ -241,6 +242,11 @@ static void level_process_load(
     };
     mem_cpy(mem_var(spec.sets), mem_var(obj->sets));
     scene_prefab_spawn_onto(prefabEnv, &spec, objectEntities[objIdx]);
+  }
+
+  heap_array_for_t(level->properties, AssetProperty, prop) {
+    const ScriptVal propVal = level_property_load(world, assets, level, prop, 0, objectEntities);
+    scene_prop_store(globalProps, prop->name, propVal);
   }
 
   manager->levelMode       = levelMode;
@@ -347,7 +353,14 @@ ecs_system_define(SceneLevelLoadSys) {
         goto Done;
       }
       level_process_load(
-          world, manager, assets, prefabEnv, req->levelMode, req->levelAsset, &levelComp->level);
+          world,
+          manager,
+          assets,
+          prefabEnv,
+          globalProps,
+          req->levelMode,
+          req->levelAsset,
+          &levelComp->level);
       ++req->state;
       goto Wait; // Wait for the entities to be created.
     case LevelLoadState_Finish:
