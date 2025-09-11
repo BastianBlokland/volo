@@ -126,6 +126,8 @@ ScriptVal script_val_mul(ScriptVal, ScriptVal);
 ScriptVal script_val_div(ScriptVal, ScriptVal);
 ScriptVal script_val_mod(ScriptVal, ScriptVal);
 ScriptVal script_val_dist(ScriptVal, ScriptVal);
+ScriptVal script_val_logic_and(ScriptVal, ScriptVal);
+ScriptVal script_val_logic_or(ScriptVal, ScriptVal);
 ScriptVal script_val_norm(ScriptVal);
 ScriptVal script_val_mag(ScriptVal);
 ScriptVal script_val_abs(ScriptVal);

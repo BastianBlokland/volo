@@ -723,6 +723,14 @@ ScriptVal script_val_dist(const ScriptVal a, const ScriptVal b) {
   UNREACHABLE
 }
 
+ScriptVal script_val_logic_and(const ScriptVal a, const ScriptVal b) {
+  return val_bool(script_truthy(a) && script_truthy(b));
+}
+
+ScriptVal script_val_logic_or(const ScriptVal a, const ScriptVal b) {
+  return val_bool(script_truthy(a) || script_truthy(b));
+}
+
 ScriptVal script_val_norm(const ScriptVal val) {
   switch (val_type(val)) {
   case ScriptType_Vec3:
