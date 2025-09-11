@@ -18,6 +18,8 @@
 #include "script/mem.h"
 #include "trace/tracer.h"
 
+#define scene_level_props_max 64
+
 typedef enum {
   LevelLoadState_Start,
   LevelLoadState_Unload,
@@ -450,22 +452,20 @@ static bool level_obj_should_persist(const ScenePrefabInstanceComp* prefabInst) 
   return true;
 }
 
-static void level_obj_push_properties(
+static usize level_properties_collect(
+    const ScenePropertyComp* source,
     const LevelIdMap*        idMap,
     const EcsEntityId        entitySelf,
-    AssetLevelObject*        obj,
-    Allocator*               alloc,
-    const ScenePropertyComp* c,
-    EcsIterator*             entityRefItr) {
+    EcsIterator*             entityRefItr,
+    AssetProperty            props[PARAM_ARRAY_SIZE(scene_level_props_max)]) {
 
-  AssetProperty props[64];
-  u32           propCount = 0;
+  usize propCount = 0;
 
-  const ScriptMem* memory = scene_prop_memory(c);
+  const ScriptMem* memory = scene_prop_memory(source);
   for (ScriptMemItr itr = script_mem_begin(memory); itr.key; itr = script_mem_next(memory, itr)) {
     const ScriptVal val = script_mem_load(memory, itr.key);
-    if (UNLIKELY(propCount == array_elems(props))) {
-      log_w("Object property count exceeds max", log_param("max", fmt_int(array_elems(props))));
+    if (UNLIKELY(propCount == scene_level_props_max)) {
+      log_w("Level property count exceeds max", log_param("max", fmt_int(scene_level_props_max)));
       break;
     }
     AssetProperty* prop = &props[propCount];
@@ -532,6 +532,20 @@ static void level_obj_push_properties(
     ++propCount;
   }
 
+  return propCount;
+}
+
+static void level_obj_push_properties(
+    const ScenePropertyComp* source,
+    const LevelIdMap*        idMap,
+    const EcsEntityId        entitySelf,
+    EcsIterator*             entityRefItr,
+    Allocator*               alloc,
+    AssetLevelObject*        obj) {
+
+  AssetProperty props[scene_level_props_max];
+  const usize propCount = level_properties_collect(source, idMap, entitySelf, entityRefItr, props);
+
   // Copy the properties into the object.
   if (propCount) {
     obj->properties.values = alloc_array_t(alloc, AssetProperty, propCount);
@@ -577,7 +591,7 @@ static void level_obj_push(
   };
 
   if (maybeProperties) {
-    level_obj_push_properties(idMap, entitySelf, &obj, alloc, maybeProperties, entityRefItr);
+    level_obj_push_properties(maybeProperties, idMap, entitySelf, entityRefItr, alloc, &obj);
   }
   if (maybeSetMember) {
     level_obj_push_sets(&obj, maybeSetMember);
@@ -592,6 +606,7 @@ static StringHash level_asset_id_hash(EcsView* assetView, const EcsEntityId asse
 
 static void level_process_save(
     const SceneLevelManagerComp* manager,
+    const ScenePropertyComp*     globalProps,
     AssetManagerComp*            assets,
     EcsView*                     assetView,
     const String                 id,
@@ -615,18 +630,24 @@ static void level_process_save(
     level_obj_push(&idMap, &objects, tempAlloc, itr, entityRefItr);
   }
 
+  // Add global properties.
+  AssetProperty props[scene_level_props_max];
+  const usize   propCount = level_properties_collect(globalProps, &idMap, 0, entityRefItr, props);
+
   const AssetRef terrainRef = {
       .entity = manager->levelTerrain,
       .id     = level_asset_id_hash(assetView, manager->levelTerrain),
   };
 
   const AssetLevel level = {
-      .name           = manager->levelName,
-      .terrain        = terrainRef,
-      .startpoint     = manager->levelStartpoint,
-      .fogMode        = manager->levelFog,
-      .objects.values = dynarray_begin_t(&objects, AssetLevelObject),
-      .objects.count  = objects.size,
+      .name              = manager->levelName,
+      .terrain           = terrainRef,
+      .startpoint        = manager->levelStartpoint,
+      .fogMode           = manager->levelFog,
+      .properties.values = props,
+      .properties.count  = propCount,
+      .objects.values    = dynarray_begin_t(&objects, AssetLevelObject),
+      .objects.count     = objects.size,
   };
   if (asset_level_save(assets, id, &level)) {
     const u32 objCount = (u32)objects.size;
@@ -641,8 +662,9 @@ static void level_process_save(
 }
 
 ecs_view_define(SaveGlobalView) {
-  ecs_access_write(AssetManagerComp);
   ecs_access_read(SceneLevelManagerComp);
+  ecs_access_read(ScenePropertyComp);
+  ecs_access_write(AssetManagerComp);
 }
 ecs_view_define(SaveAssetView) { ecs_access_read(AssetComp); }
 ecs_view_define(SaveRequestView) { ecs_access_write(SceneLevelRequestSaveComp); }
@@ -653,8 +675,9 @@ ecs_system_define(SceneLevelSaveSys) {
   if (!globalItr) {
     return;
   }
-  const SceneLevelManagerComp* manager = ecs_view_read_t(globalItr, SceneLevelManagerComp);
-  AssetManagerComp*            assets  = ecs_view_write_t(globalItr, AssetManagerComp);
+  const SceneLevelManagerComp* manager     = ecs_view_read_t(globalItr, SceneLevelManagerComp);
+  AssetManagerComp*            assets      = ecs_view_write_t(globalItr, AssetManagerComp);
+  const ScenePropertyComp*     globalProps = ecs_view_read_t(globalItr, ScenePropertyComp);
 
   EcsView* requestView  = ecs_world_view_t(world, SaveRequestView);
   EcsView* assetView    = ecs_world_view_t(world, SaveAssetView);
@@ -681,7 +704,8 @@ ecs_system_define(SceneLevelSaveSys) {
       ecs_view_jump(assetItr, req->levelAsset);
       const String assetId = asset_id(ecs_view_read_t(assetItr, AssetComp));
 
-      level_process_save(manager, assets, assetView, assetId, instanceView, entityRefItr);
+      level_process_save(
+          manager, globalProps, assets, assetView, assetId, instanceView, entityRefItr);
     }
     req->savePerformed = true;
     if (req->reload) {
