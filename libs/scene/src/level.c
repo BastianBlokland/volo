@@ -155,6 +155,44 @@ static ScenePrefabVariant level_prefab_variant(const SceneLevelMode levelMode) {
   diag_crash();
 }
 
+static ScriptVal level_property_load(
+    EcsWorld*            world,
+    AssetManagerComp*    assets,
+    const AssetLevel*    level,
+    const AssetProperty* levelProp,
+    const EcsEntityId    entitySelf,
+    EcsEntityId*         objectEntities) {
+
+  switch (levelProp->type) {
+  case AssetProperty_Num:
+    return script_num(levelProp->data_num);
+  case AssetProperty_Bool:
+    return script_bool(levelProp->data_bool);
+  case AssetProperty_Vec3:
+    return script_vec3(levelProp->data_vec3);
+  case AssetProperty_Quat:
+    return script_quat(levelProp->data_quat);
+  case AssetProperty_Color:
+    return script_color(levelProp->data_color);
+  case AssetProperty_Str:
+    return script_str_or_null(levelProp->data_str);
+  case AssetProperty_EntitySelf:
+    return script_entity(entitySelf);
+  case AssetProperty_EntityLevel: {
+    const u32 refIdx = asset_level_find_index(level, levelProp->data_levelEntity.persistentId);
+    const EcsEntityId refEntity = sentinel_check(refIdx) ? 0 : objectEntities[refIdx];
+    return script_entity_or_null(refEntity);
+  }
+  case AssetProperty_Asset: {
+    const EcsEntityId asset = asset_ref_resolve(world, assets, &levelProp->data_asset);
+    return script_entity_or_null(asset);
+  }
+  case AssetProperty_Count:
+    break;
+  }
+  UNREACHABLE
+}
+
 static void level_process_load(
     EcsWorld*              world,
     SceneLevelManagerComp* manager,
@@ -186,44 +224,10 @@ static void level_process_load(
     for (u16 propIdx = 0; propIdx != propCount; ++propIdx) {
       const AssetProperty* levelProp = &obj->properties.values[propIdx];
       props[propIdx].key             = levelProp->name;
-      switch (levelProp->type) {
-      case AssetProperty_Num:
-        props[propIdx].value = script_num(levelProp->data_num);
-        continue;
-      case AssetProperty_Bool:
-        props[propIdx].value = script_bool(levelProp->data_bool);
-        continue;
-      case AssetProperty_Vec3:
-        props[propIdx].value = script_vec3(levelProp->data_vec3);
-        continue;
-      case AssetProperty_Quat:
-        props[propIdx].value = script_quat(levelProp->data_quat);
-        continue;
-      case AssetProperty_Color:
-        props[propIdx].value = script_color(levelProp->data_color);
-        continue;
-      case AssetProperty_Str:
-        props[propIdx].value = script_str_or_null(levelProp->data_str);
-        continue;
-      case AssetProperty_EntitySelf:
-        props[propIdx].value = script_entity(objectEntities[objIdx]);
-        continue;
-      case AssetProperty_EntityLevel: {
-        const u32 refIdx = asset_level_find_index(level, levelProp->data_levelEntity.persistentId);
-        const EcsEntityId refEntity = sentinel_check(refIdx) ? 0 : objectEntities[refIdx];
-        props[propIdx].value        = script_entity_or_null(refEntity);
-        continue;
-      }
-      case AssetProperty_Asset: {
-        const EcsEntityId asset = asset_ref_resolve(world, assets, &levelProp->data_asset);
-        props[propIdx].value    = script_entity_or_null(asset);
-        continue;
-      }
-      case AssetProperty_Count:
-        break;
-      }
-      UNREACHABLE
+      props[propIdx].value           = level_property_load(
+          world, assets, level, levelProp, objectEntities[objIdx], objectEntities);
     }
+
     ScenePrefabSpec spec = {
         .id            = obj->id,
         .prefabId      = obj->prefab,
