@@ -181,7 +181,7 @@ static void level_process_load(
   for (u32 objIdx = 0; objIdx != level->objects.count; ++objIdx) {
     const AssetLevelObject* obj = &level->objects.values[objIdx];
 
-    ScenePrefabProperty props[128];
+    ScenePrefabProperty props[scene_level_props_max];
     const u16           propCount = (u16)math_min(obj->properties.count, array_elems(props));
     for (u16 propIdx = 0; propIdx != propCount; ++propIdx) {
       const AssetProperty* levelProp = &obj->properties.values[propIdx];
