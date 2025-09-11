@@ -958,7 +958,7 @@ static ScriptVal eval_tell(EvalContext* ctx, ScriptBinderCall* call) {
   const SceneValCombinator combinator = arg_combinator(call, 3);
 
   SceneAction* act = scene_action_push(ctx->actions, SceneActionType_Tell);
-  act->tell = (SceneActionTell){.entity = e, .prop = key, .value = value, .combinator = combinator};
+  act->tell = (SceneActionTell){.dst = e, .dstProp = key, .value = value, .combinator = combinator};
   return script_null();
 }
 
@@ -968,7 +968,7 @@ static ScriptVal eval_tell_global(EvalContext* ctx, ScriptBinderCall* call) {
   const SceneValCombinator combinator = arg_combinator(call, 2);
 
   SceneAction* act = scene_action_push(ctx->actions, SceneActionType_Tell);
-  act->tell        = (SceneActionTell){.prop = key, .value = value, .combinator = combinator};
+  act->tell        = (SceneActionTell){.dstProp = key, .value = value, .combinator = combinator};
   return script_null();
 }
 
@@ -981,12 +981,7 @@ static ScriptVal eval_ask(EvalContext* ctx, ScriptBinderCall* call) {
   SceneAction* act = scene_action_push(ctx->actions, SceneActionType_Ask);
 
   act->ask = (SceneActionAsk){
-      .entity     = e,
-      .target     = target,
-      .entityProp = key,
-      .targetProp = key,
-      .combinator = combinator,
-  };
+      .src = target, .dst = e, .srcProp = key, .dstProp = key, .combinator = combinator};
 
   return script_null();
 }
@@ -998,12 +993,7 @@ static ScriptVal eval_ask_global(EvalContext* ctx, ScriptBinderCall* call) {
 
   SceneAction* act = scene_action_push(ctx->actions, SceneActionType_Ask);
 
-  act->ask = (SceneActionAsk){
-      .entity     = e,
-      .entityProp = key,
-      .targetProp = key,
-      .combinator = combinator,
-  };
+  act->ask = (SceneActionAsk){.dst = e, .srcProp = key, .dstProp = key, .combinator = combinator};
 
   return script_null();
 }
