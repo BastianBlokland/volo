@@ -271,7 +271,7 @@
     },
     {
       "name": "tell_global",
-      "doc": "Set a global property value.\n\n*Note*: The updated property is visible to scripts in the next frame.\n\nSupported combinators:\n\n-`Add`\n\n-`Sub`",
+      "doc": "Set a global property value.\n\n*Note*: The updated property is visible to scripts in the next frame.\n\nSupported combinators:\n\n-`Add`\n\n-`Sub`\n\n-`Mul`\n\n-`Div`\n\n-`Min`\n\n-`Max`\n\n-`And`\n\n-`Or`",
       "sig": {
         "ret": "null",
         "args": [
@@ -702,7 +702,7 @@
     },
     {
       "name": "ask_global",
-      "doc": "Ask a global property value.\n\n*Note*: The result value is visible to the destination entity under the same key in the next frame.\n\nSupported combinators:\n\n-`Add`\n\n-`Sub`",
+      "doc": "Ask a global property value.\n\n*Note*: The result value is visible to the destination entity under the same key in the next frame.\n\nSupported combinators:\n\n-`Add`\n\n-`Sub`\n\n-`Mul`\n\n-`Div`\n\n-`Min`\n\n-`Max`\n\n-`And`\n\n-`Or`",
       "sig": {
         "ret": "null",
         "args": [
@@ -803,7 +803,7 @@
     },
     {
       "name": "ask",
-      "doc": "Ask a source entity for a property value.\n\n*Note*: The result value is visible to the destination entity under the same key in the next frame.\n\nSupported combinators:\n\n-`Add`\n\n-`Sub`",
+      "doc": "Ask a source entity for a property value.\n\n*Note*: The result value is visible to the destination entity under the same key in the next frame.\n\nSupported combinators:\n\n-`Add`\n\n-`Sub`\n\n-`Mul`\n\n-`Div`\n\n-`Min`\n\n-`Max`\n\n-`And`\n\n-`Or`",
       "sig": {
         "ret": "null",
         "args": [
@@ -819,7 +819,7 @@
     },
     {
       "name": "ask_as",
-      "doc": "Ask a source entity for a property value.\n\n*Note*: The result value is visible to the destination entity under the specified key in the next frame.\n\nSupported combinators:\n\n-`Add`\n\n-`Sub`",
+      "doc": "Ask a source entity for a property value.\n\n*Note*: The result value is visible to the destination entity under the specified key in the next frame.\n\nSupported combinators:\n\n-`Add`\n\n-`Sub`\n\n-`Mul`\n\n-`Div`\n\n-`Min`\n\n-`Max`\n\n-`And`\n\n-`Or`",
       "sig": {
         "ret": "null",
         "args": [
@@ -1109,7 +1109,7 @@
     },
     {
       "name": "tell",
-      "doc": "Set a property value for the given entity.\n\n*Note*: The updated property is visible to scripts in the next frame.\n\nSupported combinators:\n\n-`Add`\n\n-`Sub`",
+      "doc": "Set a property value for the given entity.\n\n*Note*: The updated property is visible to scripts in the next frame.\n\nSupported combinators:\n\n-`Add`\n\n-`Sub`\n\n-`Mul`\n\n-`Div`\n\n-`Min`\n\n-`Max`\n\n-`And`\n\n-`Or`",
       "sig": {
         "ret": "null",
         "args": [

@@ -10,6 +10,10 @@
         "terrain": { "title": "AssetRef", "description": "Asset reference", "$ref": "#/$defs/AssetRef" },
         "fogMode": { "title": "AssetLevelFog", "$ref": "#/$defs/AssetLevelFog" },
         "startpoint": { "title": "GeoVector3", "description": "3D Vector", "$ref": "#/$defs/GeoVector3" },
+        "properties": {
+          "type": "array",
+          "items": { "title": "AssetProperty", "$ref": "#/$defs/AssetProperty" }
+        },
         "objects": {
           "type": "array",
           "items": { "title": "AssetLevelObject", "$ref": "#/$defs/AssetLevelObject" }
@@ -31,54 +35,6 @@
         "x": { "title": "f32", "type": "number" },
         "y": { "title": "f32", "type": "number" },
         "z": { "title": "f32", "type": "number" }
-      },
-      "required": [],
-      "defaultSnippets": [
-        { "label": "New", "body": "^{}" }
-      ]
-    },
-    "AssetLevelObject": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "id": { "title": "u32", "type": "integer", "exclusiveMinimum": 0, "maximum": 4294967295 },
-        "prefab": { "title": "StringHash", "type": "string", "minLength": 1 },
-        "faction": { "title": "AssetLevelFaction", "$ref": "#/$defs/AssetLevelFaction" },
-        "position": { "title": "GeoVector3", "description": "3D Vector", "$ref": "#/$defs/GeoVector3" },
-        "rotation": { "title": "GeoQuat", "description": "Quaternion", "$ref": "#/$defs/GeoQuat" },
-        "scale": { "title": "f32", "type": "number" },
-        "properties": {
-          "type": "array",
-          "items": { "title": "AssetProperty", "$ref": "#/$defs/AssetProperty" }
-        },
-        "sets": {
-          "type": "array",
-          "maxItems": 8,
-          "items": { "title": "StringHash", "type": "string" }
-        }
-      },
-      "required": [ "prefab" ],
-      "defaultSnippets": [
-        { "label": "New", "body": "^{\n  \"prefab\": \"placeholder\"\n}" }
-      ]
-    },
-    "AssetLevelFaction": {
-      "enum": [
-        "None",
-        "A",
-        "B",
-        "C",
-        "D"
-      ]
-    },
-    "GeoQuat": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "x": { "title": "f32", "type": "number" },
-        "y": { "title": "f32", "type": "number" },
-        "z": { "title": "f32", "type": "number" },
-        "w": { "title": "f32", "type": "number" }
       },
       "required": [],
       "defaultSnippets": [
@@ -197,6 +153,54 @@
         { "label": "New AssetProperty_Asset", "body": "^{\n  \"\\$type\": \"AssetProperty_Asset\",\n  \"\\$name\": \"MyUnion\",\n  \"\\$data\": \"placeholder\"\n}" }
       ]
     },
-    "AssetLevelRef": { "title": "u32", "type": "integer", "exclusiveMinimum": 0, "maximum": 4294967295 }
+    "AssetLevelRef": { "title": "u32", "type": "integer", "exclusiveMinimum": 0, "maximum": 4294967295 },
+    "AssetLevelObject": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": { "title": "u32", "type": "integer", "exclusiveMinimum": 0, "maximum": 4294967295 },
+        "prefab": { "title": "StringHash", "type": "string", "minLength": 1 },
+        "faction": { "title": "AssetLevelFaction", "$ref": "#/$defs/AssetLevelFaction" },
+        "position": { "title": "GeoVector3", "description": "3D Vector", "$ref": "#/$defs/GeoVector3" },
+        "rotation": { "title": "GeoQuat", "description": "Quaternion", "$ref": "#/$defs/GeoQuat" },
+        "scale": { "title": "f32", "type": "number" },
+        "properties": {
+          "type": "array",
+          "items": { "title": "AssetProperty", "$ref": "#/$defs/AssetProperty" }
+        },
+        "sets": {
+          "type": "array",
+          "maxItems": 8,
+          "items": { "title": "StringHash", "type": "string" }
+        }
+      },
+      "required": [ "prefab" ],
+      "defaultSnippets": [
+        { "label": "New", "body": "^{\n  \"prefab\": \"placeholder\"\n}" }
+      ]
+    },
+    "AssetLevelFaction": {
+      "enum": [
+        "None",
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    "GeoQuat": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "x": { "title": "f32", "type": "number" },
+        "y": { "title": "f32", "type": "number" },
+        "z": { "title": "f32", "type": "number" },
+        "w": { "title": "f32", "type": "number" }
+      },
+      "required": [],
+      "defaultSnippets": [
+        { "label": "New", "body": "^{}" }
+      ]
+    }
   }
 }
