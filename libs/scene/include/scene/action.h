@@ -42,7 +42,7 @@ typedef struct {
 typedef struct {
   EcsEntityId entity; // Set to zero to set a global property.
   EcsEntityId target; // Set to zero to target a global property.
-  StringHash  prop;
+  StringHash  entityProp, targetProp;
   ScriptVal (*combinator)(ScriptVal, ScriptVal);
 } SceneActionAsk;
 

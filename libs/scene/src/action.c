@@ -202,7 +202,8 @@ static void action_ask(ActionContext* ctx, const SceneActionAsk* a) {
   }
 
   if (propComp && tgtComp) {
-    action_prop_set(propComp, a->prop, scene_prop_load(tgtComp, a->prop), a->combinator);
+    const ScriptVal val = scene_prop_load(tgtComp, a->targetProp);
+    action_prop_set(propComp, a->entityProp, val, a->combinator);
   }
 }
 
