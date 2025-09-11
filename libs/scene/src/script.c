@@ -986,6 +986,21 @@ static ScriptVal eval_ask(EvalContext* ctx, ScriptBinderCall* call) {
   return script_null();
 }
 
+static ScriptVal eval_ask_as(EvalContext* ctx, ScriptBinderCall* call) {
+  const EcsEntityId        src        = script_arg_entity(call, 0);
+  const StringHash         srcKey     = script_arg_str(call, 1);
+  const EcsEntityId        dst        = script_arg_entity(call, 2);
+  const StringHash         dstKey     = script_arg_str(call, 3);
+  const SceneValCombinator combinator = arg_combinator(call, 4);
+
+  SceneAction* act = scene_action_push(ctx->actions, SceneActionType_Ask);
+
+  act->ask = (SceneActionAsk){
+      .src = src, .dst = dst, .srcProp = srcKey, .dstProp = dstKey, .combinator = combinator};
+
+  return script_null();
+}
+
 static ScriptVal eval_ask_global(EvalContext* ctx, ScriptBinderCall* call) {
   const StringHash         key        = script_arg_str(call, 0);
   const EcsEntityId        dst        = script_arg_entity(call, 1);
@@ -2068,6 +2083,7 @@ static void eval_binder_init(void) {
     eval_bind(b, string_lit("tell"),                   eval_tell);
     eval_bind(b, string_lit("tell_global"),            eval_tell_global);
     eval_bind(b, string_lit("ask"),                    eval_ask);
+    eval_bind(b, string_lit("ask_as"),                 eval_ask_as);
     eval_bind(b, string_lit("ask_global"),             eval_ask_global);
     eval_bind(b, string_lit("get_global"),             eval_get_global);
     eval_bind(b, string_lit("prefab_spawn"),           eval_prefab_spawn);

@@ -706,8 +706,8 @@
       "sig": {
         "ret": "null",
         "args": [
-          { "name": "this", "mask": "entity" },
           { "name": "key", "mask": "str" },
+          { "name": "dst", "mask": "entity" },
           {
             "name": "combinator",
             "mask": [ "null", "str" ]
@@ -810,6 +810,23 @@
           { "name": "src", "mask": "entity" },
           { "name": "key", "mask": "str" },
           { "name": "dst", "mask": "entity" },
+          {
+            "name": "combinator",
+            "mask": [ "null", "str" ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "ask_as",
+      "doc": "Ask a source entity for a property value.\n\n*Note*: The result value is visible to the destination entity under the specified key in the next frame.\n\nSupported combinators:\n\n-`Add`\n\n-`Sub`",
+      "sig": {
+        "ret": "null",
+        "args": [
+          { "name": "src", "mask": "entity" },
+          { "name": "srcKey", "mask": "str" },
+          { "name": "dst", "mask": "entity" },
+          { "name": "dstKey", "mask": "str" },
           {
             "name": "combinator",
             "mask": [ "null", "str" ]

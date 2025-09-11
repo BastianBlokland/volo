@@ -347,6 +347,19 @@ void asset_data_init_script_scene(void) {
     bind(binder, name, doc, ret, args, array_elems(args));
   }
   {
+    const String       name   = string_lit("ask_as");
+    const String       doc    = fmt_write_scratch("Ask a source entity for a property value.\n\n*Note*: The result value is visible to the destination entity under the specified key in the next frame.\n\n{}", fmt_text(g_combinatorDoc));
+    const ScriptMask   ret    = script_mask_null;
+    const ScriptSigArg args[] = {
+        {string_lit("src"), script_mask_entity},
+        {string_lit("srcKey"), script_mask_str},
+        {string_lit("dst"), script_mask_entity},
+        {string_lit("dstKey"), script_mask_str},
+        {string_lit("combinator"), script_mask_str | script_mask_null},
+    };
+    bind(binder, name, doc, ret, args, array_elems(args));
+  }
+  {
     const String       name   = string_lit("ask_global");
     const String       doc    = fmt_write_scratch("Ask a global property value.\n\n*Note*: The result value is visible to the destination entity under the same key in the next frame.\n\n{}", fmt_text(g_combinatorDoc));
     const ScriptMask   ret    = script_mask_null;
