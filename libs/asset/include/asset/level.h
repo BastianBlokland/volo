@@ -39,6 +39,7 @@ typedef struct {
   AssetRef      terrain; // NOTE: Reference is not automatically resolved.
   AssetLevelFog fogMode;
   GeoVector     startpoint;
+  HeapArray_t(AssetProperty) properties; // NOTE: Asset properties are not automatically resolved.
   HeapArray_t(AssetLevelObject) objects; // Sorted on persistent id.
 } AssetLevel;
 
