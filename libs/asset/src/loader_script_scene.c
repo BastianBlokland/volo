@@ -23,7 +23,7 @@ void asset_data_init_script_scene(void) {
   script_binder_filter_set(binder, string_lit("scene/*.script"));
 
   // clang-format off
-  static const String g_combinatorDoc      = string_static("Supported combinators:\n\n-`Add`\n\n-`Sub`");
+  static const String g_combinatorDoc      = string_static("Supported combinators:\n\n-`Add`\n\n-`Sub`\n\n-`Mul`\n\n-`Div`\n\n-`Min`\n\n-`Max`\n\n-`And`\n\n-`Or`");
   static const String g_layerDoc           = string_static("Supported layers:\n\n-`Environment`\n\n-`Destructible`\n\n-`Infantry`\n\n-`Vehicle`\n\n-`Structure`\n\n-`Unit`\n\n-`Debug`\n\n-`AllIncludingDebug`\n\n-`AllNonDebug` (default)");
   static const String g_factionDoc         = string_static("Supported factions:\n\n-`FactionA`\n\n-`FactionB`\n\n-`FactionC`\n\n-`FactionD`\n\n-`FactionNone`");
   static const String g_queryOptionDoc     = string_static("Supported options:\n\n-`FactionSelf`\n\n-`FactionOther`");

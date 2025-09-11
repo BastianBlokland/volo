@@ -110,6 +110,12 @@ static void eval_enum_init_combinator(void) {
   script_enum_push(&g_scriptEnumCombinator, string_lit("None"), -1);
   script_enum_push(&g_scriptEnumCombinator, string_lit("Add"), 0);
   script_enum_push(&g_scriptEnumCombinator, string_lit("Sub"), 1);
+  script_enum_push(&g_scriptEnumCombinator, string_lit("Mul"), 2);
+  script_enum_push(&g_scriptEnumCombinator, string_lit("Div"), 3);
+  script_enum_push(&g_scriptEnumCombinator, string_lit("Min"), 4);
+  script_enum_push(&g_scriptEnumCombinator, string_lit("Max"), 5);
+  script_enum_push(&g_scriptEnumCombinator, string_lit("And"), 6);
+  script_enum_push(&g_scriptEnumCombinator, string_lit("Or"), 7);
 }
 
 static void eval_enum_init_faction(void) {
@@ -422,6 +428,18 @@ static SceneValCombinator arg_combinator(ScriptBinderCall* call, const u16 i) {
     return script_val_add;
   case 1 /* Sub */:
     return script_val_sub;
+  case 2 /* Mul */:
+    return script_val_mul;
+  case 3 /* Div */:
+    return script_val_div;
+  case 4 /* Min */:
+    return script_val_min;
+  case 5 /* Max */:
+    return script_val_max;
+  case 6 /* And */:
+    return script_val_logic_and;
+  case 7 /* Or */:
+    return script_val_logic_or;
   default:
     return null;
   }
