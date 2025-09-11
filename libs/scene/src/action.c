@@ -170,39 +170,40 @@ static void action_prop_set(
 }
 
 static void action_tell(ActionContext* ctx, const SceneActionTell* a) {
-  if (!a->entity) {
+  if (!a->dst) {
     ScenePropertyComp* propComp = ecs_view_write_t(ctx->globalItr, ScenePropertyComp);
-    action_prop_set(propComp, a->prop, a->value, a->combinator);
+    action_prop_set(propComp, a->dstProp, a->value, a->combinator);
     return;
   }
 
-  if (ecs_view_maybe_jump(ctx->propertyItr, a->entity)) {
+  if (ecs_view_maybe_jump(ctx->propertyItr, a->dst)) {
     ScenePropertyComp* propComp = ecs_view_write_t(ctx->propertyItr, ScenePropertyComp);
-    action_prop_set(propComp, a->prop, a->value, a->combinator);
+    action_prop_set(propComp, a->dstProp, a->value, a->combinator);
   }
 }
 
 static void action_ask(ActionContext* ctx, const SceneActionAsk* a) {
-  ScenePropertyComp* propComp = null;
-  if (a->entity) {
-    if (ecs_view_maybe_jump(ctx->propertyItr, a->entity)) {
-      propComp = ecs_view_write_t(ctx->propertyItr, ScenePropertyComp);
+  ScenePropertyComp* dstProp = null;
+  if (a->dst) {
+    if (ecs_view_maybe_jump(ctx->propertyItr, a->dst)) {
+      dstProp = ecs_view_write_t(ctx->propertyItr, ScenePropertyComp);
     }
   } else {
-    propComp = ecs_view_write_t(ctx->globalItr, ScenePropertyComp);
+    dstProp = ecs_view_write_t(ctx->globalItr, ScenePropertyComp);
   }
 
-  const ScenePropertyComp* tgtComp = null;
-  if (a->target) {
-    if (ecs_view_maybe_jump(ctx->propertyItr, a->target)) {
-      tgtComp = ecs_view_read_t(ctx->propertyItr, ScenePropertyComp);
+  const ScenePropertyComp* srcProp = null;
+  if (a->src) {
+    if (ecs_view_maybe_jump(ctx->propertyItr, a->src)) {
+      srcProp = ecs_view_read_t(ctx->propertyItr, ScenePropertyComp);
     }
   } else {
-    tgtComp = ecs_view_read_t(ctx->globalItr, ScenePropertyComp);
+    srcProp = ecs_view_read_t(ctx->globalItr, ScenePropertyComp);
   }
 
-  if (propComp && tgtComp) {
-    action_prop_set(propComp, a->prop, scene_prop_load(tgtComp, a->prop), a->combinator);
+  if (dstProp && srcProp) {
+    const ScriptVal val = scene_prop_load(srcProp, a->srcProp);
+    action_prop_set(dstProp, a->dstProp, val, a->combinator);
   }
 }
 

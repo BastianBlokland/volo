@@ -33,16 +33,16 @@ typedef enum {
 } SceneActionType;
 
 typedef struct {
-  EcsEntityId entity; // Set to zero to set a global property.
-  StringHash  prop;
+  EcsEntityId dst; // Set to zero to set a global property.
+  StringHash  dstProp;
   ScriptVal   value;
   ScriptVal (*combinator)(ScriptVal, ScriptVal);
 } SceneActionTell;
 
 typedef struct {
-  EcsEntityId entity; // Set to zero to set a global property.
-  EcsEntityId target; // Set to zero to target a global property.
-  StringHash  prop;
+  EcsEntityId src; // Set to zero to use a global property as the source.
+  EcsEntityId dst; // Set to zero to use a global property as the destination.
+  StringHash  srcProp, dstProp;
   ScriptVal (*combinator)(ScriptVal, ScriptVal);
 } SceneActionAsk;
 

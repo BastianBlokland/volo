@@ -23,7 +23,7 @@ if (!$colGate) {
 }
 
 if ($cfgTrigger) {
-  ask(me, $cfgTrigger, "triggered")
+  ask($cfgTrigger, "triggered", me)
 }
 
 var openSpeed  = 2.5
