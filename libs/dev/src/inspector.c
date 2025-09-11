@@ -236,6 +236,7 @@ ecs_view_define(GlobalPanelUpdateView) {
   ecs_access_write(DevFinderComp);
   ecs_access_write(DevStatsGlobalComp);
   ecs_access_write(ScenePrefabEnvComp);
+  ecs_access_write(ScenePropertyComp);
   ecs_access_write(SceneSetEnvComp);
 }
 
@@ -496,6 +497,7 @@ typedef struct {
   ScenePrefabEnvComp*       prefabEnv;
   const AssetPrefabMapComp* prefabMap;
   SceneSetEnvComp*          setEnv;
+  ScenePropertyComp*        globalProps;
   DevStatsGlobalComp*       stats;
   DevInspectorSettingsComp* settings;
   DevFinderComp*            finder;
@@ -1695,11 +1697,12 @@ ecs_system_define(DevInspectorUpdatePanelSys) {
   if (!globalItr) {
     return;
   }
-  const SceneTimeComp*      time     = ecs_view_read_t(globalItr, SceneTimeComp);
-  SceneSetEnvComp*          setEnv   = ecs_view_write_t(globalItr, SceneSetEnvComp);
-  DevInspectorSettingsComp* settings = inspector_settings_get_or_create(world);
-  DevStatsGlobalComp*       stats    = ecs_view_write_t(globalItr, DevStatsGlobalComp);
-  DevFinderComp*            finder   = ecs_view_write_t(globalItr, DevFinderComp);
+  const SceneTimeComp*      time        = ecs_view_read_t(globalItr, SceneTimeComp);
+  SceneSetEnvComp*          setEnv      = ecs_view_write_t(globalItr, SceneSetEnvComp);
+  DevInspectorSettingsComp* settings    = inspector_settings_get_or_create(world);
+  DevStatsGlobalComp*       stats       = ecs_view_write_t(globalItr, DevStatsGlobalComp);
+  DevFinderComp*            finder      = ecs_view_write_t(globalItr, DevFinderComp);
+  ScenePropertyComp*        globalProps = ecs_view_write_t(globalItr, ScenePropertyComp);
 
   ScenePrefabEnvComp*       prefabEnv = ecs_view_write_t(globalItr, ScenePrefabEnvComp);
   const AssetPrefabMapComp* prefabMap = inspector_prefab_map(world, prefabEnv);
@@ -1729,6 +1732,7 @@ ecs_system_define(DevInspectorUpdatePanelSys) {
         .prefabEnv      = prefabEnv,
         .prefabMap      = prefabMap,
         .setEnv         = setEnv,
+        .globalProps    = globalProps,
         .stats          = stats,
         .settings       = settings,
         .finder         = finder,
