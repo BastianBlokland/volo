@@ -107,6 +107,16 @@
       }
     },
     {
+      "name": "objective_state",
+      "doc": "Query the state of the given objective.\n\nStates:\n\n-`Active`\n\n-`Success`\n\n-`Fail`.",
+      "sig": {
+        "ret": "str",
+        "args": [
+          { "name": "id", "mask": "num" }
+        ]
+      }
+    },
+    {
       "name": "position",
       "doc": "Lookup the position of the given entity.",
       "sig": {

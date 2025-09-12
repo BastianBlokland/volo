@@ -1878,6 +1878,13 @@ static ScriptVal eval_objective_begin(EvalContext* ctx, ScriptBinderCall* call) 
   return script_num(id);
 }
 
+static ScriptVal eval_objective_state(EvalContext* ctx, ScriptBinderCall* call) {
+  const SceneObjectiveId  id      = arg_objective_id(ctx, call, 0);
+  const SceneMissionComp* mission = ecs_view_read_t(ctx->globalItr, SceneMissionComp);
+  const SceneMissionState state   = scene_mission_obj_get(mission, id)->state;
+  return script_str(script_enum_lookup_name(&g_scriptEnumMissionState, state));
+}
+
 static ScriptVal eval_objective_goal(EvalContext* ctx, ScriptBinderCall* call) {
   const SceneObjectiveId id       = arg_objective_id(ctx, call, 0);
   const f32              progress = (f32)script_arg_num(call, 1);
@@ -2266,6 +2273,7 @@ static void eval_binder_init(void) {
     eval_bind(b, string_lit("mission_begin"),          eval_mission_begin);
     eval_bind(b, string_lit("mission_end"),            eval_mission_end);
     eval_bind(b, string_lit("objective_begin"),        eval_objective_begin);
+    eval_bind(b, string_lit("objective_state"),        eval_objective_state);
     eval_bind(b, string_lit("objective_goal"),         eval_objective_goal);
     eval_bind(b, string_lit("objective_timeout"),      eval_objective_timeout);
     eval_bind(b, string_lit("objective_end"),          eval_objective_end);

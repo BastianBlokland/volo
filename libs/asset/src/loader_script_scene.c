@@ -759,6 +759,15 @@ void asset_data_init_script_scene(void) {
     bind(binder, name, doc, ret, args, array_elems(args));
   }
   {
+    const String       name   = string_lit("objective_state");
+    const String       doc    = string_lit("Query the state of the given objective.\n\nStates:\n\n-`Active`\n\n-`Success`\n\n-`Fail`.");
+    const ScriptMask   ret    = script_mask_str;
+    const ScriptSigArg args[] = {
+      {string_lit("id"), script_mask_num},
+    };
+    bind(binder, name, doc, ret, args, array_elems(args));
+  }
+  {
     const String       name   = string_lit("objective_goal");
     const String       doc    = string_lit("Update the objective goal.");
     const ScriptMask   ret    = script_mask_null;
