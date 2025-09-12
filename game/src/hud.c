@@ -91,6 +91,7 @@ ecs_view_define(GlobalView) {
   ecs_access_read(SceneMissionComp);
   ecs_access_read(SceneSetEnvComp);
   ecs_access_read(SceneTerrainComp);
+  ecs_access_read(SceneTimeComp);
   ecs_access_read(SceneWeaponResourceComp);
   ecs_access_write(GameCmdComp);
 }
@@ -303,14 +304,17 @@ static UiColor hud_faction_color(const SceneFaction faction) {
   }
 }
 
-static void
-hud_mission_draw(UiCanvasComp* c, const SceneMissionComp* mission, const DevStatsComp* devStats) {
+static void hud_mission_draw(
+    UiCanvasComp*           c,
+    const SceneMissionComp* mission,
+    const SceneTimeComp*    time,
+    const DevStatsComp*     devStats) {
   const SceneMissionState state = scene_mission_state(mission);
   if (state == SceneMissionState_Idle) {
     return;
   }
   ui_layout_push(c);
-  ui_layout_inner(c, UiBase_Canvas, UiAlign_TopLeft, ui_vector(500, 500), UiBase_Absolute);
+  ui_layout_inner(c, UiBase_Canvas, UiAlign_TopLeft, ui_vector(500, 50), UiBase_Absolute);
   ui_layout_move(c, ui_vector(10, -2), UiBase_Absolute, Ui_XY);
   if (devStats) {
     // Move the mission ui down to make space for the developer stats.
@@ -321,7 +325,49 @@ hud_mission_draw(UiCanvasComp* c, const SceneMissionComp* mission, const DevStat
   ui_style_outline(c, 4);
   ui_style_weight(c, UiWeight_Bold);
   ui_style_color(c, ui_color(255, 173, 10, 255));
-  ui_label(c, loc_translate(scene_mission_name(mission)), .align = UiAlign_TopLeft, .fontSize = 40);
+  ui_label(c, loc_translate(scene_mission_name(mission)), .fontSize = 40);
+  ui_layout_next(c, Ui_Down, 0 /* spacing */);
+
+  ui_style_outline(c, 3);
+  ui_layout_grow(c, UiAlign_TopRight, ui_vector(-10, -10), UiBase_Absolute, Ui_XY);
+
+  DynString labelBuffer = dynstring_create_over(mem_stack(512));
+
+  const SceneObjective* objData  = scene_mission_obj_data(mission);
+  const usize           objCount = scene_mission_obj_count(mission);
+  for (usize i = 0; i != objCount; ++i) {
+    const SceneObjective* obj       = objData + i;
+    const TimeDuration    timeEnded = scene_mission_obj_time_ended(obj, time);
+    if (timeEnded > time_seconds(4)) {
+      continue; // Hide old objectives.
+    }
+
+    switch (obj->state) {
+    case SceneMissionState_Success:
+      ui_style_color(c, ui_color_green);
+      break;
+    case SceneMissionState_Fail:
+      ui_style_color(c, ui_color_red);
+      break;
+    default:
+      ui_style_color(c, ui_color_white);
+      break;
+    }
+
+    const String objName = loc_translate(obj->nameLoc);
+    dynstring_clear(&labelBuffer);
+    fmt_write(&labelBuffer, "> {}", fmt_text(objName));
+    if (obj->goal > 0.0) {
+      fmt_write(&labelBuffer, "  {}/{}", fmt_float(obj->progress), fmt_float(obj->goal));
+    }
+    if (obj->timeoutDuration > 0) {
+      const TimeDuration timeRem = scene_mission_obj_time_rem(obj, time);
+      const u32          seconds = (u32)(timeRem / time_second);
+      fmt_write(&labelBuffer, "  {}s", fmt_int(seconds));
+    }
+    ui_label(c, dynstring_view(&labelBuffer), .fontSize = 30);
+    ui_layout_next(c, Ui_Down, 0 /* spacing */);
+  }
 
   ui_style_pop(c);
   ui_layout_pop(c);
@@ -1215,6 +1261,7 @@ ecs_system_define(GameHudDrawSys) {
   }
   GameCmdComp*                   cmd       = ecs_view_write_t(globalItr, GameCmdComp);
   const InputManagerComp*        input     = ecs_view_read_t(globalItr, InputManagerComp);
+  const SceneTimeComp*           time      = ecs_view_read_t(globalItr, SceneTimeComp);
   const GameComp*                game      = ecs_view_read_t(globalItr, GameComp);
   const SceneSetEnvComp*         setEnv    = ecs_view_read_t(globalItr, SceneSetEnvComp);
   const SceneTerrainComp*        terrain   = ecs_view_read_t(globalItr, SceneTerrainComp);
@@ -1268,7 +1315,7 @@ ecs_system_define(GameHudDrawSys) {
     }
 
     hud_minimap_update(hud, rendObjItr, terrain, res);
-    hud_mission_draw(c, mission, devStats);
+    hud_mission_draw(c, mission, time, devStats);
 
     trace_begin("game_hud_health", TraceColor_White);
     hud_health_draw(c, hud, &viewProj, healthView, res);
