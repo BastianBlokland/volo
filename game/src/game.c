@@ -773,6 +773,24 @@ static void menu_entry_back(const GameUpdateContext* ctx, MAYBE_UNUSED const u32
   ui_layout_pop(ctx->winCanvas);
 }
 
+static void menu_entry_stat(const GameUpdateContext* ctx, const StringHash key, const String val) {
+  menu_draw_entry_frame(ctx);
+
+  ui_layout_push(ctx->winCanvas);
+  static const UiVector g_frameInset = {-40, -10};
+  ui_layout_grow(ctx->winCanvas, UiAlign_MiddleCenter, g_frameInset, UiBase_Absolute, Ui_XY);
+  ui_label(ctx->winCanvas, loc_translate(key));
+  ui_layout_inner(
+      ctx->winCanvas, UiBase_Current, UiAlign_MiddleRight, ui_vector(0.5f, 0.6f), UiBase_Current);
+  ui_label(ctx->winCanvas, val);
+  ui_layout_pop(ctx->winCanvas);
+}
+
+static void menu_entry_stat_time(const GameUpdateContext* ctx, MAYBE_UNUSED const u32 index) {
+  const TimeDuration time = ctx->time->levelTime;
+  menu_entry_stat(ctx, GameId_MENU_TIME, fmt_write_scratch("{}", fmt_duration(time)));
+}
+
 static void menu_entry_refresh_levels(const GameUpdateContext* ctx, MAYBE_UNUSED const u32 index) {
   ui_layout_push(ctx->winCanvas);
   ui_style_outline(ctx->winCanvas, 4);
@@ -1238,6 +1256,7 @@ ecs_system_define(GameUpdateSys) {
       break;
     case GameState_Result: {
       const bool victory = scene_mission_state(ctx.mission) == SceneMissionState_Success;
+      menuEntries[menuEntriesCount++] = &menu_entry_stat_time;
       menuEntries[menuEntriesCount++] = &menu_entry_restart;
       menuEntries[menuEntriesCount++] = &menu_entry_menu_main;
       menuEntries[menuEntriesCount++] = &menu_entry_quit;
