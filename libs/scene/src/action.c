@@ -459,33 +459,52 @@ static void action_update_anim_param(ActionContext* ctx, const SceneActionUpdate
 }
 
 static void action_mission_begin(ActionContext* ctx, const SceneActionMissionBegin* a) {
-  SceneMissionComp* mission = ecs_view_write_t(ctx->globalItr, SceneMissionComp);
-  scene_mission_begin(mission, a->name);
+  SceneMissionComp*     mission = ecs_view_write_t(ctx->globalItr, SceneMissionComp);
+  const SceneMissionErr err     = scene_mission_begin(mission, a->name);
+  if (UNLIKELY(err)) {
+    log_e("Failed to begin mission", log_param("err", fmt_text(scene_mission_err_str(err))));
+  }
 }
 
 static void action_mission_end(ActionContext* ctx, const SceneActionMissionEnd* a) {
-  SceneMissionComp* mission = ecs_view_write_t(ctx->globalItr, SceneMissionComp);
-  scene_mission_end(mission, a->result);
+  SceneMissionComp*     mission = ecs_view_write_t(ctx->globalItr, SceneMissionComp);
+  const SceneMissionErr err     = scene_mission_end(mission, a->result);
+  if (UNLIKELY(err)) {
+    log_e("Failed to end mission", log_param("err", fmt_text(scene_mission_err_str(err))));
+  }
 }
 
 static void action_objective_begin(ActionContext* ctx, const SceneActionObjectiveBegin* a) {
-  SceneMissionComp* mission = ecs_view_write_t(ctx->globalItr, SceneMissionComp);
-  scene_mission_obj_begin(mission, a->id, a->name);
+  SceneMissionComp*     mission = ecs_view_write_t(ctx->globalItr, SceneMissionComp);
+  const SceneMissionErr err     = scene_mission_obj_begin(mission, a->id, a->name);
+  if (UNLIKELY(err)) {
+    log_e("Failed to begin objective", log_param("err", fmt_text(scene_mission_err_str(err))));
+  }
 }
 
 static void action_objective_end(ActionContext* ctx, const SceneActionObjectiveEnd* a) {
-  SceneMissionComp* mission = ecs_view_write_t(ctx->globalItr, SceneMissionComp);
-  scene_mission_obj_end(mission, a->id, a->result);
+  SceneMissionComp*     mission = ecs_view_write_t(ctx->globalItr, SceneMissionComp);
+  const SceneMissionErr err     = scene_mission_obj_end(mission, a->id, a->result);
+  if (UNLIKELY(err)) {
+    log_e("Failed to end objective", log_param("err", fmt_text(scene_mission_err_str(err))));
+  }
 }
 
 static void action_objective_goal(ActionContext* ctx, const SceneActionObjectiveGoal* a) {
-  SceneMissionComp* mission = ecs_view_write_t(ctx->globalItr, SceneMissionComp);
-  scene_mission_obj_goal(mission, a->id, a->goal, a->progress);
+  SceneMissionComp*     mission = ecs_view_write_t(ctx->globalItr, SceneMissionComp);
+  const SceneMissionErr err     = scene_mission_obj_goal(mission, a->id, a->goal, a->progress);
+  if (UNLIKELY(err)) {
+    log_e("Failed to set objective goal", log_param("err", fmt_text(scene_mission_err_str(err))));
+  }
 }
 
 static void action_objective_timeout(ActionContext* ctx, const SceneActionObjectiveTimeout* a) {
-  SceneMissionComp* mission = ecs_view_write_t(ctx->globalItr, SceneMissionComp);
-  scene_mission_obj_timeout(mission, a->id, a->duration, a->result);
+  SceneMissionComp*     mission = ecs_view_write_t(ctx->globalItr, SceneMissionComp);
+  const SceneMissionErr err     = scene_mission_obj_timeout(mission, a->id, a->duration, a->result);
+  if (UNLIKELY(err)) {
+    log_e(
+        "Failed to set objective timeout", log_param("err", fmt_text(scene_mission_err_str(err))));
+  }
 }
 
 ecs_view_define(ActionQueueView) { ecs_access_write(SceneActionQueueComp); }
