@@ -1,5 +1,5 @@
 #pragma once
-#include "ecs/module.h"
+#include "scene/forward.h"
 
 typedef enum {
   SceneMissionState_Idle,
@@ -28,6 +28,7 @@ typedef struct {
   SceneMissionState state;
   f32               goal, progress;
   TimeDuration      startTime; // -1 until available (potentially delayed until the next tick).
+  TimeDuration      endTime;   // -1 until available.
   TimeDuration      timeoutDuration;
   SceneMissionState timeoutResult;
 } SceneObjective;
@@ -55,3 +56,6 @@ SceneMissionErr scene_mission_obj_end(SceneMissionComp*, SceneObjectiveId, Scene
 const SceneObjective* scene_mission_obj_get(const SceneMissionComp*, SceneObjectiveId);
 usize                 scene_mission_obj_count(const SceneMissionComp*);
 const SceneObjective* scene_mission_obj_data(const SceneMissionComp*);
+
+TimeDuration scene_mission_obj_time(const SceneObjective*, const SceneTimeComp*);
+TimeDuration scene_mission_obj_time_rem(const SceneObjective*, const SceneTimeComp*);

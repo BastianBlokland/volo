@@ -46,6 +46,9 @@ static void obj_update(SceneMissionComp* m, SceneObjective* obj, const SceneTime
     obj->startTime = time->time;
   }
   if (obj->state != SceneMissionState_Active) {
+    if (obj->endTime < 0) {
+      obj->endTime = time->time;
+    }
     return;
   }
   const TimeDuration timeElapsed = time->time - obj->startTime;
@@ -167,6 +170,7 @@ scene_mission_obj_begin(SceneMissionComp* m, const SceneObjectiveId id, const St
       .goal      = -1.0f,
       .progress  = -1.0f,
       .startTime = -1,
+      .endTime   = -1,
   };
 
   return SceneMissionErr_None;
@@ -250,4 +254,22 @@ usize scene_mission_obj_count(const SceneMissionComp* m) { return m->objectives.
 
 const SceneObjective* scene_mission_obj_data(const SceneMissionComp* m) {
   return dynarray_begin_t(&m->objectives, SceneObjective);
+}
+
+TimeDuration scene_mission_obj_time(const SceneObjective* obj, const SceneTimeComp* time) {
+  if (obj->endTime >= 0) {
+    return obj->endTime - obj->startTime;
+  }
+  return time->time - obj->startTime;
+}
+
+TimeDuration scene_mission_obj_time_rem(const SceneObjective* obj, const SceneTimeComp* time) {
+  if (obj->endTime >= 0) {
+    return 0;
+  }
+  const TimeDuration elapsed = time->time - obj->startTime;
+  if (elapsed >= obj->timeoutDuration) {
+    return 0;
+  }
+  return obj->timeoutDuration - elapsed;
 }

@@ -1889,7 +1889,7 @@ static ScriptVal eval_objective_time(EvalContext* ctx, ScriptBinderCall* call) {
   const SceneObjectiveId  id      = arg_objective_id(ctx, call, 0);
   const SceneMissionComp* mission = ecs_view_read_t(ctx->globalItr, SceneMissionComp);
   const SceneTimeComp*    time    = ecs_view_read_t(ctx->globalItr, SceneTimeComp);
-  return script_num(time->time - scene_mission_obj_get(mission, id)->startTime);
+  return script_time(scene_mission_obj_time(scene_mission_obj_get(mission, id), time));
 }
 
 static ScriptVal eval_objective_goal(EvalContext* ctx, ScriptBinderCall* call) {
