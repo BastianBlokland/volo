@@ -52,6 +52,17 @@
       }
     },
     {
+      "name": "objective_end",
+      "doc": "End the given objective.\n\nValid results:\n\n-`Successful`\n\n-`Failed`.",
+      "sig": {
+        "ret": "null",
+        "args": [
+          { "name": "id", "mask": "num" },
+          { "name": "result", "mask": "str" }
+        ]
+      }
+    },
+    {
       "name": "debug_line",
       "doc": "Draw a 3D debug line between the two given points.",
       "sig": {
@@ -291,6 +302,16 @@
         "ret": [ "null", "num" ],
         "args": [
           { "name": "v", "mask": "entity" }
+        ]
+      }
+    },
+    {
+      "name": "objective_begin",
+      "doc": "Begin a new objective.\n\n*Note*: Returns an objective id.\n\n*Note*: Only valid if there's a mission active.",
+      "sig": {
+        "ret": "num",
+        "args": [
+          { "name": "name", "mask": "str" }
         ]
       }
     },
@@ -716,6 +737,16 @@
       }
     },
     {
+      "name": "mission_end",
+      "doc": "End the current mission.\n\n*Note*: Only valid if there's a mission active.\n\nValid results:\n\n-`Successful`\n\n-`Failed`.",
+      "sig": {
+        "ret": "null",
+        "args": [
+          { "name": "result", "mask": "str" }
+        ]
+      }
+    },
+    {
       "name": "visible",
       "doc": "Check if the given position is visible for this faction.",
       "sig": {
@@ -754,6 +785,18 @@
       }
     },
     {
+      "name": "objective_goal",
+      "doc": "Update the objective goal.",
+      "sig": {
+        "ret": "null",
+        "args": [
+          { "name": "id", "mask": "num" },
+          { "name": "progress", "mask": "num" },
+          { "name": "goal", "mask": "num" }
+        ]
+      }
+    },
+    {
       "name": "status",
       "doc": "Change or query if an entity is affected by the specified status.\n\nSupported status:\n\n-`Burning`\n\n-`Bleeding`\n\n-`Healing`\n\n-`Veteran`",
       "sig": {
@@ -769,6 +812,16 @@
       }
     },
     {
+      "name": "mission_begin",
+      "doc": "Begin a new mission.\n\n*Note*: Only valid if there's no mission active.",
+      "sig": {
+        "ret": "null",
+        "args": [
+          { "name": "name", "mask": "str" }
+        ]
+      }
+    },
+    {
       "name": "faction",
       "doc": "Lookup or change the faction of the given entity.\n\nSupported factions:\n\n-`FactionA`\n\n-`FactionB`\n\n-`FactionC`\n\n-`FactionD`\n\n-`FactionNone`",
       "sig": {
@@ -780,6 +833,14 @@
             "mask": [ "null", "str" ]
           }
         ]
+      }
+    },
+    {
+      "name": "mission_state",
+      "doc": "Query the current mission state.\n\nStates:\n\n-`Inactive`\n\n-`InProgress`\n\n-`Successful`\n\n-`Failed`.",
+      "sig": {
+        "ret": "str",
+        "args": []
       }
     },
     {
@@ -956,6 +1017,18 @@
             "name": "radius",
             "mask": [ "null", "num" ]
           }
+        ]
+      }
+    },
+    {
+      "name": "objective_timeout",
+      "doc": "Update the objective timeout.\n\nValid results:\n\n-`Successful`\n\n-`Failed`.",
+      "sig": {
+        "ret": "null",
+        "args": [
+          { "name": "id", "mask": "num" },
+          { "name": "remaining", "mask": "num" },
+          { "name": "result", "mask": "str" }
         ]
       }
     },
