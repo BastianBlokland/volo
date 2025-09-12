@@ -121,6 +121,7 @@ static String game_state_name(const GameState state) {
       [GameState_Play]       = string_static("Play"),
       [GameState_Edit]       = string_static("Edit"),
       [GameState_Pause]      = string_static("Pause"),
+      [GameState_Result]     = string_static("Result"),
   };
   ASSERT(array_elems(g_names) == GameState_Count, "Incorrect number of names");
   return g_names[state];
@@ -367,6 +368,7 @@ static void game_transition(const GameUpdateContext* ctx, const GameState state)
     ctx->game->flags &= ~GameFlags_EditMode;
     break;
   case GameState_Pause:
+  case GameState_Result:
     ctx->timeSet->flags &= ~SceneTimeFlags_Paused;
 
     ctx->winRendSet->bloomIntensity = ctx->game->prevBloomIntensity;
@@ -409,6 +411,7 @@ static void game_transition(const GameUpdateContext* ctx, const GameState state)
     }
     break;
   case GameState_Pause:
+  case GameState_Result:
     ctx->timeSet->flags |= SceneTimeFlags_Paused;
 
     ctx->game->prevExposure   = ctx->winRendSet->exposure;
@@ -1200,11 +1203,15 @@ ecs_system_define(GameUpdateSys) {
         break;
       }
       break;
-    case GameState_Play:
+    case GameState_Play: {
       if (ctx.winHud && game_hud_consume_action(ctx.winHud, GameHudAction_Pause)) {
         game_transition_delayed(ctx.game, GameState_Pause);
       }
-      break;
+      const SceneMissionState missionState = scene_mission_state(ctx.mission);
+      if (missionState == SceneMissionState_Success || missionState == SceneMissionState_Fail) {
+        game_transition_delayed(ctx.game, GameState_Result);
+      }
+    } break;
     case GameState_Edit:
       menuEntries[menuEntriesCount++] = &menu_entry_edit_camera;
       menuEntries[menuEntriesCount++] = &menu_entry_edit_play;
@@ -1229,6 +1236,18 @@ ecs_system_define(GameUpdateSys) {
       menu_draw(&ctx, loc_translate(GameId_MENU_PAUSED), menuEntries, menuEntriesCount);
       menu_draw_version(&ctx);
       break;
+    case GameState_Result: {
+      const bool victory = scene_mission_state(ctx.mission) == SceneMissionState_Success;
+      menuEntries[menuEntriesCount++] = &menu_entry_restart;
+      menuEntries[menuEntriesCount++] = &menu_entry_menu_main;
+      menuEntries[menuEntriesCount++] = &menu_entry_quit;
+      menu_draw(
+          &ctx,
+          victory ? loc_translate(GameId_MENU_VICTORY) : loc_translate(GameId_MENU_DEFEAT),
+          menuEntries,
+          menuEntriesCount);
+      menu_draw_version(&ctx);
+    } break;
     }
   }
 }

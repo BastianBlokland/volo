@@ -59,6 +59,8 @@
     { "key": "MENU_EDIT_TOOLTIP", "value": "Select a level to edit." },
 
     { "key": "MENU_PAUSED", "value": "Paused" },
+    { "key": "MENU_VICTORY", "value": "Victory" },
+    { "key": "MENU_DEFEAT", "value": "Defeat" },
 
     { "key": "MENU_RESUME", "value": "Resume" },
     { "key": "MENU_RESUME_TOOLTIP", "value": "Resume playing." },
