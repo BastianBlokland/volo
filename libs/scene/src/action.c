@@ -478,7 +478,10 @@ static void action_objective_begin(ActionContext* ctx, const SceneActionObjectiv
   SceneMissionComp*     mission = ecs_view_write_t(ctx->globalItr, SceneMissionComp);
   const SceneMissionErr err     = scene_mission_obj_begin(mission, a->id, a->name);
   if (UNLIKELY(err)) {
-    log_e("Failed to begin objective", log_param("err", fmt_text(scene_mission_err_str(err))));
+    log_e(
+        "Failed to begin objective",
+        log_param("id", fmt_int(a->id)),
+        log_param("err", fmt_text(scene_mission_err_str(err))));
   }
 }
 
@@ -486,7 +489,10 @@ static void action_objective_end(ActionContext* ctx, const SceneActionObjectiveE
   SceneMissionComp*     mission = ecs_view_write_t(ctx->globalItr, SceneMissionComp);
   const SceneMissionErr err     = scene_mission_obj_end(mission, a->id, a->result);
   if (UNLIKELY(err)) {
-    log_e("Failed to end objective", log_param("err", fmt_text(scene_mission_err_str(err))));
+    log_e(
+        "Failed to end objective",
+        log_param("id", fmt_int(a->id)),
+        log_param("err", fmt_text(scene_mission_err_str(err))));
   }
 }
 
@@ -494,7 +500,10 @@ static void action_objective_goal(ActionContext* ctx, const SceneActionObjective
   SceneMissionComp*     mission = ecs_view_write_t(ctx->globalItr, SceneMissionComp);
   const SceneMissionErr err     = scene_mission_obj_goal(mission, a->id, a->goal, a->progress);
   if (UNLIKELY(err)) {
-    log_e("Failed to set objective goal", log_param("err", fmt_text(scene_mission_err_str(err))));
+    log_e(
+        "Failed to set objective goal",
+        log_param("id", fmt_int(a->id)),
+        log_param("err", fmt_text(scene_mission_err_str(err))));
   }
 }
 
@@ -503,7 +512,9 @@ static void action_objective_timeout(ActionContext* ctx, const SceneActionObject
   const SceneMissionErr err     = scene_mission_obj_timeout(mission, a->id, a->duration, a->result);
   if (UNLIKELY(err)) {
     log_e(
-        "Failed to set objective timeout", log_param("err", fmt_text(scene_mission_err_str(err))));
+        "Failed to set objective timeout",
+        log_param("id", fmt_int(a->id)),
+        log_param("err", fmt_text(scene_mission_err_str(err))));
   }
 }
 
