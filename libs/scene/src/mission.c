@@ -276,7 +276,7 @@ TimeDuration scene_mission_obj_time_rem(const SceneObjective* obj, const SceneTi
 }
 
 TimeDuration scene_mission_obj_time_ended(const SceneObjective* obj, const SceneTimeComp* time) {
-  if (obj->endTime <= time->time) {
+  if (obj->endTime < 0) {
     return 0;
   }
   return time->time - obj->endTime;
