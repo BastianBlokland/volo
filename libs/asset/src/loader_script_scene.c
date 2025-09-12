@@ -726,6 +726,71 @@ void asset_data_init_script_scene(void) {
     bind(binder, name, doc, ret, args, array_elems(args));
   }
   {
+    const String       name   = string_lit("mission_state");
+    const String       doc    = string_lit("Query the current mission state.\n\nStates:\n\n-`Inactive`\n\n-`InProgress`\n\n-`Successful`\n\n-`Failed`.");
+    const ScriptMask   ret    = script_mask_str;
+    bind(binder, name, doc, ret, null, 0);
+  }
+  {
+    const String       name   = string_lit("mission_begin");
+    const String       doc    = string_lit("Begin a new mission.\n\n*Note*: Only valid if there's no mission active.");
+    const ScriptMask   ret    = script_mask_null;
+    const ScriptSigArg args[] = {
+        {string_lit("name"), script_mask_str},
+    };
+    bind(binder, name, doc, ret, args, array_elems(args));
+  }
+  {
+    const String       name   = string_lit("mission_end");
+    const String       doc    = string_lit("End the current mission.\n\n*Note*: Only valid if there's a mission active.\n\nValid results:\n\n-`Successful`\n\n-`Failed`.");
+    const ScriptMask   ret    = script_mask_null;
+    const ScriptSigArg args[] = {
+        {string_lit("result"), script_mask_str},
+    };
+    bind(binder, name, doc, ret, args, array_elems(args));
+  }
+  {
+    const String       name   = string_lit("objective_begin");
+    const String       doc    = string_lit("Begin a new objective.\n\n*Note*: Returns an objective id.\n\n*Note*: Only valid if there's a mission active.");
+    const ScriptMask   ret    = script_mask_num;
+    const ScriptSigArg args[] = {
+        {string_lit("name"), script_mask_str},
+    };
+    bind(binder, name, doc, ret, args, array_elems(args));
+  }
+  {
+    const String       name   = string_lit("objective_goal");
+    const String       doc    = string_lit("Update the objective goal.");
+    const ScriptMask   ret    = script_mask_null;
+    const ScriptSigArg args[] = {
+      {string_lit("id"), script_mask_num},
+      {string_lit("progress"), script_mask_num},
+      {string_lit("goal"), script_mask_num},
+    };
+    bind(binder, name, doc, ret, args, array_elems(args));
+  }
+  {
+    const String       name   = string_lit("objective_timeout");
+    const String       doc    = string_lit("Update the objective timeout.\n\nValid results:\n\n-`Successful`\n\n-`Failed`.");
+    const ScriptMask   ret    = script_mask_null;
+    const ScriptSigArg args[] = {
+      {string_lit("id"), script_mask_num},
+      {string_lit("remaining"), script_mask_time},
+      {string_lit("result"), script_mask_str},
+    };
+    bind(binder, name, doc, ret, args, array_elems(args));
+  }
+  {
+    const String       name   = string_lit("objective_end");
+    const String       doc    = string_lit("End the given objective.\n\nValid results:\n\n-`Successful`\n\n-`Failed`.");
+    const ScriptMask   ret    = script_mask_null;
+    const ScriptSigArg args[] = {
+      {string_lit("id"), script_mask_num},
+      {string_lit("result"), script_mask_str},
+    };
+    bind(binder, name, doc, ret, args, array_elems(args));
+  }
+  {
     const String       name   = string_lit("joint_position");
     const String       doc    = string_lit("Lookup the world position of a joint on the given entity.\n\n*Note*: Animation update from this frame is not taken into account.");
     const ScriptMask   ret    = script_mask_vec3 | script_mask_null;
