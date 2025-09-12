@@ -253,6 +253,12 @@ const SceneObjective* scene_mission_obj_get(const SceneMissionComp* m, const Sce
 
 usize scene_mission_obj_count(const SceneMissionComp* m) { return m->objectives.size; }
 
+usize scene_mission_obj_count_in_state(const SceneMissionComp* m, const SceneMissionState state) {
+  usize result = 0;
+  dynarray_for_t(&m->objectives, SceneObjective, obj) { result += obj->state == state; }
+  return result;
+}
+
 const SceneObjective* scene_mission_obj_data(const SceneMissionComp* m) {
   return dynarray_begin_t(&m->objectives, SceneObjective);
 }

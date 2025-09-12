@@ -55,6 +55,7 @@ SceneMissionErr scene_mission_obj_end(SceneMissionComp*, SceneObjectiveId, Scene
 
 const SceneObjective* scene_mission_obj_get(const SceneMissionComp*, SceneObjectiveId);
 usize                 scene_mission_obj_count(const SceneMissionComp*);
+usize                 scene_mission_obj_count_in_state(const SceneMissionComp*, SceneMissionState);
 const SceneObjective* scene_mission_obj_data(const SceneMissionComp*);
 
 TimeDuration scene_mission_obj_time(const SceneObjective*, const SceneTimeComp*);
