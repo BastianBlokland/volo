@@ -59,3 +59,4 @@ const SceneObjective* scene_mission_obj_data(const SceneMissionComp*);
 
 TimeDuration scene_mission_obj_time(const SceneObjective*, const SceneTimeComp*);
 TimeDuration scene_mission_obj_time_rem(const SceneObjective*, const SceneTimeComp*);
+TimeDuration scene_mission_obj_time_ended(const SceneObjective*, const SceneTimeComp*);

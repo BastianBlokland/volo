@@ -274,3 +274,10 @@ TimeDuration scene_mission_obj_time_rem(const SceneObjective* obj, const SceneTi
   }
   return obj->timeoutDuration - elapsed;
 }
+
+TimeDuration scene_mission_obj_time_ended(const SceneObjective* obj, const SceneTimeComp* time) {
+  if (obj->endTime <= time->time) {
+    return 0;
+  }
+  return time->time - obj->endTime;
+}
