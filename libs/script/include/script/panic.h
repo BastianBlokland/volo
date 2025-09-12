@@ -18,6 +18,7 @@ typedef enum eScriptPanicKind {
   ScriptPanic_QueryInvalid,
   ScriptPanic_ReadonlyParam,
   ScriptPanic_MissingCapability,
+  ScriptPanic_InvalidState,
 
   ScriptPanicKind_Count,
 } ScriptPanicKind;

@@ -22,6 +22,7 @@ static const String g_panicStrs[] = {
     [ScriptPanic_QueryInvalid]                = string_static("Query {context-int} invalid"),
     [ScriptPanic_ReadonlyParam]               = string_static("Cannot change readonly parameter"),
     [ScriptPanic_MissingCapability]           = string_static("Required capability is missing"),
+    [ScriptPanic_InvalidState]                = string_static("Invalid state encountered"),
 };
 // clang-format on
 ASSERT(array_elems(g_panicStrs) == ScriptPanicKind_Count, "Incorrect number of kind strs");
