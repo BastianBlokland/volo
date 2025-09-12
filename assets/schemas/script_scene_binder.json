@@ -108,9 +108,9 @@
     },
     {
       "name": "objective_state",
-      "doc": "Query the state of the given objective.\n\nStates:\n\n-`Active`\n\n-`Success`\n\n-`Fail`.",
+      "doc": "Query the state of the given objective.\n\n*Note*: Returns null if the objective is not valid (yet).\n\nStates:\n\n-`Active`\n\n-`Success`\n\n-`Fail`.",
       "sig": {
-        "ret": "str",
+        "ret": [ "null", "str" ],
         "args": [
           { "name": "id", "mask": "num" }
         ]
@@ -317,7 +317,7 @@
     },
     {
       "name": "objective_begin",
-      "doc": "Begin a new objective.\n\n*Note*: Returns an objective id.\n\n*Note*: Only valid if there's a mission active.",
+      "doc": "Begin a new objective.\n\n*Note*: Returns an objective id (only valid starting from the next frame).\n\n*Note*: Only valid if there's a mission active.",
       "sig": {
         "ret": "num",
         "args": [

@@ -1874,10 +1874,13 @@ static ScriptVal eval_objective_begin(EvalContext* ctx, ScriptBinderCall* call) 
 }
 
 static ScriptVal eval_objective_state(EvalContext* ctx, ScriptBinderCall* call) {
-  const SceneObjectiveId  id      = arg_objective_id(ctx, call, 0);
+  const SceneObjectiveId  id      = (SceneObjectiveId)script_arg_num(call, 0);
   const SceneMissionComp* mission = ecs_view_read_t(ctx->globalItr, SceneMissionComp);
-  const SceneMissionState state   = scene_mission_obj_get(mission, id)->state;
-  return script_str(script_enum_lookup_name(&g_scriptEnumMissionState, state));
+  const SceneObjective*   obj     = scene_mission_obj_get(mission, id);
+  if (!obj) {
+    return script_null();
+  }
+  return script_str(script_enum_lookup_name(&g_scriptEnumMissionState, obj->state));
 }
 
 static ScriptVal eval_objective_time(EvalContext* ctx, ScriptBinderCall* call) {

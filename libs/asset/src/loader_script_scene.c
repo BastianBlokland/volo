@@ -751,7 +751,7 @@ void asset_data_init_script_scene(void) {
   }
   {
     const String       name   = string_lit("objective_begin");
-    const String       doc    = string_lit("Begin a new objective.\n\n*Note*: Returns an objective id.\n\n*Note*: Only valid if there's a mission active.");
+    const String       doc    = string_lit("Begin a new objective.\n\n*Note*: Returns an objective id (only valid starting from the next frame).\n\n*Note*: Only valid if there's a mission active.");
     const ScriptMask   ret    = script_mask_num;
     const ScriptSigArg args[] = {
         {string_lit("name"), script_mask_str},
@@ -760,8 +760,8 @@ void asset_data_init_script_scene(void) {
   }
   {
     const String       name   = string_lit("objective_state");
-    const String       doc    = string_lit("Query the state of the given objective.\n\nStates:\n\n-`Active`\n\n-`Success`\n\n-`Fail`.");
-    const ScriptMask   ret    = script_mask_str;
+    const String       doc    = string_lit("Query the state of the given objective.\n\n*Note*: Returns null if the objective is not valid (yet).\n\nStates:\n\n-`Active`\n\n-`Success`\n\n-`Fail`.");
+    const ScriptMask   ret    = script_mask_str | script_mask_null;
     const ScriptSigArg args[] = {
       {string_lit("id"), script_mask_num},
     };
