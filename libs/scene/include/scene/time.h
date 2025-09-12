@@ -6,6 +6,7 @@ ecs_comp_extern_public(SceneTimeComp) {
   u64          frameIdx;         // Current frame index.
   TimeDuration time, realTime;   // Real time is unaffected by scaling.
   TimeDuration delta, realDelta; // Real delta is unaffected by scaling.
+  TimeDuration levelTime;        // Time in the current level.
   u64          ticks;
 };
 

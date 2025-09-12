@@ -14,6 +14,7 @@
 #include "scene/prefab.h"
 #include "scene/property.h"
 #include "scene/set.h"
+#include "scene/time.h"
 #include "scene/transform.h"
 #include "script/mem.h"
 #include "trace/tracer.h"
@@ -270,6 +271,7 @@ ecs_view_define(LoadGlobalView) {
   ecs_access_maybe_write(ScenePropertyComp);
   ecs_access_write(AssetManagerComp);
   ecs_access_write(ScenePrefabEnvComp);
+  ecs_access_write(SceneTimeComp);
 }
 ecs_view_define(LoadAssetView) {
   ecs_access_read(AssetComp);
@@ -285,6 +287,7 @@ ecs_system_define(SceneLevelLoadSys) {
   }
   AssetManagerComp*      assets      = ecs_view_write_t(globalItr, AssetManagerComp);
   ScenePropertyComp*     globalProps = ecs_view_write_t(globalItr, ScenePropertyComp);
+  SceneTimeComp*         time        = ecs_view_write_t(globalItr, SceneTimeComp);
   ScenePrefabEnvComp*    prefabEnv   = ecs_view_write_t(globalItr, ScenePrefabEnvComp);
   SceneLevelManagerComp* manager     = ecs_view_write_t(globalItr, SceneLevelManagerComp);
   if (!manager) {
@@ -316,6 +319,7 @@ ecs_system_define(SceneLevelLoadSys) {
       if (globalProps) {
         scene_prop_clear(globalProps);
       }
+      time->levelTime    = 0; // Reset level time.
       manager->isLoading = true;
       manager->isError   = false;
       ++req->state;

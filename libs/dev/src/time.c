@@ -120,6 +120,9 @@ static void time_panel_draw(
   time_panel_stat_dur(canvas, &table, string_lit("Real Delta"), time->realDelta);
 
   ui_table_next_row(canvas, &table);
+  time_panel_stat_dur(canvas, &table, string_lit("Level Time"), time->levelTime);
+
+  ui_table_next_row(canvas, &table);
   time_panel_stat(
       canvas, &table, string_lit("Ticks"), fmt_write_scratch("{}", fmt_int(time->ticks)));
 
@@ -202,7 +205,7 @@ dev_time_panel_open(EcsWorld* world, const EcsEntityId window, const DevPanelTyp
       world,
       panelEntity,
       DevTimePanelComp,
-      .panel = ui_panel(.position = ui_vector(0.5f, 0.5f), .size = ui_vector(500, 250)));
+      .panel = ui_panel(.position = ui_vector(0.5f, 0.5f), .size = ui_vector(500, 280)));
 
   if (type == DevPanelType_Detached) {
     ui_panel_maximize(&timePanel->panel);

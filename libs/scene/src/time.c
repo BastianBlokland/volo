@@ -63,8 +63,9 @@ ecs_system_define(SceneTimeUpdateSys) {
   ++time->ticks;
   time->time += delta;
   time->realTime += realDelta;
-  time->delta           = delta;
-  time->realDelta       = realDelta;
+  time->delta     = delta;
+  time->realDelta = realDelta;
+  time->levelTime += delta;
   timePrivate->lastTime = newSteadyTime;
 }
 
