@@ -2,3 +2,7 @@
 /**
  * Mission test script.
  */
+
+if (mission_state() == "Inactive") {
+  mission_begin("MISSION_NAME_TEST")
+}

@@ -31,6 +31,8 @@
     { "key": "HUD_CAMERA_RESET_TOOLTIP", "value": "Reset the camera." },
     { "key": "HUD_ORDER_STOP_TOOLTIP", "value": "Order the selected unit to stop." },
 
+    { "key": "MISSION_NAME_TEST", "value": "Test mission" },
+
     { "key": "UNIT_NAME_INFANTRY_RIFLE", "value": "Assault Ranger" },
     { "key": "UNIT_NAME_INFANTRY_ROCKET", "value": "Rocket Ranger" },
     { "key": "UNIT_NAME_INFANTRY_FLAME", "value": "Flame Ranger" },
