@@ -768,6 +768,15 @@ void asset_data_init_script_scene(void) {
     bind(binder, name, doc, ret, args, array_elems(args));
   }
   {
+    const String       name   = string_lit("objective_time");
+    const String       doc    = string_lit("Query how long the objective has been active.");
+    const ScriptMask   ret    = script_mask_num;
+    const ScriptSigArg args[] = {
+      {string_lit("id"), script_mask_num},
+    };
+    bind(binder, name, doc, ret, args, array_elems(args));
+  }
+  {
     const String       name   = string_lit("objective_goal");
     const String       doc    = string_lit("Update the objective goal.");
     const ScriptMask   ret    = script_mask_null;

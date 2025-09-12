@@ -641,6 +641,16 @@
       }
     },
     {
+      "name": "objective_time",
+      "doc": "Query how long the objective has been active.",
+      "sig": {
+        "ret": "num",
+        "args": [
+          { "name": "id", "mask": "num" }
+        ]
+      }
+    },
+    {
       "name": "target_exclude",
       "doc": "Test if the given target exclude option is set.\n\nSupported options:\n\n-`Unreachable`\n\n-`Obscured`",
       "sig": {
@@ -1037,7 +1047,7 @@
         "ret": "null",
         "args": [
           { "name": "id", "mask": "num" },
-          { "name": "remaining", "mask": "num" },
+          { "name": "duration", "mask": "num" },
           { "name": "result", "mask": "str" }
         ]
       }
