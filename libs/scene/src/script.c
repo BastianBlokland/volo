@@ -1831,7 +1831,7 @@ static ScriptVal eval_mission_begin(EvalContext* ctx, ScriptBinderCall* call) {
   const StringHash name = script_arg_str(call, 0);
 
   const SceneMissionComp* mission = ecs_view_read_t(ctx->globalItr, SceneMissionComp);
-  if (UNLIKELY(scene_mission_state(mission) != SceneMissionState_Inactive)) {
+  if (UNLIKELY(scene_mission_state(mission) != SceneMissionState_Idle)) {
     script_panic_raise(call->panicHandler, (ScriptPanic){ScriptPanic_InvalidState});
   }
 

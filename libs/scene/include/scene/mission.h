@@ -2,7 +2,7 @@
 #include "ecs/module.h"
 
 typedef enum {
-  SceneMissionState_Inactive,
+  SceneMissionState_Idle,
   SceneMissionState_InProgress,
   SceneMissionState_Successful,
   SceneMissionState_Failed,

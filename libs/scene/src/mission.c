@@ -90,7 +90,7 @@ ecs_module_init(scene_mission_module) {
 
 String scene_mission_state_str(const SceneMissionState state) {
   static const String g_names[] = {
-      string_static("Inactive"),
+      string_static("Idle"),
       string_static("InProgress"),
       string_static("Successful"),
       string_static("Failed"),
@@ -112,7 +112,7 @@ String scene_mission_err_str(const SceneMissionErr err) {
 }
 
 void scene_mission_clear(SceneMissionComp* m) {
-  m->state = SceneMissionState_Inactive;
+  m->state = SceneMissionState_Idle;
   m->name  = 0;
   dynarray_clear(&m->objectives);
 }

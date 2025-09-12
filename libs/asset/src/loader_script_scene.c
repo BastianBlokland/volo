@@ -727,7 +727,7 @@ void asset_data_init_script_scene(void) {
   }
   {
     const String       name   = string_lit("mission_state");
-    const String       doc    = string_lit("Query the current mission state.\n\nStates:\n\n-`Inactive`\n\n-`InProgress`\n\n-`Successful`\n\n-`Failed`.");
+    const String       doc    = string_lit("Query the current mission state.\n\nStates:\n\n-`Idle`\n\n-`InProgress`\n\n-`Successful`\n\n-`Failed`.");
     const ScriptMask   ret    = script_mask_str;
     bind(binder, name, doc, ret, null, 0);
   }

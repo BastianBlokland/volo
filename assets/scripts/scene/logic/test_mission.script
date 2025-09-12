@@ -3,6 +3,10 @@
  * Mission test script.
  */
 
-if (mission_state() == "Inactive") {
+if (mission_state() == "Idle") {
   mission_begin("MISSION_NAME_TEST")
+}
+
+if (mission_state() == "InProgress" && time() > 10) {
+  mission_end("Failed")
 }
