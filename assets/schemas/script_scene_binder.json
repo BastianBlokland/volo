@@ -1096,7 +1096,7 @@
     },
     {
       "name": "time",
-      "doc": "Lookup the current time.\n\nSupported clocks:\n\n-`Time` (default)\n\n-`RealTime`\n\n-`Delta`\n\n-`RealDelta`\n\n-`Ticks`",
+      "doc": "Lookup the current time.\n\nSupported clocks:\n\n-`LevelTime` (default)\n\n-`Time`\n\n-`RealTime`\n\n-`Delta`\n\n-`RealDelta`\n\n-`Ticks`",
       "sig": {
         "ret": [ "null", "num" ],
         "args": [

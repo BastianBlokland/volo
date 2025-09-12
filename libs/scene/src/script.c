@@ -127,11 +127,12 @@ static void eval_enum_init_faction(void) {
 }
 
 static void eval_enum_init_clock(void) {
-  script_enum_push(&g_scriptEnumClock, string_lit("Time"), 0);
-  script_enum_push(&g_scriptEnumClock, string_lit("RealTime"), 1);
-  script_enum_push(&g_scriptEnumClock, string_lit("Delta"), 2);
-  script_enum_push(&g_scriptEnumClock, string_lit("RealDelta"), 3);
-  script_enum_push(&g_scriptEnumClock, string_lit("Ticks"), 4);
+  script_enum_push(&g_scriptEnumClock, string_lit("LevelTime"), 0);
+  script_enum_push(&g_scriptEnumClock, string_lit("Time"), 1);
+  script_enum_push(&g_scriptEnumClock, string_lit("RealTime"), 2);
+  script_enum_push(&g_scriptEnumClock, string_lit("Delta"), 3);
+  script_enum_push(&g_scriptEnumClock, string_lit("RealDelta"), 4);
+  script_enum_push(&g_scriptEnumClock, string_lit("Ticks"), 5);
 }
 
 static void eval_enum_init_nav_layer(void) {
@@ -585,18 +586,20 @@ static ScriptVal eval_visible(EvalContext* ctx, ScriptBinderCall* call) {
 static ScriptVal eval_time(EvalContext* ctx, ScriptBinderCall* call) {
   const SceneTimeComp* time = ecs_view_read_t(ctx->globalItr, SceneTimeComp);
   if (!call->argCount) {
-    return script_time(time->time);
+    return script_time(time->levelTime);
   }
   switch (script_arg_enum(call, 0, &g_scriptEnumClock)) {
-  case 0 /* Time */:
+  case 0 /* LevelTime */:
+    return script_time(time->levelTime);
+  case 1 /* Time */:
     return script_time(time->time);
-  case 1 /* RealTime */:
+  case 2 /* RealTime */:
     return script_time(time->realTime);
-  case 2 /* Delta */:
+  case 3 /* Delta */:
     return script_time(time->delta);
-  case 3 /* RealDelta */:
+  case 4 /* RealDelta */:
     return script_time(time->realDelta);
-  case 4 /* Ticks */:
+  case 5 /* Ticks */:
     return script_num(time->ticks);
   }
   return script_null();

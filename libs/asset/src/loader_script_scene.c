@@ -33,7 +33,7 @@ void asset_data_init_script_scene(void) {
   static const String g_barkDoc            = string_static("Supported types:\n\n-`Death`\n\n-`Confirm`");
   static const String g_healthStatsDoc     = string_static("Supported stats:\n\n-`DealtDamage`\n\n-`DealtHealing`\n\n-`Kills`");
   static const String g_targetExcludeDoc   = string_static("Supported options:\n\n-`Unreachable`\n\n-`Obscured`");
-  static const String g_clockDoc           = string_static("Supported clocks:\n\n-`Time` (default)\n\n-`RealTime`\n\n-`Delta`\n\n-`RealDelta`\n\n-`Ticks`");
+  static const String g_clockDoc           = string_static("Supported clocks:\n\n-`LevelTime` (default)\n\n-`Time`\n\n-`RealTime`\n\n-`Delta`\n\n-`RealDelta`\n\n-`Ticks`");
   static const String g_navLayerDoc        = string_static("Supported layers:\n\n-`Normal` (default)\n\n-`Large`");
   static const String g_navFindTypeDoc     = string_static("Supported types:\n\n-`ClosestCell` (default)\n\n-`UnblockedCell`\n\n-`FreeCell`");
   static const String g_markerTypeDoc      = string_static("Supported types:\n\n-`Info`\n\n-`Danger`");
