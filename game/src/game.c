@@ -39,6 +39,7 @@
 #include "rend/settings.h"
 #include "scene/camera.h"
 #include "scene/level.h"
+#include "scene/mission.h"
 #include "scene/prefab.h"
 #include "scene/product.h"
 #include "scene/register.h"
@@ -263,6 +264,7 @@ typedef struct {
   InputManagerComp*       input;
   SndMixerComp*           soundMixer;
   LocManagerComp*         locManager;
+  SceneMissionComp*       mission;
   const SceneTimeComp*    time;
   SceneTimeSettingsComp*  timeSet;
   GameCmdComp*            cmd;
@@ -388,6 +390,7 @@ static void game_transition(const GameUpdateContext* ctx, const GameState state)
   case GameState_Loading:
     ctx->timeSet->flags |= SceneTimeFlags_Paused;
     ctx->winRendSet->flags |= RendFlags_2D;
+    scene_mission_clear(ctx->mission);
     break;
   case GameState_Play:
     ctx->winRendSet->flags &= ~RendFlags_2D;
@@ -866,6 +869,7 @@ ecs_view_define(ErrorView) {
 ecs_view_define(TimeView) { ecs_access_write(SceneTimeComp); }
 
 ecs_view_define(UpdateGlobalView) {
+  ecs_access_maybe_write(DevStatsGlobalComp);
   ecs_access_read(SceneTerrainComp);
   ecs_access_read(SceneTimeComp);
   ecs_access_write(AssetManagerComp);
@@ -873,14 +877,14 @@ ecs_view_define(UpdateGlobalView) {
   ecs_access_write(GameComp);
   ecs_access_write(GamePrefsComp);
   ecs_access_write(InputManagerComp);
+  ecs_access_write(LocManagerComp);
   ecs_access_write(RendSettingsGlobalComp);
-  ecs_access_write(UiSettingsGlobalComp);
   ecs_access_write(SceneLevelManagerComp);
+  ecs_access_write(SceneMissionComp);
   ecs_access_write(SceneTimeSettingsComp);
   ecs_access_write(SceneVisibilityEnvComp);
   ecs_access_write(SndMixerComp);
-  ecs_access_write(LocManagerComp);
-  ecs_access_maybe_write(DevStatsGlobalComp);
+  ecs_access_write(UiSettingsGlobalComp);
 }
 
 ecs_view_define(MainWindowView) {
@@ -1032,6 +1036,7 @@ ecs_system_define(GameUpdateSys) {
       .input               = ecs_view_write_t(globalItr, InputManagerComp),
       .soundMixer          = ecs_view_write_t(globalItr, SndMixerComp),
       .locManager          = ecs_view_write_t(globalItr, LocManagerComp),
+      .mission             = ecs_view_write_t(globalItr, SceneMissionComp),
       .time                = ecs_view_read_t(globalItr, SceneTimeComp),
       .timeSet             = ecs_view_write_t(globalItr, SceneTimeSettingsComp),
       .cmd                 = ecs_view_write_t(globalItr, GameCmdComp),
