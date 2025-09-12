@@ -1890,7 +1890,7 @@ static ScriptVal eval_objective_goal(EvalContext* ctx, ScriptBinderCall* call) {
 
   SceneAction* act   = scene_action_push(ctx->actions, SceneActionType_ObjectiveGoal);
   act->objectiveGoal = (SceneActionObjectiveGoal){.id = id, .goal = goal, .progress = progress};
-  return script_num(id);
+  return script_null();
 }
 
 static ScriptVal eval_objective_timeout(EvalContext* ctx, ScriptBinderCall* call) {
@@ -1906,7 +1906,7 @@ static ScriptVal eval_objective_timeout(EvalContext* ctx, ScriptBinderCall* call
   SceneAction* act = scene_action_push(ctx->actions, SceneActionType_ObjectiveTimeout);
   act->objectiveTimeout =
       (SceneActionObjectiveTimeout){.id = id, .remaining = remaining, .result = result};
-  return script_num(id);
+  return script_null();
 }
 
 static ScriptVal eval_objective_end(EvalContext* ctx, ScriptBinderCall* call) {
@@ -1920,7 +1920,7 @@ static ScriptVal eval_objective_end(EvalContext* ctx, ScriptBinderCall* call) {
 
   SceneAction* act  = scene_action_push(ctx->actions, SceneActionType_ObjectiveEnd);
   act->objectiveEnd = (SceneActionObjectiveEnd){.id = id, .result = result};
-  return script_num(id);
+  return script_null();
 }
 
 static ScriptVal eval_random_of(EvalContext* ctx, ScriptBinderCall* call) {
