@@ -8,6 +8,7 @@
 #include "core/float.h"
 #include "core/format.h"
 #include "core/math.h"
+#include "dev/stats.h"
 #include "ecs/view.h"
 #include "ecs/world.h"
 #include "gap/input.h"
@@ -26,6 +27,7 @@
 #include "scene/lifetime.h"
 #include "scene/locomotion.h"
 #include "scene/marker.h"
+#include "scene/mission.h"
 #include "scene/name.h"
 #include "scene/product.h"
 #include "scene/set.h"
@@ -42,6 +44,7 @@
 #include "ui/scrollview.h"
 #include "ui/shape.h"
 #include "ui/style.h"
+#include "ui/units.h"
 #include "ui/widget.h"
 
 #include "cmd.h"
@@ -85,6 +88,7 @@ ecs_comp_define(GameHudComp) {
 ecs_view_define(GlobalView) {
   ecs_access_read(GameComp);
   ecs_access_read(InputManagerComp);
+  ecs_access_read(SceneMissionComp);
   ecs_access_read(SceneSetEnvComp);
   ecs_access_read(SceneTerrainComp);
   ecs_access_read(SceneWeaponResourceComp);
@@ -94,6 +98,7 @@ ecs_view_define(GlobalView) {
 ecs_view_define(HudView) {
   ecs_access_read(SceneCameraComp);
   ecs_access_read(SceneTransformComp);
+  ecs_access_maybe_read(DevStatsComp);
   ecs_access_write(GameHudComp);
   ecs_access_write(GameInputComp);
 }
@@ -296,6 +301,30 @@ static UiColor hud_faction_color(const SceneFaction faction) {
   default:
     return ui_color(255, 0, 15, 255);
   }
+}
+
+static void
+hud_mission_draw(UiCanvasComp* c, const SceneMissionComp* mission, const DevStatsComp* devStats) {
+  const SceneMissionState state = scene_mission_state(mission);
+  if (state == SceneMissionState_Idle) {
+    return;
+  }
+  ui_layout_push(c);
+  ui_layout_inner(c, UiBase_Canvas, UiAlign_TopLeft, ui_vector(500, 500), UiBase_Absolute);
+  ui_layout_move(c, ui_vector(10, -2), UiBase_Absolute, Ui_XY);
+  if (devStats) {
+    // Move the mission ui down to make space for the developer stats.
+    ui_layout_move_dir(c, Ui_Down, 125, UiBase_Absolute);
+  }
+
+  ui_style_push(c);
+  ui_style_outline(c, 4);
+  ui_style_weight(c, UiWeight_Bold);
+  ui_style_color(c, ui_color(255, 173, 10, 255));
+  ui_label(c, loc_translate(scene_mission_name(mission)), .align = UiAlign_TopLeft, .fontSize = 40);
+
+  ui_style_pop(c);
+  ui_layout_pop(c);
 }
 
 static void hud_health_draw(
@@ -1189,6 +1218,7 @@ ecs_system_define(GameHudDrawSys) {
   const GameComp*                game      = ecs_view_read_t(globalItr, GameComp);
   const SceneSetEnvComp*         setEnv    = ecs_view_read_t(globalItr, SceneSetEnvComp);
   const SceneTerrainComp*        terrain   = ecs_view_read_t(globalItr, SceneTerrainComp);
+  const SceneMissionComp*        mission   = ecs_view_read_t(globalItr, SceneMissionComp);
   const SceneWeaponResourceComp* weaponRes = ecs_view_read_t(globalItr, SceneWeaponResourceComp);
 
   EcsView* hudView           = ecs_world_view_t(world, HudView);
@@ -1214,6 +1244,7 @@ ecs_system_define(GameHudDrawSys) {
     const SceneCameraComp*    cam        = ecs_view_read_t(itr, SceneCameraComp);
     const SceneTransformComp* camTrans   = ecs_view_read_t(itr, SceneTransformComp);
     GameHudComp*              hud        = ecs_view_write_t(itr, GameHudComp);
+    const DevStatsComp*       devStats   = ecs_view_read_t(itr, DevStatsComp);
     if (!ecs_view_maybe_jump(canvasItr, hud->uiCanvas)) {
       continue;
     }
@@ -1237,6 +1268,7 @@ ecs_system_define(GameHudDrawSys) {
     }
 
     hud_minimap_update(hud, rendObjItr, terrain, res);
+    hud_mission_draw(c, mission, devStats);
 
     trace_begin("game_hud_health", TraceColor_White);
     hud_health_draw(c, hud, &viewProj, healthView, res);
