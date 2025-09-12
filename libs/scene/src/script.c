@@ -455,6 +455,16 @@ static SceneValCombinator arg_combinator(ScriptBinderCall* call, const u16 i) {
   }
 }
 
+static SceneObjectiveId arg_objective_id(EvalContext* ctx, ScriptBinderCall* call, const u16 i) {
+  const SceneMissionComp* mission = ecs_view_read_t(ctx->globalItr, SceneMissionComp);
+  const SceneObjectiveId  id      = (SceneObjectiveId)script_arg_num(call, i);
+  if (UNLIKELY(!scene_mission_obj_get(mission, id))) {
+    script_panic_raise(
+        call->panicHandler, (ScriptPanic){ScriptPanic_ArgumentInvalid, .argIndex = i});
+  }
+  return id;
+}
+
 static EcsEntityId arg_asset(EvalContext* ctx, ScriptBinderCall* call, const u16 i) {
   const EcsEntityId e = script_arg_entity(call, i);
   if (UNLIKELY(!ecs_world_exists(ctx->world, e) || !ecs_world_has_t(ctx->world, e, AssetComp))) {
@@ -1821,7 +1831,7 @@ static ScriptVal eval_mission_begin(EvalContext* ctx, ScriptBinderCall* call) {
   const StringHash name = script_arg_str(call, 0);
 
   const SceneMissionComp* mission = ecs_view_read_t(ctx->globalItr, SceneMissionComp);
-  if (scene_mission_state(mission) != SceneMissionState_Inactive) {
+  if (UNLIKELY(scene_mission_state(mission) != SceneMissionState_Inactive)) {
     script_panic_raise(call->panicHandler, (ScriptPanic){ScriptPanic_InvalidState});
   }
 
@@ -1834,13 +1844,83 @@ static ScriptVal eval_mission_end(EvalContext* ctx, ScriptBinderCall* call) {
   const SceneMissionState result = script_arg_enum(call, 0, &g_scriptEnumMissionState);
 
   const SceneMissionComp* mission = ecs_view_read_t(ctx->globalItr, SceneMissionComp);
-  if (scene_mission_state(mission) != SceneMissionState_InProgress) {
+  if (UNLIKELY(scene_mission_state(mission) != SceneMissionState_InProgress)) {
     script_panic_raise(call->panicHandler, (ScriptPanic){ScriptPanic_InvalidState});
   }
 
   SceneAction* act = scene_action_push(ctx->actions, SceneActionType_MissionEnd);
   act->missionEnd  = (SceneActionMissionEnd){.result = result};
   return script_null();
+}
+
+static SceneObjectiveId eval_objective_id_create(EvalContext* ctx) {
+  /**
+   * Create a unique objective id for this entity.
+   * NOTE: Care must be taken to make sure this is representable by a 64 bit floating point number.
+   */
+  SceneObjectiveId result = 0;
+  result |= ecs_entity_id_serial(ctx->instigator);
+  result |= scene_action_queue_counter(ctx->actions) << 32;
+  return result;
+}
+
+static ScriptVal eval_objective_begin(EvalContext* ctx, ScriptBinderCall* call) {
+  const SceneObjectiveId id   = eval_objective_id_create(ctx);
+  const StringHash       name = script_arg_str(call, 0);
+
+  const SceneMissionComp* mission = ecs_view_read_t(ctx->globalItr, SceneMissionComp);
+  if (UNLIKELY(scene_mission_state(mission) != SceneMissionState_InProgress)) {
+    script_panic_raise(call->panicHandler, (ScriptPanic){ScriptPanic_InvalidState});
+  }
+
+  SceneAction* act    = scene_action_push(ctx->actions, SceneActionType_ObjectiveBegin);
+  act->objectiveBegin = (SceneActionObjectiveBegin){.id = id, .name = name};
+  return script_num(id);
+}
+
+static ScriptVal eval_objective_goal(EvalContext* ctx, ScriptBinderCall* call) {
+  const SceneObjectiveId id       = arg_objective_id(ctx, call, 0);
+  const f32              progress = (f32)script_arg_num(call, 1);
+  const f32              goal     = (f32)script_arg_num(call, 2);
+
+  const SceneMissionComp* mission = ecs_view_read_t(ctx->globalItr, SceneMissionComp);
+  if (UNLIKELY(scene_mission_state(mission) != SceneMissionState_InProgress)) {
+    script_panic_raise(call->panicHandler, (ScriptPanic){ScriptPanic_InvalidState});
+  }
+
+  SceneAction* act   = scene_action_push(ctx->actions, SceneActionType_ObjectiveGoal);
+  act->objectiveGoal = (SceneActionObjectiveGoal){.id = id, .goal = goal, .progress = progress};
+  return script_num(id);
+}
+
+static ScriptVal eval_objective_timeout(EvalContext* ctx, ScriptBinderCall* call) {
+  const SceneObjectiveId  id        = arg_objective_id(ctx, call, 0);
+  const TimeDuration      remaining = script_arg_time(call, 1);
+  const SceneMissionState result    = script_arg_enum(call, 2, &g_scriptEnumMissionState);
+
+  const SceneMissionComp* mission = ecs_view_read_t(ctx->globalItr, SceneMissionComp);
+  if (UNLIKELY(scene_mission_state(mission) != SceneMissionState_InProgress)) {
+    script_panic_raise(call->panicHandler, (ScriptPanic){ScriptPanic_InvalidState});
+  }
+
+  SceneAction* act = scene_action_push(ctx->actions, SceneActionType_ObjectiveTimeout);
+  act->objectiveTimeout =
+      (SceneActionObjectiveTimeout){.id = id, .remaining = remaining, .result = result};
+  return script_num(id);
+}
+
+static ScriptVal eval_objective_end(EvalContext* ctx, ScriptBinderCall* call) {
+  const SceneObjectiveId  id     = arg_objective_id(ctx, call, 0);
+  const SceneMissionState result = script_arg_enum(call, 1, &g_scriptEnumMissionState);
+
+  const SceneMissionComp* mission = ecs_view_read_t(ctx->globalItr, SceneMissionComp);
+  if (UNLIKELY(scene_mission_state(mission) != SceneMissionState_InProgress)) {
+    script_panic_raise(call->panicHandler, (ScriptPanic){ScriptPanic_InvalidState});
+  }
+
+  SceneAction* act  = scene_action_push(ctx->actions, SceneActionType_ObjectiveEnd);
+  act->objectiveEnd = (SceneActionObjectiveEnd){.id = id, .result = result};
+  return script_num(id);
 }
 
 static ScriptVal eval_random_of(EvalContext* ctx, ScriptBinderCall* call) {
@@ -2185,6 +2265,10 @@ static void eval_binder_init(void) {
     eval_bind(b, string_lit("mission_state"),          eval_mission_state);
     eval_bind(b, string_lit("mission_begin"),          eval_mission_begin);
     eval_bind(b, string_lit("mission_end"),            eval_mission_end);
+    eval_bind(b, string_lit("objective_begin"),        eval_objective_begin);
+    eval_bind(b, string_lit("objective_goal"),         eval_objective_goal);
+    eval_bind(b, string_lit("objective_timeout"),      eval_objective_timeout);
+    eval_bind(b, string_lit("objective_end"),          eval_objective_end);
     eval_bind(b, string_lit("random_of"),              eval_random_of);
     eval_bind(b, string_lit("debug_log"),              eval_debug_log);
     eval_bind(b, string_lit("debug_line"),             eval_debug_line);
@@ -2505,7 +2589,7 @@ SceneScriptComp* scene_script_add(
     const EcsEntityId entity,
     const EcsEntityId scriptAssets[],
     const u32         scriptAssetCount) {
-  diag_assert(scriptAssetCount <= u8_max); // We represent slot indices as 8bit integers.
+  diag_assert(scriptAssetCount <= u8_max); // We represent slot indices as 8 bit integers.
   diag_assert(scriptAssetCount);           // Need at least one script asset.
 
   SceneScriptComp* script = ecs_world_add_t(world, entity, SceneScriptComp);
