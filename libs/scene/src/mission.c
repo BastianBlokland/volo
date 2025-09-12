@@ -53,7 +53,8 @@ static void obj_update(SceneMissionComp* m, SceneObjective* obj, const SceneTime
   }
   const TimeDuration timeElapsed = time->time - obj->startTime;
   if (obj->timeoutDuration > 0 && timeElapsed >= obj->timeoutDuration) {
-    obj->state = obj->timeoutResult;
+    obj->endTime = obj->startTime + obj->timeoutDuration;
+    obj->state   = obj->timeoutResult;
   }
 }
 
