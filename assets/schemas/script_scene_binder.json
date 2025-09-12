@@ -642,9 +642,9 @@
     },
     {
       "name": "objective_time",
-      "doc": "Query how long the objective has been active.",
+      "doc": "Query how long the objective has been active.\n\n*Note*: Returns null if the objective is not valid (yet).",
       "sig": {
-        "ret": "num",
+        "ret": [ "null", "num" ],
         "args": [
           { "name": "id", "mask": "num" }
         ]

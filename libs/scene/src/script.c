@@ -455,16 +455,6 @@ static SceneValCombinator arg_combinator(ScriptBinderCall* call, const u16 i) {
   }
 }
 
-static SceneObjectiveId arg_objective_id(EvalContext* ctx, ScriptBinderCall* call, const u16 i) {
-  const SceneMissionComp* mission = ecs_view_read_t(ctx->globalItr, SceneMissionComp);
-  const SceneObjectiveId  id      = (SceneObjectiveId)script_arg_num(call, i);
-  if (UNLIKELY(!scene_mission_obj_get(mission, id))) {
-    script_panic_raise(
-        call->panicHandler, (ScriptPanic){ScriptPanic_ArgumentInvalid, .argIndex = i});
-  }
-  return id;
-}
-
 static EcsEntityId arg_asset(EvalContext* ctx, ScriptBinderCall* call, const u16 i) {
   const EcsEntityId e = script_arg_entity(call, i);
   if (UNLIKELY(!ecs_world_exists(ctx->world, e) || !ecs_world_has_t(ctx->world, e, AssetComp))) {
@@ -1884,14 +1874,18 @@ static ScriptVal eval_objective_state(EvalContext* ctx, ScriptBinderCall* call) 
 }
 
 static ScriptVal eval_objective_time(EvalContext* ctx, ScriptBinderCall* call) {
-  const SceneObjectiveId  id      = arg_objective_id(ctx, call, 0);
+  const SceneObjectiveId  id      = (SceneObjectiveId)script_arg_num(call, 0);
   const SceneMissionComp* mission = ecs_view_read_t(ctx->globalItr, SceneMissionComp);
   const SceneTimeComp*    time    = ecs_view_read_t(ctx->globalItr, SceneTimeComp);
-  return script_time(scene_mission_obj_time(scene_mission_obj_get(mission, id), time));
+  const SceneObjective*   obj     = scene_mission_obj_get(mission, id);
+  if (!obj) {
+    return script_null();
+  }
+  return script_time(scene_mission_obj_time(obj, time));
 }
 
 static ScriptVal eval_objective_goal(EvalContext* ctx, ScriptBinderCall* call) {
-  const SceneObjectiveId id       = arg_objective_id(ctx, call, 0);
+  const SceneObjectiveId id       = (SceneObjectiveId)script_arg_num(call, 0);
   const f32              progress = (f32)script_arg_num(call, 1);
   const f32              goal     = (f32)script_arg_num(call, 2);
 
@@ -1901,7 +1895,7 @@ static ScriptVal eval_objective_goal(EvalContext* ctx, ScriptBinderCall* call) {
 }
 
 static ScriptVal eval_objective_timeout(EvalContext* ctx, ScriptBinderCall* call) {
-  const SceneObjectiveId  id     = arg_objective_id(ctx, call, 0);
+  const SceneObjectiveId  id     = (SceneObjectiveId)script_arg_num(call, 0);
   const TimeDuration      dur    = script_arg_time(call, 1);
   const SceneMissionState result = script_arg_enum(call, 2, &g_scriptEnumMissionState);
 
@@ -1912,7 +1906,7 @@ static ScriptVal eval_objective_timeout(EvalContext* ctx, ScriptBinderCall* call
 }
 
 static ScriptVal eval_objective_end(EvalContext* ctx, ScriptBinderCall* call) {
-  const SceneObjectiveId  id     = arg_objective_id(ctx, call, 0);
+  const SceneObjectiveId  id     = (SceneObjectiveId)script_arg_num(call, 0);
   const SceneMissionState result = script_arg_enum(call, 1, &g_scriptEnumMissionState);
 
   SceneAction* act  = scene_action_push(ctx->actions, SceneActionType_ObjectiveEnd);
