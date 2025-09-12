@@ -92,8 +92,8 @@ String scene_mission_state_str(const SceneMissionState state) {
   static const String g_names[] = {
       string_static("Idle"),
       string_static("InProgress"),
-      string_static("Successful"),
-      string_static("Failed"),
+      string_static("Success"),
+      string_static("Fail"),
   };
   ASSERT(array_elems(g_names) == SceneMissionState_Count, "Incorrect number of names");
   return g_names[state];
@@ -134,7 +134,7 @@ SceneMissionErr scene_mission_end(SceneMissionComp* m, const SceneMissionState r
   if (UNLIKELY(m->state != SceneMissionState_InProgress)) {
     return SceneMissionErr_NotActive;
   }
-  if (UNLIKELY(result != SceneMissionState_Successful && result != SceneMissionState_Failed)) {
+  if (UNLIKELY(result != SceneMissionState_Success && result != SceneMissionState_Fail)) {
     return SceneMissionErr_InvalidResult;
   }
 
@@ -205,7 +205,7 @@ SceneMissionErr scene_mission_obj_timeout(
   if (UNLIKELY(!obj || obj->state != SceneMissionState_InProgress)) {
     return SceneMissionErr_InvalidObjective;
   }
-  if (UNLIKELY(result != SceneMissionState_Successful && result != SceneMissionState_Failed)) {
+  if (UNLIKELY(result != SceneMissionState_Success && result != SceneMissionState_Fail)) {
     return SceneMissionErr_InvalidResult;
   }
 
@@ -229,7 +229,7 @@ SceneMissionErr scene_mission_obj_end(
   if (UNLIKELY(!obj || obj->state != SceneMissionState_InProgress)) {
     return SceneMissionErr_InvalidObjective;
   }
-  if (UNLIKELY(result != SceneMissionState_Successful && result != SceneMissionState_Failed)) {
+  if (UNLIKELY(result != SceneMissionState_Success && result != SceneMissionState_Fail)) {
     return SceneMissionErr_InvalidResult;
   }
 

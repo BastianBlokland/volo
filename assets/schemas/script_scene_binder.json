@@ -53,7 +53,7 @@
     },
     {
       "name": "objective_end",
-      "doc": "End the given objective.\n\nValid results:\n\n-`Successful`\n\n-`Failed`.",
+      "doc": "End the given objective.\n\nValid results:\n\n-`Success`\n\n-`Fail`.",
       "sig": {
         "ret": "null",
         "args": [
@@ -738,7 +738,7 @@
     },
     {
       "name": "mission_end",
-      "doc": "End the current mission.\n\n*Note*: Only valid if there's a mission active.\n\nValid results:\n\n-`Successful`\n\n-`Failed`.",
+      "doc": "End the current mission.\n\n*Note*: Only valid if there's a mission active.\n\nValid results:\n\n-`Success`\n\n-`Fail`.",
       "sig": {
         "ret": "null",
         "args": [
@@ -837,7 +837,7 @@
     },
     {
       "name": "mission_state",
-      "doc": "Query the current mission state.\n\nStates:\n\n-`Idle`\n\n-`InProgress`\n\n-`Successful`\n\n-`Failed`.",
+      "doc": "Query the current mission state.\n\nStates:\n\n-`Idle`\n\n-`InProgress`\n\n-`Success`\n\n-`Fail`.",
       "sig": {
         "ret": "str",
         "args": []
@@ -1022,7 +1022,7 @@
     },
     {
       "name": "objective_timeout",
-      "doc": "Update the objective timeout.\n\nValid results:\n\n-`Successful`\n\n-`Failed`.",
+      "doc": "Update the objective timeout.\n\nValid results:\n\n-`Success`\n\n-`Fail`.",
       "sig": {
         "ret": "null",
         "args": [

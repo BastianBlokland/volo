@@ -727,7 +727,7 @@ void asset_data_init_script_scene(void) {
   }
   {
     const String       name   = string_lit("mission_state");
-    const String       doc    = string_lit("Query the current mission state.\n\nStates:\n\n-`Idle`\n\n-`InProgress`\n\n-`Successful`\n\n-`Failed`.");
+    const String       doc    = string_lit("Query the current mission state.\n\nStates:\n\n-`Idle`\n\n-`InProgress`\n\n-`Success`\n\n-`Fail`.");
     const ScriptMask   ret    = script_mask_str;
     bind(binder, name, doc, ret, null, 0);
   }
@@ -742,7 +742,7 @@ void asset_data_init_script_scene(void) {
   }
   {
     const String       name   = string_lit("mission_end");
-    const String       doc    = string_lit("End the current mission.\n\n*Note*: Only valid if there's a mission active.\n\nValid results:\n\n-`Successful`\n\n-`Failed`.");
+    const String       doc    = string_lit("End the current mission.\n\n*Note*: Only valid if there's a mission active.\n\nValid results:\n\n-`Success`\n\n-`Fail`.");
     const ScriptMask   ret    = script_mask_null;
     const ScriptSigArg args[] = {
         {string_lit("result"), script_mask_str},
@@ -771,7 +771,7 @@ void asset_data_init_script_scene(void) {
   }
   {
     const String       name   = string_lit("objective_timeout");
-    const String       doc    = string_lit("Update the objective timeout.\n\nValid results:\n\n-`Successful`\n\n-`Failed`.");
+    const String       doc    = string_lit("Update the objective timeout.\n\nValid results:\n\n-`Success`\n\n-`Fail`.");
     const ScriptMask   ret    = script_mask_null;
     const ScriptSigArg args[] = {
       {string_lit("id"), script_mask_num},
@@ -782,7 +782,7 @@ void asset_data_init_script_scene(void) {
   }
   {
     const String       name   = string_lit("objective_end");
-    const String       doc    = string_lit("End the given objective.\n\nValid results:\n\n-`Successful`\n\n-`Failed`.");
+    const String       doc    = string_lit("End the given objective.\n\nValid results:\n\n-`Success`\n\n-`Fail`.");
     const ScriptMask   ret    = script_mask_null;
     const ScriptSigArg args[] = {
       {string_lit("id"), script_mask_num},

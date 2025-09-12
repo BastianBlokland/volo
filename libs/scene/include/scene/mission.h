@@ -4,8 +4,8 @@
 typedef enum {
   SceneMissionState_Idle,
   SceneMissionState_InProgress,
-  SceneMissionState_Successful,
-  SceneMissionState_Failed,
+  SceneMissionState_Success,
+  SceneMissionState_Fail,
 
   SceneMissionState_Count
 } SceneMissionState;

@@ -8,5 +8,5 @@ if (mission_state() == "Idle") {
 }
 
 if (mission_state() == "InProgress" && time() > 10) {
-  mission_end("Failed")
+  mission_end("Fail")
 }
