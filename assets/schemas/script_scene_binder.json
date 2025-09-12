@@ -837,7 +837,7 @@
     },
     {
       "name": "mission_state",
-      "doc": "Query the current mission state.\n\nStates:\n\n-`Idle`\n\n-`InProgress`\n\n-`Success`\n\n-`Fail`.",
+      "doc": "Query the current mission state.\n\nStates:\n\n-`Idle`\n\n-`Active`\n\n-`Success`\n\n-`Fail`.",
       "sig": {
         "ret": "str",
         "args": []

@@ -1844,7 +1844,7 @@ static ScriptVal eval_mission_end(EvalContext* ctx, ScriptBinderCall* call) {
   const SceneMissionState result = script_arg_enum(call, 0, &g_scriptEnumMissionState);
 
   const SceneMissionComp* mission = ecs_view_read_t(ctx->globalItr, SceneMissionComp);
-  if (UNLIKELY(scene_mission_state(mission) != SceneMissionState_InProgress)) {
+  if (UNLIKELY(scene_mission_state(mission) != SceneMissionState_Active)) {
     script_panic_raise(call->panicHandler, (ScriptPanic){ScriptPanic_InvalidState});
   }
 
@@ -1869,7 +1869,7 @@ static ScriptVal eval_objective_begin(EvalContext* ctx, ScriptBinderCall* call) 
   const StringHash       name = script_arg_str(call, 0);
 
   const SceneMissionComp* mission = ecs_view_read_t(ctx->globalItr, SceneMissionComp);
-  if (UNLIKELY(scene_mission_state(mission) != SceneMissionState_InProgress)) {
+  if (UNLIKELY(scene_mission_state(mission) != SceneMissionState_Active)) {
     script_panic_raise(call->panicHandler, (ScriptPanic){ScriptPanic_InvalidState});
   }
 
@@ -1884,7 +1884,7 @@ static ScriptVal eval_objective_goal(EvalContext* ctx, ScriptBinderCall* call) {
   const f32              goal     = (f32)script_arg_num(call, 2);
 
   const SceneMissionComp* mission = ecs_view_read_t(ctx->globalItr, SceneMissionComp);
-  if (UNLIKELY(scene_mission_state(mission) != SceneMissionState_InProgress)) {
+  if (UNLIKELY(scene_mission_state(mission) != SceneMissionState_Active)) {
     script_panic_raise(call->panicHandler, (ScriptPanic){ScriptPanic_InvalidState});
   }
 
@@ -1899,7 +1899,7 @@ static ScriptVal eval_objective_timeout(EvalContext* ctx, ScriptBinderCall* call
   const SceneMissionState result    = script_arg_enum(call, 2, &g_scriptEnumMissionState);
 
   const SceneMissionComp* mission = ecs_view_read_t(ctx->globalItr, SceneMissionComp);
-  if (UNLIKELY(scene_mission_state(mission) != SceneMissionState_InProgress)) {
+  if (UNLIKELY(scene_mission_state(mission) != SceneMissionState_Active)) {
     script_panic_raise(call->panicHandler, (ScriptPanic){ScriptPanic_InvalidState});
   }
 
@@ -1914,7 +1914,7 @@ static ScriptVal eval_objective_end(EvalContext* ctx, ScriptBinderCall* call) {
   const SceneMissionState result = script_arg_enum(call, 1, &g_scriptEnumMissionState);
 
   const SceneMissionComp* mission = ecs_view_read_t(ctx->globalItr, SceneMissionComp);
-  if (UNLIKELY(scene_mission_state(mission) != SceneMissionState_InProgress)) {
+  if (UNLIKELY(scene_mission_state(mission) != SceneMissionState_Active)) {
     script_panic_raise(call->panicHandler, (ScriptPanic){ScriptPanic_InvalidState});
   }
 

@@ -3,7 +3,7 @@
 
 typedef enum {
   SceneMissionState_Idle,
-  SceneMissionState_InProgress,
+  SceneMissionState_Active,
   SceneMissionState_Success,
   SceneMissionState_Fail,
 

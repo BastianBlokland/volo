@@ -7,6 +7,6 @@ if (mission_state() == "Idle") {
   mission_begin("MISSION_NAME_TEST")
 }
 
-if (mission_state() == "InProgress" && time() > 10) {
+if (mission_state() == "Active" && time() > 10) {
   mission_end("Fail")
 }
