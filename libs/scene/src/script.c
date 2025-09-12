@@ -282,6 +282,7 @@ ecs_view_define(EvalGlobalView) {
   ecs_access_maybe_read(SceneDebugEnvComp);
   ecs_access_maybe_read(SceneTerrainComp);
   ecs_access_read(SceneCollisionEnvComp);
+  ecs_access_read(SceneMissionComp);
   ecs_access_read(SceneNavEnvComp);
   ecs_access_read(ScenePropertyComp);
   ecs_access_read(SceneSetEnvComp);
@@ -1809,6 +1810,39 @@ static ScriptVal eval_marker_spawn(EvalContext* ctx, ScriptBinderCall* call) {
   return script_entity(result);
 }
 
+static ScriptVal eval_mission_state(EvalContext* ctx, ScriptBinderCall* call) {
+  (void)call;
+  const SceneMissionComp* mission      = ecs_view_read_t(ctx->globalItr, SceneMissionComp);
+  const SceneMissionState missionState = scene_mission_state(mission);
+  return script_str(script_enum_lookup_name(&g_scriptEnumMissionState, missionState));
+}
+
+static ScriptVal eval_mission_begin(EvalContext* ctx, ScriptBinderCall* call) {
+  const StringHash name = script_arg_str(call, 0);
+
+  const SceneMissionComp* mission = ecs_view_read_t(ctx->globalItr, SceneMissionComp);
+  if (scene_mission_state(mission) != SceneMissionState_Inactive) {
+    script_panic_raise(call->panicHandler, (ScriptPanic){ScriptPanic_InvalidState});
+  }
+
+  SceneAction* act  = scene_action_push(ctx->actions, SceneActionType_MissionBegin);
+  act->missionBegin = (SceneActionMissionBegin){.name = name};
+  return script_null();
+}
+
+static ScriptVal eval_mission_end(EvalContext* ctx, ScriptBinderCall* call) {
+  const SceneMissionState result = script_arg_enum(call, 0, &g_scriptEnumMissionState);
+
+  const SceneMissionComp* mission = ecs_view_read_t(ctx->globalItr, SceneMissionComp);
+  if (scene_mission_state(mission) != SceneMissionState_InProgress) {
+    script_panic_raise(call->panicHandler, (ScriptPanic){ScriptPanic_InvalidState});
+  }
+
+  SceneAction* act = scene_action_push(ctx->actions, SceneActionType_MissionEnd);
+  act->missionEnd  = (SceneActionMissionEnd){.result = result};
+  return script_null();
+}
+
 static ScriptVal eval_random_of(EvalContext* ctx, ScriptBinderCall* call) {
   (void)ctx;
   /**
@@ -2148,6 +2182,9 @@ static void eval_binder_init(void) {
     eval_bind(b, string_lit("anim_param"),             eval_anim_param);
     eval_bind(b, string_lit("joint_position"),         eval_joint_position);
     eval_bind(b, string_lit("marker_spawn"),           eval_marker_spawn);
+    eval_bind(b, string_lit("mission_state"),          eval_mission_state);
+    eval_bind(b, string_lit("mission_begin"),          eval_mission_begin);
+    eval_bind(b, string_lit("mission_end"),            eval_mission_end);
     eval_bind(b, string_lit("random_of"),              eval_random_of);
     eval_bind(b, string_lit("debug_log"),              eval_debug_log);
     eval_bind(b, string_lit("debug_line"),             eval_debug_line);
