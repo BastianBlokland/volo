@@ -1376,6 +1376,12 @@
           ]
         }
       ]
+    },
+    {
+      "name": "TestMission",
+      "traits": [
+        { "$type": "AssetPrefabTrait_Script", "scripts": [ "scripts/scene/logic/test_mission.script" ] }
+      ]
     }
   ],
   "persistentSounds": [
