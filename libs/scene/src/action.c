@@ -485,7 +485,7 @@ static void action_objective_goal(ActionContext* ctx, const SceneActionObjective
 
 static void action_objective_timeout(ActionContext* ctx, const SceneActionObjectiveTimeout* a) {
   SceneMissionComp* mission = ecs_view_write_t(ctx->globalItr, SceneMissionComp);
-  scene_mission_obj_timeout(mission, a->id, a->remaining, a->result);
+  scene_mission_obj_timeout(mission, a->id, a->duration, a->result);
 }
 
 ecs_view_define(ActionQueueView) { ecs_access_write(SceneActionQueueComp); }

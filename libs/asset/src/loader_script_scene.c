@@ -784,7 +784,7 @@ void asset_data_init_script_scene(void) {
     const ScriptMask   ret    = script_mask_null;
     const ScriptSigArg args[] = {
       {string_lit("id"), script_mask_num},
-      {string_lit("remaining"), script_mask_time},
+      {string_lit("duration"), script_mask_time},
       {string_lit("result"), script_mask_str},
     };
     bind(binder, name, doc, ret, args, array_elems(args));

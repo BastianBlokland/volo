@@ -196,7 +196,7 @@ SceneMissionErr scene_mission_obj_goal(
 SceneMissionErr scene_mission_obj_timeout(
     SceneMissionComp*       m,
     const SceneObjectiveId  id,
-    const TimeDuration      rem,
+    const TimeDuration      dur,
     const SceneMissionState result) {
   if (UNLIKELY(m->state != SceneMissionState_Active)) {
     return SceneMissionErr_NotActive;
@@ -212,10 +212,10 @@ SceneMissionErr scene_mission_obj_timeout(
   log_d(
       "Objective set timeout",
       log_param("id", fmt_int(id)),
-      log_param("remaining", fmt_duration(rem)),
+      log_param("duration", fmt_duration(dur)),
       log_param("result", fmt_text(scene_mission_state_str(result))));
 
-  obj->timeoutDuration = rem;
+  obj->timeoutDuration = dur;
   obj->timeoutResult   = result;
   return SceneMissionErr_None;
 }

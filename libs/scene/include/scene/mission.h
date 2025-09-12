@@ -49,7 +49,7 @@ StringHash        scene_mission_name(const SceneMissionComp*); // Localization k
 SceneMissionErr scene_mission_obj_begin(SceneMissionComp*, SceneObjectiveId, StringHash name);
 SceneMissionErr scene_mission_obj_goal(SceneMissionComp*, SceneObjectiveId, f32 goal, f32 progress);
 SceneMissionErr scene_mission_obj_timeout(
-    SceneMissionComp*, SceneObjectiveId, TimeDuration rem, SceneMissionState res);
+    SceneMissionComp*, SceneObjectiveId, TimeDuration dur, SceneMissionState res);
 SceneMissionErr scene_mission_obj_end(SceneMissionComp*, SceneObjectiveId, SceneMissionState res);
 
 const SceneObjective* scene_mission_obj_get(const SceneMissionComp*, SceneObjectiveId);

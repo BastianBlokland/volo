@@ -214,7 +214,7 @@ typedef struct {
 
 typedef struct {
   SceneObjectiveId  id;
-  TimeDuration      remaining;
+  TimeDuration      duration;
   SceneMissionState result;
 } SceneActionObjectiveTimeout;
 
