@@ -358,12 +358,12 @@ static void hud_mission_draw(
     dynstring_clear(&labelBuffer);
     fmt_write(&labelBuffer, "> {}", fmt_text(objName));
     if (obj->goal > 0.0) {
-      fmt_write(&labelBuffer, "  {}/{}", fmt_float(obj->progress), fmt_float(obj->goal));
+      fmt_write(&labelBuffer, " - {}/{}", fmt_float(obj->progress), fmt_float(obj->goal));
     }
     if (obj->timeoutDuration > 0) {
       const TimeDuration timeRem = scene_mission_obj_time_rem(obj, time);
       const u32          seconds = (u32)(timeRem / time_second);
-      fmt_write(&labelBuffer, "  {}s", fmt_int(seconds));
+      fmt_write(&labelBuffer, " - {}s", fmt_int(seconds));
     }
     ui_label(c, dynstring_view(&labelBuffer), .fontSize = 30);
     ui_layout_next(c, Ui_Down, 0 /* spacing */);
