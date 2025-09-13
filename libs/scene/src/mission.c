@@ -245,6 +245,9 @@ SceneMissionErr scene_mission_obj_goal(
   if (UNLIKELY(!obj || obj->state != SceneMissionState_Active)) {
     return SceneMissionErr_InvalidObjective;
   }
+  if (obj->goal == goal && obj->progress == progress) {
+    return SceneMissionErr_None;
+  }
 
   log_d(
       "Objective update goal",
@@ -272,9 +275,12 @@ SceneMissionErr scene_mission_obj_timeout(
   if (UNLIKELY(result != SceneMissionState_Success && result != SceneMissionState_Fail)) {
     return SceneMissionErr_InvalidResult;
   }
+  if (obj->timeoutDuration == dur && obj->timeoutResult == result) {
+    return SceneMissionErr_None;
+  }
 
   log_d(
-      "Objective set timeout",
+      "Objective update timeout",
       log_param("id", fmt_int(id)),
       log_param("duration", fmt_duration(dur)),
       log_param("result", fmt_text(scene_mission_state_str(result))));
