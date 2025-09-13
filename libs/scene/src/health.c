@@ -16,6 +16,7 @@
 #include "scene/lifetime.h"
 #include "scene/prefab.h"
 #include "scene/renderable.h"
+#include "scene/set.h"
 #include "scene/skeleton.h"
 #include "scene/tag.h"
 #include "scene/time.h"
@@ -127,8 +128,9 @@ typedef struct {
   SceneHealthComp*        health;
   const SceneFactionComp* faction;
   EcsIterator*            statsItr;
-  f32                     totalDamage, totalHealing; // Normalized.
   SceneFactionStatsComp*  factionStats;
+  bool                    isUnit;
+  f32                     totalDamage, totalHealing; // Normalized.
 } HealthModContext;
 
 static void mod_apply_damage(HealthModContext* ctx, const SceneHealthMod* mod) {
@@ -139,7 +141,8 @@ static void mod_apply_damage(HealthModContext* ctx, const SceneHealthMod* mod) {
   ctx->totalDamage += amountNorm;
 
   // Track damage stats for the instigator.
-  if (amountNorm > f32_epsilon && ecs_view_maybe_jump(ctx->statsItr, mod->instigator)) {
+  const bool anyDamage = amountNorm > f32_epsilon;
+  if (ctx->isUnit && anyDamage && ecs_view_maybe_jump(ctx->statsItr, mod->instigator)) {
     SceneHealthStatsComp*   instigatorStats = ecs_view_write_t(ctx->statsItr, SceneHealthStatsComp);
     const SceneFactionComp* instigatorFaction = ecs_view_read_t(ctx->statsItr, SceneFactionComp);
 
@@ -211,6 +214,7 @@ ecs_view_define(GlobalView) {
 
 ecs_view_define(HealthView) {
   ecs_access_maybe_read(SceneFactionComp);
+  ecs_access_maybe_read(SceneSetMemberComp);
   ecs_access_maybe_read(SceneTransformComp);
   ecs_access_maybe_write(SceneAnimationComp);
   ecs_access_maybe_write(SceneBarkComp);
@@ -242,21 +246,25 @@ ecs_system_define(SceneHealthUpdateSys) {
   EcsIterator* statsItr = ecs_view_itr(statsView);
 
   for (EcsIterator* itr = ecs_view_itr(healthView); ecs_view_walk(itr);) {
-    const EcsEntityId         entity  = ecs_view_entity(itr);
-    const SceneTransformComp* trans   = ecs_view_read_t(itr, SceneTransformComp);
-    const SceneFactionComp*   faction = ecs_view_read_t(itr, SceneFactionComp);
-    SceneAnimationComp*       anim    = ecs_view_write_t(itr, SceneAnimationComp);
-    SceneHealthRequestComp*   request = ecs_view_write_t(itr, SceneHealthRequestComp);
-    SceneHealthComp*          health  = ecs_view_write_t(itr, SceneHealthComp);
-    SceneTagComp*             tag     = ecs_view_write_t(itr, SceneTagComp);
-    SceneBarkComp*            bark    = ecs_view_write_t(itr, SceneBarkComp);
+    const EcsEntityId         entity    = ecs_view_entity(itr);
+    const SceneTransformComp* trans     = ecs_view_read_t(itr, SceneTransformComp);
+    const SceneFactionComp*   faction   = ecs_view_read_t(itr, SceneFactionComp);
+    const SceneSetMemberComp* setMember = ecs_view_read_t(itr, SceneSetMemberComp);
+    SceneAnimationComp*       anim      = ecs_view_write_t(itr, SceneAnimationComp);
+    SceneHealthRequestComp*   request   = ecs_view_write_t(itr, SceneHealthRequestComp);
+    SceneHealthComp*          health    = ecs_view_write_t(itr, SceneHealthComp);
+    SceneTagComp*             tag       = ecs_view_write_t(itr, SceneTagComp);
+    SceneBarkComp*            bark      = ecs_view_write_t(itr, SceneBarkComp);
 
-    const bool       wasDead = (health->flags & SceneHealthFlags_Dead) != 0;
-    HealthModContext modCtx  = {
-         .health       = health,
-         .faction      = faction,
-         .statsItr     = statsItr,
-         .factionStats = factionStats,
+    const bool wasDead = (health->flags & SceneHealthFlags_Dead) != 0;
+    const bool isUnit  = setMember && scene_set_member_contains(setMember, SceneId_unit);
+
+    HealthModContext modCtx = {
+        .health       = health,
+        .faction      = faction,
+        .statsItr     = statsItr,
+        .factionStats = factionStats,
+        .isUnit       = isUnit,
     };
 
     // Process requests.
@@ -288,7 +296,7 @@ ecs_system_define(SceneHealthUpdateSys) {
       health->norm = 0.0f;
 
       // Report the loss for the faction.
-      if (faction && faction->id != SceneFaction_None) {
+      if (isUnit && faction && faction->id != SceneFaction_None) {
         factionStats->values[faction->id][SceneFactionStat_Losses] += 1.0f;
       }
 
