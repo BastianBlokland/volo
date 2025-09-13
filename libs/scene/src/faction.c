@@ -13,7 +13,7 @@ static void ecs_combine_faction_stats(void* dataA, void* dataB) {
 
   for (SceneFaction faction = 0; faction != SceneFaction_Count; ++faction) {
     for (SceneFactionStat stat = 0; stat != SceneFactionStat_Count; ++stat) {
-      compA->stats[faction][stat] += compB->stats[faction][stat];
+      compA->values[faction][stat] += compB->values[faction][stat];
     }
   }
 }
@@ -71,4 +71,4 @@ SceneFactionStatsComp* scene_faction_stats_init(EcsWorld* world) {
   return ecs_world_add_t(world, ecs_world_global(world), SceneFactionStatsComp);
 }
 
-void scene_faction_stats_clear(SceneFactionStatsComp* comp) { mem_set(array_mem(comp->stats), 0); }
+void scene_faction_stats_clear(SceneFactionStatsComp* comp) { mem_set(array_mem(comp->values), 0); }

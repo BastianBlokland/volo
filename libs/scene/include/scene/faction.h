@@ -22,7 +22,7 @@ typedef enum eSceneFactionStat {
 
 ecs_comp_extern_public(SceneFactionComp) { SceneFaction id; };
 ecs_comp_extern_public(SceneFactionStatsComp) {
-  i32 stats[SceneFactionStat_Count][SceneFaction_Count];
+  f32 values[SceneFactionStat_Count][SceneFaction_Count];
 };
 
 String     scene_faction_name(SceneFaction);
