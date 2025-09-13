@@ -1,3 +1,4 @@
+#include "asset/manager.h"
 #include "core/alloc.h"
 #include "core/array.h"
 #include "core/dynarray.h"
@@ -6,14 +7,33 @@
 #include "ecs/view.h"
 #include "ecs/world.h"
 #include "log/logger.h"
+#include "scene/creator.h"
+#include "scene/lifetime.h"
 #include "scene/mission.h"
+#include "scene/sound.h"
 #include "scene/time.h"
+
+typedef enum {
+  SceneMissionSound_ObjSuccess,
+  SceneMissionSound_ObjFail,
+
+  SceneMissionSound_Count,
+} SceneMissionSound;
+
+// clang-format off
+static const String g_sceneMissionSoundIds[SceneMissionSound_Count] = {
+    [SceneMissionSound_ObjSuccess]  = string_static("external/sound/builtin/objective-success-01.wav"),
+    [SceneMissionSound_ObjFail]     = string_static("external/sound/builtin/objective-fail-01.wav"),
+};
+// clang-format on
 
 ecs_comp_define(SceneMissionComp) {
   StringHash        name; // Localization key.
   SceneMissionState state;
   EcsEntityId       instigator; // Entity that began the mission.
   DynArray          objectives; // SceneMissionObjective[].
+
+  EcsEntityId soundAssets[SceneMissionSound_Count];
 };
 
 static void ecs_destruct_mission(void* data) {
@@ -21,12 +41,39 @@ static void ecs_destruct_mission(void* data) {
   dynarray_destroy(&comp->objectives);
 }
 
-static SceneMissionComp* mission_init(EcsWorld* world) {
-  return ecs_world_add_t(
+static SceneMissionComp* mission_init(EcsWorld* world, AssetManagerComp* assets) {
+  SceneMissionComp* mission = ecs_world_add_t(
       world,
       ecs_world_global(world),
       SceneMissionComp,
       .objectives = dynarray_create_t(g_allocHeap, SceneObjective, 32));
+
+  for (SceneMissionSound snd = 0; snd != SceneMissionSound_Count; ++snd) {
+    mission->soundAssets[snd] = asset_lookup(world, assets, g_sceneMissionSoundIds[snd]);
+  }
+
+  return mission;
+}
+
+static void mission_sound_play(
+    EcsWorld* world, const SceneMissionComp* mission, const SceneMissionSound snd, const f32 gain) {
+
+  const EcsEntityId asset = mission->soundAssets[snd];
+  const EcsEntityId e     = ecs_world_entity_create(world);
+  ecs_world_add_t(world, e, SceneLifetimeDurationComp, .duration = time_seconds(1));
+  ecs_world_add_t(world, e, SceneSoundComp, .asset = asset, .gain = gain, .pitch = 1.0f);
+  ecs_world_add_t(world, e, SceneCreatorComp, .creator = mission->instigator);
+}
+
+static void mission_sound_obj_play(
+    EcsWorld* world, const SceneMissionComp* mission, const SceneObjective* obj) {
+  SceneMissionSound snd;
+  if (obj->state == SceneMissionState_Success) {
+    snd = SceneMissionSound_ObjSuccess;
+  } else {
+    snd = SceneMissionSound_ObjFail;
+  }
+  mission_sound_play(world, mission, snd, 0.6f /* gain */);
 }
 
 static const SceneObjective* obj_get(const SceneMissionComp* m, const SceneObjectiveId id) {
@@ -42,7 +89,8 @@ static SceneObjective* obj_get_mut(SceneMissionComp* m, const SceneObjectiveId i
   return (SceneObjective*)obj_get(m, id);
 }
 
-static void obj_update(SceneMissionComp* m, SceneObjective* obj, const SceneTimeComp* time) {
+static void
+obj_update(EcsWorld* world, SceneMissionComp* m, SceneObjective* obj, const SceneTimeComp* time) {
   (void)m;
   if (obj->startTime < 0) {
     obj->startTime = time->time;
@@ -50,6 +98,7 @@ static void obj_update(SceneMissionComp* m, SceneObjective* obj, const SceneTime
   if (obj->state != SceneMissionState_Active) {
     if (obj->endTime < 0) {
       obj->endTime = time->time;
+      mission_sound_obj_play(world, m, obj);
     }
     return;
   }
@@ -57,12 +106,14 @@ static void obj_update(SceneMissionComp* m, SceneObjective* obj, const SceneTime
   if (obj->timeoutDuration > 0 && timeElapsed >= obj->timeoutDuration) {
     obj->endTime = obj->startTime + obj->timeoutDuration;
     obj->state   = obj->timeoutResult;
+    mission_sound_obj_play(world, m, obj);
   }
 }
 
 ecs_view_define(UpdateGlobalView) {
   ecs_access_maybe_write(SceneMissionComp);
   ecs_access_read(SceneTimeComp);
+  ecs_access_write(AssetManagerComp);
 }
 
 ecs_system_define(SceneMissionUpdateSys) {
@@ -71,15 +122,18 @@ ecs_system_define(SceneMissionUpdateSys) {
   if (!globalItr) {
     return; // Global dependencies not ready.
   }
-  SceneMissionComp* mission = ecs_view_write_t(globalItr, SceneMissionComp);
+  AssetManagerComp*    assets  = ecs_view_write_t(globalItr, AssetManagerComp);
+  const SceneTimeComp* time    = ecs_view_read_t(globalItr, SceneTimeComp);
+  SceneMissionComp*    mission = ecs_view_write_t(globalItr, SceneMissionComp);
   if (UNLIKELY(!mission)) {
-    mission = mission_init(world);
+    mission = mission_init(world, assets);
   }
-  const SceneTimeComp* time = ecs_view_read_t(globalItr, SceneTimeComp);
 
   switch (mission->state) {
   case SceneMissionState_Active:
-    dynarray_for_t(&mission->objectives, SceneObjective, obj) { obj_update(mission, obj, time); }
+    dynarray_for_t(&mission->objectives, SceneObjective, obj) {
+      obj_update(world, mission, obj, time);
+    }
     break;
   default:
     break;
