@@ -36,6 +36,7 @@
 
     { "key": "OBJECTIVE_TEST_COLLECT", "value": "Collect crates" },
     { "key": "OBJECTIVE_TEST_EVAC", "value": "Evacuate" },
+    { "key": "OBJECTIVE_DEFEND", "value": "Defend the base" },
 
     { "key": "UNIT_NAME_INFANTRY_RIFLE", "value": "Assault Ranger" },
     { "key": "UNIT_NAME_INFANTRY_ROCKET", "value": "Rocket Ranger" },
