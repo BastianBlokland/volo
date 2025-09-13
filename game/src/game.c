@@ -946,8 +946,9 @@ ecs_view_define(LevelView) {
 }
 
 ecs_view_define(LevelRenderableView) {
-  ecs_access_with(SceneLevelInstanceComp);
   ecs_access_read(SceneRenderableComp);
+  ecs_access_with(SceneLevelInstanceComp);
+  ecs_access_maybe_read(SceneVisibilityComp);
 }
 
 ecs_view_define(UiCanvasView) {
@@ -1056,6 +1057,10 @@ static bool game_level_ready(const GameUpdateContext* ctx) {
     }
   }
   for (EcsIterator* itr = ecs_view_itr(ctx->levelRenderableView); ecs_view_walk(itr);) {
+    const SceneVisibilityComp* visComp = ecs_view_read_t(itr, SceneVisibilityComp);
+    if (visComp && !scene_visible_for_render(ctx->visibilityEnv, visComp)) {
+      continue; // Renderable not visible.
+    }
     const SceneRenderableComp* renderable = ecs_view_read_t(itr, SceneRenderableComp);
     if (!ecs_world_has_t(ctx->world, renderable->graphic, RendResFinishedComp)) {
       return false; // Still loading renderer resources.
