@@ -192,6 +192,15 @@ static void game_music_play(
   }
 }
 
+static void game_sound_play(
+    EcsWorld* world, SndMixerComp* soundMixer, AssetManagerComp* assets, const String id) {
+
+  SndObjectId sndHandle;
+  if (snd_object_new(soundMixer, &sndHandle) == SndResult_Success) {
+    snd_object_set_asset(soundMixer, sndHandle, asset_lookup(world, assets, id));
+  }
+}
+
 static void game_quality_apply(
     const GamePrefsComp*    prefs,
     RendSettingsGlobalComp* rendSetGlobal,
@@ -1243,6 +1252,9 @@ ecs_system_define(GameUpdateSys) {
       const SceneMissionState missionState = scene_mission_state(ctx.mission);
       if (missionState == SceneMissionState_Success || missionState == SceneMissionState_Fail) {
         game_transition_delayed(ctx.game, GameState_Result);
+
+        const String resultSnd = string_lit("external/sound/builtin/mission-end-01.wav");
+        game_sound_play(world, ctx.soundMixer, ctx.assets, resultSnd);
       }
     } break;
     case GameState_Edit:
