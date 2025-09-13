@@ -30,6 +30,8 @@ static const String g_sceneMissionSoundIds[SceneMissionSound_Count] = {
 ecs_comp_define(SceneMissionComp) {
   StringHash        name; // Localization key.
   SceneMissionState state;
+  TimeDuration      startTime;  // -1 until available.
+  TimeDuration      endTime;    // -1 until available.
   EcsEntityId       instigator; // Entity that began the mission.
   DynArray          objectives; // SceneMissionObjective[].
 
@@ -130,12 +132,23 @@ ecs_system_define(SceneMissionUpdateSys) {
   }
 
   switch (mission->state) {
+  case SceneMissionState_Idle:
+    break;
   case SceneMissionState_Active:
+    if (mission->startTime < 0) {
+      mission->startTime = time->time;
+    }
     dynarray_for_t(&mission->objectives, SceneObjective, obj) {
       obj_update(world, mission, obj, time);
     }
     break;
-  default:
+  case SceneMissionState_Success:
+  case SceneMissionState_Fail:
+    if (mission->endTime < 0) {
+      mission->endTime = time->time;
+    }
+    break;
+  case SceneMissionState_Count:
     break;
   }
 }
@@ -174,6 +187,8 @@ String scene_mission_err_str(const SceneMissionErr err) {
 void scene_mission_clear(SceneMissionComp* m) {
   m->state      = SceneMissionState_Idle;
   m->name       = 0;
+  m->startTime  = -1;
+  m->endTime    = -1;
   m->instigator = ecs_entity_invalid;
   dynarray_clear(&m->objectives);
 }
