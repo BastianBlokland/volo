@@ -1,11 +1,27 @@
 #include "core/array.h"
 #include "core/diag.h"
+#include "ecs/world.h"
 #include "scene/collision.h"
 #include "scene/faction.h"
 
 ecs_comp_define(SceneFactionComp);
+ecs_comp_define(SceneFactionStatsComp);
 
-ecs_module_init(scene_faction_module) { ecs_register_comp(SceneFactionComp); }
+static void ecs_combine_faction_stats(void* dataA, void* dataB) {
+  SceneFactionStatsComp* compA = dataA;
+  SceneFactionStatsComp* compB = dataB;
+
+  for (SceneFaction faction = 0; faction != SceneFaction_Count; ++faction) {
+    for (SceneFactionStat stat = 0; stat != SceneFactionStat_Count; ++stat) {
+      compA->stats[faction][stat] += compB->stats[faction][stat];
+    }
+  }
+}
+
+ecs_module_init(scene_faction_module) {
+  ecs_register_comp(SceneFactionComp);
+  ecs_register_comp(SceneFactionStatsComp, .combinator = ecs_combine_faction_stats);
+}
 
 String scene_faction_name(const SceneFaction faction) {
   diag_assert(faction < SceneFaction_Count);
@@ -49,4 +65,16 @@ bool scene_is_friendly(const SceneFactionComp* a, const SceneFactionComp* b) {
 
 bool scene_is_hostile(const SceneFactionComp* a, const SceneFactionComp* b) {
   return !scene_is_friendly(a, b);
+}
+
+void scene_faction_stats_clear(SceneFactionStatsComp* comp) { mem_set(array_mem(comp->stats), 0); }
+
+SceneFactionStatsComp* scene_faction_stats_report(EcsWorld* world) {
+  return ecs_world_add_t(world, ecs_world_global(world), SceneFactionStatsComp);
+}
+
+void scene_faction_stats_report_single(
+    EcsWorld* world, const SceneFaction faction, const SceneFactionStat stat, const i32 delta) {
+  SceneFactionStatsComp* c = scene_faction_stats_report(world);
+  c->stats[faction][stat]  = delta;
 }
