@@ -219,11 +219,15 @@
     },
     {
       "name": "query_set",
-      "doc": "Find all entities in the given set.\n\n*Note*: Returns a query handle.",
+      "doc": "Find all entities in the given set.\n\n*Note*: Returns a query handle.\n\nSupported factions:\n\n-`FactionA`\n\n-`FactionB`\n\n-`FactionC`\n\n-`FactionD`\n\n-`FactionNone`",
       "sig": {
         "ret": [ "null", "num" ],
         "args": [
-          { "name": "set", "mask": "str" }
+          { "name": "set", "mask": "str" },
+          {
+            "name": "faction",
+            "mask": [ "null", "str" ]
+          }
         ]
       }
     },
@@ -647,6 +651,16 @@
         "ret": [ "null", "num" ],
         "args": [
           { "name": "id", "mask": "num" }
+        ]
+      }
+    },
+    {
+      "name": "query_remaining",
+      "doc": "Returns the amount of entries remaining in the query.",
+      "sig": {
+        "ret": "num",
+        "args": [
+          { "name": "query", "mask": "num" }
         ]
       }
     },

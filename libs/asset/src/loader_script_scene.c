@@ -173,10 +173,11 @@ void asset_data_init_script_scene(void) {
   }
   {
     const String       name   = string_lit("query_set");
-    const String       doc    = string_lit("Find all entities in the given set.\n\n*Note*: Returns a query handle.");
+    const String       doc    = fmt_write_scratch("Find all entities in the given set.\n\n*Note*: Returns a query handle.\n\n{}", fmt_text(g_factionDoc));
     const ScriptMask   ret    = script_mask_num | script_mask_null;
     const ScriptSigArg args[] = {
         {string_lit("set"), script_mask_str},
+        {string_lit("faction"), script_mask_str | script_mask_null},
     };
     bind(binder, name, doc, ret, args, array_elems(args));
   }
@@ -202,6 +203,15 @@ void asset_data_init_script_scene(void) {
         {string_lit("rot"), script_mask_quat | script_mask_null},
         {string_lit("option"), script_mask_str | script_mask_null},
         {string_lit("layers"), script_mask_str | script_mask_null, ScriptSigArgFlags_Multi},
+    };
+    bind(binder, name, doc, ret, args, array_elems(args));
+  }
+  {
+    const String       name   = string_lit("query_remaining");
+    const String       doc    = string_lit("Returns the amount of entries remaining in the query.");
+    const ScriptMask   ret    = script_mask_num;
+    const ScriptSigArg args[] = {
+        {string_lit("query"), script_mask_num},
     };
     bind(binder, name, doc, ret, args, array_elems(args));
   }

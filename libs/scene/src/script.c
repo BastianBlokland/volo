@@ -646,7 +646,10 @@ static ScriptVal eval_set(EvalContext* ctx, ScriptBinderCall* call) {
 static ScriptVal eval_query_set(EvalContext* ctx, ScriptBinderCall* call) {
   const SceneSetEnvComp* setEnv = ecs_view_read_t(ctx->globalItr, SceneSetEnvComp);
 
-  const StringHash set = script_arg_str(call, 0);
+  const StringHash   set = script_arg_str(call, 0);
+  const SceneFaction factionFilter =
+      script_arg_opt_enum(call, 1, &g_scriptEnumFaction, SceneFaction_None);
+
   if (UNLIKELY(!set)) {
     return script_null();
   }
@@ -659,12 +662,23 @@ static ScriptVal eval_query_set(EvalContext* ctx, ScriptBinderCall* call) {
   const EcsEntityId* begin = scene_set_begin(setEnv, set);
   const EcsEntityId* end   = scene_set_end(setEnv, set);
 
-  query->count = math_min((u32)(end - begin), scene_query_max_hits);
-  query->itr   = 0;
-
-  mem_cpy(
-      mem_create(query->values, sizeof(EcsEntityId) * scene_query_max_hits),
-      mem_create(begin, sizeof(EcsEntityId) * query->count));
+  query->itr = 0;
+  if (factionFilter == SceneFaction_None) {
+    query->count = math_min((u32)(end - begin), scene_query_max_hits);
+    mem_cpy(
+        mem_create(query->values, sizeof(EcsEntityId) * scene_query_max_hits),
+        mem_create(begin, sizeof(EcsEntityId) * query->count));
+  } else /* factionFilter != SceneFaction_None */ {
+    query->count = 0;
+    for (const EcsEntityId* itr = begin; itr != end; ++itr) {
+      if (ecs_view_maybe_jump(ctx->factionItr, *itr)) {
+        const SceneFactionComp* factionComp = ecs_view_read_t(ctx->factionItr, SceneFactionComp);
+        if (factionComp->id == factionFilter) {
+          query->values[query->count++] = *itr;
+        }
+      }
+    }
+  }
 
   return script_num(context_query_id(ctx, query));
 }
@@ -714,6 +728,17 @@ static ScriptVal eval_query_box(EvalContext* ctx, ScriptBinderCall* call) {
   query->itr   = 0;
 
   return script_num(context_query_id(ctx, query));
+}
+
+static ScriptVal eval_query_remaining(EvalContext* ctx, ScriptBinderCall* call) {
+  const u32  queryId = (u32)script_arg_num(call, 0);
+  EvalQuery* query   = context_query_get(ctx, queryId);
+  if (UNLIKELY(!query)) {
+    script_panic_raise(
+        call->panicHandler,
+        (ScriptPanic){ScriptPanic_QueryInvalid, .argIndex = 0, .contextInt = queryId});
+  }
+  return script_num(query->count - query->itr);
 }
 
 static ScriptVal eval_query_pop(EvalContext* ctx, ScriptBinderCall* call) {
@@ -2204,6 +2229,7 @@ static void eval_binder_init(void) {
     eval_bind(b, string_lit("query_set"),              eval_query_set);
     eval_bind(b, string_lit("query_sphere"),           eval_query_sphere);
     eval_bind(b, string_lit("query_box"),              eval_query_box);
+    eval_bind(b, string_lit("query_remaining"),        eval_query_remaining);
     eval_bind(b, string_lit("query_pop"),              eval_query_pop);
     eval_bind(b, string_lit("query_random"),           eval_query_random);
     eval_bind(b, string_lit("nav_find"),               eval_nav_find);
