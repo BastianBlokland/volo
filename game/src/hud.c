@@ -903,7 +903,7 @@ hud_markers_draw(GameHudComp* hud, EcsIterator* rendObjItr, EcsView* minimapMark
       color = ui_color(255, 0, 0, 128);
       break;
     case SceneMarkerType_Goal:
-      color = ui_color(255, 173, 10, 128);
+      color = ui_color(255, 173, 10, 178);
       break;
     case SceneMarkerType_Count:
       UNREACHABLE
