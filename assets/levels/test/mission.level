@@ -634,6 +634,13 @@
       "rotation": { "y": 0.528, "w": 0.8493 }
     },
     {
+      "id": 434014459,
+      "prefab": "InfantryRifle",
+      "faction": "A",
+      "position": { "x": 4.018, "y": 0.2972, "z": -11.1986 },
+      "rotation": { "w": 1 }
+    },
+    {
       "id": 444329259,
       "prefab": "PropPlant",
       "position": { "x": -128.7227, "y": 0.7326, "z": 77.8828 },

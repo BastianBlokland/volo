@@ -1380,7 +1380,7 @@
     {
       "name": "TestMission",
       "traits": [
-        { "$type": "AssetPrefabTrait_Script", "scripts": [ "scripts/scene/logic/test_mission.script" ] }
+        { "$type": "AssetPrefabTrait_Script", "scripts": [ "scripts/scene/mission/mission_test.script" ] }
       ]
     }
   ],
