@@ -31,6 +31,5 @@ SceneLayer scene_faction_layers(SceneFaction);
 bool scene_is_friendly(const SceneFactionComp*, const SceneFactionComp*);
 bool scene_is_hostile(const SceneFactionComp*, const SceneFactionComp*);
 
+SceneFactionStatsComp* scene_faction_stats_init(EcsWorld*);
 void                   scene_faction_stats_clear(SceneFactionStatsComp*);
-SceneFactionStatsComp* scene_faction_stats_report(EcsWorld*);
-void scene_faction_stats_report_single(EcsWorld*, SceneFaction, SceneFactionStat, i32 delta);

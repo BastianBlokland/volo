@@ -67,14 +67,8 @@ bool scene_is_hostile(const SceneFactionComp* a, const SceneFactionComp* b) {
   return !scene_is_friendly(a, b);
 }
 
-void scene_faction_stats_clear(SceneFactionStatsComp* comp) { mem_set(array_mem(comp->stats), 0); }
-
-SceneFactionStatsComp* scene_faction_stats_report(EcsWorld* world) {
+SceneFactionStatsComp* scene_faction_stats_init(EcsWorld* world) {
   return ecs_world_add_t(world, ecs_world_global(world), SceneFactionStatsComp);
 }
 
-void scene_faction_stats_report_single(
-    EcsWorld* world, const SceneFaction faction, const SceneFactionStat stat, const i32 delta) {
-  SceneFactionStatsComp* c = scene_faction_stats_report(world);
-  c->stats[faction][stat]  = delta;
-}
+void scene_faction_stats_clear(SceneFactionStatsComp* comp) { mem_set(array_mem(comp->stats), 0); }
