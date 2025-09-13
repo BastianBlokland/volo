@@ -14,6 +14,7 @@
 #include "scene/time.h"
 
 typedef enum {
+  SceneMissionSound_Progress,
   SceneMissionSound_Success,
   SceneMissionSound_Fail,
 
@@ -21,13 +22,20 @@ typedef enum {
 } SceneMissionSound;
 
 static const String g_sceneMissionSoundIds[SceneMissionSound_Count] = {
-    [SceneMissionSound_Success] = string_static("external/sound/builtin/objective-success-01.wav"),
-    [SceneMissionSound_Fail]    = string_static("external/sound/builtin/objective-fail-01.wav"),
+    [SceneMissionSound_Progress] = string_static("external/sound/builtin/objective-success-01.wav"),
+    [SceneMissionSound_Success]  = string_static("external/sound/builtin/objective-success-02.wav"),
+    [SceneMissionSound_Fail]     = string_static("external/sound/builtin/objective-fail-01.wav"),
 };
 
 static const f32 g_sceneMissionSoundGain[SceneMissionSound_Count] = {
-    [SceneMissionSound_Success] = 0.6f,
-    [SceneMissionSound_Fail]    = 0.6f,
+    [SceneMissionSound_Progress] = 0.6f,
+    [SceneMissionSound_Success]  = 0.7f,
+    [SceneMissionSound_Fail]     = 0.6f,
+};
+static const TimeDuration g_sceneMissionSoundDuration[SceneMissionSound_Count] = {
+    [SceneMissionSound_Progress] = time_second,
+    [SceneMissionSound_Success]  = time_seconds(5),
+    [SceneMissionSound_Fail]     = time_seconds(5),
 };
 
 ecs_comp_define(SceneMissionComp) {
@@ -37,7 +45,7 @@ ecs_comp_define(SceneMissionComp) {
   TimeDuration      endTime;    // -1 until available.
   EcsEntityId       instigator; // Entity that began the mission.
   DynArray          objectives; // SceneMissionObjective[].
-  TimeDuration      lastSoundTime;
+  TimeDuration      lastSoundTime[SceneMissionSound_Count];
 
   EcsEntityId soundAssets[SceneMissionSound_Count];
 };
@@ -67,15 +75,16 @@ static void mission_sound_play(
     const SceneTimeComp*    time,
     const SceneMissionSound snd) {
 
-  if ((time->realTime - mission->lastSoundTime) < time_milliseconds(100)) {
+  if ((time->realTime - mission->lastSoundTime[snd]) < time_milliseconds(150)) {
     return; // Avoid spamming sounds.
   }
-  mission->lastSoundTime = time->realTime;
+  mission->lastSoundTime[snd] = time->realTime;
 
-  const EcsEntityId asset = mission->soundAssets[snd];
-  const f32         gain  = g_sceneMissionSoundGain[snd];
-  const EcsEntityId e     = ecs_world_entity_create(world);
-  ecs_world_add_t(world, e, SceneLifetimeDurationComp, .duration = time_seconds(1));
+  const EcsEntityId  asset = mission->soundAssets[snd];
+  const f32          gain  = g_sceneMissionSoundGain[snd];
+  const TimeDuration dur   = g_sceneMissionSoundDuration[snd];
+  const EcsEntityId  e     = ecs_world_entity_create(world);
+  ecs_world_add_t(world, e, SceneLifetimeDurationComp, .duration = dur);
   ecs_world_add_t(world, e, SceneSoundComp, .asset = asset, .gain = gain, .pitch = 1.0f);
   ecs_world_add_t(world, e, SceneCreatorComp, .creator = mission->instigator);
 }
@@ -112,6 +121,10 @@ obj_update(EcsWorld* world, SceneMissionComp* m, SceneObjective* obj, const Scen
   (void)m;
   if (obj->startTime < 0) {
     obj->startTime = time->time;
+  }
+  if (obj->progressUpdated) {
+    mission_sound_play(world, m, time, SceneMissionSound_Progress);
+    obj->progressUpdated = false;
   }
   if (obj->state != SceneMissionState_Active) {
     if (obj->endTime < 0) {
@@ -300,6 +313,10 @@ SceneMissionErr scene_mission_obj_goal(
       log_param("id", fmt_int(id)),
       log_param("goal", fmt_float(goal)),
       log_param("progress", fmt_float(progress)));
+
+  if (obj->progress >= 0.0f && obj->progress != progress) {
+    obj->progressUpdated = true;
+  }
 
   obj->goal     = goal;
   obj->progress = progress;

@@ -31,6 +31,7 @@ typedef struct {
   TimeDuration      endTime;   // -1 until available.
   TimeDuration      timeoutDuration;
   SceneMissionState timeoutResult;
+  bool              progressUpdated;
 } SceneObjective;
 
 /**
