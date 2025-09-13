@@ -17,7 +17,7 @@ if (mission_state() == "Idle") {
   var collectQuery = query_set("collect_target")
   $collectGoal     = query_remaining(collectQuery)
   while (var collectTarget = query_pop(collectQuery)) {
-    var collectMarker = marker_spawn(position(collectTarget), "Info", 1)
+    var collectMarker = marker_spawn(position(collectTarget), "Goal")
     destroy_after(collectMarker, collectTarget)
   }
 }
@@ -53,7 +53,7 @@ if (objective_state($collectObj) == "Active") {
     // Start evacuate objective.
     $evacObj = objective_begin("OBJECTIVE_TEST_EVAC")
     objective_timeout($evacObj, evacTimeout, "Fail")
-    marker_spawn(evacPos, "Info", evacRadius)
+    marker_spawn(evacPos, "Goal", evacRadius)
   }
 }
 

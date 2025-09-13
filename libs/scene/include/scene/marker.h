@@ -4,6 +4,7 @@
 typedef enum {
   SceneMarkerType_Info,
   SceneMarkerType_Danger,
+  SceneMarkerType_Goal,
 
   SceneMarkerType_Count,
 } SceneMarkerType;

@@ -757,6 +757,10 @@ static u32 hud_minimap_marker_collect(
       color = ui_color_red;
       glyph = UiShape_Error; // Exclamation mark.
       break;
+    case SceneMarkerType_Goal:
+      color = ui_color(255, 173, 10, 255);
+      glyph = UiShape_Error; // Exclamation mark.
+      break;
     case SceneMarkerType_Count:
       UNREACHABLE
     }
@@ -888,7 +892,7 @@ hud_markers_draw(GameHudComp* hud, EcsIterator* rendObjItr, EcsView* minimapMark
   for (EcsIterator* itr = ecs_view_itr(minimapMarkerView); ecs_view_walk(itr);) {
     const SceneTransformComp* transComp  = ecs_view_read_t(itr, SceneTransformComp);
     const SceneMarkerComp*    markerComp = ecs_view_read_t(itr, SceneMarkerComp);
-    const f32                 radius = markerComp->radius < f32_epsilon ? 0.25 : markerComp->radius;
+    const f32                 radius = markerComp->radius < f32_epsilon ? 1.0 : markerComp->radius;
 
     UiColor color;
     switch (markerComp->type) {
@@ -897,6 +901,9 @@ hud_markers_draw(GameHudComp* hud, EcsIterator* rendObjItr, EcsView* minimapMark
       break;
     case SceneMarkerType_Danger:
       color = ui_color(255, 0, 0, 128);
+      break;
+    case SceneMarkerType_Goal:
+      color = ui_color(255, 173, 10, 128);
       break;
     case SceneMarkerType_Count:
       UNREACHABLE

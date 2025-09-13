@@ -4256,6 +4256,13 @@
       "rotation": { "y": 0.695, "w": 0.719 }
     },
     {
+      "id": 3010242233,
+      "prefab": "Ambiance",
+      "faction": "A",
+      "position": { "x": 1.8282, "y": 0.4469, "z": -1.1273 },
+      "rotation": { "w": 1 }
+    },
+    {
       "id": 3012207547,
       "prefab": "PropPlant",
       "position": { "x": -132.7852, "y": 0.8087, "z": 43.7007 },
