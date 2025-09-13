@@ -725,6 +725,7 @@ bool geo_query_ray(
   }
 
   if (foundHit) {
+    diag_assert(best.time <= maxDist);
     *outHit = best;
   }
   return foundHit;
@@ -799,6 +800,7 @@ bool geo_query_ray_fat(
   }
 
   if (foundHit) {
+    diag_assert(best.time <= maxDist);
     *outHit = best;
   }
   return foundHit;
