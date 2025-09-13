@@ -70,6 +70,8 @@
     { "key": "MENU_STAT_TIME", "value": "Time" },
     { "key": "MENU_STAT_COMPLETED", "value": "Objectives completed" },
     { "key": "MENU_STAT_FAILED", "value": "Objectives failed" },
+    { "key": "MENU_STAT_KILLS", "value": "Kills" },
+    { "key": "MENU_STAT_LOSSES", "value": "Losses" },
 
     { "key": "MENU_RESUME", "value": "Resume" },
     { "key": "MENU_RESUME_TOOLTIP", "value": "Resume playing." },

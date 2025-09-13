@@ -36,6 +36,13 @@ static void ecs_destruct_collision(void* data) {
   alloc_free_array_t(g_allocHeap, comp->shapes, comp->shapeCount);
 }
 
+static void collision_validate_pos(MAYBE_UNUSED const GeoVector vec) {
+  diag_assert_msg(
+      geo_vector_mag_sqr(vec) <= (1e5f * 1e5f),
+      "Position ({}) is out of bounds",
+      geo_vector_fmt(vec));
+}
+
 ecs_view_define(InitGlobalView) { ecs_access_write(SceneCollisionEnvComp); }
 
 ecs_view_define(CollisionView) {
@@ -318,6 +325,7 @@ bool scene_query_ray(
         .normal   = hit.normal,
         .layer    = (SceneLayer)hit.layer,
     };
+    collision_validate_pos(out->position);
     return true;
   }
   return false;
@@ -346,6 +354,7 @@ bool scene_query_ray_fat(
         .normal   = hit.normal,
         .layer    = (SceneLayer)hit.layer,
     };
+    collision_validate_pos(out->position);
     return true;
   }
   return false;

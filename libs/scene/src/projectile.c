@@ -39,10 +39,13 @@ ecs_view_define(SeekTargetView) {
   ecs_access_with(SceneCollisionComp);
 }
 
-static void projectile_validate_pos(MAYBE_UNUSED const GeoVector vec) {
+static void projectile_validate_pos(const GeoVector vec, const String name) {
+  (void)vec;
+  (void)name;
   diag_assert_msg(
       geo_vector_mag_sqr(vec) <= (1e5f * 1e5f),
-      "Position ({}) is out of bounds",
+      "Position ({} - {}) is out of bounds",
+      fmt_text(name),
       geo_vector_fmt(vec));
 }
 
@@ -214,7 +217,7 @@ ecs_system_define(SceneProjectileSys) {
     SceneRayHit hit;
     if (scene_query_ray(colEnv, &ray, deltaDist, &filter, &hit)) {
       trans->position = hit.position;
-      projectile_validate_pos(trans->position);
+      projectile_validate_pos(trans->position, string_lit("hit collider"));
 
       projectile_hit(world, colEnv, &filter, entity, proj, hit.position, hit.normal, hit.entity);
       continue;
@@ -229,7 +232,7 @@ ecs_system_define(SceneProjectileSys) {
         const GeoVector   terrainHitNormal = scene_terrain_normal(terrain, hitPos);
 
         trans->position = hitPos;
-        projectile_validate_pos(trans->position);
+        projectile_validate_pos(trans->position, string_lit("hit terrain"));
 
         projectile_hit(world, colEnv, &filter, entity, proj, hitPos, terrainHitNormal, hitEntity);
         continue;
@@ -239,7 +242,7 @@ ecs_system_define(SceneProjectileSys) {
     // Update position.
     const GeoVector deltaPos = geo_vector_mul(dir, deltaDist);
     trans->position          = geo_vector_add(trans->position, deltaPos);
-    projectile_validate_pos(trans->position);
+    projectile_validate_pos(trans->position, string_lit("moved"));
   }
 }
 

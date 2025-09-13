@@ -20,6 +20,7 @@ ecs_comp_extern(SceneDeadComp);
 ecs_comp_extern(SceneDebugComp);
 ecs_comp_extern(SceneDebugEnvComp);
 ecs_comp_extern(SceneFactionComp);
+ecs_comp_extern(SceneFactionStatsComp);
 ecs_comp_extern(SceneFootstepComp);
 ecs_comp_extern(SceneHealthComp);
 ecs_comp_extern(SceneHealthRequestComp);
@@ -71,6 +72,7 @@ ecs_comp_extern(SceneVisionComp);
 ecs_comp_extern(SceneWeaponResourceComp);
 
 typedef enum eSceneFaction     SceneFaction;
+typedef enum eSceneFactionStat SceneFactionStat;
 typedef enum eSceneLayer       SceneLayer;
 typedef enum eSceneNavLayer    SceneNavLayer;
 typedef enum eSceneStatusType  SceneStatusType;

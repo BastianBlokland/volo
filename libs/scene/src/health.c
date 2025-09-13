@@ -10,11 +10,13 @@
 #include "ecs/world.h"
 #include "scene/bark.h"
 #include "scene/creator.h"
+#include "scene/faction.h"
 #include "scene/health.h"
 #include "scene/id.h"
 #include "scene/lifetime.h"
 #include "scene/prefab.h"
 #include "scene/renderable.h"
+#include "scene/set.h"
 #include "scene/skeleton.h"
 #include "scene/tag.h"
 #include "scene/time.h"
@@ -123,9 +125,12 @@ static void health_anim_play_death(SceneAnimationComp* anim) {
 }
 
 typedef struct {
-  SceneHealthComp* health;
-  EcsIterator*     statsItr;
-  f32              totalDamage, totalHealing; // Normalized.
+  SceneHealthComp*        health;
+  const SceneFactionComp* faction;
+  EcsIterator*            statsItr;
+  SceneFactionStatsComp*  factionStats;
+  bool                    isUnit;
+  f32                     totalDamage, totalHealing; // Normalized.
 } HealthModContext;
 
 static void mod_apply_damage(HealthModContext* ctx, const SceneHealthMod* mod) {
@@ -136,11 +141,20 @@ static void mod_apply_damage(HealthModContext* ctx, const SceneHealthMod* mod) {
   ctx->totalDamage += amountNorm;
 
   // Track damage stats for the instigator.
-  if (amountNorm > f32_epsilon && ecs_view_maybe_jump(ctx->statsItr, mod->instigator)) {
-    SceneHealthStatsComp* statsComp = ecs_view_write_t(ctx->statsItr, SceneHealthStatsComp);
-    statsComp->values[SceneHealthStat_DealtDamage] += amountNorm * ctx->health->max;
+  const bool anyDamage = amountNorm > f32_epsilon;
+  if (ctx->isUnit && anyDamage && ecs_view_maybe_jump(ctx->statsItr, mod->instigator)) {
+    SceneHealthStatsComp*   instigatorStats = ecs_view_write_t(ctx->statsItr, SceneHealthStatsComp);
+    const SceneFactionComp* instigatorFaction = ecs_view_read_t(ctx->statsItr, SceneFactionComp);
+
+    instigatorStats->values[SceneHealthStat_DealtDamage] += amountNorm * ctx->health->max;
     if (ctx->health->norm < f32_epsilon && (ctx->health->flags & SceneHealthFlags_Dead) == 0) {
-      statsComp->values[SceneHealthStat_Kills] += 1.0f;
+      // Report the kill for the instigator entity.
+      instigatorStats->values[SceneHealthStat_Kills] += 1.0f;
+
+      // Report the kill for the instigator faction.
+      if (instigatorFaction && instigatorFaction->id != SceneFaction_None) {
+        ctx->factionStats->values[instigatorFaction->id][SceneFactionStat_Kills] += 1.0f;
+      }
     }
   }
 
@@ -193,9 +207,14 @@ static void health_death_disable(EcsWorld* world, const EcsEntityId entity) {
   ecs_utils_maybe_remove_t(world, entity, SceneTargetFinderComp);
 }
 
-ecs_view_define(GlobalView) { ecs_access_read(SceneTimeComp); }
+ecs_view_define(GlobalView) {
+  ecs_access_maybe_write(SceneFactionStatsComp);
+  ecs_access_read(SceneTimeComp);
+}
 
 ecs_view_define(HealthView) {
+  ecs_access_maybe_read(SceneFactionComp);
+  ecs_access_maybe_read(SceneSetMemberComp);
   ecs_access_maybe_read(SceneTransformComp);
   ecs_access_maybe_write(SceneAnimationComp);
   ecs_access_maybe_write(SceneBarkComp);
@@ -204,7 +223,10 @@ ecs_view_define(HealthView) {
   ecs_access_write(SceneHealthRequestComp);
 }
 
-ecs_view_define(HealthStatsView) { ecs_access_write(SceneHealthStatsComp); }
+ecs_view_define(HealthStatsView) {
+  ecs_access_write(SceneHealthStatsComp);
+  ecs_access_maybe_read(SceneFactionComp);
+}
 
 ecs_system_define(SceneHealthUpdateSys) {
   EcsView*     globalView = ecs_world_view_t(world, GlobalView);
@@ -212,7 +234,11 @@ ecs_system_define(SceneHealthUpdateSys) {
   if (!globalItr) {
     return;
   }
-  const SceneTimeComp* time = ecs_view_read_t(globalItr, SceneTimeComp);
+  const SceneTimeComp*   time         = ecs_view_read_t(globalItr, SceneTimeComp);
+  SceneFactionStatsComp* factionStats = ecs_view_write_t(globalItr, SceneFactionStatsComp);
+  if (!factionStats) {
+    factionStats = scene_faction_stats_init(world);
+  }
 
   EcsView* healthView = ecs_world_view_t(world, HealthView);
   EcsView* statsView  = ecs_world_view_t(world, HealthStatsView);
@@ -220,16 +246,26 @@ ecs_system_define(SceneHealthUpdateSys) {
   EcsIterator* statsItr = ecs_view_itr(statsView);
 
   for (EcsIterator* itr = ecs_view_itr(healthView); ecs_view_walk(itr);) {
-    const EcsEntityId         entity  = ecs_view_entity(itr);
-    const SceneTransformComp* trans   = ecs_view_read_t(itr, SceneTransformComp);
-    SceneAnimationComp*       anim    = ecs_view_write_t(itr, SceneAnimationComp);
-    SceneHealthRequestComp*   request = ecs_view_write_t(itr, SceneHealthRequestComp);
-    SceneHealthComp*          health  = ecs_view_write_t(itr, SceneHealthComp);
-    SceneTagComp*             tag     = ecs_view_write_t(itr, SceneTagComp);
-    SceneBarkComp*            bark    = ecs_view_write_t(itr, SceneBarkComp);
+    const EcsEntityId         entity    = ecs_view_entity(itr);
+    const SceneTransformComp* trans     = ecs_view_read_t(itr, SceneTransformComp);
+    const SceneFactionComp*   faction   = ecs_view_read_t(itr, SceneFactionComp);
+    const SceneSetMemberComp* setMember = ecs_view_read_t(itr, SceneSetMemberComp);
+    SceneAnimationComp*       anim      = ecs_view_write_t(itr, SceneAnimationComp);
+    SceneHealthRequestComp*   request   = ecs_view_write_t(itr, SceneHealthRequestComp);
+    SceneHealthComp*          health    = ecs_view_write_t(itr, SceneHealthComp);
+    SceneTagComp*             tag       = ecs_view_write_t(itr, SceneTagComp);
+    SceneBarkComp*            bark      = ecs_view_write_t(itr, SceneBarkComp);
 
-    const bool       wasDead = (health->flags & SceneHealthFlags_Dead) != 0;
-    HealthModContext modCtx  = {.health = health, .statsItr = statsItr};
+    const bool wasDead = (health->flags & SceneHealthFlags_Dead) != 0;
+    const bool isUnit  = setMember && scene_set_member_contains(setMember, SceneId_unit);
+
+    HealthModContext modCtx = {
+        .health       = health,
+        .faction      = faction,
+        .statsItr     = statsItr,
+        .factionStats = factionStats,
+        .isUnit       = isUnit,
+    };
 
     // Process requests.
     diag_assert_msg(!request->singleRequest, "Health requests have to be combined");
@@ -258,6 +294,11 @@ ecs_system_define(SceneHealthUpdateSys) {
     if (!wasDead && health->norm <= f32_epsilon) {
       health->flags |= SceneHealthFlags_Dead;
       health->norm = 0.0f;
+
+      // Report the loss for the faction.
+      if (isUnit && faction && faction->id != SceneFaction_None) {
+        factionStats->values[faction->id][SceneFactionStat_Losses] += 1.0f;
+      }
 
       health_death_disable(world, entity);
       if (anim) {

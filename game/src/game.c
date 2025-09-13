@@ -38,6 +38,7 @@
 #include "rend/register.h"
 #include "rend/settings.h"
 #include "scene/camera.h"
+#include "scene/faction.h"
 #include "scene/level.h"
 #include "scene/mission.h"
 #include "scene/prefab.h"
@@ -266,23 +267,24 @@ static void game_ui_settings_apply(const GamePrefsComp* prefs, UiSettingsGlobalC
 }
 
 typedef struct {
-  EcsWorld*               world;
-  GameComp*               game;
-  GamePrefsComp*          prefs;
-  SceneLevelManagerComp*  levelManager;
-  const SceneTerrainComp* terrain;
-  InputManagerComp*       input;
-  SndMixerComp*           soundMixer;
-  LocManagerComp*         locManager;
-  SceneMissionComp*       mission;
-  const SceneTimeComp*    time;
-  SceneTimeSettingsComp*  timeSet;
-  GameCmdComp*            cmd;
-  AssetManagerComp*       assets;
-  SceneVisibilityEnvComp* visibilityEnv;
-  RendSettingsGlobalComp* rendSetGlobal;
-  UiSettingsGlobalComp*   uiSetGlobal;
-  DevStatsGlobalComp*     devStatsGlobal;
+  EcsWorld*                    world;
+  GameComp*                    game;
+  GamePrefsComp*               prefs;
+  SceneLevelManagerComp*       levelManager;
+  const SceneTerrainComp*      terrain;
+  InputManagerComp*            input;
+  SndMixerComp*                soundMixer;
+  LocManagerComp*              locManager;
+  const SceneMissionComp*      mission;
+  const SceneFactionStatsComp* factionStats;
+  const SceneTimeComp*         time;
+  SceneTimeSettingsComp*       timeSet;
+  GameCmdComp*                 cmd;
+  AssetManagerComp*            assets;
+  SceneVisibilityEnvComp*      visibilityEnv;
+  RendSettingsGlobalComp*      rendSetGlobal;
+  UiSettingsGlobalComp*        uiSetGlobal;
+  DevStatsGlobalComp*          devStatsGlobal;
 
   EcsEntityId         winEntity;
   GameMainWindowComp* winGame;
@@ -814,6 +816,22 @@ static void menu_entry_stat_failed(const GameUpdateContext* ctx, MAYBE_UNUSED co
   menu_entry_stat(ctx, GameId_MENU_STAT_FAILED, fmt_write_scratch("{}", fmt_int(count)));
 }
 
+static void menu_entry_stat_kills(const GameUpdateContext* ctx, MAYBE_UNUSED const u32 index) {
+  u32 kills = 0;
+  if (ctx->factionStats) {
+    kills = (u32)ctx->factionStats->values[SceneFaction_A][SceneFactionStat_Kills];
+  }
+  menu_entry_stat(ctx, GameId_MENU_STAT_KILLS, fmt_write_scratch("{}", fmt_int(kills)));
+}
+
+static void menu_entry_stat_losses(const GameUpdateContext* ctx, MAYBE_UNUSED const u32 index) {
+  u32 losses = 0;
+  if (ctx->factionStats) {
+    losses = (u32)ctx->factionStats->values[SceneFaction_A][SceneFactionStat_Losses];
+  }
+  menu_entry_stat(ctx, GameId_MENU_STAT_LOSSES, fmt_write_scratch("{}", fmt_int(losses)));
+}
+
 static void menu_entry_refresh_levels(const GameUpdateContext* ctx, MAYBE_UNUSED const u32 index) {
   ui_layout_push(ctx->winCanvas);
   ui_style_outline(ctx->winCanvas, 4);
@@ -913,7 +931,9 @@ ecs_view_define(ErrorView) {
 ecs_view_define(TimeView) { ecs_access_write(SceneTimeComp); }
 
 ecs_view_define(UpdateGlobalView) {
+  ecs_access_maybe_read(SceneFactionStatsComp);
   ecs_access_maybe_write(DevStatsGlobalComp);
+  ecs_access_read(SceneMissionComp);
   ecs_access_read(SceneTerrainComp);
   ecs_access_read(SceneTimeComp);
   ecs_access_write(AssetManagerComp);
@@ -924,7 +944,6 @@ ecs_view_define(UpdateGlobalView) {
   ecs_access_write(LocManagerComp);
   ecs_access_write(RendSettingsGlobalComp);
   ecs_access_write(SceneLevelManagerComp);
-  ecs_access_write(SceneMissionComp);
   ecs_access_write(SceneTimeSettingsComp);
   ecs_access_write(SceneVisibilityEnvComp);
   ecs_access_write(SndMixerComp);
@@ -1085,7 +1104,8 @@ ecs_system_define(GameUpdateSys) {
       .input               = ecs_view_write_t(globalItr, InputManagerComp),
       .soundMixer          = ecs_view_write_t(globalItr, SndMixerComp),
       .locManager          = ecs_view_write_t(globalItr, LocManagerComp),
-      .mission             = ecs_view_write_t(globalItr, SceneMissionComp),
+      .mission             = ecs_view_read_t(globalItr, SceneMissionComp),
+      .factionStats        = ecs_view_read_t(globalItr, SceneFactionStatsComp),
       .time                = ecs_view_read_t(globalItr, SceneTimeComp),
       .timeSet             = ecs_view_write_t(globalItr, SceneTimeSettingsComp),
       .cmd                 = ecs_view_write_t(globalItr, GameCmdComp),
@@ -1291,6 +1311,8 @@ ecs_system_define(GameUpdateSys) {
       menuEntries[menuEntriesCount++] = &menu_entry_stat_time;
       menuEntries[menuEntriesCount++] = &menu_entry_stat_completed;
       menuEntries[menuEntriesCount++] = &menu_entry_stat_failed;
+      menuEntries[menuEntriesCount++] = &menu_entry_stat_kills;
+      menuEntries[menuEntriesCount++] = &menu_entry_stat_losses;
       menuEntries[menuEntriesCount++] = &menu_entry_restart;
       menuEntries[menuEntriesCount++] = &menu_entry_menu_main;
       menuEntries[menuEntriesCount++] = &menu_entry_quit;

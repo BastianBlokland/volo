@@ -268,6 +268,7 @@ static void level_process_load(
 }
 
 ecs_view_define(LoadGlobalView) {
+  ecs_access_maybe_write(SceneFactionStatsComp);
   ecs_access_maybe_write(SceneLevelManagerComp);
   ecs_access_maybe_write(ScenePropertyComp);
   ecs_access_write(AssetManagerComp);
@@ -287,12 +288,13 @@ ecs_system_define(SceneLevelLoadSys) {
   if (!globalItr) {
     return;
   }
-  AssetManagerComp*      assets      = ecs_view_write_t(globalItr, AssetManagerComp);
-  ScenePropertyComp*     globalProps = ecs_view_write_t(globalItr, ScenePropertyComp);
-  SceneTimeComp*         time        = ecs_view_write_t(globalItr, SceneTimeComp);
-  SceneMissionComp*      mission     = ecs_view_write_t(globalItr, SceneMissionComp);
-  ScenePrefabEnvComp*    prefabEnv   = ecs_view_write_t(globalItr, ScenePrefabEnvComp);
-  SceneLevelManagerComp* manager     = ecs_view_write_t(globalItr, SceneLevelManagerComp);
+  AssetManagerComp*      assets       = ecs_view_write_t(globalItr, AssetManagerComp);
+  ScenePropertyComp*     globalProps  = ecs_view_write_t(globalItr, ScenePropertyComp);
+  SceneTimeComp*         time         = ecs_view_write_t(globalItr, SceneTimeComp);
+  SceneMissionComp*      mission      = ecs_view_write_t(globalItr, SceneMissionComp);
+  SceneFactionStatsComp* factionStats = ecs_view_write_t(globalItr, SceneFactionStatsComp);
+  ScenePrefabEnvComp*    prefabEnv    = ecs_view_write_t(globalItr, ScenePrefabEnvComp);
+  SceneLevelManagerComp* manager      = ecs_view_write_t(globalItr, SceneLevelManagerComp);
   if (!manager) {
     manager = ecs_world_add_t(world, ecs_world_global(world), SceneLevelManagerComp);
   }
@@ -329,6 +331,9 @@ ecs_system_define(SceneLevelLoadSys) {
       // Fallthrough.
     case LevelLoadState_Unload:
       scene_mission_clear(mission);
+      if (factionStats) {
+        scene_faction_stats_clear(factionStats);
+      }
       level_process_unload(world, manager, instanceView);
       ++req->state;
       // Fallthrough.
@@ -388,6 +393,7 @@ ecs_system_define(SceneLevelLoadSys) {
 }
 
 ecs_view_define(UnloadGlobalView) {
+  ecs_access_maybe_write(SceneFactionStatsComp);
   ecs_access_write(SceneLevelManagerComp);
   ecs_access_write(SceneMissionComp);
 }
@@ -399,8 +405,9 @@ ecs_system_define(SceneLevelUnloadSys) {
   if (!globalItr) {
     return;
   }
-  SceneLevelManagerComp* manager = ecs_view_write_t(globalItr, SceneLevelManagerComp);
-  SceneMissionComp*      mission = ecs_view_write_t(globalItr, SceneMissionComp);
+  SceneLevelManagerComp* manager      = ecs_view_write_t(globalItr, SceneLevelManagerComp);
+  SceneMissionComp*      mission      = ecs_view_write_t(globalItr, SceneMissionComp);
+  SceneFactionStatsComp* factionStats = ecs_view_write_t(globalItr, SceneFactionStatsComp);
 
   EcsView* requestView  = ecs_world_view_t(world, UnloadRequestView);
   EcsView* instanceView = ecs_world_view_t(world, InstanceView);
@@ -410,6 +417,9 @@ ecs_system_define(SceneLevelUnloadSys) {
       log_e("Level unload failed; load in progress");
     } else if (manager->levelAsset) {
       scene_mission_clear(mission);
+      if (factionStats) {
+        scene_faction_stats_clear(factionStats);
+      }
       level_process_unload(world, manager, instanceView);
     }
     ecs_world_entity_destroy(world, ecs_view_entity(itr));
