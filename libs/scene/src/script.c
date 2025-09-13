@@ -50,7 +50,7 @@
 #define scene_script_line_of_sight_min 1.0f
 #define scene_script_line_of_sight_max 100.0f
 #define scene_script_query_values_max 512
-#define scene_script_query_max 10
+#define scene_script_query_max 25
 
 typedef ScriptVal (*SceneValCombinator)(ScriptVal, ScriptVal);
 
