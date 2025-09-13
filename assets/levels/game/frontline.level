@@ -5029,6 +5029,13 @@
       "rotation": { "y": -0.1057, "w": 0.9944 }
     },
     {
+      "id": 2681154666,
+      "prefab": "MissionSurviveBasic",
+      "faction": "A",
+      "position": { "x": 3.9404, "y": 0.4464, "z": -6.3715 },
+      "rotation": { "w": 1 }
+    },
+    {
       "id": 2689095861,
       "prefab": "PropPlant",
       "position": { "x": -126.0469, "y": 0.7185, "z": 3.7678 },

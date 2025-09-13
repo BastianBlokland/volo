@@ -1624,7 +1624,7 @@
     },
     {
       "id": 1088008021,
-      "prefab": "TestMission",
+      "prefab": "MissionTest",
       "faction": "A",
       "rotation": { "w": 1 },
       "properties": [

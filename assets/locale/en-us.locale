@@ -32,6 +32,8 @@
     { "key": "HUD_ORDER_STOP_TOOLTIP", "value": "Order the selected unit to stop." },
 
     { "key": "MISSION_NAME_TEST", "value": "Test mission" },
+    { "key": "MISSION_NAME_SURVIVE", "value": "Survive" },
+
     { "key": "OBJECTIVE_TEST_COLLECT", "value": "Collect crates" },
     { "key": "OBJECTIVE_TEST_EVAC", "value": "Evacuate" },
 

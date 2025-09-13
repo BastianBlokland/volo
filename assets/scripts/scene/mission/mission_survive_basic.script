@@ -1,0 +1,17 @@
+
+/**
+ * Basic survival mission script. Fails the mission if all units have died.
+ *
+ * Supports the following input properties:
+ * - "evacObject": Object the player needs to evacuate to.
+ * - "assetVfxCollect": Particle system to play when collecting a crate.
+ */
+
+if (mission_state() == "Idle") {
+  mission_begin("MISSION_NAME_SURVIVE")
+}
+
+// Fail mission if all units died.
+if (mission_state() == "Active" && query_remaining(query_set("unit", "FactionA")) == 0) {
+  mission_end("Fail")
+}
