@@ -33,6 +33,7 @@
 
     { "key": "MISSION_NAME_TEST", "value": "Test mission" },
     { "key": "OBJECTIVE_TEST_COLLECT", "value": "Collect crates" },
+    { "key": "OBJECTIVE_TEST_EVAC", "value": "Evacuate" },
 
     { "key": "UNIT_NAME_INFANTRY_RIFLE", "value": "Assault Ranger" },
     { "key": "UNIT_NAME_INFANTRY_ROCKET", "value": "Rocket Ranger" },

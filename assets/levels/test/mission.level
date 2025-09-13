@@ -1,5 +1,7 @@
 {
   "terrain": "terrains/desert_big.terrain",
+  "fogMode": "VisibilityBased",
+  "startpoint": { "x": -114.3939, "z": -151.6998 },
   "objects": [
     {
       "id": 732732,
@@ -653,7 +655,7 @@
       "id": 434014459,
       "prefab": "InfantryRifle",
       "faction": "A",
-      "position": { "x": 4.018, "y": 0.2972, "z": -11.1986 },
+      "position": { "x": -107.2902, "y": 0.4831, "z": -144.8986 },
       "rotation": { "w": 1 }
     },
     {
@@ -1344,6 +1346,13 @@
       "rotation": { "w": 1 }
     },
     {
+      "id": 921582496,
+      "prefab": "StructureTurretGun",
+      "faction": "A",
+      "position": { "x": -108.3141, "y": 0.4468, "z": -140.9357 },
+      "rotation": { "y": 0.3876, "w": 0.9218 }
+    },
+    {
       "id": 927032458,
       "prefab": "PropWreck",
       "position": { "x": -40.9155, "y": 2.0744, "z": -6.0139 },
@@ -1619,6 +1628,7 @@
       "faction": "A",
       "rotation": { "w": 1 },
       "properties": [
+        { "$type": "AssetProperty_EntityLevel", "$name": "evacObject", "$data": 1825397179 },
         { "$type": "AssetProperty_Asset", "$name": "assetVfxCollect", "$data": "vfx/game/collect.vfx" }
       ]
     },
@@ -2516,6 +2526,13 @@
       "prefab": "PropPlant",
       "position": { "x": -17.3706, "y": 0.2206, "z": -61.439 },
       "rotation": { "y": 0.7048, "w": 0.7094 }
+    },
+    {
+      "id": 1825397179,
+      "prefab": "StructureHeadquarter",
+      "faction": "A",
+      "position": { "x": -125.3957, "y": 0.6883, "z": -149.3248 },
+      "rotation": { "w": 1 }
     },
     {
       "id": 1827762209,
@@ -4609,6 +4626,13 @@
       "prefab": "PropRock",
       "position": { "x": -88.8594, "y": 0.702, "z": 23.1567 },
       "rotation": { "y": -0.7019, "w": 0.7123 }
+    },
+    {
+      "id": 3228189174,
+      "prefab": "InfantryMonster",
+      "faction": "B",
+      "position": { "x": -39.7823, "y": 0.2977, "z": -45.7647 },
+      "rotation": { "w": 1 }
     },
     {
       "id": 3231523318,
