@@ -401,7 +401,6 @@ static void game_transition(const GameUpdateContext* ctx, const GameState state)
   case GameState_Loading:
     ctx->timeSet->flags |= SceneTimeFlags_Paused;
     ctx->winRendSet->flags |= RendFlags_2D;
-    scene_mission_clear(ctx->mission);
     break;
   case GameState_Play:
     ctx->winRendSet->flags &= ~RendFlags_2D;
