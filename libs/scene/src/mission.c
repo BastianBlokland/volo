@@ -24,18 +24,22 @@ typedef enum {
 static const String g_sceneMissionSoundIds[SceneMissionSound_Count] = {
     [SceneMissionSound_Progress] = string_static("external/sound/builtin/objective-success-01.wav"),
     [SceneMissionSound_Success]  = string_static("external/sound/builtin/objective-success-02.wav"),
-    [SceneMissionSound_Fail]     = string_static("external/sound/builtin/objective-fail-01.wav"),
+    [SceneMissionSound_Fail]     = string_static("external/sound/builtin/objective-fail-02.wav"),
 };
-
 static const f32 g_sceneMissionSoundGain[SceneMissionSound_Count] = {
     [SceneMissionSound_Progress] = 0.6f,
     [SceneMissionSound_Success]  = 0.7f,
     [SceneMissionSound_Fail]     = 0.6f,
 };
+static const f32 g_sceneMissionSoundPitch[SceneMissionSound_Count] = {
+    [SceneMissionSound_Progress] = 1.0f,
+    [SceneMissionSound_Success]  = 1.0f,
+    [SceneMissionSound_Fail]     = 0.8f,
+};
 static const TimeDuration g_sceneMissionSoundDuration[SceneMissionSound_Count] = {
     [SceneMissionSound_Progress] = time_second,
     [SceneMissionSound_Success]  = time_seconds(5),
-    [SceneMissionSound_Fail]     = time_seconds(5),
+    [SceneMissionSound_Fail]     = time_seconds(3),
 };
 
 ecs_comp_define(SceneMissionComp) {
@@ -82,10 +86,11 @@ static void mission_sound_play(
 
   const EcsEntityId  asset = mission->soundAssets[snd];
   const f32          gain  = g_sceneMissionSoundGain[snd];
+  const f32          pitch = g_sceneMissionSoundPitch[snd];
   const TimeDuration dur   = g_sceneMissionSoundDuration[snd];
   const EcsEntityId  e     = ecs_world_entity_create(world);
   ecs_world_add_t(world, e, SceneLifetimeDurationComp, .duration = dur);
-  ecs_world_add_t(world, e, SceneSoundComp, .asset = asset, .gain = gain, .pitch = 1.0f);
+  ecs_world_add_t(world, e, SceneSoundComp, .asset = asset, .gain = gain, .pitch = pitch);
   ecs_world_add_t(world, e, SceneCreatorComp, .creator = mission->instigator);
 }
 
