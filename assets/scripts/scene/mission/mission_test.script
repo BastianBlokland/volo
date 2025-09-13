@@ -7,6 +7,9 @@ if (mission_state() == "Idle") {
   mission_begin("MISSION_NAME_TEST")
 }
 
-if (mission_state() == "Active" && time() > 10) {
-  mission_end("Fail")
+if (mission_state() == "Active") {
+  var unitQuery = query_set("unit", "FactionA")
+  if (query_remaining(unitQuery) == 0) {
+    mission_end("Fail")
+  }
 }

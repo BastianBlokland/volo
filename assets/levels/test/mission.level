@@ -2833,6 +2833,13 @@
       "rotation": { "y": 0.4087, "w": 0.9127 }
     },
     {
+      "id": 2094671018,
+      "prefab": "PropBarrelExplosive",
+      "faction": "A",
+      "position": { "x": -2.5324, "y": 0.2971, "z": -14.7693 },
+      "rotation": { "w": 1 }
+    },
+    {
       "id": 2094852526,
       "prefab": "PropPlant",
       "position": { "x": 79.7383, "y": 0.6129, "z": 120.626 },
@@ -3318,6 +3325,13 @@
       "prefab": "PropPlant",
       "position": { "x": 101.7959, "y": 0.781, "z": 1.0528 },
       "rotation": { "y": 0.1291, "w": 0.9916 }
+    },
+    {
+      "id": 2427621848,
+      "prefab": "PropBarrelExplosive",
+      "faction": "A",
+      "position": { "x": -1.0828, "y": 0.2971, "z": -15.3767 },
+      "rotation": { "w": 1 }
     },
     {
       "id": 2435192763,
@@ -5912,6 +5926,13 @@
       "prefab": "PropPlant",
       "position": { "x": -5.6652, "y": 0.6262, "z": -49.5083 },
       "rotation": { "y": -0.3736, "w": 0.9276 }
+    },
+    {
+      "id": 4199425081,
+      "prefab": "PropBarrelExplosive",
+      "faction": "A",
+      "position": { "x": -1.0828, "y": 0.2971, "z": -14.1072 },
+      "rotation": { "w": 1 }
     },
     {
       "id": 4201116380,
