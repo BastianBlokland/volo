@@ -1,0 +1,27 @@
+{
+  "ignoreTransformRotation": true,
+  "emitters": [
+    {
+      "cone": {
+        "angle": 15,
+        "radius": 1.25,
+        "rotation": { "x": -90 }
+      },
+      "sprite": {
+        "atlasEntry": "star",
+        "blend": "Alpha",
+        "facing": "BillboardSphere",
+        "size": { "x": 0.75, "y": 0.75 },
+        "color": { "r": 1, "g": 0.75, "b": 0.2, "a": 1 },
+        "scaleOutTime": 0.15
+      },
+      "speed": { "min": 3, "max": 5 },
+      "expandForce": 2,
+      "interval": 0.02,
+      "count": 12,
+      "scale": { "min": 0.7, "max": 1.3 },
+      "lifetime": { "min": 0.5, "max": 0.6 },
+      "rotation": { "random": { "z": 360 } }
+    }
+  ]
+}

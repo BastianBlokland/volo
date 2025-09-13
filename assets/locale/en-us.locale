@@ -32,6 +32,7 @@
     { "key": "HUD_ORDER_STOP_TOOLTIP", "value": "Order the selected unit to stop." },
 
     { "key": "MISSION_NAME_TEST", "value": "Test mission" },
+    { "key": "OBJECTIVE_TEST_COLLECT", "value": "Collect crates" },
 
     { "key": "UNIT_NAME_INFANTRY_RIFLE", "value": "Assault Ranger" },
     { "key": "UNIT_NAME_INFANTRY_ROCKET", "value": "Rocket Ranger" },

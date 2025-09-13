@@ -1,15 +1,51 @@
 
 /**
  * Mission test script.
+ *
+ * Supports the following input properties:
+ * - "assetVfxCollect": Particle system to play when collecting a crate.
  */
 
 if (mission_state() == "Idle") {
   mission_begin("MISSION_NAME_TEST")
+
+  // Initialize collect objective.
+  $collectObj      = objective_begin("OBJECTIVE_TEST_COLLECT")
+  $collectProgress = 0
+
+  var collectQuery = query_set("collect_target")
+  $collectGoal     = query_remaining(collectQuery)
+  while (var collectTarget = query_pop(collectQuery)) {
+    var collectMarker = marker_spawn(position(collectTarget), "Info", 1)
+    destroy_after(collectMarker, collectTarget)
+  }
 }
 
 if (mission_state() == "Active") {
-  var unitQuery = query_set("unit", "FactionA")
-  if (query_remaining(unitQuery) == 0) {
+  // Update collect objective.
+  if (objective_state($collectObj) == "Active") {
+    var collectQuery = query_set("collect_target")
+    while (var collectTarget = query_pop(collectQuery)) {
+      var collectPos    = position(collectTarget)
+      var collectRadius = 1.75
+      if (query_pop(query_sphere(collectPos, collectRadius, "FactionSelf", "Unit"))) {
+        $collectProgress += 1
+        destroy(collectTarget)
+
+        if ($assetVfxCollect) {
+          var vfx = vfx_system_spawn($assetVfxCollect, collectPos, quat_ident)
+          destroy_after(vfx, 2)
+        }
+      }
+    }
+    objective_goal($collectObj, $collectProgress, $collectGoal)
+    if ($collectProgress == $collectGoal) {
+      objective_end($collectObj, "Success")
+    }
+  }
+
+  // Fail mission if all units died.
+  if (query_remaining(query_set("unit", "FactionA")) == 0) {
     mission_end("Fail")
   }
 }

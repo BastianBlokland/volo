@@ -50,6 +50,14 @@
       "rotation": { "y": -0.4502, "w": 0.8929 }
     },
     {
+      "id": 24281487,
+      "prefab": "PropCrate",
+      "faction": "A",
+      "position": { "x": 0.6786, "y": 0.5219, "z": 10.2221 },
+      "rotation": { "w": 1 },
+      "sets": [ "collect_target" ]
+    },
+    {
       "id": 31405950,
       "prefab": "PropPlant",
       "position": { "x": -49.8027, "y": 0.5875, "z": -103.502 },
@@ -258,6 +266,14 @@
       "prefab": "PropPlant",
       "position": { "x": 18.9429, "y": 0.6719, "z": -54.0723 },
       "rotation": { "y": -0.6584, "w": 0.7526 }
+    },
+    {
+      "id": 166575970,
+      "prefab": "PropCrate",
+      "faction": "A",
+      "position": { "x": 11.687, "y": 0.2979, "z": 9.6178 },
+      "rotation": { "w": 1 },
+      "sets": [ "collect_target" ]
     },
     {
       "id": 176013362,
@@ -1025,6 +1041,14 @@
       "rotation": { "y": 0.1015, "w": 0.9948 }
     },
     {
+      "id": 706501721,
+      "prefab": "PropCrate",
+      "faction": "A",
+      "position": { "x": 6.0187, "y": 0.4471, "z": 0.9052 },
+      "rotation": { "w": 1 },
+      "sets": [ "collect_target" ]
+    },
+    {
       "id": 709712167,
       "prefab": "PropTree",
       "position": { "x": 9.3635, "y": 0.7642, "z": 52.2095 },
@@ -1593,7 +1617,10 @@
       "id": 1088008021,
       "prefab": "TestMission",
       "faction": "A",
-      "rotation": { "w": 1 }
+      "rotation": { "w": 1 },
+      "properties": [
+        { "$type": "AssetProperty_Asset", "$name": "assetVfxCollect", "$data": "vfx/game/collect.vfx" }
+      ]
     },
     {
       "id": 1098731132,
@@ -1612,6 +1639,14 @@
       "prefab": "PropTree",
       "position": { "x": -6.0985, "y": 0.1436, "z": 122.4326 },
       "rotation": { "y": -0.6196, "w": 0.7849 }
+    },
+    {
+      "id": 1112873288,
+      "prefab": "PropCrate",
+      "faction": "A",
+      "position": { "x": 8.1747, "y": 0.4468, "z": -12.0882 },
+      "rotation": { "w": 1 },
+      "sets": [ "collect_target" ]
     },
     {
       "id": 1114693439,
@@ -1889,6 +1924,14 @@
       "prefab": "PropPlant",
       "position": { "x": -70.8652, "y": 0.4743, "z": -63.3159 },
       "rotation": { "y": -0.3804, "w": 0.9248 }
+    },
+    {
+      "id": 1318191215,
+      "prefab": "PropCrate",
+      "faction": "A",
+      "position": { "x": 3.3434, "y": 0.9683, "z": -28.1178 },
+      "rotation": { "w": 1 },
+      "sets": [ "collect_target" ]
     },
     {
       "id": 1322912510,
@@ -2231,6 +2274,14 @@
       "prefab": "PropPlant",
       "position": { "x": 14.0325, "y": 0.3752, "z": 36.8369 },
       "rotation": { "y": -0.367, "w": 0.9302 }
+    },
+    {
+      "id": 1603034474,
+      "prefab": "PropCrate",
+      "faction": "A",
+      "position": { "x": -13.7241, "y": 0.5217, "z": 2.409 },
+      "rotation": { "w": 1 },
+      "sets": [ "collect_target" ]
     },
     {
       "id": 1604317141,
@@ -3790,6 +3841,14 @@
       "rotation": { "y": 0.3881, "w": 0.9216 }
     },
     {
+      "id": 2715424835,
+      "prefab": "PropCrate",
+      "faction": "A",
+      "position": { "x": -9.9075, "y": 0.8939, "z": -23.7701 },
+      "rotation": { "w": 1 },
+      "sets": [ "collect_target" ]
+    },
+    {
       "id": 2716665217,
       "prefab": "PropPlant",
       "position": { "x": -58.1172, "y": 0.3644, "z": 93.6523 },
@@ -4985,6 +5044,14 @@
       "rotation": { "y": -0.022, "w": 0.9998 }
     },
     {
+      "id": 3558774674,
+      "prefab": "PropCrate",
+      "faction": "A",
+      "position": { "x": -15.4048, "y": 0.8946, "z": -7.8282 },
+      "rotation": { "w": 1 },
+      "sets": [ "collect_target" ]
+    },
+    {
       "id": 3561397584,
       "prefab": "PropPlant",
       "position": { "x": 4.3124, "y": 0.438, "z": 26.2004 },
@@ -5218,6 +5285,14 @@
       "prefab": "PropWreck",
       "position": { "x": 65.1738, "y": 0.7299, "z": 53.062 },
       "rotation": { "y": -0.4103, "w": 0.9119 }
+    },
+    {
+      "id": 3700325123,
+      "prefab": "PropCrate",
+      "faction": "A",
+      "position": { "x": 23.354, "y": 0.5961, "z": -7.7412 },
+      "rotation": { "w": 1 },
+      "sets": [ "collect_target" ]
     },
     {
       "id": 3705362662,
@@ -5668,6 +5743,14 @@
       "prefab": "PropPlant",
       "position": { "x": 71.6758, "y": 0.4337, "z": -0.2207 },
       "rotation": { "y": 0.4197, "w": 0.9077 }
+    },
+    {
+      "id": 4038764578,
+      "prefab": "PropCrate",
+      "faction": "A",
+      "position": { "x": 15.8374, "y": 0.745, "z": -18.6634 },
+      "rotation": { "w": 1 },
+      "sets": [ "collect_target" ]
     },
     {
       "id": 4041104534,
