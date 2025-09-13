@@ -1250,7 +1250,7 @@ ecs_system_define(GameUpdateSys) {
       }
       const SceneMissionState missionState = scene_mission_state(ctx.mission);
       if (missionState == SceneMissionState_Success || missionState == SceneMissionState_Fail) {
-        if (scene_mission_time_ended(ctx.mission, ctx.time) > time_seconds(1)) {
+        if (scene_mission_time_ended(ctx.mission, ctx.time) > time_seconds(2)) {
           game_transition_delayed(ctx.game, GameState_Result);
           const String resultSnd = string_lit("external/sound/builtin/mission-end-01.wav");
           game_sound_play(world, ctx.soundMixer, ctx.assets, resultSnd);
