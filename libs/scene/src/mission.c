@@ -225,6 +225,20 @@ SceneMissionErr scene_mission_end(SceneMissionComp* m, const SceneMissionState r
 SceneMissionState scene_mission_state(const SceneMissionComp* m) { return m->state; }
 StringHash        scene_mission_name(const SceneMissionComp* m) { return m->name; }
 
+TimeDuration scene_mission_time(const SceneMissionComp* m, const SceneTimeComp* time) {
+  if (m->endTime >= 0) {
+    return m->endTime - m->startTime;
+  }
+  return time->time - m->startTime;
+}
+
+TimeDuration scene_mission_time_ended(const SceneMissionComp* m, const SceneTimeComp* time) {
+  if (m->endTime < 0) {
+    return 0;
+  }
+  return time->time - m->endTime;
+}
+
 SceneMissionErr
 scene_mission_obj_begin(SceneMissionComp* m, const SceneObjectiveId id, const StringHash nameLoc) {
   if (UNLIKELY(m->state != SceneMissionState_Active)) {

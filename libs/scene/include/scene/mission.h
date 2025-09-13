@@ -46,6 +46,8 @@ SceneMissionErr   scene_mission_begin(SceneMissionComp*, StringHash name, EcsEnt
 SceneMissionErr   scene_mission_end(SceneMissionComp*, SceneMissionState result);
 SceneMissionState scene_mission_state(const SceneMissionComp*);
 StringHash        scene_mission_name(const SceneMissionComp*); // Localization key.
+TimeDuration      scene_mission_time(const SceneMissionComp*, const SceneTimeComp*);
+TimeDuration      scene_mission_time_ended(const SceneMissionComp*, const SceneTimeComp*);
 
 SceneMissionErr scene_mission_obj_begin(SceneMissionComp*, SceneObjectiveId, StringHash name);
 SceneMissionErr scene_mission_obj_goal(SceneMissionComp*, SceneObjectiveId, f32 goal, f32 progress);
