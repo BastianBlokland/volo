@@ -460,7 +460,7 @@ static void action_update_anim_param(ActionContext* ctx, const SceneActionUpdate
 
 static void action_mission_begin(ActionContext* ctx, const SceneActionMissionBegin* a) {
   SceneMissionComp*     mission = ecs_view_write_t(ctx->globalItr, SceneMissionComp);
-  const SceneMissionErr err     = scene_mission_begin(mission, a->name);
+  const SceneMissionErr err     = scene_mission_begin(mission, a->name, ctx->instigator);
   if (UNLIKELY(err)) {
     log_e("Failed to begin mission", log_param("err", fmt_text(scene_mission_err_str(err))));
   }

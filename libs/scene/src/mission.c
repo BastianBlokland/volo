@@ -1,6 +1,7 @@
 #include "core/alloc.h"
 #include "core/array.h"
 #include "core/dynarray.h"
+#include "ecs/entity.h"
 #include "ecs/module.h"
 #include "ecs/view.h"
 #include "ecs/world.h"
@@ -11,6 +12,7 @@
 ecs_comp_define(SceneMissionComp) {
   StringHash        name; // Localization key.
   SceneMissionState state;
+  EcsEntityId       instigator; // Entity that began the mission.
   DynArray          objectives; // SceneMissionObjective[].
 };
 
@@ -116,12 +118,14 @@ String scene_mission_err_str(const SceneMissionErr err) {
 }
 
 void scene_mission_clear(SceneMissionComp* m) {
-  m->state = SceneMissionState_Idle;
-  m->name  = 0;
+  m->state      = SceneMissionState_Idle;
+  m->name       = 0;
+  m->instigator = ecs_entity_invalid;
   dynarray_clear(&m->objectives);
 }
 
-SceneMissionErr scene_mission_begin(SceneMissionComp* m, const StringHash name) {
+SceneMissionErr
+scene_mission_begin(SceneMissionComp* m, const StringHash name, const EcsEntityId instigator) {
   if (UNLIKELY(m->state == SceneMissionState_Active)) {
     return SceneMissionErr_AlreadyActive;
   }
@@ -129,8 +133,9 @@ SceneMissionErr scene_mission_begin(SceneMissionComp* m, const StringHash name) 
 
   log_i("Mission begin");
 
-  m->name  = name;
-  m->state = SceneMissionState_Active;
+  m->name       = name;
+  m->state      = SceneMissionState_Active;
+  m->instigator = instigator;
   return SceneMissionErr_None;
 }
 
