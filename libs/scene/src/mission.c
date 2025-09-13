@@ -14,18 +14,21 @@
 #include "scene/time.h"
 
 typedef enum {
-  SceneMissionSound_ObjSuccess,
-  SceneMissionSound_ObjFail,
+  SceneMissionSound_Success,
+  SceneMissionSound_Fail,
 
   SceneMissionSound_Count,
 } SceneMissionSound;
 
-// clang-format off
 static const String g_sceneMissionSoundIds[SceneMissionSound_Count] = {
-    [SceneMissionSound_ObjSuccess]  = string_static("external/sound/builtin/objective-success-01.wav"),
-    [SceneMissionSound_ObjFail]     = string_static("external/sound/builtin/objective-fail-01.wav"),
+    [SceneMissionSound_Success] = string_static("external/sound/builtin/objective-success-01.wav"),
+    [SceneMissionSound_Fail]    = string_static("external/sound/builtin/objective-fail-01.wav"),
 };
-// clang-format on
+
+static const f32 g_sceneMissionSoundGain[SceneMissionSound_Count] = {
+    [SceneMissionSound_Success] = 0.6f,
+    [SceneMissionSound_Fail]    = 0.6f,
+};
 
 ecs_comp_define(SceneMissionComp) {
   StringHash        name; // Localization key.
@@ -34,6 +37,7 @@ ecs_comp_define(SceneMissionComp) {
   TimeDuration      endTime;    // -1 until available.
   EcsEntityId       instigator; // Entity that began the mission.
   DynArray          objectives; // SceneMissionObjective[].
+  TimeDuration      lastSoundTime;
 
   EcsEntityId soundAssets[SceneMissionSound_Count];
 };
@@ -58,24 +62,36 @@ static SceneMissionComp* mission_init(EcsWorld* world, AssetManagerComp* assets)
 }
 
 static void mission_sound_play(
-    EcsWorld* world, const SceneMissionComp* mission, const SceneMissionSound snd, const f32 gain) {
+    EcsWorld*               world,
+    SceneMissionComp*       mission,
+    const SceneTimeComp*    time,
+    const SceneMissionSound snd) {
+
+  if ((time->realTime - mission->lastSoundTime) < time_milliseconds(100)) {
+    return; // Avoid spamming sounds.
+  }
+  mission->lastSoundTime = time->realTime;
 
   const EcsEntityId asset = mission->soundAssets[snd];
+  const f32         gain  = g_sceneMissionSoundGain[snd];
   const EcsEntityId e     = ecs_world_entity_create(world);
   ecs_world_add_t(world, e, SceneLifetimeDurationComp, .duration = time_seconds(1));
   ecs_world_add_t(world, e, SceneSoundComp, .asset = asset, .gain = gain, .pitch = 1.0f);
   ecs_world_add_t(world, e, SceneCreatorComp, .creator = mission->instigator);
 }
 
-static void mission_sound_obj_play(
-    EcsWorld* world, const SceneMissionComp* mission, const SceneObjective* obj) {
+static void mission_sound_end_play(
+    EcsWorld*               world,
+    SceneMissionComp*       mission,
+    const SceneTimeComp*    time,
+    const SceneMissionState state) {
   SceneMissionSound snd;
-  if (obj->state == SceneMissionState_Success) {
-    snd = SceneMissionSound_ObjSuccess;
+  if (state == SceneMissionState_Success) {
+    snd = SceneMissionSound_Success;
   } else {
-    snd = SceneMissionSound_ObjFail;
+    snd = SceneMissionSound_Fail;
   }
-  mission_sound_play(world, mission, snd, 0.6f /* gain */);
+  mission_sound_play(world, mission, time, snd);
 }
 
 static const SceneObjective* obj_get(const SceneMissionComp* m, const SceneObjectiveId id) {
@@ -100,7 +116,7 @@ obj_update(EcsWorld* world, SceneMissionComp* m, SceneObjective* obj, const Scen
   if (obj->state != SceneMissionState_Active) {
     if (obj->endTime < 0) {
       obj->endTime = time->time;
-      mission_sound_obj_play(world, m, obj);
+      mission_sound_end_play(world, m, time, obj->state);
     }
     return;
   }
@@ -108,7 +124,7 @@ obj_update(EcsWorld* world, SceneMissionComp* m, SceneObjective* obj, const Scen
   if (obj->timeoutDuration > 0 && timeElapsed >= obj->timeoutDuration) {
     obj->endTime = obj->startTime + obj->timeoutDuration;
     obj->state   = obj->timeoutResult;
-    mission_sound_obj_play(world, m, obj);
+    mission_sound_end_play(world, m, time, obj->state);
   }
 }
 
@@ -146,6 +162,7 @@ ecs_system_define(SceneMissionUpdateSys) {
   case SceneMissionState_Fail:
     if (mission->endTime < 0) {
       mission->endTime = time->time;
+      mission_sound_end_play(world, mission, time, mission->state);
     }
     break;
   case SceneMissionState_Count:
