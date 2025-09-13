@@ -160,26 +160,15 @@ ecs_system_define(SceneMissionUpdateSys) {
     mission = mission_init(world, assets);
   }
 
-  switch (mission->state) {
-  case SceneMissionState_Idle:
-    break;
-  case SceneMissionState_Active:
-    if (mission->startTime < 0) {
-      mission->startTime = time->time;
-    }
-    dynarray_for_t(&mission->objectives, SceneObjective, obj) {
-      obj_update(world, mission, obj, time);
-    }
-    break;
-  case SceneMissionState_Success:
-  case SceneMissionState_Fail:
-    if (mission->endTime < 0) {
-      mission->endTime = time->time;
-      mission_sound_end_play(world, mission, time, mission->state);
-    }
-    break;
-  case SceneMissionState_Count:
-    break;
+  dynarray_for_t(&mission->objectives, SceneObjective, obj) {
+    obj_update(world, mission, obj, time);
+  }
+  if (mission->state != SceneMissionState_Idle && mission->startTime < 0) {
+    mission->startTime = time->time;
+  }
+  if (mission->state > SceneMissionState_Active && mission->endTime < 0) {
+    mission->endTime = time->time;
+    mission_sound_end_play(world, mission, time, mission->state);
   }
 }
 
@@ -399,10 +388,8 @@ TimeDuration scene_mission_obj_time(const SceneObjective* obj, const SceneTimeCo
 }
 
 TimeDuration scene_mission_obj_time_rem(const SceneObjective* obj, const SceneTimeComp* time) {
-  if (obj->endTime >= 0) {
-    return 0;
-  }
-  const TimeDuration elapsed = time->time - obj->startTime;
+  const TimeDuration endTime = obj->endTime >= 0 ? obj->endTime : time->time;
+  const TimeDuration elapsed = endTime - obj->startTime;
   if (elapsed >= obj->timeoutDuration) {
     return 0;
   }
