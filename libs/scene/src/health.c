@@ -159,11 +159,6 @@ static void mod_apply_damage(HealthModContext* ctx, const SceneHealthMod* mod) {
   if (ctx->health->norm < f32_epsilon) {
     ctx->health->norm = 0.0f;
     ctx->health->flags |= SceneHealthFlags_Dead;
-
-    // Report the loss for the faction.
-    if (ctx->faction && ctx->faction->id != SceneFaction_None) {
-      ctx->factionStats->values[ctx->faction->id][SceneFactionStat_Losses] += 1.0f;
-    }
   }
 }
 
@@ -291,6 +286,11 @@ ecs_system_define(SceneHealthUpdateSys) {
     if (!wasDead && health->norm <= f32_epsilon) {
       health->flags |= SceneHealthFlags_Dead;
       health->norm = 0.0f;
+
+      // Report the loss for the faction.
+      if (faction && faction->id != SceneFaction_None) {
+        factionStats->values[faction->id][SceneFactionStat_Losses] += 1.0f;
+      }
 
       health_death_disable(world, entity);
       if (anim) {
