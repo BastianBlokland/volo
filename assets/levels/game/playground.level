@@ -3776,6 +3776,13 @@
       "rotation": { "y": -0.3056, "w": 0.9522 }
     },
     {
+      "id": 2415678119,
+      "prefab": "MissionSurviveBasic",
+      "faction": "A",
+      "position": { "x": 14.7982, "y": 0.7451, "z": 0.0947 },
+      "rotation": { "w": 1 }
+    },
+    {
       "id": 2417026092,
       "prefab": "PropFence",
       "faction": "A",

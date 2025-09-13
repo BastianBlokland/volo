@@ -23,6 +23,7 @@
 #include "scene/location.h"
 #include "scene/locomotion.h"
 #include "scene/marker.h"
+#include "scene/mission.h"
 #include "scene/name.h"
 #include "scene/nav.h"
 #include "scene/prefab.h"
@@ -49,7 +50,7 @@
 #define scene_script_line_of_sight_min 1.0f
 #define scene_script_line_of_sight_max 100.0f
 #define scene_script_query_values_max 512
-#define scene_script_query_max 10
+#define scene_script_query_max 25
 
 typedef ScriptVal (*SceneValCombinator)(ScriptVal, ScriptVal);
 
@@ -102,7 +103,8 @@ static ScriptEnum g_scriptEnumCombinator,
                   g_scriptEnumStatus,
                   g_scriptEnumBark,
                   g_scriptEnumHealthStat,
-                  g_scriptEnumMarkerType;
+                  g_scriptEnumMarkerType,
+                  g_scriptEnumMissionState;
 
 // clang-format on
 
@@ -270,10 +272,17 @@ static void eval_enum_init_marker_type(void) {
   }
 }
 
+static void eval_enum_init_mission_state(void) {
+  for (SceneMissionState state = 0; state != SceneMissionState_Count; ++state) {
+    script_enum_push(&g_scriptEnumMissionState, scene_mission_state_str(state), state);
+  }
+}
+
 ecs_view_define(EvalGlobalView) {
   ecs_access_maybe_read(SceneDebugEnvComp);
   ecs_access_maybe_read(SceneTerrainComp);
   ecs_access_read(SceneCollisionEnvComp);
+  ecs_access_read(SceneMissionComp);
   ecs_access_read(SceneNavEnvComp);
   ecs_access_read(ScenePropertyComp);
   ecs_access_read(SceneSetEnvComp);
@@ -637,7 +646,10 @@ static ScriptVal eval_set(EvalContext* ctx, ScriptBinderCall* call) {
 static ScriptVal eval_query_set(EvalContext* ctx, ScriptBinderCall* call) {
   const SceneSetEnvComp* setEnv = ecs_view_read_t(ctx->globalItr, SceneSetEnvComp);
 
-  const StringHash set = script_arg_str(call, 0);
+  const StringHash   set = script_arg_str(call, 0);
+  const SceneFaction factionFilter =
+      script_arg_opt_enum(call, 1, &g_scriptEnumFaction, SceneFaction_None);
+
   if (UNLIKELY(!set)) {
     return script_null();
   }
@@ -650,12 +662,23 @@ static ScriptVal eval_query_set(EvalContext* ctx, ScriptBinderCall* call) {
   const EcsEntityId* begin = scene_set_begin(setEnv, set);
   const EcsEntityId* end   = scene_set_end(setEnv, set);
 
-  query->count = math_min((u32)(end - begin), scene_query_max_hits);
-  query->itr   = 0;
-
-  mem_cpy(
-      mem_create(query->values, sizeof(EcsEntityId) * scene_query_max_hits),
-      mem_create(begin, sizeof(EcsEntityId) * query->count));
+  query->itr = 0;
+  if (factionFilter == SceneFaction_None) {
+    query->count = math_min((u32)(end - begin), scene_query_max_hits);
+    mem_cpy(
+        mem_create(query->values, sizeof(EcsEntityId) * scene_query_max_hits),
+        mem_create(begin, sizeof(EcsEntityId) * query->count));
+  } else /* factionFilter != SceneFaction_None */ {
+    query->count = 0;
+    for (const EcsEntityId* itr = begin; itr != end; ++itr) {
+      if (ecs_view_maybe_jump(ctx->factionItr, *itr)) {
+        const SceneFactionComp* factionComp = ecs_view_read_t(ctx->factionItr, SceneFactionComp);
+        if (factionComp->id == factionFilter) {
+          query->values[query->count++] = *itr;
+        }
+      }
+    }
+  }
 
   return script_num(context_query_id(ctx, query));
 }
@@ -705,6 +728,17 @@ static ScriptVal eval_query_box(EvalContext* ctx, ScriptBinderCall* call) {
   query->itr   = 0;
 
   return script_num(context_query_id(ctx, query));
+}
+
+static ScriptVal eval_query_remaining(EvalContext* ctx, ScriptBinderCall* call) {
+  const u32  queryId = (u32)script_arg_num(call, 0);
+  EvalQuery* query   = context_query_get(ctx, queryId);
+  if (UNLIKELY(!query)) {
+    script_panic_raise(
+        call->panicHandler,
+        (ScriptPanic){ScriptPanic_QueryInvalid, .argIndex = 0, .contextInt = queryId});
+  }
+  return script_num(query->count - query->itr);
 }
 
 static ScriptVal eval_query_pop(EvalContext* ctx, ScriptBinderCall* call) {
@@ -1801,6 +1835,110 @@ static ScriptVal eval_marker_spawn(EvalContext* ctx, ScriptBinderCall* call) {
   return script_entity(result);
 }
 
+static ScriptVal eval_mission_state(EvalContext* ctx, ScriptBinderCall* call) {
+  (void)call;
+  const SceneMissionComp* mission      = ecs_view_read_t(ctx->globalItr, SceneMissionComp);
+  const SceneMissionState missionState = scene_mission_state(mission);
+  return script_str(script_enum_lookup_name(&g_scriptEnumMissionState, missionState));
+}
+
+static ScriptVal eval_mission_begin(EvalContext* ctx, ScriptBinderCall* call) {
+  const StringHash name = script_arg_str(call, 0);
+
+  const SceneMissionComp* mission = ecs_view_read_t(ctx->globalItr, SceneMissionComp);
+  if (UNLIKELY(scene_mission_state(mission) != SceneMissionState_Idle)) {
+    script_panic_raise(call->panicHandler, (ScriptPanic){ScriptPanic_InvalidState});
+  }
+
+  SceneAction* act  = scene_action_push(ctx->actions, SceneActionType_MissionBegin);
+  act->missionBegin = (SceneActionMissionBegin){.name = name};
+  return script_null();
+}
+
+static ScriptVal eval_mission_end(EvalContext* ctx, ScriptBinderCall* call) {
+  const SceneMissionState result = script_arg_enum(call, 0, &g_scriptEnumMissionState);
+
+  const SceneMissionComp* mission = ecs_view_read_t(ctx->globalItr, SceneMissionComp);
+  if (UNLIKELY(scene_mission_state(mission) != SceneMissionState_Active)) {
+    script_panic_raise(call->panicHandler, (ScriptPanic){ScriptPanic_InvalidState});
+  }
+
+  SceneAction* act = scene_action_push(ctx->actions, SceneActionType_MissionEnd);
+  act->missionEnd  = (SceneActionMissionEnd){.result = result};
+  return script_null();
+}
+
+static SceneObjectiveId eval_objective_id_create(EvalContext* ctx) {
+  /**
+   * Create a unique objective id for this entity.
+   * NOTE: Care must be taken to make sure this is representable by a 64 bit floating point number.
+   */
+  SceneObjectiveId result = 0;
+  result |= ecs_entity_id_serial(ctx->instigator);
+  result |= scene_action_queue_counter(ctx->actions) << 32;
+  return result;
+}
+
+static ScriptVal eval_objective_begin(EvalContext* ctx, ScriptBinderCall* call) {
+  const SceneObjectiveId id   = eval_objective_id_create(ctx);
+  const StringHash       name = script_arg_str(call, 0);
+
+  SceneAction* act    = scene_action_push(ctx->actions, SceneActionType_ObjectiveBegin);
+  act->objectiveBegin = (SceneActionObjectiveBegin){.id = id, .name = name};
+  return script_num(id);
+}
+
+static ScriptVal eval_objective_state(EvalContext* ctx, ScriptBinderCall* call) {
+  const SceneObjectiveId  id      = (SceneObjectiveId)script_arg_num(call, 0);
+  const SceneMissionComp* mission = ecs_view_read_t(ctx->globalItr, SceneMissionComp);
+  const SceneObjective*   obj     = scene_mission_obj_get(mission, id);
+  if (!obj) {
+    return script_null();
+  }
+  return script_str(script_enum_lookup_name(&g_scriptEnumMissionState, obj->state));
+}
+
+static ScriptVal eval_objective_time(EvalContext* ctx, ScriptBinderCall* call) {
+  const SceneObjectiveId  id      = (SceneObjectiveId)script_arg_num(call, 0);
+  const SceneMissionComp* mission = ecs_view_read_t(ctx->globalItr, SceneMissionComp);
+  const SceneTimeComp*    time    = ecs_view_read_t(ctx->globalItr, SceneTimeComp);
+  const SceneObjective*   obj     = scene_mission_obj_get(mission, id);
+  if (!obj) {
+    return script_null();
+  }
+  return script_time(scene_mission_obj_time(obj, time));
+}
+
+static ScriptVal eval_objective_goal(EvalContext* ctx, ScriptBinderCall* call) {
+  const SceneObjectiveId id       = (SceneObjectiveId)script_arg_num(call, 0);
+  const f32              progress = (f32)script_arg_num(call, 1);
+  const f32              goal     = (f32)script_arg_num(call, 2);
+
+  SceneAction* act   = scene_action_push(ctx->actions, SceneActionType_ObjectiveGoal);
+  act->objectiveGoal = (SceneActionObjectiveGoal){.id = id, .goal = goal, .progress = progress};
+  return script_null();
+}
+
+static ScriptVal eval_objective_timeout(EvalContext* ctx, ScriptBinderCall* call) {
+  const SceneObjectiveId  id     = (SceneObjectiveId)script_arg_num(call, 0);
+  const TimeDuration      dur    = script_arg_time(call, 1);
+  const SceneMissionState result = script_arg_enum(call, 2, &g_scriptEnumMissionState);
+
+  SceneAction* act = scene_action_push(ctx->actions, SceneActionType_ObjectiveTimeout);
+  act->objectiveTimeout =
+      (SceneActionObjectiveTimeout){.id = id, .duration = dur, .result = result};
+  return script_null();
+}
+
+static ScriptVal eval_objective_end(EvalContext* ctx, ScriptBinderCall* call) {
+  const SceneObjectiveId  id     = (SceneObjectiveId)script_arg_num(call, 0);
+  const SceneMissionState result = script_arg_enum(call, 1, &g_scriptEnumMissionState);
+
+  SceneAction* act  = scene_action_push(ctx->actions, SceneActionType_ObjectiveEnd);
+  act->objectiveEnd = (SceneActionObjectiveEnd){.id = id, .result = result};
+  return script_null();
+}
+
 static ScriptVal eval_random_of(EvalContext* ctx, ScriptBinderCall* call) {
   (void)ctx;
   /**
@@ -2071,6 +2209,7 @@ static void eval_binder_init(void) {
     eval_enum_init_bark();
     eval_enum_init_health_stat();
     eval_enum_init_marker_type();
+    eval_enum_init_mission_state();
 
     // clang-format off
     eval_bind(b, string_lit("self"),                   eval_self);
@@ -2090,6 +2229,7 @@ static void eval_binder_init(void) {
     eval_bind(b, string_lit("query_set"),              eval_query_set);
     eval_bind(b, string_lit("query_sphere"),           eval_query_sphere);
     eval_bind(b, string_lit("query_box"),              eval_query_box);
+    eval_bind(b, string_lit("query_remaining"),        eval_query_remaining);
     eval_bind(b, string_lit("query_pop"),              eval_query_pop);
     eval_bind(b, string_lit("query_random"),           eval_query_random);
     eval_bind(b, string_lit("nav_find"),               eval_nav_find);
@@ -2139,6 +2279,15 @@ static void eval_binder_init(void) {
     eval_bind(b, string_lit("anim_param"),             eval_anim_param);
     eval_bind(b, string_lit("joint_position"),         eval_joint_position);
     eval_bind(b, string_lit("marker_spawn"),           eval_marker_spawn);
+    eval_bind(b, string_lit("mission_state"),          eval_mission_state);
+    eval_bind(b, string_lit("mission_begin"),          eval_mission_begin);
+    eval_bind(b, string_lit("mission_end"),            eval_mission_end);
+    eval_bind(b, string_lit("objective_begin"),        eval_objective_begin);
+    eval_bind(b, string_lit("objective_state"),        eval_objective_state);
+    eval_bind(b, string_lit("objective_time"),         eval_objective_time);
+    eval_bind(b, string_lit("objective_goal"),         eval_objective_goal);
+    eval_bind(b, string_lit("objective_timeout"),      eval_objective_timeout);
+    eval_bind(b, string_lit("objective_end"),          eval_objective_end);
     eval_bind(b, string_lit("random_of"),              eval_random_of);
     eval_bind(b, string_lit("debug_log"),              eval_debug_log);
     eval_bind(b, string_lit("debug_line"),             eval_debug_line);
@@ -2459,7 +2608,7 @@ SceneScriptComp* scene_script_add(
     const EcsEntityId entity,
     const EcsEntityId scriptAssets[],
     const u32         scriptAssetCount) {
-  diag_assert(scriptAssetCount <= u8_max); // We represent slot indices as 8bit integers.
+  diag_assert(scriptAssetCount <= u8_max); // We represent slot indices as 8 bit integers.
   diag_assert(scriptAssetCount);           // Need at least one script asset.
 
   SceneScriptComp* script = ecs_world_add_t(world, entity, SceneScriptComp);

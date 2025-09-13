@@ -1,0 +1,76 @@
+
+/**
+ * Mission test script.
+ *
+ * Supports the following input properties:
+ * - "evacObject": Object the player needs to evacuate to.
+ * - "assetVfxCollect": Particle system to play when collecting a crate.
+ */
+
+if (mission_state() == "Idle") {
+  mission_begin("MISSION_NAME_TEST")
+
+  // Initialize collect objective.
+  $collectObj      = objective_begin("OBJECTIVE_TEST_COLLECT")
+  $collectProgress = 0
+
+  var collectQuery = query_set("collect_target")
+  $collectGoal     = query_remaining(collectQuery)
+  while (var collectTarget = query_pop(collectQuery)) {
+    var collectMarker = marker_spawn(position(collectTarget), "Goal")
+    destroy_after(collectMarker, collectTarget)
+  }
+}
+
+if (mission_state() != "Active") {
+  return // Mission already ended.
+}
+
+var evacPos     = position($evacObject)
+var evacRadius  = 17.5
+var evacTimeout = 60
+
+// Update collect objective.
+if (objective_state($collectObj) == "Active") {
+  var collectQuery = query_set("collect_target")
+  while (var collectTarget = query_pop(collectQuery)) {
+    var collectPos    = position(collectTarget)
+    var collectRadius = 1.75
+    if (query_pop(query_sphere(collectPos, collectRadius, "FactionSelf", "Unit"))) {
+      $collectProgress += 1
+      destroy(collectTarget)
+
+      if ($assetVfxCollect) {
+        var vfx = vfx_system_spawn($assetVfxCollect, collectPos, quat_ident)
+        destroy_after(vfx, 2)
+      }
+    }
+  }
+  objective_goal($collectObj, $collectProgress, $collectGoal)
+  if ($collectProgress == $collectGoal) {
+    objective_end($collectObj, "Success")
+
+    // Start evacuate objective.
+    $evacObj = objective_begin("OBJECTIVE_TEST_EVAC")
+    objective_timeout($evacObj, evacTimeout, "Fail")
+    marker_spawn(evacPos, "Goal", evacRadius)
+  }
+}
+
+// Update evac objective.
+if ($evacObj && objective_state($evacObj) == "Active") {
+  if (query_pop(query_sphere(evacPos, evacRadius, "FactionSelf", "Infantry"))) {
+    objective_end($evacObj, "Success")
+    mission_end("Success")
+  }
+}
+
+// Fail mission when failing the evac objective.
+if ($evacObj && objective_state($evacObj) == "Fail") {
+  mission_end("Fail")
+}
+
+// Fail mission if all units died.
+if (query_remaining(query_set("infantry", "FactionA")) == 0) {
+  mission_end("Fail")
+}

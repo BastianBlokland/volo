@@ -33,6 +33,7 @@ typedef u8 ActionTypeStorage;
 ecs_comp_define(SceneActionQueueComp) {
   void* data;
   u32   count, cap;
+  u64   counter; // Ever incrementing count of pushed actions.
 };
 
 static usize action_queue_mem_size(const u32 cap) {
@@ -99,6 +100,7 @@ NO_INLINE_HINT static void action_queue_grow(SceneActionQueueComp* q) {
 
 ecs_view_define(ActionGlobalView) {
   ecs_access_read(SceneLevelManagerComp);
+  ecs_access_write(SceneMissionComp);
   ecs_access_write(ScenePrefabEnvComp);
   ecs_access_write(ScenePropertyComp);
   ecs_access_write(SceneSetEnvComp);
@@ -456,6 +458,66 @@ static void action_update_anim_param(ActionContext* ctx, const SceneActionUpdate
   }
 }
 
+static void action_mission_begin(ActionContext* ctx, const SceneActionMissionBegin* a) {
+  SceneMissionComp*     mission = ecs_view_write_t(ctx->globalItr, SceneMissionComp);
+  const SceneMissionErr err     = scene_mission_begin(mission, a->name, ctx->instigator);
+  if (UNLIKELY(err)) {
+    log_e("Failed to begin mission", log_param("err", fmt_text(scene_mission_err_str(err))));
+  }
+}
+
+static void action_mission_end(ActionContext* ctx, const SceneActionMissionEnd* a) {
+  SceneMissionComp*     mission = ecs_view_write_t(ctx->globalItr, SceneMissionComp);
+  const SceneMissionErr err     = scene_mission_end(mission, a->result);
+  if (UNLIKELY(err)) {
+    log_e("Failed to end mission", log_param("err", fmt_text(scene_mission_err_str(err))));
+  }
+}
+
+static void action_objective_begin(ActionContext* ctx, const SceneActionObjectiveBegin* a) {
+  SceneMissionComp*     mission = ecs_view_write_t(ctx->globalItr, SceneMissionComp);
+  const SceneMissionErr err     = scene_mission_obj_begin(mission, a->id, a->name);
+  if (UNLIKELY(err)) {
+    log_e(
+        "Failed to begin objective",
+        log_param("id", fmt_int(a->id)),
+        log_param("err", fmt_text(scene_mission_err_str(err))));
+  }
+}
+
+static void action_objective_end(ActionContext* ctx, const SceneActionObjectiveEnd* a) {
+  SceneMissionComp*     mission = ecs_view_write_t(ctx->globalItr, SceneMissionComp);
+  const SceneMissionErr err     = scene_mission_obj_end(mission, a->id, a->result);
+  if (UNLIKELY(err)) {
+    log_e(
+        "Failed to end objective",
+        log_param("id", fmt_int(a->id)),
+        log_param("err", fmt_text(scene_mission_err_str(err))));
+  }
+}
+
+static void action_objective_goal(ActionContext* ctx, const SceneActionObjectiveGoal* a) {
+  SceneMissionComp*     mission = ecs_view_write_t(ctx->globalItr, SceneMissionComp);
+  const SceneMissionErr err     = scene_mission_obj_goal(mission, a->id, a->goal, a->progress);
+  if (UNLIKELY(err)) {
+    log_e(
+        "Failed to set objective goal",
+        log_param("id", fmt_int(a->id)),
+        log_param("err", fmt_text(scene_mission_err_str(err))));
+  }
+}
+
+static void action_objective_timeout(ActionContext* ctx, const SceneActionObjectiveTimeout* a) {
+  SceneMissionComp*     mission = ecs_view_write_t(ctx->globalItr, SceneMissionComp);
+  const SceneMissionErr err     = scene_mission_obj_timeout(mission, a->id, a->duration, a->result);
+  if (UNLIKELY(err)) {
+    log_e(
+        "Failed to set objective timeout",
+        log_param("id", fmt_int(a->id)),
+        log_param("err", fmt_text(scene_mission_err_str(err))));
+  }
+}
+
 ecs_view_define(ActionQueueView) { ecs_access_write(SceneActionQueueComp); }
 
 ecs_system_define(SceneActionUpdateSys) {
@@ -564,6 +626,24 @@ ecs_system_define(SceneActionUpdateSys) {
       case SceneActionType_UpdateAnimParam:
         action_update_anim_param(&ctx, &defs[i].updateAnimParam);
         break;
+      case SceneActionType_MissionBegin:
+        action_mission_begin(&ctx, &defs[i].missionBegin);
+        break;
+      case SceneActionType_MissionEnd:
+        action_mission_end(&ctx, &defs[i].missionEnd);
+        break;
+      case SceneActionType_ObjectiveBegin:
+        action_objective_begin(&ctx, &defs[i].objectiveBegin);
+        break;
+      case SceneActionType_ObjectiveEnd:
+        action_objective_end(&ctx, &defs[i].objectiveEnd);
+        break;
+      case SceneActionType_ObjectiveGoal:
+        action_objective_goal(&ctx, &defs[i].objectiveGoal);
+        break;
+      case SceneActionType_ObjectiveTimeout:
+        action_objective_timeout(&ctx, &defs[i].objectiveTimeout);
+        break;
       }
     }
     q->count = 0; // Clear queue.
@@ -605,6 +685,8 @@ SceneActionQueueComp* scene_action_queue_add(EcsWorld* w, const EcsEntityId enti
   return ecs_world_add_t(w, entity, SceneActionQueueComp);
 }
 
+u64 scene_action_queue_counter(SceneActionQueueComp* q) { return q->counter; }
+
 SceneAction* scene_action_push(SceneActionQueueComp* q, const SceneActionType type) {
   if (q->count == q->cap) {
     action_queue_grow(q);
@@ -613,6 +695,7 @@ SceneAction* scene_action_push(SceneActionQueueComp* q, const SceneActionType ty
   ActionTypeStorage* entryType = action_entry_type(q->data, q->cap, q->count);
   SceneAction*       entryDef  = action_entry_def(q->data, q->cap, q->count);
   ++q->count;
+  ++q->counter;
 
   *entryType = (ActionTypeStorage)type;
   return entryDef;

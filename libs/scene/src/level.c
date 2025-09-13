@@ -11,6 +11,7 @@
 #include "log/logger.h"
 #include "scene/faction.h"
 #include "scene/level.h"
+#include "scene/mission.h"
 #include "scene/prefab.h"
 #include "scene/property.h"
 #include "scene/set.h"
@@ -270,6 +271,7 @@ ecs_view_define(LoadGlobalView) {
   ecs_access_maybe_write(SceneLevelManagerComp);
   ecs_access_maybe_write(ScenePropertyComp);
   ecs_access_write(AssetManagerComp);
+  ecs_access_write(SceneMissionComp);
   ecs_access_write(ScenePrefabEnvComp);
   ecs_access_write(SceneTimeComp);
 }
@@ -288,6 +290,7 @@ ecs_system_define(SceneLevelLoadSys) {
   AssetManagerComp*      assets      = ecs_view_write_t(globalItr, AssetManagerComp);
   ScenePropertyComp*     globalProps = ecs_view_write_t(globalItr, ScenePropertyComp);
   SceneTimeComp*         time        = ecs_view_write_t(globalItr, SceneTimeComp);
+  SceneMissionComp*      mission     = ecs_view_write_t(globalItr, SceneMissionComp);
   ScenePrefabEnvComp*    prefabEnv   = ecs_view_write_t(globalItr, ScenePrefabEnvComp);
   SceneLevelManagerComp* manager     = ecs_view_write_t(globalItr, SceneLevelManagerComp);
   if (!manager) {
@@ -325,6 +328,7 @@ ecs_system_define(SceneLevelLoadSys) {
       ++req->state;
       // Fallthrough.
     case LevelLoadState_Unload:
+      scene_mission_clear(mission);
       level_process_unload(world, manager, instanceView);
       ++req->state;
       // Fallthrough.
@@ -383,7 +387,10 @@ ecs_system_define(SceneLevelLoadSys) {
   }
 }
 
-ecs_view_define(UnloadGlobalView) { ecs_access_write(SceneLevelManagerComp); }
+ecs_view_define(UnloadGlobalView) {
+  ecs_access_write(SceneLevelManagerComp);
+  ecs_access_write(SceneMissionComp);
+}
 ecs_view_define(UnloadRequestView) { ecs_access_with(SceneLevelRequestUnloadComp); }
 
 ecs_system_define(SceneLevelUnloadSys) {
@@ -393,6 +400,7 @@ ecs_system_define(SceneLevelUnloadSys) {
     return;
   }
   SceneLevelManagerComp* manager = ecs_view_write_t(globalItr, SceneLevelManagerComp);
+  SceneMissionComp*      mission = ecs_view_write_t(globalItr, SceneMissionComp);
 
   EcsView* requestView  = ecs_world_view_t(world, UnloadRequestView);
   EcsView* instanceView = ecs_world_view_t(world, InstanceView);
@@ -401,6 +409,7 @@ ecs_system_define(SceneLevelUnloadSys) {
     if (manager->isLoading) {
       log_e("Level unload failed; load in progress");
     } else if (manager->levelAsset) {
+      scene_mission_clear(mission);
       level_process_unload(world, manager, instanceView);
     }
     ecs_world_entity_destroy(world, ecs_view_entity(itr));

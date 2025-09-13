@@ -5,6 +5,7 @@
 #include "geo/vector.h"
 #include "scene/bark.h"
 #include "scene/faction.h"
+#include "scene/mission.h"
 #include "script/val.h"
 
 /**
@@ -30,6 +31,12 @@ typedef enum {
   SceneActionType_UpdateLightParam,
   SceneActionType_UpdateSoundParam,
   SceneActionType_UpdateAnimParam,
+  SceneActionType_MissionBegin,
+  SceneActionType_MissionEnd,
+  SceneActionType_ObjectiveBegin,
+  SceneActionType_ObjectiveEnd,
+  SceneActionType_ObjectiveGoal,
+  SceneActionType_ObjectiveTimeout,
 } SceneActionType;
 
 typedef struct {
@@ -182,6 +189,35 @@ typedef struct {
   };
 } SceneActionUpdateAnimParam;
 
+typedef struct {
+  StringHash name;
+} SceneActionMissionBegin;
+
+typedef struct {
+  SceneMissionState result;
+} SceneActionMissionEnd;
+
+typedef struct {
+  SceneObjectiveId id;
+  StringHash       name;
+} SceneActionObjectiveBegin;
+
+typedef struct {
+  SceneObjectiveId  id;
+  SceneMissionState result;
+} SceneActionObjectiveEnd;
+
+typedef struct {
+  SceneObjectiveId id;
+  f32              goal, progress;
+} SceneActionObjectiveGoal;
+
+typedef struct {
+  SceneObjectiveId  id;
+  TimeDuration      duration;
+  SceneMissionState result;
+} SceneActionObjectiveTimeout;
+
 typedef union {
   SceneActionTell                  tell;
   SceneActionAsk                   ask;
@@ -201,11 +237,19 @@ typedef union {
   SceneActionUpdateLightParam      updateLightParam;
   SceneActionUpdateSoundParam      updateSoundParam;
   SceneActionUpdateAnimParam       updateAnimParam;
+  SceneActionMissionBegin          missionBegin;
+  SceneActionMissionEnd            missionEnd;
+  SceneActionObjectiveBegin        objectiveBegin;
+  SceneActionObjectiveEnd          objectiveEnd;
+  SceneActionObjectiveGoal         objectiveGoal;
+  SceneActionObjectiveTimeout      objectiveTimeout;
 } SceneAction;
 
 ecs_comp_extern(SceneActionQueueComp);
 
 SceneActionQueueComp* scene_action_queue_add(EcsWorld*, EcsEntityId entity);
+
+u64 scene_action_queue_counter(SceneActionQueueComp*); // Ever incrementing count of pushed actions.
 
 /**
  * Queue an action to be executed at the next 'SceneOrder_ActionUpdate' update.

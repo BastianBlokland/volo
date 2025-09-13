@@ -13,6 +13,7 @@ typedef enum {
   GameState_Play,
   GameState_Edit,
   GameState_Pause,
+  GameState_Result,
 
   GameState_Count,
 } GameState;

@@ -36,7 +36,7 @@ void asset_data_init_script_scene(void) {
   static const String g_clockDoc           = string_static("Supported clocks:\n\n-`LevelTime` (default)\n\n-`Time`\n\n-`RealTime`\n\n-`Delta`\n\n-`RealDelta`\n\n-`Ticks`");
   static const String g_navLayerDoc        = string_static("Supported layers:\n\n-`Normal` (default)\n\n-`Large`");
   static const String g_navFindTypeDoc     = string_static("Supported types:\n\n-`ClosestCell` (default)\n\n-`UnblockedCell`\n\n-`FreeCell`");
-  static const String g_markerTypeDoc      = string_static("Supported types:\n\n-`Info`\n\n-`Danger`");
+  static const String g_markerTypeDoc      = string_static("Supported types:\n\n-`Info`\n\n-`Danger`\n\n-`Goal`");
   static const String g_vfxParamDoc        = string_static("Supported parameters:\n\n-`Alpha`\n\n-`EmitMultiplier`");
   static const String g_renderableParamDoc = string_static("Supported parameters:\n\n-`Color`\n\n-`Alpha`\n\n-`Emissive`");
   static const String g_lightParamDoc      = string_static("Supported parameters:\n\n-`Radiance`\n\n-`Length`\n\n-`Angle`");
@@ -173,10 +173,11 @@ void asset_data_init_script_scene(void) {
   }
   {
     const String       name   = string_lit("query_set");
-    const String       doc    = string_lit("Find all entities in the given set.\n\n*Note*: Returns a query handle.");
+    const String       doc    = fmt_write_scratch("Find all entities in the given set.\n\n*Note*: Returns a query handle.\n\n{}", fmt_text(g_factionDoc));
     const ScriptMask   ret    = script_mask_num | script_mask_null;
     const ScriptSigArg args[] = {
         {string_lit("set"), script_mask_str},
+        {string_lit("faction"), script_mask_str | script_mask_null},
     };
     bind(binder, name, doc, ret, args, array_elems(args));
   }
@@ -202,6 +203,15 @@ void asset_data_init_script_scene(void) {
         {string_lit("rot"), script_mask_quat | script_mask_null},
         {string_lit("option"), script_mask_str | script_mask_null},
         {string_lit("layers"), script_mask_str | script_mask_null, ScriptSigArgFlags_Multi},
+    };
+    bind(binder, name, doc, ret, args, array_elems(args));
+  }
+  {
+    const String       name   = string_lit("query_remaining");
+    const String       doc    = string_lit("Returns the amount of entries remaining in the query.");
+    const ScriptMask   ret    = script_mask_num;
+    const ScriptSigArg args[] = {
+        {string_lit("query"), script_mask_num},
     };
     bind(binder, name, doc, ret, args, array_elems(args));
   }
@@ -722,6 +732,89 @@ void asset_data_init_script_scene(void) {
         {string_lit("pos"), script_mask_vec3},
         {string_lit("type"), script_mask_str},
         {string_lit("radius"), script_mask_num | script_mask_null},
+    };
+    bind(binder, name, doc, ret, args, array_elems(args));
+  }
+  {
+    const String       name   = string_lit("mission_state");
+    const String       doc    = string_lit("Query the current mission state.\n\nStates:\n\n-`Idle`\n\n-`Active`\n\n-`Success`\n\n-`Fail`.");
+    const ScriptMask   ret    = script_mask_str;
+    bind(binder, name, doc, ret, null, 0);
+  }
+  {
+    const String       name   = string_lit("mission_begin");
+    const String       doc    = string_lit("Begin a new mission.\n\n*Note*: Only valid if there's no mission active.");
+    const ScriptMask   ret    = script_mask_null;
+    const ScriptSigArg args[] = {
+        {string_lit("name"), script_mask_str},
+    };
+    bind(binder, name, doc, ret, args, array_elems(args));
+  }
+  {
+    const String       name   = string_lit("mission_end");
+    const String       doc    = string_lit("End the current mission.\n\n*Note*: Only valid if there's a mission active.\n\nValid results:\n\n-`Success`\n\n-`Fail`.");
+    const ScriptMask   ret    = script_mask_null;
+    const ScriptSigArg args[] = {
+        {string_lit("result"), script_mask_str},
+    };
+    bind(binder, name, doc, ret, args, array_elems(args));
+  }
+  {
+    const String       name   = string_lit("objective_begin");
+    const String       doc    = string_lit("Begin a new objective.\n\n*Note*: Returns an objective id (only valid starting from the next frame).\n\n*Note*: Only valid if there's a mission active.");
+    const ScriptMask   ret    = script_mask_num;
+    const ScriptSigArg args[] = {
+        {string_lit("name"), script_mask_str},
+    };
+    bind(binder, name, doc, ret, args, array_elems(args));
+  }
+  {
+    const String       name   = string_lit("objective_state");
+    const String       doc    = string_lit("Query the state of the given objective.\n\n*Note*: Returns null if the objective is not valid (yet).\n\nStates:\n\n-`Active`\n\n-`Success`\n\n-`Fail`.");
+    const ScriptMask   ret    = script_mask_str | script_mask_null;
+    const ScriptSigArg args[] = {
+      {string_lit("id"), script_mask_num},
+    };
+    bind(binder, name, doc, ret, args, array_elems(args));
+  }
+  {
+    const String       name   = string_lit("objective_time");
+    const String       doc    = string_lit("Query how long the objective has been active.\n\n*Note*: Returns null if the objective is not valid (yet).");
+    const ScriptMask   ret    = script_mask_num | script_mask_null;
+    const ScriptSigArg args[] = {
+      {string_lit("id"), script_mask_num},
+    };
+    bind(binder, name, doc, ret, args, array_elems(args));
+  }
+  {
+    const String       name   = string_lit("objective_goal");
+    const String       doc    = string_lit("Update the objective goal.");
+    const ScriptMask   ret    = script_mask_null;
+    const ScriptSigArg args[] = {
+      {string_lit("id"), script_mask_num},
+      {string_lit("progress"), script_mask_num},
+      {string_lit("goal"), script_mask_num},
+    };
+    bind(binder, name, doc, ret, args, array_elems(args));
+  }
+  {
+    const String       name   = string_lit("objective_timeout");
+    const String       doc    = string_lit("Update the objective timeout.\n\nValid results:\n\n-`Success`\n\n-`Fail`.");
+    const ScriptMask   ret    = script_mask_null;
+    const ScriptSigArg args[] = {
+      {string_lit("id"), script_mask_num},
+      {string_lit("duration"), script_mask_time},
+      {string_lit("result"), script_mask_str},
+    };
+    bind(binder, name, doc, ret, args, array_elems(args));
+  }
+  {
+    const String       name   = string_lit("objective_end");
+    const String       doc    = string_lit("End the given objective.\n\nValid results:\n\n-`Success`\n\n-`Fail`.");
+    const ScriptMask   ret    = script_mask_null;
+    const ScriptSigArg args[] = {
+      {string_lit("id"), script_mask_num},
+      {string_lit("result"), script_mask_str},
     };
     bind(binder, name, doc, ret, args, array_elems(args));
   }

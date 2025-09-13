@@ -52,6 +52,17 @@
       }
     },
     {
+      "name": "objective_end",
+      "doc": "End the given objective.\n\nValid results:\n\n-`Success`\n\n-`Fail`.",
+      "sig": {
+        "ret": "null",
+        "args": [
+          { "name": "id", "mask": "num" },
+          { "name": "result", "mask": "str" }
+        ]
+      }
+    },
+    {
       "name": "debug_line",
       "doc": "Draw a 3D debug line between the two given points.",
       "sig": {
@@ -92,6 +103,16 @@
             "name": "navBlocker",
             "mask": [ "null", "bool" ]
           }
+        ]
+      }
+    },
+    {
+      "name": "objective_state",
+      "doc": "Query the state of the given objective.\n\n*Note*: Returns null if the objective is not valid (yet).\n\nStates:\n\n-`Active`\n\n-`Success`\n\n-`Fail`.",
+      "sig": {
+        "ret": [ "null", "str" ],
+        "args": [
+          { "name": "id", "mask": "num" }
         ]
       }
     },
@@ -198,11 +219,15 @@
     },
     {
       "name": "query_set",
-      "doc": "Find all entities in the given set.\n\n*Note*: Returns a query handle.",
+      "doc": "Find all entities in the given set.\n\n*Note*: Returns a query handle.\n\nSupported factions:\n\n-`FactionA`\n\n-`FactionB`\n\n-`FactionC`\n\n-`FactionD`\n\n-`FactionNone`",
       "sig": {
         "ret": [ "null", "num" ],
         "args": [
-          { "name": "set", "mask": "str" }
+          { "name": "set", "mask": "str" },
+          {
+            "name": "faction",
+            "mask": [ "null", "str" ]
+          }
         ]
       }
     },
@@ -295,6 +320,16 @@
       }
     },
     {
+      "name": "objective_begin",
+      "doc": "Begin a new objective.\n\n*Note*: Returns an objective id (only valid starting from the next frame).\n\n*Note*: Only valid if there's a mission active.",
+      "sig": {
+        "ret": "num",
+        "args": [
+          { "name": "name", "mask": "str" }
+        ]
+      }
+    },
+    {
       "name": "renderable_spawn",
       "doc": "Spawn a renderable entity.\n\n*Note*: Resulting entity is not automatically destroyed.\n\n*Note*: It takes one frame before it can be used with the 'renderable_param()' api.",
       "sig": {
@@ -337,7 +372,7 @@
     },
     {
       "name": "marker_spawn",
-      "doc": "Spawn a new marker.\n\n*Note*: Resulting entity is not automatically destroyed.\n\nSupported types:\n\n-`Info`\n\n-`Danger`",
+      "doc": "Spawn a new marker.\n\n*Note*: Resulting entity is not automatically destroyed.\n\nSupported types:\n\n-`Info`\n\n-`Danger`\n\n-`Goal`",
       "sig": {
         "ret": "entity",
         "args": [
@@ -610,6 +645,26 @@
       }
     },
     {
+      "name": "objective_time",
+      "doc": "Query how long the objective has been active.\n\n*Note*: Returns null if the objective is not valid (yet).",
+      "sig": {
+        "ret": [ "null", "num" ],
+        "args": [
+          { "name": "id", "mask": "num" }
+        ]
+      }
+    },
+    {
+      "name": "query_remaining",
+      "doc": "Returns the amount of entries remaining in the query.",
+      "sig": {
+        "ret": "num",
+        "args": [
+          { "name": "query", "mask": "num" }
+        ]
+      }
+    },
+    {
       "name": "target_exclude",
       "doc": "Test if the given target exclude option is set.\n\nSupported options:\n\n-`Unreachable`\n\n-`Obscured`",
       "sig": {
@@ -716,6 +771,16 @@
       }
     },
     {
+      "name": "mission_end",
+      "doc": "End the current mission.\n\n*Note*: Only valid if there's a mission active.\n\nValid results:\n\n-`Success`\n\n-`Fail`.",
+      "sig": {
+        "ret": "null",
+        "args": [
+          { "name": "result", "mask": "str" }
+        ]
+      }
+    },
+    {
       "name": "visible",
       "doc": "Check if the given position is visible for this faction.",
       "sig": {
@@ -754,6 +819,18 @@
       }
     },
     {
+      "name": "objective_goal",
+      "doc": "Update the objective goal.",
+      "sig": {
+        "ret": "null",
+        "args": [
+          { "name": "id", "mask": "num" },
+          { "name": "progress", "mask": "num" },
+          { "name": "goal", "mask": "num" }
+        ]
+      }
+    },
+    {
       "name": "status",
       "doc": "Change or query if an entity is affected by the specified status.\n\nSupported status:\n\n-`Burning`\n\n-`Bleeding`\n\n-`Healing`\n\n-`Veteran`",
       "sig": {
@@ -769,6 +846,16 @@
       }
     },
     {
+      "name": "mission_begin",
+      "doc": "Begin a new mission.\n\n*Note*: Only valid if there's no mission active.",
+      "sig": {
+        "ret": "null",
+        "args": [
+          { "name": "name", "mask": "str" }
+        ]
+      }
+    },
+    {
       "name": "faction",
       "doc": "Lookup or change the faction of the given entity.\n\nSupported factions:\n\n-`FactionA`\n\n-`FactionB`\n\n-`FactionC`\n\n-`FactionD`\n\n-`FactionNone`",
       "sig": {
@@ -780,6 +867,14 @@
             "mask": [ "null", "str" ]
           }
         ]
+      }
+    },
+    {
+      "name": "mission_state",
+      "doc": "Query the current mission state.\n\nStates:\n\n-`Idle`\n\n-`Active`\n\n-`Success`\n\n-`Fail`.",
+      "sig": {
+        "ret": "str",
+        "args": []
       }
     },
     {
@@ -956,6 +1051,18 @@
             "name": "radius",
             "mask": [ "null", "num" ]
           }
+        ]
+      }
+    },
+    {
+      "name": "objective_timeout",
+      "doc": "Update the objective timeout.\n\nValid results:\n\n-`Success`\n\n-`Fail`.",
+      "sig": {
+        "ret": "null",
+        "args": [
+          { "name": "id", "mask": "num" },
+          { "name": "duration", "mask": "num" },
+          { "name": "result", "mask": "str" }
         ]
       }
     },

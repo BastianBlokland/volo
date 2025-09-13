@@ -3,6 +3,7 @@
 #include "core/stringtable.h"
 #include "ecs/view.h"
 #include "ecs/world.h"
+#include "scene/marker.h"
 #include "scene/name.h"
 #include "scene/prefab.h"
 #include "scene/renderable.h"
@@ -63,6 +64,9 @@ static StringHash scene_name_find(EcsWorld* world, EcsIterator* entityItr, EcsIt
   }
   if (ecs_world_has_t(world, ecs_view_entity(entityItr), SceneCollisionComp)) {
     return stringtable_add(g_stringtable, string_lit("Collision"));
+  }
+  if (ecs_world_has_t(world, ecs_view_entity(entityItr), SceneMarkerComp)) {
+    return stringtable_add(g_stringtable, string_lit("Marker"));
   }
   return stringtable_add(g_stringtable, string_lit("unnamed"));
 }

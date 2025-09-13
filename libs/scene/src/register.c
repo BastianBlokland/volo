@@ -20,6 +20,7 @@ void scene_register(EcsDef* def) {
   ecs_register_module(def, scene_location_module);
   ecs_register_module(def, scene_locomotion_module);
   ecs_register_module(def, scene_marker_module);
+  ecs_register_module(def, scene_mission_module);
   ecs_register_module(def, scene_name_module);
   ecs_register_module(def, scene_nav_module);
   ecs_register_module(def, scene_prefab_module);

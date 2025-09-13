@@ -1376,6 +1376,18 @@
           ]
         }
       ]
+    },
+    {
+      "name": "MissionTest",
+      "traits": [
+        { "$type": "AssetPrefabTrait_Script", "scripts": [ "scripts/scene/mission/mission_test.script" ] }
+      ]
+    },
+    {
+      "name": "MissionSurviveBasic",
+      "traits": [
+        { "$type": "AssetPrefabTrait_Script", "scripts": [ "scripts/scene/mission/mission_survive_basic.script" ] }
+      ]
     }
   ],
   "persistentSounds": [

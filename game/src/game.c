@@ -39,6 +39,7 @@
 #include "rend/settings.h"
 #include "scene/camera.h"
 #include "scene/level.h"
+#include "scene/mission.h"
 #include "scene/prefab.h"
 #include "scene/product.h"
 #include "scene/register.h"
@@ -120,6 +121,7 @@ static String game_state_name(const GameState state) {
       [GameState_Play]       = string_static("Play"),
       [GameState_Edit]       = string_static("Edit"),
       [GameState_Pause]      = string_static("Pause"),
+      [GameState_Result]     = string_static("Result"),
   };
   ASSERT(array_elems(g_names) == GameState_Count, "Incorrect number of names");
   return g_names[state];
@@ -187,6 +189,15 @@ static void game_music_play(
     const u32 assetIndex = (u32)rng_sample_range(g_rng, 0, assetCount);
     snd_object_set_asset(soundMixer, game->musicHandle, assetEntities[assetIndex]);
     snd_object_set_looping(soundMixer, game->musicHandle);
+  }
+}
+
+static void game_sound_play(
+    EcsWorld* world, SndMixerComp* soundMixer, AssetManagerComp* assets, const String id) {
+
+  SndObjectId sndHandle;
+  if (snd_object_new(soundMixer, &sndHandle) == SndResult_Success) {
+    snd_object_set_asset(soundMixer, sndHandle, asset_lookup(world, assets, id));
   }
 }
 
@@ -263,6 +274,7 @@ typedef struct {
   InputManagerComp*       input;
   SndMixerComp*           soundMixer;
   LocManagerComp*         locManager;
+  SceneMissionComp*       mission;
   const SceneTimeComp*    time;
   SceneTimeSettingsComp*  timeSet;
   GameCmdComp*            cmd;
@@ -365,6 +377,7 @@ static void game_transition(const GameUpdateContext* ctx, const GameState state)
     ctx->game->flags &= ~GameFlags_EditMode;
     break;
   case GameState_Pause:
+  case GameState_Result:
     ctx->timeSet->flags &= ~SceneTimeFlags_Paused;
 
     ctx->winRendSet->bloomIntensity = ctx->game->prevBloomIntensity;
@@ -406,6 +419,7 @@ static void game_transition(const GameUpdateContext* ctx, const GameState state)
     }
     break;
   case GameState_Pause:
+  case GameState_Result:
     ctx->timeSet->flags |= SceneTimeFlags_Paused;
 
     ctx->game->prevExposure   = ctx->winRendSet->exposure;
@@ -767,6 +781,39 @@ static void menu_entry_back(const GameUpdateContext* ctx, MAYBE_UNUSED const u32
   ui_layout_pop(ctx->winCanvas);
 }
 
+static void menu_entry_stat(const GameUpdateContext* ctx, const StringHash key, const String val) {
+  menu_draw_entry_frame(ctx);
+
+  ui_layout_push(ctx->winCanvas);
+  static const UiVector g_frameInset = {-40, -10};
+  ui_layout_grow(ctx->winCanvas, UiAlign_MiddleCenter, g_frameInset, UiBase_Absolute, Ui_XY);
+  ui_label(ctx->winCanvas, loc_translate(key));
+  ui_layout_inner(
+      ctx->winCanvas, UiBase_Current, UiAlign_MiddleRight, ui_vector(0.3f, 1.0f), UiBase_Current);
+
+  ui_style_push(ctx->winCanvas);
+  ui_style_transform(ctx->winCanvas, UiTransform_None);
+  ui_label(ctx->winCanvas, val);
+  ui_style_pop(ctx->winCanvas);
+
+  ui_layout_pop(ctx->winCanvas);
+}
+
+static void menu_entry_stat_time(const GameUpdateContext* ctx, MAYBE_UNUSED const u32 index) {
+  const TimeDuration time = ctx->time->levelTime;
+  menu_entry_stat(ctx, GameId_MENU_STAT_TIME, fmt_write_scratch("{}", fmt_duration(time)));
+}
+
+static void menu_entry_stat_completed(const GameUpdateContext* ctx, MAYBE_UNUSED const u32 index) {
+  const usize count = scene_mission_obj_count_in_state(ctx->mission, SceneMissionState_Success);
+  menu_entry_stat(ctx, GameId_MENU_STAT_COMPLETED, fmt_write_scratch("{}", fmt_int(count)));
+}
+
+static void menu_entry_stat_failed(const GameUpdateContext* ctx, MAYBE_UNUSED const u32 index) {
+  const usize count = scene_mission_obj_count_in_state(ctx->mission, SceneMissionState_Fail);
+  menu_entry_stat(ctx, GameId_MENU_STAT_FAILED, fmt_write_scratch("{}", fmt_int(count)));
+}
+
 static void menu_entry_refresh_levels(const GameUpdateContext* ctx, MAYBE_UNUSED const u32 index) {
   ui_layout_push(ctx->winCanvas);
   ui_style_outline(ctx->winCanvas, 4);
@@ -866,6 +913,7 @@ ecs_view_define(ErrorView) {
 ecs_view_define(TimeView) { ecs_access_write(SceneTimeComp); }
 
 ecs_view_define(UpdateGlobalView) {
+  ecs_access_maybe_write(DevStatsGlobalComp);
   ecs_access_read(SceneTerrainComp);
   ecs_access_read(SceneTimeComp);
   ecs_access_write(AssetManagerComp);
@@ -873,14 +921,14 @@ ecs_view_define(UpdateGlobalView) {
   ecs_access_write(GameComp);
   ecs_access_write(GamePrefsComp);
   ecs_access_write(InputManagerComp);
+  ecs_access_write(LocManagerComp);
   ecs_access_write(RendSettingsGlobalComp);
-  ecs_access_write(UiSettingsGlobalComp);
   ecs_access_write(SceneLevelManagerComp);
+  ecs_access_write(SceneMissionComp);
   ecs_access_write(SceneTimeSettingsComp);
   ecs_access_write(SceneVisibilityEnvComp);
   ecs_access_write(SndMixerComp);
-  ecs_access_write(LocManagerComp);
-  ecs_access_maybe_write(DevStatsGlobalComp);
+  ecs_access_write(UiSettingsGlobalComp);
 }
 
 ecs_view_define(MainWindowView) {
@@ -1032,6 +1080,7 @@ ecs_system_define(GameUpdateSys) {
       .input               = ecs_view_write_t(globalItr, InputManagerComp),
       .soundMixer          = ecs_view_write_t(globalItr, SndMixerComp),
       .locManager          = ecs_view_write_t(globalItr, LocManagerComp),
+      .mission             = ecs_view_write_t(globalItr, SceneMissionComp),
       .time                = ecs_view_read_t(globalItr, SceneTimeComp),
       .timeSet             = ecs_view_write_t(globalItr, SceneTimeSettingsComp),
       .cmd                 = ecs_view_write_t(globalItr, GameCmdComp),
@@ -1195,11 +1244,19 @@ ecs_system_define(GameUpdateSys) {
         break;
       }
       break;
-    case GameState_Play:
+    case GameState_Play: {
       if (ctx.winHud && game_hud_consume_action(ctx.winHud, GameHudAction_Pause)) {
         game_transition_delayed(ctx.game, GameState_Pause);
       }
-      break;
+      const SceneMissionState missionState = scene_mission_state(ctx.mission);
+      if (missionState == SceneMissionState_Success || missionState == SceneMissionState_Fail) {
+        if (scene_mission_time_ended(ctx.mission, ctx.time) > time_seconds(2)) {
+          game_transition_delayed(ctx.game, GameState_Result);
+          const String resultSnd = string_lit("external/sound/builtin/mission-end-01.wav");
+          game_sound_play(world, ctx.soundMixer, ctx.assets, resultSnd);
+        }
+      }
+    } break;
     case GameState_Edit:
       menuEntries[menuEntriesCount++] = &menu_entry_edit_camera;
       menuEntries[menuEntriesCount++] = &menu_entry_edit_play;
@@ -1224,6 +1281,21 @@ ecs_system_define(GameUpdateSys) {
       menu_draw(&ctx, loc_translate(GameId_MENU_PAUSED), menuEntries, menuEntriesCount);
       menu_draw_version(&ctx);
       break;
+    case GameState_Result: {
+      const bool victory = scene_mission_state(ctx.mission) == SceneMissionState_Success;
+      menuEntries[menuEntriesCount++] = &menu_entry_stat_time;
+      menuEntries[menuEntriesCount++] = &menu_entry_stat_completed;
+      menuEntries[menuEntriesCount++] = &menu_entry_stat_failed;
+      menuEntries[menuEntriesCount++] = &menu_entry_restart;
+      menuEntries[menuEntriesCount++] = &menu_entry_menu_main;
+      menuEntries[menuEntriesCount++] = &menu_entry_quit;
+      menu_draw(
+          &ctx,
+          victory ? loc_translate(GameId_MENU_VICTORY) : loc_translate(GameId_MENU_DEFEAT),
+          menuEntries,
+          menuEntriesCount);
+      menu_draw_version(&ctx);
+    } break;
     }
   }
 }

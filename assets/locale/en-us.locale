@@ -31,6 +31,13 @@
     { "key": "HUD_CAMERA_RESET_TOOLTIP", "value": "Reset the camera." },
     { "key": "HUD_ORDER_STOP_TOOLTIP", "value": "Order the selected unit to stop." },
 
+    { "key": "MISSION_NAME_TEST", "value": "Test mission" },
+    { "key": "MISSION_NAME_SURVIVE", "value": "Survive" },
+
+    { "key": "OBJECTIVE_TEST_COLLECT", "value": "Collect crates" },
+    { "key": "OBJECTIVE_TEST_EVAC", "value": "Evacuate" },
+    { "key": "OBJECTIVE_DEFEND", "value": "Defend the base" },
+
     { "key": "UNIT_NAME_INFANTRY_RIFLE", "value": "Assault Ranger" },
     { "key": "UNIT_NAME_INFANTRY_ROCKET", "value": "Rocket Ranger" },
     { "key": "UNIT_NAME_INFANTRY_FLAME", "value": "Flame Ranger" },
@@ -57,6 +64,12 @@
     { "key": "MENU_EDIT_TOOLTIP", "value": "Select a level to edit." },
 
     { "key": "MENU_PAUSED", "value": "Paused" },
+    { "key": "MENU_VICTORY", "value": "Victory" },
+    { "key": "MENU_DEFEAT", "value": "Defeat" },
+
+    { "key": "MENU_STAT_TIME", "value": "Time" },
+    { "key": "MENU_STAT_COMPLETED", "value": "Objectives completed" },
+    { "key": "MENU_STAT_FAILED", "value": "Objectives failed" },
 
     { "key": "MENU_RESUME", "value": "Resume" },
     { "key": "MENU_RESUME_TOOLTIP", "value": "Resume playing." },

@@ -1,0 +1,25 @@
+
+/**
+ * Basic survival mission script.
+ */
+
+if (mission_state() == "Idle") {
+  mission_begin("MISSION_NAME_SURVIVE")
+
+  $defendObj = objective_begin("OBJECTIVE_DEFEND")
+  objective_timeout($defendObj, 5 * 60, "Success")
+}
+
+if (mission_state() != "Active") {
+  return // Mission already ended.
+}
+
+// Succeed mission if the defend objective is completed.
+if (objective_state($defendObj) == "Success") {
+  mission_end("Success")
+}
+
+// Fail mission if all units died.
+if (query_remaining(query_set("unit", "FactionA")) == 0) {
+  mission_end("Fail")
+}
