@@ -893,10 +893,10 @@ hud_markers_draw(GameHudComp* hud, EcsIterator* rendObjItr, EcsView* minimapMark
     UiColor color;
     switch (markerComp->type) {
     case SceneMarkerType_Info:
-      color = ui_color(255, 255, 255, 64);
+      color = ui_color(255, 255, 255, 128);
       break;
     case SceneMarkerType_Danger:
-      color = ui_color(255, 0, 0, 64);
+      color = ui_color(255, 0, 0, 128);
       break;
     case SceneMarkerType_Count:
       UNREACHABLE
