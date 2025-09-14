@@ -715,6 +715,7 @@ bool geo_query_ray(
       if (hitT < 0.0f || hitT >= best.time) {
         continue; // Miss or a better hit already found.
       }
+      diag_assert_msg(hitT <= 1e5f, "{} (shape: {})", fmt_float(hitT), fmt_int(shape_type(shape)));
       // New best hit.
       best.time   = hitT;
       best.userId = shapeUserId;
@@ -790,6 +791,7 @@ bool geo_query_ray_fat(
       if (hitT < 0.0f || hitT >= best.time) {
         continue; // Miss or a better hit already found.
       }
+      diag_assert_msg(hitT <= 1e5f, "{} (shape: {})", fmt_float(hitT), fmt_int(shape_type(shape)));
       // New best hit.
       best.time   = hitT;
       best.userId = shapeUserId;

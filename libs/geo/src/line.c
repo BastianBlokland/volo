@@ -1,3 +1,4 @@
+#include "core/diag.h"
 #include "core/float.h"
 #include "core/math.h"
 #include "geo/line.h"
@@ -74,11 +75,13 @@ f32 geo_line_closest_time_ray(const GeoLine* line, const GeoRay* ray) {
 
 GeoVector geo_line_closest_point(const GeoLine* line, const GeoVector point) {
   const f32 t = geo_line_closest_time(line, point);
+  diag_assert_msg(t <= 1e5f, "Invalid closest time: {}", fmt_float(t));
   return geo_vector_lerp(line->a, line->b, t);
 }
 
 GeoVector geo_line_closest_point_ray(const GeoLine* line, const GeoRay* ray) {
   const f32 t = geo_line_closest_time_ray(line, ray);
+  diag_assert_msg(t <= 1e5f, "Invalid closest time: {}", fmt_float(t));
   return geo_vector_lerp(line->a, line->b, t);
 }
 

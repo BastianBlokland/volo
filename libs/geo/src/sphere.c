@@ -1,4 +1,5 @@
 #include "core/array.h"
+#include "core/diag.h"
 #include "core/float.h"
 #include "core/intrinsic.h"
 #include "geo/quat.h"
@@ -53,14 +54,15 @@ f32 geo_sphere_intersect_ray(const GeoSphere* sphere, const GeoRay* ray) {
   const f32       toCenterDistSqr = geo_vector_mag_sqr(toCenter);
   const f32       a               = geo_vector_dot(toCenter, ray->dir);
   const f32       b               = toCenterDistSqr - (a * a);
-  const f32       c               = b < f32_epsilon ? 0 : intrinsic_sqrt_f32(b);
 
   // Test if there is no collision.
   if ((sphere->radius * sphere->radius - toCenterDistSqr + a * a) < 0.0f) {
     return -1.0f; // No collision.
   }
 
-  const f32 f = intrinsic_sqrt_f32((sphere->radius * sphere->radius) - (c * c));
+  const f32 c = UNLIKELY(b < f32_epsilon) ? 0.0f : intrinsic_sqrt_f32(b);
+  const f32 d = (sphere->radius * sphere->radius) - (c * c);
+  const f32 f = UNLIKELY(d < f32_epsilon) ? 0.0f : intrinsic_sqrt_f32(d);
 
   // Test if ray is inside.
   if (toCenterDistSqr < sphere->radius * sphere->radius) {
@@ -77,6 +79,7 @@ f32 geo_sphere_intersect_ray_info(
   if (hitT >= 0) {
     *outNormal = geo_vector_norm(geo_vector_sub(geo_ray_position(ray, hitT), sphere->point));
   }
+  diag_assert_msg(hitT <= 1e5f, "Invalid intersection: {}", fmt_float(hitT));
   return hitT;
 }
 
