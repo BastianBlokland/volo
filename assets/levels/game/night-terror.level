@@ -1,5 +1,5 @@
 {
-  "name": "LEVEL_NAME_PLAYGROUND",
+  "name": "LEVEL_NAME_NIGHT_TERROR",
   "terrain": "terrains/desert_big.terrain",
   "fogMode": "VisibilityBased",
   "startpoint": { "x": -8.3416, "z": -6.6783 },
