@@ -56,6 +56,7 @@
 #include "ui/canvas.h"
 #include "ui/layout.h"
 #include "ui/register.h"
+#include "ui/scrollview.h"
 #include "ui/settings.h"
 #include "ui/shape.h"
 #include "ui/style.h"
@@ -91,7 +92,10 @@ ecs_comp_define(GameComp) {
 
   EcsEntityId mainWindow;
   SndObjectId musicHandle;
-  EcsEntityId creditsAsset;
+
+  EcsEntityId  creditsAsset;
+  UiScrollview creditsScrollView;
+  f32          creditsHeight;
 
   u32         levelMask;
   u32         levelLoadingMask;
@@ -886,10 +890,23 @@ static void menu_entry_level(const GameUpdateContext* ctx, u32 index) {
 
 static void menu_entry_credits_content(const GameUpdateContext* ctx, MAYBE_UNUSED const u32 index) {
   EcsIterator* creditsItr = ecs_view_maybe_at(ctx->rawAssetView, ctx->game->creditsAsset);
-  if (creditsItr) {
-    const AssetRawComp* credits = ecs_view_read_t(creditsItr, AssetRawComp);
-    ui_label(ctx->winCanvas, credits->data);
-  }
+
+  ui_layout_push(ctx->winCanvas);
+  ui_style_push(ctx->winCanvas);
+  ui_scrollview_begin(
+      ctx->winCanvas, &ctx->game->creditsScrollView, UiLayer_Normal, ctx->game->creditsHeight);
+
+  ui_style_transform(ctx->winCanvas, UiTransform_None);
+
+  const String  text = creditsItr ? ecs_view_read_t(creditsItr, AssetRawComp)->data : string_empty;
+  const UiId    textId     = ui_canvas_id_peek(ctx->winCanvas);
+  const UiFlags textFlags  = UiFlags_VerticalOverflow | UiFlags_TightTextRect | UiFlags_TrackRect;
+  ctx->game->creditsHeight = ui_canvas_elem_rect(ctx->winCanvas, textId).height;
+  ui_canvas_draw_text(ctx->winCanvas, text, 16, UiAlign_TopLeft, textFlags);
+
+  ui_scrollview_end(ctx->winCanvas, &ctx->game->creditsScrollView);
+  ui_style_pop(ctx->winCanvas);
+  ui_layout_pop(ctx->winCanvas);
 }
 
 static void menu_entry_edit_camera(const GameUpdateContext* ctx, MAYBE_UNUSED const u32 index) {
