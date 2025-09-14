@@ -447,9 +447,11 @@ static void game_transition(const GameUpdateContext* ctx, const GameState state)
 }
 
 static void menu_draw_version(const GameUpdateContext* ctx) {
+  const UiVector size = ui_vector(500, 25);
+
   ui_layout_push(ctx->winCanvas);
-  ui_layout_set(ctx->winCanvas, ui_rect(ui_vector(0, 0), ui_vector(1, 1)), UiBase_Canvas);
-  ui_layout_grow(ctx->winCanvas, UiAlign_MiddleCenter, ui_vector(-10, -5), UiBase_Absolute, Ui_XY);
+  ui_layout_inner(ctx->winCanvas, UiBase_Canvas, UiAlign_BottomLeft, size, UiBase_Absolute);
+  ui_layout_move(ctx->winCanvas, ui_vector(4, 2), UiBase_Absolute, Ui_XY);
 
   ui_style_push(ctx->winCanvas);
   ui_style_color(ctx->winCanvas, ui_color(255, 255, 255, 128));
