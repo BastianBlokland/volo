@@ -1,5 +1,6 @@
 #include "app/ecs.h"
 #include "asset/manager.h"
+#include "asset/raw.h"
 #include "asset/register.h"
 #include "cli/app.h"
 #include "cli/parse.h"
@@ -299,6 +300,7 @@ typedef struct {
   UiCanvasComp*       winCanvas;
 
   EcsView* levelRenderableView;
+  EcsView* rawAssetView;
   EcsView* devPanelView;      // Null if dev-support is not enabled.
   EcsView* devLevelPanelView; // Null if dev-support is not enabled.
 } GameUpdateContext;
@@ -882,6 +884,14 @@ static void menu_entry_level(const GameUpdateContext* ctx, u32 index) {
   }
 }
 
+static void menu_entry_credits_content(const GameUpdateContext* ctx, MAYBE_UNUSED const u32 index) {
+  EcsIterator* creditsItr = ecs_view_maybe_at(ctx->rawAssetView, ctx->game->creditsAsset);
+  if (creditsItr) {
+    const AssetRawComp* credits = ecs_view_read_t(creditsItr, AssetRawComp);
+    ui_label(ctx->winCanvas, credits->data);
+  }
+}
+
 static void menu_entry_edit_camera(const GameUpdateContext* ctx, MAYBE_UNUSED const u32 index) {
   if (ui_button(
           ctx->winCanvas,
@@ -981,6 +991,8 @@ ecs_view_define(LevelRenderableView) {
   ecs_access_with(SceneLevelInstanceComp);
   ecs_access_maybe_read(SceneVisibilityComp);
 }
+
+ecs_view_define(RawAssetView) { ecs_access_read(AssetRawComp); }
 
 ecs_view_define(UiCanvasView) {
   ecs_view_flags(EcsViewFlags_Exclusive); // Only access the canvas's we create.
@@ -1127,6 +1139,7 @@ ecs_system_define(GameUpdateSys) {
       .uiSetGlobal         = ecs_view_write_t(globalItr, UiSettingsGlobalComp),
       .devStatsGlobal      = ecs_view_write_t(globalItr, DevStatsGlobalComp),
       .levelRenderableView = ecs_world_view_t(world, LevelRenderableView),
+      .rawAssetView        = ecs_world_view_t(world, RawAssetView),
       .devPanelView        = ecs_world_view_t(world, DevPanelView),
       .devLevelPanelView   = ecs_world_view_t(world, DevLevelPanelView),
   };
@@ -1267,6 +1280,7 @@ ecs_system_define(GameUpdateSys) {
       menu_draw_version(&ctx);
     } break;
     case GameState_MenuCredits:
+      menuEntries[menuEntriesCount++] = &menu_entry_credits_content;
       menuEntries[menuEntriesCount++] = &menu_entry_back;
       menu_draw(&ctx, loc_translate(GameId_MENU_CREDITS), menuEntries, menuEntriesCount);
       menu_draw_version(&ctx);
@@ -1361,6 +1375,7 @@ ecs_module_init(game_module) {
   ecs_register_view(MainWindowView);
   ecs_register_view(LevelView);
   ecs_register_view(LevelRenderableView);
+  ecs_register_view(RawAssetView);
   ecs_register_view(UiCanvasView);
 
   if (ctx->devSupport) {
@@ -1376,6 +1391,7 @@ ecs_module_init(game_module) {
       ecs_view_id(LevelView),
       ecs_view_id(UiCanvasView),
       ecs_view_id(LevelRenderableView),
+      ecs_view_id(RawAssetView),
       ecs_view_id(DevPanelView),
       ecs_view_id(DevMenuView),
       ecs_view_id(DevLevelPanelView));
