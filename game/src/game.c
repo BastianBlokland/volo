@@ -116,14 +116,15 @@ static void ecs_destruct_game_comp(void* data) {
 
 static String game_state_name(const GameState state) {
   static const String g_names[] = {
-      [GameState_None]       = string_static("None"),
-      [GameState_MenuMain]   = string_static("MenuMain"),
-      [GameState_MenuSelect] = string_static("MenuSelect"),
-      [GameState_Loading]    = string_static("Loading"),
-      [GameState_Play]       = string_static("Play"),
-      [GameState_Edit]       = string_static("Edit"),
-      [GameState_Pause]      = string_static("Pause"),
-      [GameState_Result]     = string_static("Result"),
+      [GameState_None]        = string_static("None"),
+      [GameState_MenuMain]    = string_static("MenuMain"),
+      [GameState_MenuSelect]  = string_static("MenuSelect"),
+      [GameState_MenuCredits] = string_static("MenuCredits"),
+      [GameState_Loading]     = string_static("Loading"),
+      [GameState_Play]        = string_static("Play"),
+      [GameState_Edit]        = string_static("Edit"),
+      [GameState_Pause]       = string_static("Pause"),
+      [GameState_Result]      = string_static("Result"),
   };
   ASSERT(array_elems(g_names) == GameState_Count, "Incorrect number of names");
   return g_names[state];
@@ -564,6 +565,16 @@ static void menu_entry_edit(const GameUpdateContext* ctx, MAYBE_UNUSED const u32
           .tooltip    = loc_translate(GameId_MENU_EDIT_TOOLTIP))) {
     ctx->game->flags |= GameFlags_EditMode;
     game_transition(ctx, GameState_MenuSelect);
+  }
+}
+
+static void menu_entry_credits(const GameUpdateContext* ctx, MAYBE_UNUSED const u32 index) {
+  if (ui_button(
+          ctx->winCanvas,
+          .label    = loc_translate(GameId_MENU_CREDITS),
+          .fontSize = 25,
+          .tooltip  = loc_translate(GameId_MENU_CREDITS_TOOLTIP))) {
+    game_transition(ctx, GameState_MenuCredits);
   }
 }
 
@@ -1231,6 +1242,7 @@ ecs_system_define(GameUpdateSys) {
       menuEntries[menuEntriesCount++] = &menu_entry_ui_scale;
       menuEntries[menuEntriesCount++] = &menu_entry_locale;
       menuEntries[menuEntriesCount++] = &menu_entry_fullscreen;
+      menuEntries[menuEntriesCount++] = &menu_entry_credits;
       menuEntries[menuEntriesCount++] = &menu_entry_quit;
       menu_draw(&ctx, string_lit("Volo"), menuEntries, menuEntriesCount);
       menu_draw_version(&ctx);
@@ -1254,6 +1266,11 @@ ecs_system_define(GameUpdateSys) {
       }
       menu_draw_version(&ctx);
     } break;
+    case GameState_MenuCredits:
+      menuEntries[menuEntriesCount++] = &menu_entry_back;
+      menu_draw(&ctx, loc_translate(GameId_MENU_CREDITS), menuEntries, menuEntriesCount);
+      menu_draw_version(&ctx);
+      break;
     case GameState_Loading:
       menu_draw_spinner(&ctx);
       if (scene_level_error(ctx.levelManager)) {

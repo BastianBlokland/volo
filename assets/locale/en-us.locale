@@ -63,6 +63,9 @@
     { "key": "MENU_EDIT", "value": "Edit" },
     { "key": "MENU_EDIT_TOOLTIP", "value": "Select a level to edit." },
 
+    { "key": "MENU_CREDITS", "value": "Credits" },
+    { "key": "MENU_CREDITS_TOOLTIP", "value": "View the credits." },
+
     { "key": "MENU_PAUSED", "value": "Paused" },
     { "key": "MENU_VICTORY", "value": "Victory" },
     { "key": "MENU_DEFEAT", "value": "Defeat" },
