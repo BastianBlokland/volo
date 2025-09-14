@@ -505,7 +505,7 @@ typedef struct {
 
 static void menu_draw(
     const GameUpdateContext* ctx, const String header, const MenuEntry entries[], const u32 count) {
-  static const UiVector g_headerSize = {.x = 500.0f, .y = 75.0f};
+  static const UiVector g_headerSize = {.x = 500.0f, .y = 100.0f};
   static const UiVector g_entrySize  = {.x = 400.0f, .y = 50.0f};
   static const f32      g_spacing    = 8.0f;
 
@@ -1289,7 +1289,7 @@ ecs_system_define(GameUpdateSys) {
       menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_fullscreen, .size = 1};
       menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_credits, .size = 1};
       menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_quit, .size = 1};
-      menu_draw(&ctx, string_lit("Volo"), menuEntries, menuEntriesCount);
+      menu_draw(&ctx, loc_translate(GameId_MENU_TITLE), menuEntries, menuEntriesCount);
       menu_draw_version(&ctx);
     } break;
     case GameState_MenuSelect: {

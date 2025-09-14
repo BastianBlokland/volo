@@ -57,6 +57,8 @@
     { "key": "LEVEL_NAME_PLAYGROUND", "value": "Playground" },
     { "key": "LEVEL_NAME_UNKNOWN", "value": "Unknown" },
 
+    { "key": "MENU_TITLE", "value": "Volo" },
+
     { "key": "MENU_PLAY", "value": "Play" },
     { "key": "MENU_PLAY_TOOLTIP", "value": "Select a level to play." },
 
