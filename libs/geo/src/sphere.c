@@ -1,4 +1,5 @@
 #include "core/array.h"
+#include "core/diag.h"
 #include "core/float.h"
 #include "core/intrinsic.h"
 #include "geo/quat.h"
@@ -77,6 +78,7 @@ f32 geo_sphere_intersect_ray_info(
   if (hitT >= 0) {
     *outNormal = geo_vector_norm(geo_vector_sub(geo_ray_position(ray, hitT), sphere->point));
   }
+  diag_assert_msg(hitT <= 1e5f, "Invalid intersection: {}", fmt_float(hitT));
   return hitT;
 }
 
