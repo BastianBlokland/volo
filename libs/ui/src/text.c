@@ -473,7 +473,8 @@ UiTextBuildResult ui_text_build(
   /**
    * Compute all lines and backgrounds.
    */
-  UiTextBackgroundCollector bgCollector = {.active = sentinel_u32};
+  const bool                overflowVert = (flags & UiFlags_VerticalOverflow) != 0;
+  UiTextBackgroundCollector bgCollector  = {.active = sentinel_u32};
   UiTextLine                lines[ui_text_max_lines];
   u32                       lineCount        = 0;
   f32                       lineY            = 0;
@@ -482,7 +483,7 @@ UiTextBuildResult ui_text_build(
   String                    remText          = text;
   while (!string_is_empty(remText)) {
     const f32 lineHeight = lineCount ? (1 + font->lineSpacing) * fontSize : fontSize;
-    if (lineY + lineHeight >= totalRect.height - font->lineSpacing * fontSize) {
+    if (!overflowVert && lineY + lineHeight >= totalRect.height - font->lineSpacing * fontSize) {
       break; // Not enough space remaining for this line.
     }
     lineY += lineHeight;
