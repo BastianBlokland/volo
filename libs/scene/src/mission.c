@@ -123,7 +123,6 @@ static SceneObjective* obj_get_mut(SceneMissionComp* m, const SceneObjectiveId i
 
 static void
 obj_update(EcsWorld* world, SceneMissionComp* m, SceneObjective* obj, const SceneTimeComp* time) {
-  (void)m;
   if (obj->startTime < 0) {
     obj->startTime = time->time;
   }
@@ -136,7 +135,10 @@ obj_update(EcsWorld* world, SceneMissionComp* m, SceneObjective* obj, const Scen
       obj->endTime = time->time;
       mission_sound_end_play(world, m, time, obj->state);
     }
-    return;
+    return; // Objective has ended.
+  }
+  if (m->state != SceneMissionState_Active) {
+    return; // Mission has ended.
   }
   const TimeDuration timeElapsed = time->time - obj->startTime;
   if (obj->timeoutDuration > 0 && timeElapsed >= obj->timeoutDuration) {
