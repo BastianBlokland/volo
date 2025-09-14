@@ -1,5 +1,5 @@
 {
-  "size": 1024,
+  "size": 2048,
   "glyphSize": 64,
   "border": 15,
   "lineSpacing": 0.2,
@@ -8,13 +8,13 @@
     {
       "id": "fonts/roboto_medium.ttf",
       "spacing": 0.05,
-      "characters": "\u0020!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"
+      "characters": "\u0020!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~ã"
     },
     {
       "id": "fonts/robotomono_medium.ttf",
       "variation": 1,
       "spacing": 0.05,
-      "characters": "\u0020!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"
+      "characters": "\u0020!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~ã"
     },
     {
       "id": "fonts/materialicons_regular.ttf",

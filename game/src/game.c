@@ -1,5 +1,6 @@
 #include "app/ecs.h"
 #include "asset/manager.h"
+#include "asset/raw.h"
 #include "asset/register.h"
 #include "cli/app.h"
 #include "cli/parse.h"
@@ -55,6 +56,7 @@
 #include "ui/canvas.h"
 #include "ui/layout.h"
 #include "ui/register.h"
+#include "ui/scrollview.h"
 #include "ui/settings.h"
 #include "ui/shape.h"
 #include "ui/style.h"
@@ -91,6 +93,10 @@ ecs_comp_define(GameComp) {
   EcsEntityId mainWindow;
   SndObjectId musicHandle;
 
+  EcsEntityId  creditsAsset;
+  UiScrollview creditsScrollView;
+  f32          creditsHeight;
+
   u32         levelMask;
   u32         levelLoadingMask;
   EcsEntityId levelAssets[GameLevelsMax];
@@ -115,14 +121,15 @@ static void ecs_destruct_game_comp(void* data) {
 
 static String game_state_name(const GameState state) {
   static const String g_names[] = {
-      [GameState_None]       = string_static("None"),
-      [GameState_MenuMain]   = string_static("MenuMain"),
-      [GameState_MenuSelect] = string_static("MenuSelect"),
-      [GameState_Loading]    = string_static("Loading"),
-      [GameState_Play]       = string_static("Play"),
-      [GameState_Edit]       = string_static("Edit"),
-      [GameState_Pause]      = string_static("Pause"),
-      [GameState_Result]     = string_static("Result"),
+      [GameState_None]        = string_static("None"),
+      [GameState_MenuMain]    = string_static("MenuMain"),
+      [GameState_MenuSelect]  = string_static("MenuSelect"),
+      [GameState_MenuCredits] = string_static("MenuCredits"),
+      [GameState_Loading]     = string_static("Loading"),
+      [GameState_Play]        = string_static("Play"),
+      [GameState_Edit]        = string_static("Edit"),
+      [GameState_Pause]       = string_static("Pause"),
+      [GameState_Result]      = string_static("Result"),
   };
   ASSERT(array_elems(g_names) == GameState_Count, "Incorrect number of names");
   return g_names[state];
@@ -261,6 +268,9 @@ static void game_ui_settings_apply(const GamePrefsComp* prefs, UiSettingsGlobalC
   case GameUiScale_Big:
     uiSettings->scale = 1.25f;
     break;
+  case GameUiScale_VeryBig:
+    uiSettings->scale = 1.5f;
+    break;
   case GameUiScale_Count:
     UNREACHABLE
   }
@@ -297,6 +307,7 @@ typedef struct {
   UiCanvasComp*       winCanvas;
 
   EcsView* levelRenderableView;
+  EcsView* rawAssetView;
   EcsView* devPanelView;      // Null if dev-support is not enabled.
   EcsView* devLevelPanelView; // Null if dev-support is not enabled.
 } GameUpdateContext;
@@ -439,9 +450,11 @@ static void game_transition(const GameUpdateContext* ctx, const GameState state)
 }
 
 static void menu_draw_version(const GameUpdateContext* ctx) {
+  const UiVector size = ui_vector(500, 25);
+
   ui_layout_push(ctx->winCanvas);
-  ui_layout_set(ctx->winCanvas, ui_rect(ui_vector(0, 0), ui_vector(1, 1)), UiBase_Canvas);
-  ui_layout_grow(ctx->winCanvas, UiAlign_MiddleCenter, ui_vector(-10, -5), UiBase_Absolute, Ui_XY);
+  ui_layout_inner(ctx->winCanvas, UiBase_Canvas, UiAlign_BottomLeft, size, UiBase_Absolute);
+  ui_layout_move(ctx->winCanvas, ui_vector(4, 2), UiBase_Absolute, Ui_XY);
 
   ui_style_push(ctx->winCanvas);
   ui_style_color(ctx->winCanvas, ui_color(255, 255, 255, 128));
@@ -486,27 +499,41 @@ static void menu_draw_entry_frame(const GameUpdateContext* ctx) {
   ui_style_pop(ctx->winCanvas);
 }
 
-typedef void (*MenuEntry)(const GameUpdateContext*, u32 index);
+typedef void (*MenuEntryFunc)(const GameUpdateContext*, u32 index);
+
+typedef struct {
+  MenuEntryFunc func;
+  u32           size; // In multiples of the default size.
+} MenuEntry;
 
 static void menu_draw(
-    const GameUpdateContext* ctx, const String header, const MenuEntry entries[], const u32 count) {
-  static const UiVector g_headerSize = {.x = 500.0f, .y = 75.0f};
-  static const UiVector g_entrySize  = {.x = 400.0f, .y = 50.0f};
-  static const f32      g_spacing    = 8.0f;
+    const GameUpdateContext* ctx,
+    const String             header,
+    const f32                width,
+    const MenuEntry          entries[],
+    const u32                count) {
+  static const UiVector g_headerSize  = {.x = 500.0f, .y = 100.0f};
+  static const f32      g_entryHeight = 50.0f;
+  static const f32      g_spacing     = 8.0f;
 
   ui_style_push(ctx->winCanvas);
   ui_style_transform(ctx->winCanvas, UiTransform_ToUpper);
 
-  f32 totalHeight = (count - 1) * (g_entrySize.y + g_spacing);
+  f32 totalHeight = 0.0f;
   if (!string_is_empty(header)) {
     totalHeight += g_headerSize.y;
   }
+  for (u32 i = 0; i != count; ++i) {
+    totalHeight += i != 0 ? g_spacing : 0.0f;
+    totalHeight += g_entryHeight * entries[i].size;
+  }
+
   ui_layout_move_to(ctx->winCanvas, UiBase_Container, UiAlign_MiddleCenter, Ui_XY);
   ui_layout_move(ctx->winCanvas, ui_vector(0, totalHeight * 0.5f), UiBase_Absolute, Ui_Y);
 
   if (!string_is_empty(header)) {
     ui_layout_push(ctx->winCanvas);
-    ui_layout_resize(ctx->winCanvas, UiAlign_MiddleCenter, g_headerSize, UiBase_Absolute, Ui_XY);
+    ui_layout_resize(ctx->winCanvas, UiAlign_TopCenter, g_headerSize, UiBase_Absolute, Ui_XY);
 
     ui_style_push(ctx->winCanvas);
     ui_style_outline(ctx->winCanvas, 5);
@@ -516,13 +543,16 @@ static void menu_draw(
     ui_style_pop(ctx->winCanvas);
 
     ui_layout_pop(ctx->winCanvas);
-    ui_layout_move(ctx->winCanvas, ui_vector(0, -g_headerSize.y), UiBase_Absolute, Ui_Y);
+    ui_layout_move_dir(ctx->winCanvas, Ui_Down, g_headerSize.y, UiBase_Absolute);
   }
 
-  ui_layout_resize(ctx->winCanvas, UiAlign_MiddleCenter, g_entrySize, UiBase_Absolute, Ui_XY);
   for (u32 i = 0; i != count; ++i) {
-    entries[i](ctx, i);
-    ui_layout_next(ctx->winCanvas, Ui_Down, g_spacing);
+    const UiVector size = {width, g_entryHeight * entries[i].size};
+    ui_layout_push(ctx->winCanvas);
+    ui_layout_resize(ctx->winCanvas, UiAlign_TopCenter, size, UiBase_Absolute, Ui_XY);
+    entries[i].func(ctx, i);
+    ui_layout_pop(ctx->winCanvas);
+    ui_layout_move_dir(ctx->winCanvas, Ui_Down, size.y + g_spacing, UiBase_Absolute);
   }
   ui_style_pop(ctx->winCanvas);
 }
@@ -538,7 +568,7 @@ menu_bar_draw(const GameUpdateContext* ctx, const MenuEntry entries[], const u32
   ui_layout_move(ctx->winCanvas, ui_vector(xCenterOffset, g_spacing), UiBase_Absolute, Ui_XY);
 
   for (u32 i = 0; i != count; ++i) {
-    entries[i](ctx, i);
+    entries[i].func(ctx, i);
     ui_layout_next(ctx->winCanvas, Ui_Right, g_spacing);
   }
 }
@@ -563,6 +593,16 @@ static void menu_entry_edit(const GameUpdateContext* ctx, MAYBE_UNUSED const u32
           .tooltip    = loc_translate(GameId_MENU_EDIT_TOOLTIP))) {
     ctx->game->flags |= GameFlags_EditMode;
     game_transition(ctx, GameState_MenuSelect);
+  }
+}
+
+static void menu_entry_credits(const GameUpdateContext* ctx, MAYBE_UNUSED const u32 index) {
+  if (ui_button(
+          ctx->winCanvas,
+          .label    = loc_translate(GameId_MENU_CREDITS),
+          .fontSize = 25,
+          .tooltip  = loc_translate(GameId_MENU_CREDITS_TOOLTIP))) {
+    game_transition(ctx, GameState_MenuCredits);
   }
 }
 
@@ -870,6 +910,32 @@ static void menu_entry_level(const GameUpdateContext* ctx, u32 index) {
   }
 }
 
+static void menu_entry_credits_content(const GameUpdateContext* ctx, MAYBE_UNUSED const u32 index) {
+  menu_draw_entry_frame(ctx);
+
+  EcsIterator* creditsItr = ecs_view_maybe_at(ctx->rawAssetView, ctx->game->creditsAsset);
+
+  ui_layout_push(ctx->winCanvas);
+  ui_layout_grow(ctx->winCanvas, UiAlign_MiddleCenter, ui_vector(-25, -25), UiBase_Absolute, Ui_XY);
+
+  ui_style_push(ctx->winCanvas);
+  ui_scrollview_begin(
+      ctx->winCanvas, &ctx->game->creditsScrollView, UiLayer_Normal, ctx->game->creditsHeight);
+
+  ui_style_transform(ctx->winCanvas, UiTransform_None);
+  ui_style_weight(ctx->winCanvas, UiWeight_Light);
+
+  const String  text = creditsItr ? ecs_view_read_t(creditsItr, AssetRawComp)->data : string_empty;
+  const UiId    textId     = ui_canvas_id_peek(ctx->winCanvas);
+  const UiFlags textFlags  = UiFlags_VerticalOverflow | UiFlags_TightTextRect | UiFlags_TrackRect;
+  ctx->game->creditsHeight = ui_canvas_elem_rect(ctx->winCanvas, textId).height;
+  ui_canvas_draw_text(ctx->winCanvas, text, 16, UiAlign_TopLeft, textFlags);
+
+  ui_scrollview_end(ctx->winCanvas, &ctx->game->creditsScrollView);
+  ui_style_pop(ctx->winCanvas);
+  ui_layout_pop(ctx->winCanvas);
+}
+
 static void menu_entry_edit_camera(const GameUpdateContext* ctx, MAYBE_UNUSED const u32 index) {
   if (ui_button(
           ctx->winCanvas,
@@ -969,6 +1035,8 @@ ecs_view_define(LevelRenderableView) {
   ecs_access_with(SceneLevelInstanceComp);
   ecs_access_maybe_read(SceneVisibilityComp);
 }
+
+ecs_view_define(RawAssetView) { ecs_access_read(AssetRawComp); }
 
 ecs_view_define(UiCanvasView) {
   ecs_view_flags(EcsViewFlags_Exclusive); // Only access the canvas's we create.
@@ -1115,6 +1183,7 @@ ecs_system_define(GameUpdateSys) {
       .uiSetGlobal         = ecs_view_write_t(globalItr, UiSettingsGlobalComp),
       .devStatsGlobal      = ecs_view_write_t(globalItr, DevStatsGlobalComp),
       .levelRenderableView = ecs_world_view_t(world, LevelRenderableView),
+      .rawAssetView        = ecs_world_view_t(world, RawAssetView),
       .devPanelView        = ecs_world_view_t(world, DevPanelView),
       .devLevelPanelView   = ecs_world_view_t(world, DevLevelPanelView),
   };
@@ -1220,18 +1289,19 @@ ecs_system_define(GameUpdateSys) {
     case GameState_Count:
       break;
     case GameState_MenuMain: {
-      menuEntries[menuEntriesCount++] = &menu_entry_play;
+      menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_play, .size = 1};
       if (ctx.devPanelView && asset_save_supported(ctx.assets)) {
-        menuEntries[menuEntriesCount++] = &menu_entry_edit;
+        menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_edit, .size = 1};
       }
-      menuEntries[menuEntriesCount++] = &menu_entry_volume;
-      menuEntries[menuEntriesCount++] = &menu_entry_powersaving;
-      menuEntries[menuEntriesCount++] = &menu_entry_quality;
-      menuEntries[menuEntriesCount++] = &menu_entry_ui_scale;
-      menuEntries[menuEntriesCount++] = &menu_entry_locale;
-      menuEntries[menuEntriesCount++] = &menu_entry_fullscreen;
-      menuEntries[menuEntriesCount++] = &menu_entry_quit;
-      menu_draw(&ctx, string_lit("Volo"), menuEntries, menuEntriesCount);
+      menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_volume, .size = 1};
+      menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_powersaving, .size = 1};
+      menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_quality, .size = 1};
+      menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_ui_scale, .size = 1};
+      menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_locale, .size = 1};
+      menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_fullscreen, .size = 1};
+      menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_credits, .size = 1};
+      menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_quit, .size = 1};
+      menu_draw(&ctx, loc_translate(GameId_MENU_TITLE), 400, menuEntries, menuEntriesCount);
       menu_draw_version(&ctx);
     } break;
     case GameState_MenuSelect: {
@@ -1240,19 +1310,25 @@ ecs_system_define(GameUpdateSys) {
       }
       const u32 levelCount = bits_popcnt(ctx.game->levelMask);
       for (u32 i = 0; i != levelCount; ++i) {
-        menuEntries[menuEntriesCount++] = &menu_entry_level;
+        menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_level, .size = 1};
       }
       if (ctx.devPanelView && asset_save_supported(ctx.assets)) {
-        menuEntries[menuEntriesCount++] = &menu_entry_refresh_levels;
+        menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_refresh_levels, .size = 1};
       }
-      menuEntries[menuEntriesCount++] = &menu_entry_back;
+      menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_back, .size = 1};
       if (ctx.game->flags & GameFlags_EditMode) {
-        menu_draw(&ctx, loc_translate(GameId_MENU_EDIT), menuEntries, menuEntriesCount);
+        menu_draw(&ctx, loc_translate(GameId_MENU_EDIT), 400, menuEntries, menuEntriesCount);
       } else {
-        menu_draw(&ctx, loc_translate(GameId_MENU_PLAY), menuEntries, menuEntriesCount);
+        menu_draw(&ctx, loc_translate(GameId_MENU_PLAY), 400, menuEntries, menuEntriesCount);
       }
       menu_draw_version(&ctx);
     } break;
+    case GameState_MenuCredits:
+      menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_credits_content, .size = 10};
+      menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_back, .size = 1};
+      menu_draw(&ctx, loc_translate(GameId_MENU_CREDITS), 800, menuEntries, menuEntriesCount);
+      menu_draw_version(&ctx);
+      break;
     case GameState_Loading:
       menu_draw_spinner(&ctx);
       if (scene_level_error(ctx.levelManager)) {
@@ -1283,42 +1359,43 @@ ecs_system_define(GameUpdateSys) {
       }
     } break;
     case GameState_Edit:
-      menuEntries[menuEntriesCount++] = &menu_entry_edit_camera;
-      menuEntries[menuEntriesCount++] = &menu_entry_edit_play;
-      menuEntries[menuEntriesCount++] = &menu_entry_edit_discard;
-      menuEntries[menuEntriesCount++] = &menu_entry_edit_save;
-      menuEntries[menuEntriesCount++] = &menu_entry_edit_stop;
+      menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_edit_camera, .size = 1};
+      menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_edit_play, .size = 1};
+      menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_edit_discard, .size = 1};
+      menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_edit_save, .size = 1};
+      menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_edit_stop, .size = 1};
       menu_bar_draw(&ctx, menuEntries, menuEntriesCount);
       break;
     case GameState_Pause:
-      menuEntries[menuEntriesCount++] = &menu_entry_resume;
-      menuEntries[menuEntriesCount++] = &menu_entry_restart;
+      menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_resume, .size = 1};
+      menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_restart, .size = 1};
       if (ctx.devPanelView && asset_save_supported(ctx.assets)) {
-        menuEntries[menuEntriesCount++] = &menu_entry_edit_current;
+        menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_edit_current, .size = 1};
       }
-      menuEntries[menuEntriesCount++] = &menu_entry_volume;
-      menuEntries[menuEntriesCount++] = &menu_entry_powersaving;
-      menuEntries[menuEntriesCount++] = &menu_entry_quality;
-      menuEntries[menuEntriesCount++] = &menu_entry_ui_scale;
-      menuEntries[menuEntriesCount++] = &menu_entry_fullscreen;
-      menuEntries[menuEntriesCount++] = &menu_entry_menu_main;
-      menuEntries[menuEntriesCount++] = &menu_entry_quit;
-      menu_draw(&ctx, loc_translate(GameId_MENU_PAUSED), menuEntries, menuEntriesCount);
+      menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_volume, .size = 1};
+      menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_powersaving, .size = 1};
+      menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_quality, .size = 1};
+      menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_ui_scale, .size = 1};
+      menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_fullscreen, .size = 1};
+      menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_menu_main, .size = 1};
+      menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_quit, .size = 1};
+      menu_draw(&ctx, loc_translate(GameId_MENU_PAUSED), 400, menuEntries, menuEntriesCount);
       menu_draw_version(&ctx);
       break;
     case GameState_Result: {
       const bool victory = scene_mission_state(ctx.mission) == SceneMissionState_Success;
-      menuEntries[menuEntriesCount++] = &menu_entry_stat_time;
-      menuEntries[menuEntriesCount++] = &menu_entry_stat_completed;
-      menuEntries[menuEntriesCount++] = &menu_entry_stat_failed;
-      menuEntries[menuEntriesCount++] = &menu_entry_stat_kills;
-      menuEntries[menuEntriesCount++] = &menu_entry_stat_losses;
-      menuEntries[menuEntriesCount++] = &menu_entry_restart;
-      menuEntries[menuEntriesCount++] = &menu_entry_menu_main;
-      menuEntries[menuEntriesCount++] = &menu_entry_quit;
+      menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_stat_time, .size = 1};
+      menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_stat_completed, .size = 1};
+      menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_stat_failed, .size = 1};
+      menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_stat_kills, .size = 1};
+      menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_stat_losses, .size = 1};
+      menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_restart, .size = 1};
+      menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_menu_main, .size = 1};
+      menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_quit, .size = 1};
       menu_draw(
           &ctx,
           victory ? loc_translate(GameId_MENU_VICTORY) : loc_translate(GameId_MENU_DEFEAT),
+          400,
           menuEntries,
           menuEntriesCount);
       menu_draw_version(&ctx);
@@ -1343,6 +1420,7 @@ ecs_module_init(game_module) {
   ecs_register_view(MainWindowView);
   ecs_register_view(LevelView);
   ecs_register_view(LevelRenderableView);
+  ecs_register_view(RawAssetView);
   ecs_register_view(UiCanvasView);
 
   if (ctx->devSupport) {
@@ -1358,6 +1436,7 @@ ecs_module_init(game_module) {
       ecs_view_id(LevelView),
       ecs_view_id(UiCanvasView),
       ecs_view_id(LevelRenderableView),
+      ecs_view_id(RawAssetView),
       ecs_view_id(DevPanelView),
       ecs_view_id(DevMenuView),
       ecs_view_id(DevLevelPanelView));
@@ -1502,6 +1581,9 @@ bool app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
       .flags       = gameFlags,
       .mainWindow  = mainWin,
       .musicHandle = sentinel_u32);
+
+  game->creditsAsset = asset_lookup(world, assets, string_lit("credits.txt"));
+  asset_acquire(world, game->creditsAsset);
 
   InputResourceComp* inputResource = input_resource_init(world);
   input_resource_load_map(inputResource, string_lit("global/global.inputs"));

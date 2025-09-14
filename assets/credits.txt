@@ -1,0 +1,88 @@
+Volo
+
+Source: https://github.com/bastianblokland/volo
+
+Assets:
+- Icons by Kenney (www.kenney.nl) Creative Commons Zero, CC0
+- Terrain by Gaea (licensed)
+- Terrain by WorldMachine (licensed)
+- Textures by https://3dtextures.me (João Paulo)
+- Textures by https://freepbr.com
+- Character models and animations by Mixamo (https://www.mixamo.com/)
+- Decals by https://www.fontspace.com/misdemeanor-font-f16218
+- Decals by http://www.imarvintpa.com/
+- Decals by https://www.pngkit.com/bigpic/u2q8a9a9t4o0e6t4/
+- Vfx sprites by https://toppng.com
+- Vfx sprites by https://andrewgotow.com
+- Vfx sprites by https://www.filterforge.com
+- Skybox by Emil Persson, aka Humus (http://www.humus.name)
+- Voices by https://voicemaker.in/ (paid plan)
+- Fonts by https://fonts.google.com/
+- Model by CGPitbull (https://assetstore.unity.com/packages/3d/environments/sci-fi/rts-93-headquarter-153554)
+- Model "Tank Low-Poly # 2" (https://skfb.ly/oEHOR) by Sidra is licensed under Creative Commons Attribution
+- Model "Mojo Barrier" (https://skfb.ly/ovnYu) by Sousinho is licensed under Creative Commons Attribution
+- Model "Button" (https://skfb.ly/o6s7M) by Kacper "Papysh" Å»urawski is licensed under Creative Commons Attribution
+- Model "SciFi Light 15" (https://skfb.ly/6nBPF) by inuhitman is licensed under Creative Commons Attribution-NonCommercial
+- Model "Barracks" (https://skfb.ly/66vCG) by Oakioats is licensed under Creative Commons Attribution
+- Model "Auto Turret Machine Gun" (https://skfb.ly/oysBt) by NghiaNguyeen is licensed under Creative Commons Attribution
+- Model "Old tin barrel" (https://skfb.ly/6A8Io) by 3dhdscan is licensed under Creative Commons Attribution
+- Model "Flammable Barrel" (https://skfb.ly/oGpVz) by RRFREELANCE is licensed under Creative Commons Attribution
+- Model "Gas tank" (https://skfb.ly/6zZpP) by Wafelek is licensed under Creative Commons Attribution
+- Model "Muddy tire" (https://skfb.ly/69IZM) by Fabian van Dorst is licensed under Creative Commons Attribution
+- Model "Urban Communications - Low poly prop set" (https://skfb.ly/oyGXB) by Daniel Zhabotinsky is licensed under Creative Commons Attribution
+- Model "Trafficstuff" (https://skfb.ly/oo9DF) by Thunder is licensed under Creative Commons Attribution
+- Model "Crate box" (https://skfb.ly/RMpW) by KloWorks is licensed under Creative Commons Attribution
+- Model "Military Tent" (https://skfb.ly/o6pP7) by Thunder is licensed under Creative Commons Attribution
+- Model "Lowpoly Rocks - 3" (https://skfb.ly/6yTQs) by LoÃ¯c Norgeot is licensed under Creative Commons Attribution
+- Model "Free - Water Tower" (https://skfb.ly/oovr7) by Emanuel is licensed under Creative Commons Attribution
+- Model "Shipping containers" (https://skfb.ly/oCSOU) by Mateusz WoliÅ„ski is licensed under Creative Commons Attribution
+- Model "Reliant K Car" (https://skfb.ly/otqDo) by Renafox is licensed under Creative Commons Attribution
+- Model "Acacia tree" (https://skfb.ly/ouYrM) by evolveduk is licensed under Creative Commons Attribution
+- Model "Fern" (https://skfb.ly/o99LX) by evolveduk is licensed under Creative Commons Attribution
+- Model "Fences | Concretes | Metal | Desert | Old | Pack" (https://skfb.ly/o7CxG) by YadroGames is licensed under Creative Commons Attribution
+- Music by 'whvle' from Pixabay https://pixabay.com/music/beats-aboard-a-aurora-game-menu-pulse-203549/
+- Sound effect by 'Pixabay' from Pixabay https://pixabay.com/sound-effects/bus-engine-idling-26992/
+- Sound effect by 'DennisH18' from Pixabay https://pixabay.com/sound-effects/tank-moving-143104/
+- Sound effect by 'Pixabay' from Pixabay https://pixabay.com/sound-effects/tanks-shooting-33651/
+- Sound effect by 'Pixabay' from Pixabay https://pixabay.com/sound-effects/tank-turret-rotate-14879/
+- Sound effect by 'Isaac200000' from Pixabay https://pixabay.com/sound-effects/ambiance4-31974/
+- Sound effect by 'KELLEPICS' from Pixabay https://pixabay.com/music/electronic-blinded-by-the-light-13359/
+- Sound effect by 'morganpurkis' from Pixabay https://pixabay.com/sound-effects/single-gunshot-62-hp-37188/
+- Sound effect by 'nioczkus' from Pixabay https://pixabay.com/sound-effects/m1-garand-rifle-80192/
+- Sound effect by 'morganpurkis' from Pixabay https://pixabay.com/sound-effects/single-gunshot-54-40780/
+- Sound effect by 'nioczkus' from Pixabay https://pixabay.com/sound-effects/m1-garand-rifle-80192/
+- Sound effect by 'morganpurkis' from Pixabay https://pixabay.com/sound-effects/single-gunshot-54-40780/
+- Sound effect by 'Albasty' from Pixabay https://pixabay.com/sound-effects/monster-sound-medium-death-94826/
+- Sound effect by 'surfaceknight68' from Pixabay https://pixabay.com/sound-effects/monster-chase-grunts-45476/
+- Sound effect by 'UNIVERSFIELD' from Pixabay https://pixabay.com/sound-effects/male-extreme-scream-123078/
+- Sound effect by 'anwul' from Pixabay https://pixabay.com/sound-effects/monster-105850/
+- Sound effect by 'Natty23' from Pixabay https://pixabay.com/sound-effects/whoosh-6316/
+- Sound effect by 'pixabay' from Pixabay https://pixabay.com/sound-effects/086553-bullet-hit-39853/
+- Sound effect by 'UNIVERSFIELD' from Pixabay https://pixabay.com/sound-effects/punch-140236/
+- Sound effect by 'Starscade' from Pixabay https://pixabay.com/sound-effects/sfx-cassette-tape-motor-30698/
+- Sound effect by 'Flame Thrower' from Pixabay https://pixabay.com/sound-effects/flame-thrower-128555/
+- Sound effect by 'Fission9' from Pixabay https://pixabay.com/sound-effects/lava-loop-3-28887/
+- Sound effect by 'frolickingdp1' from Pixabay https://pixabay.com/sound-effects/explosion-6801/
+- Sound effect by 'Pixabay' from Pixabay https://pixabay.com/sound-effects/medium-explosion-40472/
+- Sound effect by 'UNIVERSFIELD' from Pixabay https://pixabay.com/sound-effects/interface-124464/
+- Sound effect by 'UNIVERSFIELD' from Pixabay https://pixabay.com/sound-effects/interface-124464/
+- Sound effect by 'UNIVERSFIELD' from Pixabay https://pixabay.com/sound-effects/click-button-140881/
+- Sound effect by 'UNIVERSFIELD' from Pixabay https://pixabay.com/sound-effects/click-button-140881/
+- Sound effect by 'SennaFoxy' from Pixabay https://pixabay.com/sound-effects/enter-button-mechanical-keyboard-14388/
+- Sound effect by 'flobelle' from Pixabay https://pixabay.com/sound-effects/confirmation-noises-94299/
+- Sound effect by 'flobelle' from Pixabay https://pixabay.com/sound-effects/confirmation-noises-94299/
+- Sound effect by 'flobelle' from Pixabay https://pixabay.com/sound-effects/confirmation-noises-94299/
+- Sound effect by 'flobelle' from Pixabay https://pixabay.com/sound-effects/confirmation-noises-94299/
+- Sound effect by 'Pixabay' from Pixabay https://pixabay.com/sound-effects/army-rank-up-2-84543/
+- Sound effect by 'freesound_community' from Pixabay https://pixabay.com/sound-effects/unit-ready-40641/
+- Sound effect by 'UNIVERSFIELD' from Pixabay https://pixabay.com/sound-effects/click-button-140881/
+- Sound effect by 'UNIVERSFIELD' from Pixabay https://pixabay.com/sound-effects/click-button-140881/
+- Sound effect by 'RibhavAgrawal' from Pixabay https://pixabay.com/sound-effects/dramatic-horn-44005/
+- Sound effect by 'UNIVERSFIELD' from Pixabay https://pixabay.com/sound-effects/error-010-206498/
+- Sound effect by 'UNIVERSFIELD' from Pixabay https://pixabay.com/sound-effects/error-warning-login-denied-132113/
+- Sound effect by 'RibhavAgrawal' from Pixabay https://pixabay.com/sound-effects/purchase-succesful-ingame-230550/
+- Sound effect by 'freesound_community' from Pixabay https://pixabay.com/sound-effects/success-83493/
+- Sound effect by 'EpidemicSound' https://www.epidemicsound.com/track/KNTZATADAz/
+- Sound effect by 'EpidemicSound' https://www.epidemicsound.com/track/hrrNYY6LoC/
+- Sound effect by 'EpidemicSound' https://www.epidemicsound.com/track/a1WjOQpFnP/
+- Sound effect by '18hiltc' https://freesound.org/people/18hiltc/sounds/202725/

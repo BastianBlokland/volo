@@ -9,6 +9,7 @@ typedef enum {
   GameState_None,
   GameState_MenuMain,
   GameState_MenuSelect,
+  GameState_MenuCredits,
   GameState_Loading,
   GameState_Play,
   GameState_Edit,

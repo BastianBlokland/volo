@@ -1,5 +1,6 @@
 {
   "roots": [
+    "credits.txt",
     "global/*",
     "locale/*.locale",
 

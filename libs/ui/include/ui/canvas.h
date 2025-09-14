@@ -64,10 +64,11 @@ typedef enum eUiFlags {
   UiFlags_TrackRect           = 1 << 4,  // Allows querying the elem with 'ui_canvas_elem_rect()'.
   UiFlags_TrackTextInfo       = 1 << 5,  // Internal use only atm.
   UiFlags_AllowWordBreak      = 1 << 6,  // Allow breaking up text in the middle of words.
-  UiFlags_SingleLine          = 1 << 7,  // Only draw the first line of the text.
-  UiFlags_NoLineBreaks        = 1 << 8,  // Ignore line breaks.
-  UiFlags_TightTextRect       = 1 << 9,  // Clamp the rectangle to the text size.
-  UiFlags_SquareAspect        = 1 << 10, // Fit a square inside the current rectangle.
+  UiFlags_VerticalOverflow    = 1 << 7,  // Allow text lines to overflow the rectangle vertically.
+  UiFlags_SingleLine          = 1 << 8,  // Only draw the first line of the text.
+  UiFlags_NoLineBreaks        = 1 << 9,  // Ignore line breaks.
+  UiFlags_TightTextRect       = 1 << 10, // Clamp the rectangle to the text size.
+  UiFlags_SquareAspect        = 1 << 11, // Fit a square inside the current rectangle.
 } UiFlags;
 
 typedef enum eUiPersistentFlags {
