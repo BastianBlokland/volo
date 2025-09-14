@@ -90,6 +90,7 @@ ecs_comp_define(GameComp) {
 
   EcsEntityId mainWindow;
   SndObjectId musicHandle;
+  EcsEntityId creditsAsset;
 
   u32         levelMask;
   u32         levelLoadingMask;
@@ -1502,6 +1503,9 @@ bool app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
       .flags       = gameFlags,
       .mainWindow  = mainWin,
       .musicHandle = sentinel_u32);
+
+  game->creditsAsset = asset_lookup(world, assets, string_lit("credits.txt"));
+  asset_acquire(world, game->creditsAsset);
 
   InputResourceComp* inputResource = input_resource_init(world);
   input_resource_load_map(inputResource, string_lit("global/global.inputs"));
