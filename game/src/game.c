@@ -498,11 +498,13 @@ static void menu_draw_entry_frame(const GameUpdateContext* ctx) {
 
 typedef void (*MenuEntryFunc)(const GameUpdateContext*, u32 index);
 
+typedef struct {
+  MenuEntryFunc func;
+  u32           size; // In multiples of the default size.
+} MenuEntry;
+
 static void menu_draw(
-    const GameUpdateContext* ctx,
-    const String             header,
-    const MenuEntryFunc      entries[],
-    const u32                count) {
+    const GameUpdateContext* ctx, const String header, const MenuEntry entries[], const u32 count) {
   static const UiVector g_headerSize = {.x = 500.0f, .y = 75.0f};
   static const UiVector g_entrySize  = {.x = 400.0f, .y = 50.0f};
   static const f32      g_spacing    = 8.0f;
@@ -510,16 +512,21 @@ static void menu_draw(
   ui_style_push(ctx->winCanvas);
   ui_style_transform(ctx->winCanvas, UiTransform_ToUpper);
 
-  f32 totalHeight = (count - 1) * (g_entrySize.y + g_spacing);
+  f32 totalHeight = 0.0f;
   if (!string_is_empty(header)) {
     totalHeight += g_headerSize.y;
   }
+  for (u32 i = 0; i != count; ++i) {
+    totalHeight += i != 0 ? g_spacing : 0.0f;
+    totalHeight += g_entrySize.y * entries[i].size;
+  }
+
   ui_layout_move_to(ctx->winCanvas, UiBase_Container, UiAlign_MiddleCenter, Ui_XY);
   ui_layout_move(ctx->winCanvas, ui_vector(0, totalHeight * 0.5f), UiBase_Absolute, Ui_Y);
 
   if (!string_is_empty(header)) {
     ui_layout_push(ctx->winCanvas);
-    ui_layout_resize(ctx->winCanvas, UiAlign_MiddleCenter, g_headerSize, UiBase_Absolute, Ui_XY);
+    ui_layout_resize(ctx->winCanvas, UiAlign_TopCenter, g_headerSize, UiBase_Absolute, Ui_XY);
 
     ui_style_push(ctx->winCanvas);
     ui_style_outline(ctx->winCanvas, 5);
@@ -529,19 +536,22 @@ static void menu_draw(
     ui_style_pop(ctx->winCanvas);
 
     ui_layout_pop(ctx->winCanvas);
-    ui_layout_move(ctx->winCanvas, ui_vector(0, -g_headerSize.y), UiBase_Absolute, Ui_Y);
+    ui_layout_move_dir(ctx->winCanvas, Ui_Down, g_headerSize.y, UiBase_Absolute);
   }
 
-  ui_layout_resize(ctx->winCanvas, UiAlign_MiddleCenter, g_entrySize, UiBase_Absolute, Ui_XY);
   for (u32 i = 0; i != count; ++i) {
-    entries[i](ctx, i);
-    ui_layout_next(ctx->winCanvas, Ui_Down, g_spacing);
+    const UiVector size = {g_entrySize.x, g_entrySize.height * entries[i].size};
+    ui_layout_push(ctx->winCanvas);
+    ui_layout_resize(ctx->winCanvas, UiAlign_TopCenter, size, UiBase_Absolute, Ui_XY);
+    entries[i].func(ctx, i);
+    ui_layout_pop(ctx->winCanvas);
+    ui_layout_move_dir(ctx->winCanvas, Ui_Down, size.y + g_spacing, UiBase_Absolute);
   }
   ui_style_pop(ctx->winCanvas);
 }
 
 static void
-menu_bar_draw(const GameUpdateContext* ctx, const MenuEntryFunc entries[], const u32 count) {
+menu_bar_draw(const GameUpdateContext* ctx, const MenuEntry entries[], const u32 count) {
   static const UiVector g_entrySize = {.x = 40.0f, .y = 40.0f};
   static const f32      g_spacing   = 8.0f;
 
@@ -551,7 +561,7 @@ menu_bar_draw(const GameUpdateContext* ctx, const MenuEntryFunc entries[], const
   ui_layout_move(ctx->winCanvas, ui_vector(xCenterOffset, g_spacing), UiBase_Absolute, Ui_XY);
 
   for (u32 i = 0; i != count; ++i) {
-    entries[i](ctx, i);
+    entries[i].func(ctx, i);
     ui_layout_next(ctx->winCanvas, Ui_Right, g_spacing);
   }
 }
@@ -1260,25 +1270,25 @@ ecs_system_define(GameUpdateSys) {
       input_layer_disable(ctx.input, GameId_Dev);
     }
 
-    MenuEntryFunc menuEntries[32];
-    u32           menuEntriesCount = 0;
+    MenuEntry menuEntries[32];
+    u32       menuEntriesCount = 0;
     switch (ctx.game->state) {
     case GameState_None:
     case GameState_Count:
       break;
     case GameState_MenuMain: {
-      menuEntries[menuEntriesCount++] = &menu_entry_play;
+      menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_play, .size = 1};
       if (ctx.devPanelView && asset_save_supported(ctx.assets)) {
-        menuEntries[menuEntriesCount++] = &menu_entry_edit;
+        menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_edit, .size = 1};
       }
-      menuEntries[menuEntriesCount++] = &menu_entry_volume;
-      menuEntries[menuEntriesCount++] = &menu_entry_powersaving;
-      menuEntries[menuEntriesCount++] = &menu_entry_quality;
-      menuEntries[menuEntriesCount++] = &menu_entry_ui_scale;
-      menuEntries[menuEntriesCount++] = &menu_entry_locale;
-      menuEntries[menuEntriesCount++] = &menu_entry_fullscreen;
-      menuEntries[menuEntriesCount++] = &menu_entry_credits;
-      menuEntries[menuEntriesCount++] = &menu_entry_quit;
+      menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_volume, .size = 1};
+      menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_powersaving, .size = 1};
+      menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_quality, .size = 1};
+      menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_ui_scale, .size = 1};
+      menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_locale, .size = 1};
+      menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_fullscreen, .size = 1};
+      menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_credits, .size = 1};
+      menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_quit, .size = 1};
       menu_draw(&ctx, string_lit("Volo"), menuEntries, menuEntriesCount);
       menu_draw_version(&ctx);
     } break;
@@ -1288,12 +1298,12 @@ ecs_system_define(GameUpdateSys) {
       }
       const u32 levelCount = bits_popcnt(ctx.game->levelMask);
       for (u32 i = 0; i != levelCount; ++i) {
-        menuEntries[menuEntriesCount++] = &menu_entry_level;
+        menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_level, .size = 1};
       }
       if (ctx.devPanelView && asset_save_supported(ctx.assets)) {
-        menuEntries[menuEntriesCount++] = &menu_entry_refresh_levels;
+        menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_refresh_levels, .size = 1};
       }
-      menuEntries[menuEntriesCount++] = &menu_entry_back;
+      menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_back, .size = 1};
       if (ctx.game->flags & GameFlags_EditMode) {
         menu_draw(&ctx, loc_translate(GameId_MENU_EDIT), menuEntries, menuEntriesCount);
       } else {
@@ -1302,8 +1312,8 @@ ecs_system_define(GameUpdateSys) {
       menu_draw_version(&ctx);
     } break;
     case GameState_MenuCredits:
-      menuEntries[menuEntriesCount++] = &menu_entry_credits_content;
-      menuEntries[menuEntriesCount++] = &menu_entry_back;
+      menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_credits_content, .size = 10};
+      menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_back, .size = 1};
       menu_draw(&ctx, loc_translate(GameId_MENU_CREDITS), menuEntries, menuEntriesCount);
       menu_draw_version(&ctx);
       break;
@@ -1337,39 +1347,39 @@ ecs_system_define(GameUpdateSys) {
       }
     } break;
     case GameState_Edit:
-      menuEntries[menuEntriesCount++] = &menu_entry_edit_camera;
-      menuEntries[menuEntriesCount++] = &menu_entry_edit_play;
-      menuEntries[menuEntriesCount++] = &menu_entry_edit_discard;
-      menuEntries[menuEntriesCount++] = &menu_entry_edit_save;
-      menuEntries[menuEntriesCount++] = &menu_entry_edit_stop;
+      menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_edit_camera, .size = 1};
+      menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_edit_play, .size = 1};
+      menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_edit_discard, .size = 1};
+      menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_edit_save, .size = 1};
+      menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_edit_stop, .size = 1};
       menu_bar_draw(&ctx, menuEntries, menuEntriesCount);
       break;
     case GameState_Pause:
-      menuEntries[menuEntriesCount++] = &menu_entry_resume;
-      menuEntries[menuEntriesCount++] = &menu_entry_restart;
+      menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_resume, .size = 1};
+      menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_restart, .size = 1};
       if (ctx.devPanelView && asset_save_supported(ctx.assets)) {
-        menuEntries[menuEntriesCount++] = &menu_entry_edit_current;
+        menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_edit_current, .size = 1};
       }
-      menuEntries[menuEntriesCount++] = &menu_entry_volume;
-      menuEntries[menuEntriesCount++] = &menu_entry_powersaving;
-      menuEntries[menuEntriesCount++] = &menu_entry_quality;
-      menuEntries[menuEntriesCount++] = &menu_entry_ui_scale;
-      menuEntries[menuEntriesCount++] = &menu_entry_fullscreen;
-      menuEntries[menuEntriesCount++] = &menu_entry_menu_main;
-      menuEntries[menuEntriesCount++] = &menu_entry_quit;
+      menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_volume, .size = 1};
+      menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_powersaving, .size = 1};
+      menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_quality, .size = 1};
+      menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_ui_scale, .size = 1};
+      menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_fullscreen, .size = 1};
+      menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_menu_main, .size = 1};
+      menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_quit, .size = 1};
       menu_draw(&ctx, loc_translate(GameId_MENU_PAUSED), menuEntries, menuEntriesCount);
       menu_draw_version(&ctx);
       break;
     case GameState_Result: {
       const bool victory = scene_mission_state(ctx.mission) == SceneMissionState_Success;
-      menuEntries[menuEntriesCount++] = &menu_entry_stat_time;
-      menuEntries[menuEntriesCount++] = &menu_entry_stat_completed;
-      menuEntries[menuEntriesCount++] = &menu_entry_stat_failed;
-      menuEntries[menuEntriesCount++] = &menu_entry_stat_kills;
-      menuEntries[menuEntriesCount++] = &menu_entry_stat_losses;
-      menuEntries[menuEntriesCount++] = &menu_entry_restart;
-      menuEntries[menuEntriesCount++] = &menu_entry_menu_main;
-      menuEntries[menuEntriesCount++] = &menu_entry_quit;
+      menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_stat_time, .size = 1};
+      menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_stat_completed, .size = 1};
+      menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_stat_failed, .size = 1};
+      menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_stat_kills, .size = 1};
+      menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_stat_losses, .size = 1};
+      menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_restart, .size = 1};
+      menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_menu_main, .size = 1};
+      menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_quit, .size = 1};
       menu_draw(
           &ctx,
           victory ? loc_translate(GameId_MENU_VICTORY) : loc_translate(GameId_MENU_DEFEAT),
