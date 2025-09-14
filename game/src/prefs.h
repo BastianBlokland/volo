@@ -14,6 +14,7 @@ typedef enum {
   GameUiScale_Small,
   GameUiScale_Normal,
   GameUiScale_Big,
+  GameUiScale_VeryBig,
 
   GameUiScale_Count,
 } GameUiScale;

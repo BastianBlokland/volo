@@ -26,6 +26,7 @@ const String g_gameUiScaleLabels[] = {
     string_static("MENU_UI_SCALE_SMALL"),
     string_static("MENU_UI_SCALE_NORMAL"),
     string_static("MENU_UI_SCALE_BIG"),
+    string_static("MENU_UI_SCALE_VERY_BIG"),
 };
 ASSERT(array_elems(g_gameUiScaleLabels) == GameUiScale_Count, "Incorrect number of scale labels");
 
@@ -43,6 +44,7 @@ static void prefs_data_init(void) {
     data_reg_const_t(g_dataReg, GameUiScale, Small);
     data_reg_const_t(g_dataReg, GameUiScale, Normal);
     data_reg_const_t(g_dataReg, GameUiScale, Big);
+    data_reg_const_t(g_dataReg, GameUiScale, VeryBig);
 
     data_reg_struct_t(g_dataReg, GamePrefsComp);
     data_reg_field_t(g_dataReg, GamePrefsComp, volume, data_prim_t(f32));

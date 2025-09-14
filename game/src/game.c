@@ -268,6 +268,9 @@ static void game_ui_settings_apply(const GamePrefsComp* prefs, UiSettingsGlobalC
   case GameUiScale_Big:
     uiSettings->scale = 1.25f;
     break;
+  case GameUiScale_VeryBig:
+    uiSettings->scale = 1.5f;
+    break;
   case GameUiScale_Count:
     UNREACHABLE
   }
