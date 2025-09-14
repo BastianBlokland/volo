@@ -6,7 +6,7 @@ Assets:
 - Icons by Kenney (www.kenney.nl) Creative Commons Zero, CC0
 - Terrain by Gaea (licensed)
 - Terrain by WorldMachine (licensed)
-- Textures by https://3dtextures.me (JoÃ£o Paulo)
+- Textures by https://3dtextures.me (João Paulo)
 - Textures by https://freepbr.com
 - Character models and animations by Mixamo (https://www.mixamo.com/)
 - Decals by https://www.fontspace.com/misdemeanor-font-f16218
