@@ -21,7 +21,7 @@ Assets:
 - Model by CGPitbull (https://assetstore.unity.com/packages/3d/environments/sci-fi/rts-93-headquarter-153554)
 - Model "Tank Low-Poly # 2" (https://skfb.ly/oEHOR) by Sidra is licensed under Creative Commons Attribution
 - Model "Mojo Barrier" (https://skfb.ly/ovnYu) by Sousinho is licensed under Creative Commons Attribution
-- Model "Button" (https://skfb.ly/o6s7M) by Kacper "Papysh" Å»urawski is licensed under Creative Commons Attribution
+- Model "Button" (https://skfb.ly/o6s7M) by Kacper "Papysh" Żurawski is licensed under Creative Commons Attribution
 - Model "SciFi Light 15" (https://skfb.ly/6nBPF) by inuhitman is licensed under Creative Commons Attribution-NonCommercial
 - Model "Barracks" (https://skfb.ly/66vCG) by Oakioats is licensed under Creative Commons Attribution
 - Model "Auto Turret Machine Gun" (https://skfb.ly/oysBt) by NghiaNguyeen is licensed under Creative Commons Attribution
@@ -33,9 +33,9 @@ Assets:
 - Model "Trafficstuff" (https://skfb.ly/oo9DF) by Thunder is licensed under Creative Commons Attribution
 - Model "Crate box" (https://skfb.ly/RMpW) by KloWorks is licensed under Creative Commons Attribution
 - Model "Military Tent" (https://skfb.ly/o6pP7) by Thunder is licensed under Creative Commons Attribution
-- Model "Lowpoly Rocks - 3" (https://skfb.ly/6yTQs) by LoÃ¯c Norgeot is licensed under Creative Commons Attribution
+- Model "Lowpoly Rocks - 3" (https://skfb.ly/6yTQs) by Loïc Norgeot is licensed under Creative Commons Attribution
 - Model "Free - Water Tower" (https://skfb.ly/oovr7) by Emanuel is licensed under Creative Commons Attribution
-- Model "Shipping containers" (https://skfb.ly/oCSOU) by Mateusz WoliÅ„ski is licensed under Creative Commons Attribution
+- Model "Shipping containers" (https://skfb.ly/oCSOU) by Mateusz Woliński is licensed under Creative Commons Attribution
 - Model "Reliant K Car" (https://skfb.ly/otqDo) by Renafox is licensed under Creative Commons Attribution
 - Model "Acacia tree" (https://skfb.ly/ouYrM) by evolveduk is licensed under Creative Commons Attribution
 - Model "Fern" (https://skfb.ly/o99LX) by evolveduk is licensed under Creative Commons Attribution
