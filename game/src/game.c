@@ -916,6 +916,7 @@ static void menu_entry_credits_content(const GameUpdateContext* ctx, MAYBE_UNUSE
       ctx->winCanvas, &ctx->game->creditsScrollView, UiLayer_Normal, ctx->game->creditsHeight);
 
   ui_style_transform(ctx->winCanvas, UiTransform_None);
+  ui_style_weight(ctx->winCanvas, UiWeight_Light);
 
   const String  text = creditsItr ? ecs_view_read_t(creditsItr, AssetRawComp)->data : string_empty;
   const UiId    textId     = ui_canvas_id_peek(ctx->winCanvas);
