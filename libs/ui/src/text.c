@@ -9,7 +9,7 @@
 #include "text.h"
 
 #define ui_text_tab_size 8
-#define ui_text_max_lines 100
+#define ui_text_max_lines 1000
 #define ui_text_max_backgrounds 50
 
 typedef struct {
