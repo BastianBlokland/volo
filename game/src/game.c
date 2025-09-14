@@ -504,10 +504,14 @@ typedef struct {
 } MenuEntry;
 
 static void menu_draw(
-    const GameUpdateContext* ctx, const String header, const MenuEntry entries[], const u32 count) {
-  static const UiVector g_headerSize = {.x = 500.0f, .y = 100.0f};
-  static const UiVector g_entrySize  = {.x = 400.0f, .y = 50.0f};
-  static const f32      g_spacing    = 8.0f;
+    const GameUpdateContext* ctx,
+    const String             header,
+    const f32                width,
+    const MenuEntry          entries[],
+    const u32                count) {
+  static const UiVector g_headerSize  = {.x = 500.0f, .y = 100.0f};
+  static const f32      g_entryHeight = 50.0f;
+  static const f32      g_spacing     = 8.0f;
 
   ui_style_push(ctx->winCanvas);
   ui_style_transform(ctx->winCanvas, UiTransform_ToUpper);
@@ -518,7 +522,7 @@ static void menu_draw(
   }
   for (u32 i = 0; i != count; ++i) {
     totalHeight += i != 0 ? g_spacing : 0.0f;
-    totalHeight += g_entrySize.y * entries[i].size;
+    totalHeight += g_entryHeight * entries[i].size;
   }
 
   ui_layout_move_to(ctx->winCanvas, UiBase_Container, UiAlign_MiddleCenter, Ui_XY);
@@ -540,7 +544,7 @@ static void menu_draw(
   }
 
   for (u32 i = 0; i != count; ++i) {
-    const UiVector size = {g_entrySize.x, g_entrySize.height * entries[i].size};
+    const UiVector size = {width, g_entryHeight * entries[i].size};
     ui_layout_push(ctx->winCanvas);
     ui_layout_resize(ctx->winCanvas, UiAlign_TopCenter, size, UiBase_Absolute, Ui_XY);
     entries[i].func(ctx, i);
@@ -1294,7 +1298,7 @@ ecs_system_define(GameUpdateSys) {
       menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_fullscreen, .size = 1};
       menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_credits, .size = 1};
       menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_quit, .size = 1};
-      menu_draw(&ctx, loc_translate(GameId_MENU_TITLE), menuEntries, menuEntriesCount);
+      menu_draw(&ctx, loc_translate(GameId_MENU_TITLE), 400, menuEntries, menuEntriesCount);
       menu_draw_version(&ctx);
     } break;
     case GameState_MenuSelect: {
@@ -1310,16 +1314,16 @@ ecs_system_define(GameUpdateSys) {
       }
       menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_back, .size = 1};
       if (ctx.game->flags & GameFlags_EditMode) {
-        menu_draw(&ctx, loc_translate(GameId_MENU_EDIT), menuEntries, menuEntriesCount);
+        menu_draw(&ctx, loc_translate(GameId_MENU_EDIT), 400, menuEntries, menuEntriesCount);
       } else {
-        menu_draw(&ctx, loc_translate(GameId_MENU_PLAY), menuEntries, menuEntriesCount);
+        menu_draw(&ctx, loc_translate(GameId_MENU_PLAY), 400, menuEntries, menuEntriesCount);
       }
       menu_draw_version(&ctx);
     } break;
     case GameState_MenuCredits:
       menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_credits_content, .size = 10};
       menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_back, .size = 1};
-      menu_draw(&ctx, loc_translate(GameId_MENU_CREDITS), menuEntries, menuEntriesCount);
+      menu_draw(&ctx, loc_translate(GameId_MENU_CREDITS), 800, menuEntries, menuEntriesCount);
       menu_draw_version(&ctx);
       break;
     case GameState_Loading:
@@ -1372,7 +1376,7 @@ ecs_system_define(GameUpdateSys) {
       menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_fullscreen, .size = 1};
       menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_menu_main, .size = 1};
       menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_quit, .size = 1};
-      menu_draw(&ctx, loc_translate(GameId_MENU_PAUSED), menuEntries, menuEntriesCount);
+      menu_draw(&ctx, loc_translate(GameId_MENU_PAUSED), 400, menuEntries, menuEntriesCount);
       menu_draw_version(&ctx);
       break;
     case GameState_Result: {
@@ -1388,6 +1392,7 @@ ecs_system_define(GameUpdateSys) {
       menu_draw(
           &ctx,
           victory ? loc_translate(GameId_MENU_VICTORY) : loc_translate(GameId_MENU_DEFEAT),
+          400,
           menuEntries,
           menuEntriesCount);
       menu_draw_version(&ctx);
