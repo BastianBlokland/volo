@@ -494,10 +494,13 @@ static void menu_draw_entry_frame(const GameUpdateContext* ctx) {
   ui_style_pop(ctx->winCanvas);
 }
 
-typedef void (*MenuEntry)(const GameUpdateContext*, u32 index);
+typedef void (*MenuEntryFunc)(const GameUpdateContext*, u32 index);
 
 static void menu_draw(
-    const GameUpdateContext* ctx, const String header, const MenuEntry entries[], const u32 count) {
+    const GameUpdateContext* ctx,
+    const String             header,
+    const MenuEntryFunc      entries[],
+    const u32                count) {
   static const UiVector g_headerSize = {.x = 500.0f, .y = 75.0f};
   static const UiVector g_entrySize  = {.x = 400.0f, .y = 50.0f};
   static const f32      g_spacing    = 8.0f;
@@ -536,7 +539,7 @@ static void menu_draw(
 }
 
 static void
-menu_bar_draw(const GameUpdateContext* ctx, const MenuEntry entries[], const u32 count) {
+menu_bar_draw(const GameUpdateContext* ctx, const MenuEntryFunc entries[], const u32 count) {
   static const UiVector g_entrySize = {.x = 40.0f, .y = 40.0f};
   static const f32      g_spacing   = 8.0f;
 
@@ -1255,8 +1258,8 @@ ecs_system_define(GameUpdateSys) {
       input_layer_disable(ctx.input, GameId_Dev);
     }
 
-    MenuEntry menuEntries[32];
-    u32       menuEntriesCount = 0;
+    MenuEntryFunc menuEntries[32];
+    u32           menuEntriesCount = 0;
     switch (ctx.game->state) {
     case GameState_None:
     case GameState_Count:
