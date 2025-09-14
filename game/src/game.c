@@ -904,9 +904,13 @@ static void menu_entry_level(const GameUpdateContext* ctx, u32 index) {
 }
 
 static void menu_entry_credits_content(const GameUpdateContext* ctx, MAYBE_UNUSED const u32 index) {
+  menu_draw_entry_frame(ctx);
+
   EcsIterator* creditsItr = ecs_view_maybe_at(ctx->rawAssetView, ctx->game->creditsAsset);
 
   ui_layout_push(ctx->winCanvas);
+  ui_layout_grow(ctx->winCanvas, UiAlign_MiddleCenter, ui_vector(-25, -25), UiBase_Absolute, Ui_XY);
+
   ui_style_push(ctx->winCanvas);
   ui_scrollview_begin(
       ctx->winCanvas, &ctx->game->creditsScrollView, UiLayer_Normal, ctx->game->creditsHeight);
