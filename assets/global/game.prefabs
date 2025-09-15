@@ -1034,6 +1034,12 @@
       ]
     },
     {
+      "name": "DayCycle",
+      "traits": [
+        { "$type": "AssetPrefabTrait_Script", "scripts": [ "scripts/scene/logic/day_cycle.script" ] }
+      ]
+    },
+    {
       "name": "Ambiance",
       "traits": [
         { "$type": "AssetPrefabTrait_Script", "scripts": [ "scripts/scene/effects/ambiance.script" ] },
