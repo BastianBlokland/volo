@@ -24,6 +24,7 @@ static ScriptExpr expr_intrinsic_arg(ScriptDoc* d, const ScriptExpr e, const u32
 #define opt_prune_max_vars 32
 
 typedef struct {
+  bool          valid;
   ScriptVarId   id;
   ScriptScopeId scope;
   ScriptExpr    val;
@@ -49,7 +50,7 @@ static void opt_prune_register_store(
   OptPruneEntry* existing = opt_prune_find(ctx, store->var, store->scope);
   if (existing) {
     // Second store for the same variable; not eligible for pruning.
-    existing->id = script_var_sentinel;
+    existing->valid = false;
     return;
   }
 
@@ -61,6 +62,7 @@ static void opt_prune_register_store(
   // Register the prune candidate.
   for (u32 i = 0; i != opt_prune_max_vars; ++i) {
     if (sentinel_check(ctx->vars[i].id)) {
+      ctx->vars[i].valid = true;
       ctx->vars[i].id    = store->var;
       ctx->vars[i].scope = store->scope;
       ctx->vars[i].val   = store->val;
@@ -82,7 +84,7 @@ static ScriptExpr opt_prune_rewriter(void* ctx, ScriptDoc* d, const ScriptExpr e
   case ScriptExprKind_VarStore: {
     const ScriptExprVarStore* data     = &expr_data(d, e)->var_store;
     OptPruneEntry*            pruneVar = opt_prune_find(pruneCtx, data->var, data->scope);
-    if (pruneVar) {
+    if (pruneVar && pruneVar->valid) {
       diag_assert(pruneVar->val == data->val);
       return pruneVar->val;
     }
@@ -90,7 +92,7 @@ static ScriptExpr opt_prune_rewriter(void* ctx, ScriptDoc* d, const ScriptExpr e
   case ScriptExprKind_VarLoad: {
     const ScriptExprVarLoad* data     = &expr_data(d, e)->var_load;
     OptPruneEntry*           pruneVar = opt_prune_find(pruneCtx, data->var, data->scope);
-    if (pruneVar) {
+    if (pruneVar && pruneVar->valid) {
       return pruneVar->val;
     }
   } break;
