@@ -142,7 +142,7 @@
       "name": "renderable_param",
       "doc": "Change or query a renderable parameter on the given entity.\n\nRequired capability: 'Renderable'\n\nSupported parameters:\n\n-`Color`\n\n-`Alpha`\n\n-`Emissive`",
       "sig": {
-        "ret": [ "null", "bool" ],
+        "ret": [ "null", "num", "color" ],
         "args": [
           { "name": "v", "mask": "entity" },
           { "name": "param", "mask": "str" },
@@ -318,7 +318,7 @@
       "name": "renderable_spawn",
       "doc": "Spawn a renderable entity.\n\n*Note*: Resulting entity is not automatically destroyed.\n\n*Note*: It takes one frame before it can be used with the 'renderable_param()' api.",
       "sig": {
-        "ret": [ "null", "bool" ],
+        "ret": "entity",
         "args": [
           { "name": "asset", "mask": "entity" },
           { "name": "pos", "mask": "vec3" },
@@ -918,7 +918,7 @@
       "name": "light_param",
       "doc": "Change or query a light parameter on the given entity.\n\nRequired capability: 'Light'\n\nSupported parameters:\n\n-`Ambient`\n\n-`Radiance`\n\n-`Length`\n\n-`Angle`",
       "sig": {
-        "ret": [ "null", "num" ],
+        "ret": [ "null", "num", "color" ],
         "args": [
           { "name": "v", "mask": "entity" },
           { "name": "param", "mask": "str" },
@@ -1192,7 +1192,7 @@
       "name": "anim_param",
       "doc": "Change or query an animation parameter on the given entity.\n\nRequired capability: 'Animation'\n\nSupported parameters:\n\n-`Time`\n\n-`TimeNorm`\n\n-`Speed`\n\n-`Weight`\n\n-`Active`\n\n-`Loop`\n\n-`FadeIn`\n\n-`FadeOut`\n\n-`Duration`",
       "sig": {
-        "ret": "any",
+        "ret": [ "null", "num", "bool" ],
         "args": [
           { "name": "v", "mask": "entity" },
           { "name": "layer", "mask": "str" },

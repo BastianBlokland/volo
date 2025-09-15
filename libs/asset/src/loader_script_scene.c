@@ -553,7 +553,7 @@ void asset_data_init_script_scene(void) {
   {
     const String       name   = string_lit("renderable_spawn");
     const String       doc    = string_lit("Spawn a renderable entity.\n\n*Note*: Resulting entity is not automatically destroyed.\n\n*Note*: It takes one frame before it can be used with the 'renderable_param()' api.");
-    const ScriptMask   ret    = script_mask_bool | script_mask_null;
+    const ScriptMask   ret    = script_mask_entity;
     const ScriptSigArg args[] = {
         {string_lit("asset"), script_mask_entity},
         {string_lit("pos"), script_mask_vec3},
@@ -568,7 +568,7 @@ void asset_data_init_script_scene(void) {
   {
     const String       name   = string_lit("renderable_param");
     const String       doc    = fmt_write_scratch("Change or query a renderable parameter on the given entity.\n\nRequired capability: 'Renderable'\n\n{}", fmt_text(g_renderableParamDoc));
-    const ScriptMask   ret    = script_mask_bool | script_mask_null;
+    const ScriptMask   ret    = script_mask_color | script_mask_num | script_mask_null;
     const ScriptSigArg args[] = {
         {string_lit("v"), script_mask_entity},
         {string_lit("param"), script_mask_str},
@@ -679,7 +679,7 @@ void asset_data_init_script_scene(void) {
   {
     const String       name   = string_lit("light_param");
     const String       doc    = fmt_write_scratch("Change or query a light parameter on the given entity.\n\nRequired capability: 'Light'\n\n{}", fmt_text(g_lightParamDoc));
-    const ScriptMask   ret    = script_mask_num | script_mask_null;
+    const ScriptMask   ret    = script_mask_color | script_mask_num | script_mask_null;
     const ScriptSigArg args[] = {
         {string_lit("v"), script_mask_entity},
         {string_lit("param"), script_mask_str},
@@ -715,7 +715,7 @@ void asset_data_init_script_scene(void) {
   {
     const String       name   = string_lit("anim_param");
     const String       doc    = fmt_write_scratch("Change or query an animation parameter on the given entity.\n\nRequired capability: 'Animation'\n\n{}", fmt_text(g_animParamDoc));
-    const ScriptMask   ret    = script_mask_any;
+    const ScriptMask   ret    = script_mask_num | script_mask_bool | script_mask_null;
     const ScriptSigArg args[] = {
         {string_lit("v"), script_mask_entity},
         {string_lit("layer"), script_mask_str},
