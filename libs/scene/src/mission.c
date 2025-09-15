@@ -387,15 +387,27 @@ const SceneObjective* scene_mission_obj_data(const SceneMissionComp* m) {
   return dynarray_begin_t(&m->objectives, SceneObjective);
 }
 
-TimeDuration scene_mission_obj_time(const SceneObjective* obj, const SceneTimeComp* time) {
+TimeDuration scene_mission_obj_time(
+    const SceneMissionComp* m, const SceneObjective* obj, const SceneTimeComp* time) {
   if (obj->endTime >= 0) {
     return obj->endTime - obj->startTime;
+  }
+  if (m->endTime >= 0) {
+    return m->endTime - obj->startTime;
   }
   return time->time - obj->startTime;
 }
 
-TimeDuration scene_mission_obj_time_rem(const SceneObjective* obj, const SceneTimeComp* time) {
-  const TimeDuration endTime = obj->endTime >= 0 ? obj->endTime : time->time;
+TimeDuration scene_mission_obj_time_rem(
+    const SceneMissionComp* m, const SceneObjective* obj, const SceneTimeComp* time) {
+  TimeDuration endTime;
+  if (obj->endTime >= 0) {
+    endTime = obj->endTime;
+  } else if (m->endTime >= 0) {
+    endTime = m->endTime;
+  } else {
+    endTime = time->time;
+  }
   const TimeDuration elapsed = endTime - obj->startTime;
   if (elapsed >= obj->timeoutDuration) {
     return 0;
@@ -403,7 +415,9 @@ TimeDuration scene_mission_obj_time_rem(const SceneObjective* obj, const SceneTi
   return obj->timeoutDuration - elapsed;
 }
 
-TimeDuration scene_mission_obj_time_ended(const SceneObjective* obj, const SceneTimeComp* time) {
+TimeDuration scene_mission_obj_time_ended(
+    const SceneMissionComp* m, const SceneObjective* obj, const SceneTimeComp* time) {
+  (void)m;
   if (obj->endTime < 0) {
     return 0;
   }
