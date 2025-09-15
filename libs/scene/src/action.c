@@ -117,11 +117,14 @@ ecs_view_define(ActionFactionView) { ecs_access_write(SceneFactionComp); }
 ecs_view_define(ActionRenderableView) { ecs_access_write(SceneRenderableComp); }
 ecs_view_define(ActionVfxSysView) { ecs_access_write(SceneVfxSystemComp); }
 ecs_view_define(ActionVfxDecalView) { ecs_access_write(SceneVfxDecalComp); }
-ecs_view_define(ActionLightAmbientView) { ecs_access_write(SceneLightAmbientComp); }
-ecs_view_define(ActionLightPointView) { ecs_access_write(SceneLightPointComp); }
-ecs_view_define(ActionLightSpotView) { ecs_access_write(SceneLightSpotComp); }
-ecs_view_define(ActionLightLineView) { ecs_access_write(SceneLightLineComp); }
-ecs_view_define(ActionLightDirView) { ecs_access_write(SceneLightDirComp); }
+ecs_view_define(ActionLightView) {
+  ecs_access_with(SceneLightComp);
+  ecs_access_maybe_write(SceneLightAmbientComp);
+  ecs_access_maybe_write(SceneLightPointComp);
+  ecs_access_maybe_write(SceneLightSpotComp);
+  ecs_access_maybe_write(SceneLightLineComp);
+  ecs_access_maybe_write(SceneLightDirComp);
+}
 ecs_view_define(ActionSoundView) { ecs_access_write(SceneSoundComp); }
 ecs_view_define(ActionAnimView) { ecs_access_write(SceneAnimationComp); }
 
@@ -140,11 +143,7 @@ typedef struct {
   EcsIterator* renderableItr;
   EcsIterator* vfxSysItr;
   EcsIterator* vfxDecalItr;
-  EcsIterator* lightAmbientItr;
-  EcsIterator* lightPointItr;
-  EcsIterator* lightSpotItr;
-  EcsIterator* lightLineItr;
-  EcsIterator* lightDirItr;
+  EcsIterator* lightItr;
   EcsIterator* soundItr;
   EcsIterator* animItr;
 } ActionContext;
@@ -357,71 +356,45 @@ static void action_update_vfx_param(ActionContext* ctx, const SceneActionUpdateV
 }
 
 static void action_update_light_param(ActionContext* ctx, const SceneActionUpdateLightParam* a) {
-  if (ecs_view_maybe_jump(ctx->lightAmbientItr, a->entity)) {
-    SceneLightAmbientComp* ambComp = ecs_view_write_t(ctx->lightAmbientItr, SceneLightAmbientComp);
+  if (ecs_view_maybe_jump(ctx->lightItr, a->entity)) {
+    SceneLightAmbientComp* amb   = ecs_view_write_t(ctx->lightItr, SceneLightAmbientComp);
+    SceneLightPointComp*   point = ecs_view_write_t(ctx->lightItr, SceneLightPointComp);
+    SceneLightSpotComp*    spot  = ecs_view_write_t(ctx->lightItr, SceneLightSpotComp);
+    SceneLightLineComp*    line  = ecs_view_write_t(ctx->lightItr, SceneLightLineComp);
+    SceneLightDirComp*     dir   = ecs_view_write_t(ctx->lightItr, SceneLightDirComp);
+
     switch (a->param) {
     case SceneActionLightParam_Ambient:
-      ambComp->intensity = a->value_f32;
+      if (amb) {
+        amb->intensity = a->value_f32;
+      }
       break;
     case SceneActionLightParam_Radiance:
-    case SceneActionLightParam_Length:
-    case SceneActionLightParam_Angle:
-      break;
-    }
-  }
-  if (ecs_view_maybe_jump(ctx->lightPointItr, a->entity)) {
-    SceneLightPointComp* pointComp = ecs_view_write_t(ctx->lightPointItr, SceneLightPointComp);
-    switch (a->param) {
-    case SceneActionLightParam_Ambient:
-      break;
-    case SceneActionLightParam_Radiance:
-      pointComp->radiance = a->value_color;
-      break;
-    case SceneActionLightParam_Length:
-    case SceneActionLightParam_Angle:
-      break;
-    }
-  }
-  if (ecs_view_maybe_jump(ctx->lightSpotItr, a->entity)) {
-    SceneLightSpotComp* spotComp = ecs_view_write_t(ctx->lightSpotItr, SceneLightSpotComp);
-    switch (a->param) {
-    case SceneActionLightParam_Ambient:
-      break;
-    case SceneActionLightParam_Radiance:
-      spotComp->radiance = a->value_color;
+      if (point) {
+        point->radiance = a->value_color;
+      }
+      if (spot) {
+        spot->radiance = a->value_color;
+      }
+      if (line) {
+        line->radiance = a->value_color;
+      }
+      if (dir) {
+        dir->radiance = a->value_color;
+      }
       break;
     case SceneActionLightParam_Length:
-      spotComp->length = a->value_f32;
+      if (spot) {
+        spot->length = a->value_f32;
+      }
+      if (line) {
+        line->length = a->value_f32;
+      }
       break;
     case SceneActionLightParam_Angle:
-      spotComp->angle = a->value_f32;
-      break;
-    }
-  }
-  if (ecs_view_maybe_jump(ctx->lightLineItr, a->entity)) {
-    SceneLightLineComp* lineComp = ecs_view_write_t(ctx->lightLineItr, SceneLightLineComp);
-    switch (a->param) {
-    case SceneActionLightParam_Ambient:
-      break;
-    case SceneActionLightParam_Radiance:
-      lineComp->radiance = a->value_color;
-      break;
-    case SceneActionLightParam_Length:
-      lineComp->length = a->value_f32;
-      break;
-    case SceneActionLightParam_Angle:
-      break;
-    }
-  }
-  if (ecs_view_maybe_jump(ctx->lightDirItr, a->entity)) {
-    SceneLightDirComp* dirComp = ecs_view_write_t(ctx->lightDirItr, SceneLightDirComp);
-    switch (a->param) {
-    case SceneActionLightParam_Radiance:
-      dirComp->radiance = a->value_color;
-      break;
-    case SceneActionLightParam_Ambient:
-    case SceneActionLightParam_Length:
-    case SceneActionLightParam_Angle:
+      if (spot) {
+        spot->angle = a->value_f32;
+      }
       break;
     }
   }
@@ -549,26 +522,22 @@ ecs_system_define(SceneActionUpdateSys) {
   }
 
   ActionContext ctx = {
-      .world           = world,
-      .globalItr       = globalItr,
-      .propertyItr     = ecs_view_itr(ecs_world_view_t(world, ActionPropertyView)),
-      .transItr        = ecs_view_itr(ecs_world_view_t(world, ActionTransformView)),
-      .navAgentItr     = ecs_view_itr(ecs_world_view_t(world, ActionNavAgentView)),
-      .attachItr       = ecs_view_itr(ecs_world_view_t(world, ActionAttachmentView)),
-      .healthReqItr    = ecs_view_itr(ecs_world_view_t(world, ActionHealthReqView)),
-      .attackItr       = ecs_view_itr(ecs_world_view_t(world, ActionAttackView)),
-      .barkItr         = ecs_view_itr(ecs_world_view_t(world, ActionBarkView)),
-      .factionItr      = ecs_view_itr(ecs_world_view_t(world, ActionFactionView)),
-      .renderableItr   = ecs_view_itr(ecs_world_view_t(world, ActionRenderableView)),
-      .vfxSysItr       = ecs_view_itr(ecs_world_view_t(world, ActionVfxSysView)),
-      .vfxDecalItr     = ecs_view_itr(ecs_world_view_t(world, ActionVfxDecalView)),
-      .lightAmbientItr = ecs_view_itr(ecs_world_view_t(world, ActionLightAmbientView)),
-      .lightPointItr   = ecs_view_itr(ecs_world_view_t(world, ActionLightPointView)),
-      .lightSpotItr    = ecs_view_itr(ecs_world_view_t(world, ActionLightSpotView)),
-      .lightLineItr    = ecs_view_itr(ecs_world_view_t(world, ActionLightLineView)),
-      .lightDirItr     = ecs_view_itr(ecs_world_view_t(world, ActionLightDirView)),
-      .soundItr        = ecs_view_itr(ecs_world_view_t(world, ActionSoundView)),
-      .animItr         = ecs_view_itr(ecs_world_view_t(world, ActionAnimView)),
+      .world         = world,
+      .globalItr     = globalItr,
+      .propertyItr   = ecs_view_itr(ecs_world_view_t(world, ActionPropertyView)),
+      .transItr      = ecs_view_itr(ecs_world_view_t(world, ActionTransformView)),
+      .navAgentItr   = ecs_view_itr(ecs_world_view_t(world, ActionNavAgentView)),
+      .attachItr     = ecs_view_itr(ecs_world_view_t(world, ActionAttachmentView)),
+      .healthReqItr  = ecs_view_itr(ecs_world_view_t(world, ActionHealthReqView)),
+      .attackItr     = ecs_view_itr(ecs_world_view_t(world, ActionAttackView)),
+      .barkItr       = ecs_view_itr(ecs_world_view_t(world, ActionBarkView)),
+      .factionItr    = ecs_view_itr(ecs_world_view_t(world, ActionFactionView)),
+      .renderableItr = ecs_view_itr(ecs_world_view_t(world, ActionRenderableView)),
+      .vfxSysItr     = ecs_view_itr(ecs_world_view_t(world, ActionVfxSysView)),
+      .vfxDecalItr   = ecs_view_itr(ecs_world_view_t(world, ActionVfxDecalView)),
+      .lightItr      = ecs_view_itr(ecs_world_view_t(world, ActionLightView)),
+      .soundItr      = ecs_view_itr(ecs_world_view_t(world, ActionSoundView)),
+      .animItr       = ecs_view_itr(ecs_world_view_t(world, ActionAnimView)),
   };
 
   const SceneLevelManagerComp* levelManager = ecs_view_read_t(globalItr, SceneLevelManagerComp);
@@ -693,11 +662,7 @@ ecs_module_init(scene_action_module) {
       ecs_register_view(ActionRenderableView),
       ecs_register_view(ActionVfxSysView),
       ecs_register_view(ActionVfxDecalView),
-      ecs_register_view(ActionLightAmbientView),
-      ecs_register_view(ActionLightPointView),
-      ecs_register_view(ActionLightSpotView),
-      ecs_register_view(ActionLightLineView),
-      ecs_register_view(ActionLightDirView),
+      ecs_register_view(ActionLightView),
       ecs_register_view(ActionSoundView),
       ecs_register_view(ActionAnimView));
 
