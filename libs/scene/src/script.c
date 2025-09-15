@@ -613,7 +613,7 @@ static ScriptVal eval_time(EvalContext* ctx, ScriptBinderCall* call) {
   case 5 /* Ticks */:
     return script_num(time->ticks);
   }
-  return script_null();
+  script_panic_raise(call->panicHandler, (ScriptPanic){ScriptPanic_ArgumentInvalid, .argIndex = 0});
 }
 
 static bool eval_set_allowed(EvalContext* ctx, const EcsEntityId e) {

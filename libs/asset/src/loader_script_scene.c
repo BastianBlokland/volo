@@ -154,7 +154,7 @@ void asset_data_init_script_scene(void) {
   {
     const String       name   = string_lit("time");
     const String       doc    = fmt_write_scratch("Lookup the current time.\n\n{}", fmt_text(g_clockDoc));
-    const ScriptMask   ret    = script_mask_num | script_mask_null;
+    const ScriptMask   ret    = script_mask_num;
     const ScriptSigArg args[] = {
         {string_lit("clock"), script_mask_str | script_mask_null},
     };
