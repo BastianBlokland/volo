@@ -153,33 +153,15 @@ ecs_view_define(CameraView) {
   ecs_access_maybe_read(SceneTransformComp);
 }
 
-ecs_view_define(LightPointInstView) {
+ecs_view_define(LightInstView) {
+  ecs_access_with(SceneLightComp);
   ecs_access_read(SceneTransformComp);
-  ecs_access_read(SceneLightPointComp);
   ecs_access_maybe_read(SceneScaleComp);
-}
-
-ecs_view_define(LightSpotInstView) {
-  ecs_access_read(SceneTransformComp);
-  ecs_access_read(SceneLightSpotComp);
-  ecs_access_maybe_read(SceneScaleComp);
-}
-
-ecs_view_define(LightLineInstView) {
-  ecs_access_read(SceneTransformComp);
-  ecs_access_read(SceneLightLineComp);
-  ecs_access_maybe_read(SceneScaleComp);
-}
-
-ecs_view_define(LightDirInstView) {
-  ecs_access_read(SceneTransformComp);
-  ecs_access_read(SceneLightDirComp);
-  ecs_access_maybe_read(SceneScaleComp);
-}
-
-ecs_view_define(LightAmbientInstView) {
-  ecs_access_read(SceneLightAmbientComp);
-  ecs_access_maybe_read(SceneScaleComp);
+  ecs_access_maybe_read(SceneLightPointComp);
+  ecs_access_maybe_read(SceneLightSpotComp);
+  ecs_access_maybe_read(SceneLightLineComp);
+  ecs_access_maybe_read(SceneLightDirComp);
+  ecs_access_maybe_read(SceneLightAmbientComp);
 }
 
 static u32 rend_obj_index(const RendLightType type, const RendLightVariation variation) {
@@ -262,101 +244,83 @@ ecs_system_define(RendLightPushSys) {
   }
   RendLightComp* light = ecs_view_write_t(globalItr, RendLightComp);
 
-  // Push all point-lights.
-  EcsView* pointLights = ecs_world_view_t(world, LightPointInstView);
-  for (EcsIterator* itr = ecs_view_itr(pointLights); ecs_view_walk(itr);) {
-    const SceneTransformComp*  transformComp = ecs_view_read_t(itr, SceneTransformComp);
-    const SceneScaleComp*      scaleComp     = ecs_view_read_t(itr, SceneScaleComp);
-    const SceneLightPointComp* pointComp     = ecs_view_read_t(itr, SceneLightPointComp);
-
-    GeoColor radiance = pointComp->radiance;
-    f32      radius   = pointComp->radius;
-    if (scaleComp) {
-      radiance.a *= scaleComp->scale;
-      radius *= scaleComp->scale;
-    }
-    const RendLightFlags flags = RendLightFlags_None;
-    rend_light_point(light, transformComp->position, radiance, radius, flags);
-  }
-
-  // Push all spot-lights.
-  EcsView* spotLights = ecs_world_view_t(world, LightSpotInstView);
-  for (EcsIterator* itr = ecs_view_itr(spotLights); ecs_view_walk(itr);) {
+  EcsView* instances = ecs_world_view_t(world, LightInstView);
+  for (EcsIterator* itr = ecs_view_itr(instances); ecs_view_walk(itr);) {
     const SceneTransformComp* transformComp = ecs_view_read_t(itr, SceneTransformComp);
     const SceneScaleComp*     scaleComp     = ecs_view_read_t(itr, SceneScaleComp);
-    const SceneLightSpotComp* spotComp      = ecs_view_read_t(itr, SceneLightSpotComp);
 
-    GeoColor radiance = spotComp->radiance;
-    f32      length   = spotComp->length;
-    if (scaleComp) {
-      radiance.a *= scaleComp->scale;
-      length *= scaleComp->scale;
+    const SceneLightPointComp* pointComp = ecs_view_read_t(itr, SceneLightPointComp);
+    if (pointComp) {
+      GeoColor radiance = pointComp->radiance;
+      f32      radius   = pointComp->radius;
+      if (scaleComp) {
+        radiance.a *= scaleComp->scale;
+        radius *= scaleComp->scale;
+      }
+      const RendLightFlags flags = RendLightFlags_None;
+      rend_light_point(light, transformComp->position, radiance, radius, flags);
     }
 
-    const GeoVector dir  = geo_quat_rotate(transformComp->rotation, geo_forward);
-    const GeoVector posA = transformComp->position;
-    const GeoVector posB = geo_vector_add(posA, geo_vector_mul(dir, length));
+    const SceneLightSpotComp* spotComp = ecs_view_read_t(itr, SceneLightSpotComp);
+    if (spotComp) {
+      GeoColor radiance = spotComp->radiance;
+      f32      length   = spotComp->length;
+      if (scaleComp) {
+        radiance.a *= scaleComp->scale;
+        length *= scaleComp->scale;
+      }
 
-    const RendLightFlags flags = RendLightFlags_None;
-    rend_light_spot(light, posA, posB, radiance, spotComp->angle, flags);
-  }
+      const GeoVector dir  = geo_quat_rotate(transformComp->rotation, geo_forward);
+      const GeoVector posA = transformComp->position;
+      const GeoVector posB = geo_vector_add(posA, geo_vector_mul(dir, length));
 
-  // Push all line-lights.
-  EcsView* lineLights = ecs_world_view_t(world, LightLineInstView);
-  for (EcsIterator* itr = ecs_view_itr(lineLights); ecs_view_walk(itr);) {
-    const SceneTransformComp* transformComp = ecs_view_read_t(itr, SceneTransformComp);
-    const SceneScaleComp*     scaleComp     = ecs_view_read_t(itr, SceneScaleComp);
-    const SceneLightLineComp* lineComp      = ecs_view_read_t(itr, SceneLightLineComp);
-
-    GeoColor radiance = lineComp->radiance;
-    f32      radius   = lineComp->radius;
-    f32      length   = lineComp->length;
-    if (scaleComp) {
-      radiance.a *= scaleComp->scale;
-      radius *= scaleComp->scale;
-      length *= scaleComp->scale;
+      const RendLightFlags flags = RendLightFlags_None;
+      rend_light_spot(light, posA, posB, radiance, spotComp->angle, flags);
     }
 
-    const GeoVector dir  = geo_quat_rotate(transformComp->rotation, geo_forward);
-    const GeoVector posA = transformComp->position;
-    const GeoVector posB = geo_vector_add(posA, geo_vector_mul(dir, length));
+    const SceneLightLineComp* lineComp = ecs_view_read_t(itr, SceneLightLineComp);
+    if (lineComp) {
+      GeoColor radiance = lineComp->radiance;
+      f32      radius   = lineComp->radius;
+      f32      length   = lineComp->length;
+      if (scaleComp) {
+        radiance.a *= scaleComp->scale;
+        radius *= scaleComp->scale;
+        length *= scaleComp->scale;
+      }
 
-    const RendLightFlags flags = RendLightFlags_None;
-    rend_light_line(light, posA, posB, radiance, radius, flags);
-  }
+      const GeoVector dir  = geo_quat_rotate(transformComp->rotation, geo_forward);
+      const GeoVector posA = transformComp->position;
+      const GeoVector posB = geo_vector_add(posA, geo_vector_mul(dir, length));
 
-  // Push all directional lights.
-  EcsView* dirLights = ecs_world_view_t(world, LightDirInstView);
-  for (EcsIterator* itr = ecs_view_itr(dirLights); ecs_view_walk(itr);) {
-    const SceneTransformComp* transformComp = ecs_view_read_t(itr, SceneTransformComp);
-    const SceneScaleComp*     scaleComp     = ecs_view_read_t(itr, SceneScaleComp);
-    const SceneLightDirComp*  dirComp       = ecs_view_read_t(itr, SceneLightDirComp);
-
-    GeoColor radiance = dirComp->radiance;
-    if (scaleComp) {
-      radiance.a *= scaleComp->scale;
+      const RendLightFlags flags = RendLightFlags_None;
+      rend_light_line(light, posA, posB, radiance, radius, flags);
     }
-    RendLightFlags flags = RendLightFlags_None;
-    if (dirComp->shadows) {
-      flags |= RendLightFlags_Shadow;
-    }
-    if (dirComp->coverage) {
-      flags |= RendLightFlags_CoverageMask;
-    }
-    rend_light_directional(light, transformComp->rotation, radiance, flags);
-  }
 
-  // Push all ambient lights.
-  EcsView* ambientLights = ecs_world_view_t(world, LightAmbientInstView);
-  for (EcsIterator* itr = ecs_view_itr(ambientLights); ecs_view_walk(itr);) {
-    const SceneScaleComp*        scaleComp   = ecs_view_read_t(itr, SceneScaleComp);
+    const SceneLightDirComp* dirComp = ecs_view_read_t(itr, SceneLightDirComp);
+    if (dirComp) {
+      GeoColor radiance = dirComp->radiance;
+      if (scaleComp) {
+        radiance.a *= scaleComp->scale;
+      }
+      RendLightFlags flags = RendLightFlags_None;
+      if (dirComp->shadows) {
+        flags |= RendLightFlags_Shadow;
+      }
+      if (dirComp->coverage) {
+        flags |= RendLightFlags_CoverageMask;
+      }
+      rend_light_directional(light, transformComp->rotation, radiance, flags);
+    }
+
     const SceneLightAmbientComp* ambientComp = ecs_view_read_t(itr, SceneLightAmbientComp);
-
-    f32 intensity = ambientComp->intensity;
-    if (scaleComp) {
-      intensity *= scaleComp->scale;
+    if (ambientComp) {
+      f32 intensity = ambientComp->intensity;
+      if (scaleComp) {
+        intensity *= scaleComp->scale;
+      }
+      rend_light_ambient(light, intensity);
     }
-    rend_light_ambient(light, intensity);
   }
 }
 
@@ -687,22 +651,10 @@ ecs_module_init(rend_light_module) {
   ecs_register_view(LightView);
   ecs_register_view(ObjView);
   ecs_register_view(CameraView);
-  ecs_register_view(LightPointInstView);
-  ecs_register_view(LightSpotInstView);
-  ecs_register_view(LightLineInstView);
-  ecs_register_view(LightDirInstView);
-  ecs_register_view(LightAmbientInstView);
+  ecs_register_view(LightInstView);
 
   ecs_register_system(RendLightInitSys, ecs_view_id(GlobalInitView));
-
-  ecs_register_system(
-      RendLightPushSys,
-      ecs_view_id(GlobalView),
-      ecs_view_id(LightPointInstView),
-      ecs_view_id(LightSpotInstView),
-      ecs_view_id(LightLineInstView),
-      ecs_view_id(LightDirInstView),
-      ecs_view_id(LightAmbientInstView));
+  ecs_register_system(RendLightPushSys, ecs_view_id(GlobalView), ecs_view_id(LightInstView));
 
   ecs_register_system(
       RendLightRenderSys,
