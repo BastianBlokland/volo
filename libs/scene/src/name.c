@@ -10,6 +10,8 @@
 #include "scene/sound.h"
 #include "scene/vfx.h"
 
+static StringHash g_sceneNameLight, g_sceneNameCollision, g_sceneNameMarker, g_sceneNameUnnamed;
+
 ecs_comp_define(SceneNameComp);
 
 ecs_view_define(InitDebugView) {
@@ -51,15 +53,15 @@ static StringHash scene_name_find(EcsWorld* world, EcsIterator* entityItr, EcsIt
     return scene_debug_name_from_asset(ecs_view_read_t(assetItr, AssetComp));
   }
   if (ecs_world_has_t(world, ecs_view_entity(entityItr), SceneLightComp)) {
-    return stringtable_add(g_stringtable, string_lit("Light"));
+    return g_sceneNameLight;
   }
   if (ecs_world_has_t(world, ecs_view_entity(entityItr), SceneCollisionComp)) {
-    return stringtable_add(g_stringtable, string_lit("Collision"));
+    return g_sceneNameCollision;
   }
   if (ecs_world_has_t(world, ecs_view_entity(entityItr), SceneMarkerComp)) {
-    return stringtable_add(g_stringtable, string_lit("Marker"));
+    return g_sceneNameMarker;
   }
-  return stringtable_add(g_stringtable, string_lit("unnamed"));
+  return g_sceneNameUnnamed;
 }
 
 ecs_system_define(SceneNameInitSys) {
@@ -76,6 +78,11 @@ ecs_system_define(SceneNameInitSys) {
 }
 
 ecs_module_init(scene_name_module) {
+  g_sceneNameLight     = stringtable_add(g_stringtable, string_lit("Light"));
+  g_sceneNameCollision = stringtable_add(g_stringtable, string_lit("Collision"));
+  g_sceneNameMarker    = stringtable_add(g_stringtable, string_lit("Marker"));
+  g_sceneNameUnnamed   = stringtable_add(g_stringtable, string_lit("unnamed"));
+
   ecs_register_comp(SceneNameComp);
 
   ecs_register_view(InitDebugView);
