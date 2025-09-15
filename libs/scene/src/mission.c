@@ -123,7 +123,6 @@ static SceneObjective* obj_get_mut(SceneMissionComp* m, const SceneObjectiveId i
 
 static void
 obj_update(EcsWorld* world, SceneMissionComp* m, SceneObjective* obj, const SceneTimeComp* time) {
-  (void)m;
   if (obj->startTime < 0) {
     obj->startTime = time->time;
   }
@@ -136,7 +135,10 @@ obj_update(EcsWorld* world, SceneMissionComp* m, SceneObjective* obj, const Scen
       obj->endTime = time->time;
       mission_sound_end_play(world, m, time, obj->state);
     }
-    return;
+    return; // Objective has ended.
+  }
+  if (m->state != SceneMissionState_Active) {
+    return; // Mission has ended.
   }
   const TimeDuration timeElapsed = time->time - obj->startTime;
   if (obj->timeoutDuration > 0 && timeElapsed >= obj->timeoutDuration) {
@@ -385,15 +387,27 @@ const SceneObjective* scene_mission_obj_data(const SceneMissionComp* m) {
   return dynarray_begin_t(&m->objectives, SceneObjective);
 }
 
-TimeDuration scene_mission_obj_time(const SceneObjective* obj, const SceneTimeComp* time) {
+TimeDuration scene_mission_obj_time(
+    const SceneMissionComp* m, const SceneObjective* obj, const SceneTimeComp* time) {
   if (obj->endTime >= 0) {
     return obj->endTime - obj->startTime;
+  }
+  if (m->endTime >= 0) {
+    return m->endTime - obj->startTime;
   }
   return time->time - obj->startTime;
 }
 
-TimeDuration scene_mission_obj_time_rem(const SceneObjective* obj, const SceneTimeComp* time) {
-  const TimeDuration endTime = obj->endTime >= 0 ? obj->endTime : time->time;
+TimeDuration scene_mission_obj_time_rem(
+    const SceneMissionComp* m, const SceneObjective* obj, const SceneTimeComp* time) {
+  TimeDuration endTime;
+  if (obj->endTime >= 0) {
+    endTime = obj->endTime;
+  } else if (m->endTime >= 0) {
+    endTime = m->endTime;
+  } else {
+    endTime = time->time;
+  }
   const TimeDuration elapsed = endTime - obj->startTime;
   if (elapsed >= obj->timeoutDuration) {
     return 0;
@@ -401,7 +415,9 @@ TimeDuration scene_mission_obj_time_rem(const SceneObjective* obj, const SceneTi
   return obj->timeoutDuration - elapsed;
 }
 
-TimeDuration scene_mission_obj_time_ended(const SceneObjective* obj, const SceneTimeComp* time) {
+TimeDuration scene_mission_obj_time_ended(
+    const SceneMissionComp* m, const SceneObjective* obj, const SceneTimeComp* time) {
+  (void)m;
   if (obj->endTime < 0) {
     return 0;
   }

@@ -1906,7 +1906,7 @@ static ScriptVal eval_objective_time(EvalContext* ctx, ScriptBinderCall* call) {
   if (!obj) {
     return script_null();
   }
-  return script_time(scene_mission_obj_time(obj, time));
+  return script_time(scene_mission_obj_time(mission, obj, time));
 }
 
 static ScriptVal eval_objective_goal(EvalContext* ctx, ScriptBinderCall* call) {

@@ -337,7 +337,7 @@ static void hud_mission_draw(
   const usize           objCount = scene_mission_obj_count(mission);
   for (usize i = 0; i != objCount; ++i) {
     const SceneObjective* obj       = objData + i;
-    const TimeDuration    timeEnded = scene_mission_obj_time_ended(obj, time);
+    const TimeDuration    timeEnded = scene_mission_obj_time_ended(mission, obj, time);
     if (timeEnded > time_seconds(4)) {
       continue; // Hide old objectives.
     }
@@ -361,7 +361,7 @@ static void hud_mission_draw(
       fmt_write(&labelBuffer, " - {}/{}", fmt_float(obj->progress), fmt_float(obj->goal));
     }
     if (obj->timeoutDuration > 0) {
-      const TimeDuration timeRem = scene_mission_obj_time_rem(obj, time);
+      const TimeDuration timeRem = scene_mission_obj_time_rem(mission, obj, time);
       const u32          seconds = (u32)(timeRem / time_second);
       fmt_write(&labelBuffer, " - {}s", fmt_int(seconds));
     }
