@@ -30,6 +30,7 @@ ecs_comp_extern(SceneLevelManagerComp);
 ecs_comp_extern(SceneLifetimeDurationComp);
 ecs_comp_extern(SceneLifetimeOwnerComp);
 ecs_comp_extern(SceneLightAmbientComp);
+ecs_comp_extern(SceneLightComp);
 ecs_comp_extern(SceneLightDirComp);
 ecs_comp_extern(SceneLightLineComp);
 ecs_comp_extern(SceneLightPointComp);

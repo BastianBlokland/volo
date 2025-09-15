@@ -2,6 +2,8 @@
 #include "ecs/module.h"
 #include "geo/color.h"
 
+ecs_comp_extern_public(SceneLightComp); // Present on all light types.
+
 ecs_comp_extern_public(SceneLightPointComp) {
   GeoColor radiance;
   f32      radius;

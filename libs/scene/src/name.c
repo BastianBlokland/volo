@@ -50,17 +50,8 @@ static StringHash scene_name_find(EcsWorld* world, EcsIterator* entityItr, EcsIt
   if (soundComp && ecs_view_maybe_jump(assetItr, soundComp->asset)) {
     return scene_debug_name_from_asset(ecs_view_read_t(assetItr, AssetComp));
   }
-  if (ecs_world_has_t(world, ecs_view_entity(entityItr), SceneLightPointComp)) {
-    return stringtable_add(g_stringtable, string_lit("LightPoint"));
-  }
-  if (ecs_world_has_t(world, ecs_view_entity(entityItr), SceneLightSpotComp)) {
-    return stringtable_add(g_stringtable, string_lit("LightSpot"));
-  }
-  if (ecs_world_has_t(world, ecs_view_entity(entityItr), SceneLightLineComp)) {
-    return stringtable_add(g_stringtable, string_lit("LightLine"));
-  }
-  if (ecs_world_has_t(world, ecs_view_entity(entityItr), SceneLightDirComp)) {
-    return stringtable_add(g_stringtable, string_lit("LightDir"));
+  if (ecs_world_has_t(world, ecs_view_entity(entityItr), SceneLightComp)) {
+    return stringtable_add(g_stringtable, string_lit("Light"));
   }
   if (ecs_world_has_t(world, ecs_view_entity(entityItr), SceneCollisionComp)) {
     return stringtable_add(g_stringtable, string_lit("Collision"));

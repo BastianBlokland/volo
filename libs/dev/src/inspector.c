@@ -2640,15 +2640,7 @@ static void inspector_vis_draw_icon(EcsWorld* w, DevTextComp* text, EcsIterator*
       icon = UiShape_Image;
     } else if (ecs_world_has_t(w, e, SceneVfxSystemComp)) {
       icon = UiShape_Grain;
-    } else if (ecs_world_has_t(w, e, SceneLightPointComp)) {
-      icon = UiShape_Light;
-    } else if (ecs_world_has_t(w, e, SceneLightSpotComp)) {
-      icon = UiShape_Light;
-    } else if (ecs_world_has_t(w, e, SceneLightLineComp)) {
-      icon = UiShape_Light;
-    } else if (ecs_world_has_t(w, e, SceneLightDirComp)) {
-      icon = UiShape_Light;
-    } else if (ecs_world_has_t(w, e, SceneLightAmbientComp)) {
+    } else if (ecs_world_has_t(w, e, SceneLightComp)) {
       icon = UiShape_Light;
     } else if (ecs_world_has_t(w, e, SceneSoundComp)) {
       icon = UiShape_MusicNote;

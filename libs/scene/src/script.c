@@ -1537,6 +1537,7 @@ static ScriptVal eval_light_point_spawn(EvalContext* ctx, ScriptBinderCall* call
   const EcsEntityId result = ecs_world_entity_create(ctx->world);
   ecs_world_add_t(ctx->world, result, SceneCreatorComp, .creator = ctx->instigator);
   ecs_world_add_t(ctx->world, result, SceneTransformComp, .position = pos, .rotation = rot);
+  ecs_world_add_empty_t(ctx->world, result, SceneLightComp);
   ecs_world_add_t(ctx->world, result, SceneLightPointComp, .radiance = radiance, .radius = radius);
   ecs_world_add_empty_t(ctx->world, result, SceneLevelInstanceComp);
   return script_entity(result);
@@ -1552,6 +1553,7 @@ static ScriptVal eval_light_spot_spawn(EvalContext* ctx, ScriptBinderCall* call)
   const EcsEntityId result = ecs_world_entity_create(ctx->world);
   ecs_world_add_t(ctx->world, result, SceneCreatorComp, .creator = ctx->instigator);
   ecs_world_add_t(ctx->world, result, SceneTransformComp, .position = pos, .rotation = rot);
+  ecs_world_add_empty_t(ctx->world, result, SceneLightComp);
   ecs_world_add_t(
       ctx->world,
       result,
@@ -1573,6 +1575,7 @@ static ScriptVal eval_light_line_spawn(EvalContext* ctx, ScriptBinderCall* call)
   const EcsEntityId result = ecs_world_entity_create(ctx->world);
   ecs_world_add_t(ctx->world, result, SceneCreatorComp, .creator = ctx->instigator);
   ecs_world_add_t(ctx->world, result, SceneTransformComp, .position = pos, .rotation = rot);
+  ecs_world_add_empty_t(ctx->world, result, SceneLightComp);
   ecs_world_add_t(
       ctx->world,
       result,
