@@ -39,7 +39,7 @@ void asset_data_init_script_scene(void) {
   static const String g_markerTypeDoc      = string_static("Supported types:\n\n-`Info`\n\n-`Danger`\n\n-`Goal`");
   static const String g_vfxParamDoc        = string_static("Supported parameters:\n\n-`Alpha`\n\n-`EmitMultiplier`");
   static const String g_renderableParamDoc = string_static("Supported parameters:\n\n-`Color`\n\n-`Alpha`\n\n-`Emissive`");
-  static const String g_lightParamDoc      = string_static("Supported parameters:\n\n-`Radiance`\n\n-`Length`\n\n-`Angle`");
+  static const String g_lightParamDoc      = string_static("Supported parameters:\n\n-`Ambient`\n\n-`Radiance`\n\n-`Length`\n\n-`Angle`");
   static const String g_soundParamDoc      = string_static("Supported parameters:\n\n-`Gain`\n\n-`Pitch`");
   static const String g_animParamDoc       = string_static("Supported parameters:\n\n-`Time`\n\n-`TimeNorm`\n\n-`Speed`\n\n-`Weight`\n\n-`Active`\n\n-`Loop`\n\n-`FadeIn`\n\n-`FadeOut`\n\n-`Duration`");
   {

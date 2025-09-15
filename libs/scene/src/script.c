@@ -195,6 +195,7 @@ static void eval_enum_init_light_param(void) {
 #define PUSH_LIGHT_PARAM(_ENUM_, _NAME_)                                                           \
   script_enum_push((_ENUM_), string_lit(#_NAME_), SceneActionLightParam_##_NAME_);
 
+  PUSH_LIGHT_PARAM(&g_scriptEnumLightParam, Ambient);
   PUSH_LIGHT_PARAM(&g_scriptEnumLightParam, Radiance);
   PUSH_LIGHT_PARAM(&g_scriptEnumLightParam, Length);
   PUSH_LIGHT_PARAM(&g_scriptEnumLightParam, Angle);
@@ -294,10 +295,14 @@ ecs_view_define(EvalAnimView) { ecs_access_read(SceneAnimationComp); }
 ecs_view_define(EvalFactionView) { ecs_access_read(SceneFactionComp); }
 ecs_view_define(EvalHealthStatsView) { ecs_access_read(SceneHealthStatsComp); }
 ecs_view_define(EvalHealthView) { ecs_access_read(SceneHealthComp); }
-ecs_view_define(EvalLightDirView) { ecs_access_read(SceneLightDirComp); }
-ecs_view_define(EvalLightPointView) { ecs_access_read(SceneLightPointComp); }
-ecs_view_define(EvalLightSpotView) { ecs_access_read(SceneLightSpotComp); }
-ecs_view_define(EvalLightLineView) { ecs_access_read(SceneLightLineComp); }
+ecs_view_define(EvalLightView) {
+  ecs_access_with(SceneLightComp);
+  ecs_access_maybe_read(SceneLightAmbientComp);
+  ecs_access_maybe_read(SceneLightDirComp);
+  ecs_access_maybe_read(SceneLightPointComp);
+  ecs_access_maybe_read(SceneLightSpotComp);
+  ecs_access_maybe_read(SceneLightLineComp);
+}
 ecs_view_define(EvalLocoView) { ecs_access_read(SceneLocomotionComp); }
 ecs_view_define(EvalNameView) { ecs_access_read(SceneNameComp); }
 ecs_view_define(EvalNavAgentView) { ecs_access_read(SceneNavAgentComp); }
@@ -347,10 +352,7 @@ typedef struct {
   EcsIterator* globalItr;
   EcsIterator* healthItr;
   EcsIterator* healthStatsItr;
-  EcsIterator* lightDirItr;
-  EcsIterator* lightPointItr;
-  EcsIterator* lightSpotItr;
-  EcsIterator* lightLineItr;
+  EcsIterator* lightItr;
   EcsIterator* lineOfSightItr;
   EcsIterator* locoItr;
   EcsIterator* nameItr;
@@ -1591,46 +1593,46 @@ static ScriptVal eval_light_param(EvalContext* ctx, ScriptBinderCall* call) {
   const EcsEntityId entity = script_arg_entity(call, 0);
   const i32         param  = script_arg_enum(call, 1, &g_scriptEnumLightParam);
   if (call->argCount == 2) {
-    if (ecs_view_maybe_jump(ctx->lightPointItr, entity)) {
-      const SceneLightPointComp* point = ecs_view_read_t(ctx->lightPointItr, SceneLightPointComp);
+    if (ecs_view_maybe_jump(ctx->lightItr, entity)) {
+      const SceneLightAmbientComp* amb   = ecs_view_read_t(ctx->lightItr, SceneLightAmbientComp);
+      const SceneLightPointComp*   point = ecs_view_read_t(ctx->lightItr, SceneLightPointComp);
+      const SceneLightSpotComp*    spot  = ecs_view_read_t(ctx->lightItr, SceneLightSpotComp);
+      const SceneLightLineComp*    line  = ecs_view_read_t(ctx->lightItr, SceneLightLineComp);
+      const SceneLightDirComp*     dir   = ecs_view_read_t(ctx->lightItr, SceneLightDirComp);
+
       switch (param) {
+      case SceneActionLightParam_Ambient:
+        if (amb) {
+          return script_num(amb->intensity);
+        }
+        break;
       case SceneActionLightParam_Radiance:
-        return script_color(point->radiance);
+        if (point) {
+          return script_color(point->radiance);
+        }
+        if (spot) {
+          return script_color(spot->radiance);
+        }
+        if (line) {
+          return script_color(line->radiance);
+        }
+        if (dir) {
+          return script_color(dir->radiance);
+        }
+        break;
       case SceneActionLightParam_Length:
+        if (spot) {
+          return script_num(spot->length);
+        }
+        if (line) {
+          return script_num(line->length);
+        }
+        break;
       case SceneActionLightParam_Angle:
-        return script_num(0);
-      }
-    }
-    if (ecs_view_maybe_jump(ctx->lightSpotItr, entity)) {
-      const SceneLightSpotComp* spot = ecs_view_read_t(ctx->lightSpotItr, SceneLightSpotComp);
-      switch (param) {
-      case SceneActionLightParam_Radiance:
-        return script_color(spot->radiance);
-      case SceneActionLightParam_Length:
-        return script_num(spot->length);
-      case SceneActionLightParam_Angle:
-        return script_num(spot->angle);
-      }
-    }
-    if (ecs_view_maybe_jump(ctx->lightLineItr, entity)) {
-      const SceneLightLineComp* line = ecs_view_read_t(ctx->lightLineItr, SceneLightLineComp);
-      switch (param) {
-      case SceneActionLightParam_Radiance:
-        return script_color(line->radiance);
-      case SceneActionLightParam_Length:
-        return script_num(line->length);
-      case SceneActionLightParam_Angle:
-        return script_num(0);
-      }
-    }
-    if (ecs_view_maybe_jump(ctx->lightDirItr, entity)) {
-      const SceneLightDirComp* dir = ecs_view_read_t(ctx->lightDirItr, SceneLightDirComp);
-      switch (param) {
-      case SceneActionLightParam_Radiance:
-        return script_color(dir->radiance);
-      case SceneActionLightParam_Length:
-      case SceneActionLightParam_Angle:
-        return script_num(0);
+        if (spot) {
+          return script_num(spot->angle);
+        }
+        break;
       }
     }
     return script_null();
@@ -1649,6 +1651,7 @@ static ScriptVal eval_light_param(EvalContext* ctx, ScriptBinderCall* call) {
   case SceneActionLightParam_Radiance:
     act->updateLightParam.value_color = script_arg_color(call, 2);
     break;
+  case SceneActionLightParam_Ambient:
   case SceneActionLightParam_Length:
   case SceneActionLightParam_Angle:
     act->updateLightParam.value_f32 = (f32)script_arg_num(call, 2);
@@ -2449,10 +2452,7 @@ ecs_system_define(SceneScriptUpdateSys) {
       .factionItr        = ecs_view_itr(ecs_world_view_t(world, EvalFactionView)),
       .healthItr         = ecs_view_itr(ecs_world_view_t(world, EvalHealthView)),
       .healthStatsItr    = ecs_view_itr(ecs_world_view_t(world, EvalHealthStatsView)),
-      .lightDirItr       = ecs_view_itr(ecs_world_view_t(world, EvalLightDirView)),
-      .lightPointItr     = ecs_view_itr(ecs_world_view_t(world, EvalLightPointView)),
-      .lightSpotItr      = ecs_view_itr(ecs_world_view_t(world, EvalLightSpotView)),
-      .lightLineItr      = ecs_view_itr(ecs_world_view_t(world, EvalLightLineView)),
+      .lightItr          = ecs_view_itr(ecs_world_view_t(world, EvalLightView)),
       .lineOfSightItr    = ecs_view_itr(ecs_world_view_t(world, EvalLineOfSightView)),
       .locoItr           = ecs_view_itr(ecs_world_view_t(world, EvalLocoView)),
       .nameItr           = ecs_view_itr(ecs_world_view_t(world, EvalNameView)),
@@ -2547,10 +2547,7 @@ ecs_module_init(scene_script_module) {
       ecs_register_view(EvalGlobalView),
       ecs_register_view(EvalHealthStatsView),
       ecs_register_view(EvalHealthView),
-      ecs_register_view(EvalLightDirView),
-      ecs_register_view(EvalLightPointView),
-      ecs_register_view(EvalLightSpotView),
-      ecs_register_view(EvalLightLineView),
+      ecs_register_view(EvalLightView),
       ecs_register_view(EvalLineOfSightView),
       ecs_register_view(EvalLocoView),
       ecs_register_view(EvalNameView),
