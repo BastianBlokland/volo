@@ -235,7 +235,7 @@
       "name": "active",
       "doc": "Test if the given entity is performing an activity.\n\nSupported activities:\n\n-`Dead`\n\n-`Moving`\n\n-`Traveling`\n\n-`Attacking`\n\n-`Firing`\n\n-`AttackReadying`\n\n-`AttackAiming`",
       "sig": {
-        "ret": [ "null", "bool" ],
+        "ret": "bool",
         "args": [
           { "name": "v", "mask": "entity" },
           { "name": "activity", "mask": "str" }
@@ -290,21 +290,6 @@
           {
             "name": "target",
             "mask": [ "vec3", "entity" ]
-          }
-        ]
-      }
-    },
-    {
-      "name": "tell_global",
-      "doc": "Set a global property value.\n\n*Note*: The updated property is visible to scripts in the next frame.\n\nSupported combinators:\n\n-`Add`\n\n-`Sub`\n\n-`Mul`\n\n-`Div`\n\n-`Min`\n\n-`Max`\n\n-`And`\n\n-`Or`",
-      "sig": {
-        "ret": "null",
-        "args": [
-          { "name": "key", "mask": "str" },
-          { "name": "value", "mask": "any" },
-          {
-            "name": "combinator",
-            "mask": [ "null", "str" ]
           }
         ]
       }
@@ -577,7 +562,7 @@
       "name": "capable",
       "doc": "Test if the given entity has a specific capability.\n\nSupported capabilities:\n\n-`NavTravel`\n\n-`Animation`\n\n-`Attack`\n\n-`Status`\n\n-`Teleport`\n\n-`Bark`\n\n-`Renderable`\n\n-`Vfx`\n\n-`Light`\n\n-`Sound`",
       "sig": {
-        "ret": [ "null", "bool" ],
+        "ret": "bool",
         "args": [
           { "name": "v", "mask": "entity" },
           { "name": "capability", "mask": "str" }
@@ -746,21 +731,6 @@
       }
     },
     {
-      "name": "ask_global",
-      "doc": "Ask a global property value.\n\n*Note*: The result value is visible to the destination entity under the same key in the next frame.\n\nSupported combinators:\n\n-`Add`\n\n-`Sub`\n\n-`Mul`\n\n-`Div`\n\n-`Min`\n\n-`Max`\n\n-`And`\n\n-`Or`",
-      "sig": {
-        "ret": "null",
-        "args": [
-          { "name": "key", "mask": "str" },
-          { "name": "dst", "mask": "entity" },
-          {
-            "name": "combinator",
-            "mask": [ "null", "str" ]
-          }
-        ]
-      }
-    },
-    {
       "name": "mission_end",
       "doc": "End the current mission.\n\n*Note*: Only valid if there's a mission active.\n\nValid results:\n\n-`Success`\n\n-`Fail`.",
       "sig": {
@@ -779,6 +749,21 @@
           { "name": "pos", "mask": "vec3" },
           {
             "name": "faction",
+            "mask": [ "null", "str" ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "global_tell",
+      "doc": "Set a global property value.\n\n*Note*: The updated property is visible to scripts in the next frame.\n\nSupported combinators:\n\n-`Add`\n\n-`Sub`\n\n-`Mul`\n\n-`Div`\n\n-`Min`\n\n-`Max`\n\n-`And`\n\n-`Or`",
+      "sig": {
+        "ret": "null",
+        "args": [
+          { "name": "key", "mask": "str" },
+          { "name": "value", "mask": "any" },
+          {
+            "name": "combinator",
             "mask": [ "null", "str" ]
           }
         ]
@@ -977,6 +962,21 @@
       "sig": {
         "ret": "null",
         "args": []
+      }
+    },
+    {
+      "name": "global_ask",
+      "doc": "Ask a global property value.\n\n*Note*: The result value is visible to the destination entity under the same key in the next frame.\n\nSupported combinators:\n\n-`Add`\n\n-`Sub`\n\n-`Mul`\n\n-`Div`\n\n-`Min`\n\n-`Max`\n\n-`And`\n\n-`Or`",
+      "sig": {
+        "ret": "null",
+        "args": [
+          { "name": "key", "mask": "str" },
+          { "name": "dst", "mask": "entity" },
+          {
+            "name": "combinator",
+            "mask": [ "null", "str" ]
+          }
+        ]
       }
     },
     {

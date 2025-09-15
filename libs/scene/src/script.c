@@ -964,7 +964,7 @@ static ScriptVal eval_active(EvalContext* ctx, ScriptBinderCall* call) {
     return script_bool(attackAim && attackAim->isAiming);
   }
   }
-  return script_null();
+  script_panic_raise(call->panicHandler, (ScriptPanic){ScriptPanic_ArgumentInvalid, .argIndex = 1});
 }
 
 static ScriptVal eval_target_primary(EvalContext* ctx, ScriptBinderCall* call) {
@@ -1019,16 +1019,6 @@ static ScriptVal eval_tell(EvalContext* ctx, ScriptBinderCall* call) {
   return script_null();
 }
 
-static ScriptVal eval_tell_global(EvalContext* ctx, ScriptBinderCall* call) {
-  const StringHash         key        = script_arg_str(call, 0);
-  const ScriptVal          value      = script_arg_any(call, 1);
-  const SceneValCombinator combinator = arg_combinator(call, 2);
-
-  SceneAction* act = scene_action_push(ctx->actions, SceneActionType_Tell);
-  act->tell        = (SceneActionTell){.dstProp = key, .value = value, .combinator = combinator};
-  return script_null();
-}
-
 static ScriptVal eval_ask(EvalContext* ctx, ScriptBinderCall* call) {
   const EcsEntityId        src        = script_arg_entity(call, 0);
   const StringHash         key        = script_arg_str(call, 1);
@@ -1058,7 +1048,17 @@ static ScriptVal eval_ask_as(EvalContext* ctx, ScriptBinderCall* call) {
   return script_null();
 }
 
-static ScriptVal eval_ask_global(EvalContext* ctx, ScriptBinderCall* call) {
+static ScriptVal eval_global_tell(EvalContext* ctx, ScriptBinderCall* call) {
+  const StringHash         key        = script_arg_str(call, 0);
+  const ScriptVal          value      = script_arg_any(call, 1);
+  const SceneValCombinator combinator = arg_combinator(call, 2);
+
+  SceneAction* act = scene_action_push(ctx->actions, SceneActionType_Tell);
+  act->tell        = (SceneActionTell){.dstProp = key, .value = value, .combinator = combinator};
+  return script_null();
+}
+
+static ScriptVal eval_global_ask(EvalContext* ctx, ScriptBinderCall* call) {
   const StringHash         key        = script_arg_str(call, 0);
   const EcsEntityId        dst        = script_arg_entity(call, 1);
   const SceneValCombinator combinator = arg_combinator(call, 2);
@@ -2248,10 +2248,10 @@ static void eval_binder_init(void) {
     eval_bind(b, string_lit("target_range_max"),       eval_target_range_max);
     eval_bind(b, string_lit("target_exclude"),         eval_target_exclude);
     eval_bind(b, string_lit("tell"),                   eval_tell);
-    eval_bind(b, string_lit("tell_global"),            eval_tell_global);
     eval_bind(b, string_lit("ask"),                    eval_ask);
     eval_bind(b, string_lit("ask_as"),                 eval_ask_as);
-    eval_bind(b, string_lit("ask_global"),             eval_ask_global);
+    eval_bind(b, string_lit("global_tell"),            eval_global_tell);
+    eval_bind(b, string_lit("global_ask"),             eval_global_ask);
     eval_bind(b, string_lit("global_load"),            eval_global_load);
     eval_bind(b, string_lit("prefab_spawn"),           eval_prefab_spawn);
     eval_bind(b, string_lit("prefab_id"),              eval_prefab_id);

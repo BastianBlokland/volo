@@ -267,7 +267,7 @@ void asset_data_init_script_scene(void) {
   {
     const String       name   = string_lit("capable");
     const String       doc    = fmt_write_scratch("Test if the given entity has a specific capability.\n\n{}", fmt_text(g_capabilityDoc));
-    const ScriptMask   ret    = script_mask_bool | script_mask_null;
+    const ScriptMask   ret    = script_mask_bool;
     const ScriptSigArg args[] = {
         {string_lit("v"), script_mask_entity},
         {string_lit("capability"), script_mask_str},
@@ -277,7 +277,7 @@ void asset_data_init_script_scene(void) {
   {
     const String       name   = string_lit("active");
     const String       doc    = fmt_write_scratch("Test if the given entity is performing an activity.\n\n{}", fmt_text(g_activityDoc));
-    const ScriptMask   ret    = script_mask_bool | script_mask_null;
+    const ScriptMask   ret    = script_mask_bool;
     const ScriptSigArg args[] = {
         {string_lit("v"), script_mask_entity},
         {string_lit("activity"), script_mask_str},
@@ -334,17 +334,6 @@ void asset_data_init_script_scene(void) {
     bind(binder, name, doc, ret, args, array_elems(args));
   }
   {
-    const String       name   = string_lit("tell_global");
-    const String       doc    = fmt_write_scratch("Set a global property value.\n\n*Note*: The updated property is visible to scripts in the next frame.\n\n{}", fmt_text(g_combinatorDoc));
-    const ScriptMask   ret    = script_mask_null;
-    const ScriptSigArg args[] = {
-        {string_lit("key"), script_mask_str},
-        {string_lit("value"), script_mask_any},
-        {string_lit("combinator"), script_mask_str | script_mask_null},
-    };
-    bind(binder, name, doc, ret, args, array_elems(args));
-  }
-  {
     const String       name   = string_lit("ask");
     const String       doc    = fmt_write_scratch("Ask a source entity for a property value.\n\n*Note*: The result value is visible to the destination entity under the same key in the next frame.\n\n{}", fmt_text(g_combinatorDoc));
     const ScriptMask   ret    = script_mask_null;
@@ -370,7 +359,18 @@ void asset_data_init_script_scene(void) {
     bind(binder, name, doc, ret, args, array_elems(args));
   }
   {
-    const String       name   = string_lit("ask_global");
+    const String       name   = string_lit("global_tell");
+    const String       doc    = fmt_write_scratch("Set a global property value.\n\n*Note*: The updated property is visible to scripts in the next frame.\n\n{}", fmt_text(g_combinatorDoc));
+    const ScriptMask   ret    = script_mask_null;
+    const ScriptSigArg args[] = {
+        {string_lit("key"), script_mask_str},
+        {string_lit("value"), script_mask_any},
+        {string_lit("combinator"), script_mask_str | script_mask_null},
+    };
+    bind(binder, name, doc, ret, args, array_elems(args));
+  }
+  {
+    const String       name   = string_lit("global_ask");
     const String       doc    = fmt_write_scratch("Ask a global property value.\n\n*Note*: The result value is visible to the destination entity under the same key in the next frame.\n\n{}", fmt_text(g_combinatorDoc));
     const ScriptMask   ret    = script_mask_null;
     const ScriptSigArg args[] = {
