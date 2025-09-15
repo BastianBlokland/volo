@@ -37,6 +37,7 @@ ecs_comp_extern(SceneLightPointComp);
 ecs_comp_extern(SceneLightSpotComp);
 ecs_comp_extern(SceneLocationComp);
 ecs_comp_extern(SceneLocomotionComp);
+ecs_comp_extern(SceneMarkerComp);
 ecs_comp_extern(SceneNameComp);
 ecs_comp_extern(SceneNavAgentComp);
 ecs_comp_extern(SceneNavBlockerComp);
