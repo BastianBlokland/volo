@@ -381,8 +381,8 @@ void asset_data_init_script_scene(void) {
     bind(binder, name, doc, ret, args, array_elems(args));
   }
   {
-    const String       name   = string_lit("get_global");
-    const String       doc    = string_lit("Get a global property value.");
+    const String       name   = string_lit("global_load");
+    const String       doc    = string_lit("Load a global memory value.");
     const ScriptMask   ret    = script_mask_any;
     const ScriptSigArg args[] = {
         {string_lit("key"), script_mask_str},

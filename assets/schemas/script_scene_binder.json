@@ -705,16 +705,6 @@
       }
     },
     {
-      "name": "get_global",
-      "doc": "Get a global property value.",
-      "sig": {
-        "ret": "any",
-        "args": [
-          { "name": "key", "mask": "str" }
-        ]
-      }
-    },
-    {
       "name": "collision_box_spawn",
       "doc": "Spawn a collision box.\n\n*Note*: Resulting entity is not automatically destroyed.",
       "sig": {
@@ -878,6 +868,16 @@
       }
     },
     {
+      "name": "global_load",
+      "doc": "Load a global memory value.",
+      "sig": {
+        "ret": "any",
+        "args": [
+          { "name": "key", "mask": "str" }
+        ]
+      }
+    },
+    {
       "name": "attach",
       "doc": "Attach the given entity to another entity (optionally at a specific joint).",
       "sig": {
@@ -931,7 +931,7 @@
     },
     {
       "name": "light_param",
-      "doc": "Change or query a light parameter on the given entity.\n\nRequired capability: 'Light'\n\nSupported parameters:\n\n-`Radiance`\n\n-`Length`\n\n-`Angle`",
+      "doc": "Change or query a light parameter on the given entity.\n\nRequired capability: 'Light'\n\nSupported parameters:\n\n-`Ambient`\n\n-`Radiance`\n\n-`Length`\n\n-`Angle`",
       "sig": {
         "ret": [ "null", "num" ],
         "args": [
@@ -1205,7 +1205,7 @@
       "name": "time",
       "doc": "Lookup the current time.\n\nSupported clocks:\n\n-`LevelTime` (default)\n\n-`Time`\n\n-`RealTime`\n\n-`Delta`\n\n-`RealDelta`\n\n-`Ticks`",
       "sig": {
-        "ret": [ "null", "num" ],
+        "ret": "num",
         "args": [
           {
             "name": "clock",

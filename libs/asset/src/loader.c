@@ -30,7 +30,7 @@
   _X_(AssetFormat_Products,         products,           1  )                                       \
   _X_(AssetFormat_ProductsBin,      products,           1  )                                       \
   _X_(AssetFormat_Raw,              raw,                0  ) /* Raw cannot be versioned. */        \
-  _X_(AssetFormat_Script,           script,             52 )                                       \
+  _X_(AssetFormat_Script,           script,             53 )                                       \
   _X_(AssetFormat_ScriptBin,        script_bin,         5  )                                       \
   _X_(AssetFormat_ShaderBin,        shader_bin,         3  )                                       \
   _X_(AssetFormat_ShaderGlslFrag,   shader_glsl_frag,   3  )                                       \
