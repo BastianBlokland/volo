@@ -3,6 +3,10 @@
   "terrain": "terrains/desert_big.terrain",
   "fogMode": "VisibilityBased",
   "startpoint": { "x": -8.3416, "z": -6.6783 },
+  "properties": [
+    { "$type": "AssetProperty_Num", "$name": "cfgDurationNight", "$data": 30 },
+    { "$type": "AssetProperty_Num", "$name": "cfgDurationDay", "$data": 60 }
+  ],
   "objects": [
     {
       "id": 732732,
@@ -242,7 +246,6 @@
     {
       "id": 102378623,
       "prefab": "Ambiance",
-      "faction": "A",
       "rotation": { "w": 1 },
       "sets": [ "global" ]
     },
@@ -4391,7 +4394,6 @@
     {
       "id": 2415678119,
       "prefab": "MissionSurviveBasic",
-      "faction": "A",
       "rotation": { "w": 1 },
       "sets": [ "global" ]
     },
@@ -7980,6 +7982,12 @@
       "position": { "x": 58.0786, "y": 0.6911, "z": -59.9326 },
       "rotation": { "y": -0.1926, "w": 0.9813 },
       "sets": [ "environment" ]
+    },
+    {
+      "id": 4221118547,
+      "prefab": "DayCycle",
+      "rotation": { "w": 1 },
+      "sets": [ "global" ]
     },
     {
       "id": 4228614776,
