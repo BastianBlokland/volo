@@ -21,7 +21,7 @@ static ScriptExpr expr_intrinsic_arg(ScriptDoc* d, const ScriptExpr e, const u32
   return expr_set_data(d, expr_data(d, e)->intrinsic.argSet)[argIndex];
 }
 
-#define opt_prune_max_vars 32
+#define opt_prune_max_vars 128
 
 typedef struct {
   bool          valid;
@@ -44,30 +44,37 @@ opt_prune_find(OptPruneContext* ctx, const ScriptValId var, const ScriptScopeId 
   return null;
 }
 
+static OptPruneEntry* opt_prune_register(
+    OptPruneContext* ctx, const ScriptValId var, const ScriptScopeId scope, const ScriptExpr val) {
+  for (u32 i = 0; i != opt_prune_max_vars; ++i) {
+    if (sentinel_check(ctx->vars[i].id)) {
+      ctx->vars[i].valid = true;
+      ctx->vars[i].id    = var;
+      ctx->vars[i].scope = scope;
+      ctx->vars[i].val   = val;
+      return &ctx->vars[i];
+    }
+  }
+  return null;
+}
+
 static void opt_prune_register_store(
     OptPruneContext* ctx, const ScriptDoc* d, const ScriptExprVarStore* store) {
 
-  OptPruneEntry* existing = opt_prune_find(ctx, store->var, store->scope);
-  if (existing) {
-    // Second store for the same variable; not eligible for pruning.
-    existing->valid = false;
+  OptPruneEntry* entry = opt_prune_find(ctx, store->var, store->scope);
+  if (entry) {
+    entry->valid = false; // Second store for the same variable; not eligible for pruning.
     return;
+  }
+  entry = opt_prune_register(ctx, store->var, store->scope, store->val);
+  if (UNLIKELY(!entry)) {
+    return; // Prune variable storage exhausted; ignore variable.
   }
 
   // Validate that the value expression is safe to move (no side-effects).
   if (!script_expr_static(d, store->val)) {
-    return; // Value not static; not eligible for pruning.
-  }
-
-  // Register the prune candidate.
-  for (u32 i = 0; i != opt_prune_max_vars; ++i) {
-    if (sentinel_check(ctx->vars[i].id)) {
-      ctx->vars[i].valid = true;
-      ctx->vars[i].id    = store->var;
-      ctx->vars[i].scope = store->scope;
-      ctx->vars[i].val   = store->val;
-      break;
-    }
+    entry->valid = false; // Value not static; not eligible for pruning.
+    return;
   }
 }
 
