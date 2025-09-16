@@ -8,17 +8,23 @@
  *
  * Sets the following global properties:
  * - "cycleIsDay"   : Is it currently day or night.
+ * - "cycleCounter" : Zero based index of the day.
  * - "cycleProgress": Normalized progress in the current day / night.
  */
 
-var isDay         = global_load("cycleIsDay") ?? true
-var cycleProgress = global_load("cycleProgress") ?? 0.5
-var cycleDur      = (isDay ? global_load("cfgDurationDay") : global_load("cfgDurationNight")) ?? 30
+var isDay    = global_load("cycleIsDay") ?? true
+var counter  = global_load("cycleCounter") ?? 0
+var progress = global_load("cycleProgress") ?? 0.5
+var duration = (isDay ? global_load("cfgDurationDay") : global_load("cfgDurationNight")) ?? 30
 
-if ((cycleProgress += time("Delta") / cycleDur) >= 1.0) {
-  isDay         = !isDay
-  cycleProgress = 0.0
+if ((progress += time("Delta") / duration) >= 1.0) {
+  isDay = !isDay
+  if (isDay) {
+    counter += 1
+  }
+  progress = 0.0
 }
 
 global_tell("cycleIsDay", isDay)
-global_tell("cycleProgress", cycleProgress)
+global_tell("cycleCounter", counter)
+global_tell("cycleProgress", progress)
