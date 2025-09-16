@@ -12,7 +12,7 @@
  */
 
 var isDay         = global_load("cycleIsDay") ?? true
-var cycleProgress = global_load("cycleProgress") ?? 0.0
+var cycleProgress = global_load("cycleProgress") ?? 0.5
 var cycleDur      = (isDay ? global_load("cfgDurationDay") : global_load("cfgDurationNight")) ?? 30
 
 if ((cycleProgress += time("Delta") / cycleDur) >= 1.0) {
