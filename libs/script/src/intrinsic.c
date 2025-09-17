@@ -56,6 +56,7 @@ u32 script_intrinsic_arg_count(const ScriptIntrinsic i) {
   case ScriptIntrinsic_Sub:
   case ScriptIntrinsic_Min:
   case ScriptIntrinsic_Max:
+  case ScriptIntrinsic_Pow:
     return 2;
   case ScriptIntrinsic_QuatFromEuler:
   case ScriptIntrinsic_Select:
@@ -139,6 +140,7 @@ String script_intrinsic_str(const ScriptIntrinsic i) {
       [ScriptIntrinsic_Angle]             = string_static("angle"),
       [ScriptIntrinsic_Sin]               = string_static("sin"),
       [ScriptIntrinsic_Cos]               = string_static("cos"),
+      [ScriptIntrinsic_Pow]               = string_static("pow"),
       [ScriptIntrinsic_Normalize]         = string_static("normalize"),
       [ScriptIntrinsic_Magnitude]         = string_static("magnitude"),
       [ScriptIntrinsic_Absolute]          = string_static("absolute"),

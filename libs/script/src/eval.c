@@ -217,6 +217,10 @@ INLINE_HINT static ScriptVal eval_intr(ScriptEvalContext* ctx, const ScriptExpr 
     return script_val_sin(eval_expr(ctx, args[0]));
   case ScriptIntrinsic_Cos:
     return script_val_cos(eval_expr(ctx, args[0]));
+  case ScriptIntrinsic_Pow: {
+    EVAL_ARG_WITH_INTERRUPT(0);
+    return script_val_pow(arg0, eval_expr(ctx, args[1]));
+  }
   case ScriptIntrinsic_Normalize:
     return script_val_norm(eval_expr(ctx, args[0]));
   case ScriptIntrinsic_Magnitude:

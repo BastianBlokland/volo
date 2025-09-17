@@ -134,6 +134,7 @@ ScriptVal script_val_abs(ScriptVal);
 ScriptVal script_val_angle(ScriptVal, ScriptVal);
 ScriptVal script_val_sin(ScriptVal);
 ScriptVal script_val_cos(ScriptVal);
+ScriptVal script_val_pow(ScriptVal, ScriptVal);
 ScriptVal script_val_random(void);
 ScriptVal script_val_random_sphere(void);
 ScriptVal script_val_random_circle_xz(void);

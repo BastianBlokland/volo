@@ -812,6 +812,13 @@ ScriptVal script_val_cos(const ScriptVal val) {
   return val_null();
 }
 
+ScriptVal script_val_pow(const ScriptVal x, const ScriptVal y) {
+  if (val_type(x) == ScriptType_Num && val_type(y) == ScriptType_Num) {
+    return val_num(intrinsic_pow_f64(val_as_num(x), val_as_num(y)));
+  }
+  return val_null();
+}
+
 ScriptVal script_val_random(void) { return val_num(rng_sample_f32(g_rng)); }
 
 ScriptVal script_val_random_sphere(void) { return val_vec3(geo_vector_rand_in_sphere3(g_rng)); }
