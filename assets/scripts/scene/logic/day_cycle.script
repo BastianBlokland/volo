@@ -33,8 +33,8 @@ global_tell("cycleCounter", counter)
 global_tell("cycleProgress", progress)
 
 if ($refLight) {
-  var angleXMin = 10 * deg_to_rad
-  var angleXMax = 170 * deg_to_rad
+  var angleXMin = 15 * deg_to_rad
+  var angleXMax = 160 * deg_to_rad
   var angleX    = lerp(angleXMin, angleXMax, progress)
   var angleY    = 65 * deg_to_rad
   teleport($refLight, null, angle_axis(angleY, up) * angle_axis(angleX, right))
@@ -45,7 +45,7 @@ if ($refLight) {
   var radianceAmbientNight = color(0.5, 0.5, 1.0, 0.2)
   var radianceDirNight     = color(0.6, 0.6, 1.0, 0.1)
 
-  var intensity = sin(progress * pi)
+  var intensity = pow(sin(progress * pi), 0.5)
   var radianceAmbient
   if (isDay) {
     radianceAmbient = lerp(radianceAmbientDay, radianceAmbientNight, (1.0 - intensity) * 0.5)
