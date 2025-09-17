@@ -83,7 +83,7 @@ void rend_settings_global_to_default(RendSettingsGlobalComp* s, const bool devSu
 #endif
   }
 
-  s->shadowFilterSize = 0.1f;
+  s->shadowFilterSize = 0.05f;
   s->fogDilation      = -3.0f;
 }
 
