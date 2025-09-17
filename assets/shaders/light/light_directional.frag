@@ -74,7 +74,7 @@ f32 shadow_frac(const f32v3 worldPos) {
    * the distance between two world-space points.
    */
   const f32v3 shadRefCoord = shadow_map_coord(worldPos + f32v3(0, 0, in_shadowParams.x));
-  const f32   filterSize   = length(shadRefCoord.xz - shadCoord.xz);
+  const f32   filterSize   = length(shadRefCoord.xy - shadCoord.xy);
 
   /**
    * Randomize the rotation of the sample points based on the position, this greatly reduces the
