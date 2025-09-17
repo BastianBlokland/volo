@@ -446,18 +446,20 @@ ScriptSymRefSet script_sym_refs(const ScriptSymBag* bag, const ScriptSym sym) {
     return (ScriptSymRefSet){null, null};
   }
 
-  // Find the beginning of the references for this symbol.
-  while (res != begin && (res - 1)->sym == sym) {
-    --res;
+  // Find the first reference for this symbol.
+  const ScriptSymRef* resFirst = res;
+  while (resFirst != begin && (resFirst - 1)->sym == sym) {
+    --resFirst;
   }
 
-  // Find the end of the references for this symbol.
-  const ScriptSymRef* resEnd = res;
-  while (resEnd != end && (resEnd + 1)->sym == sym) {
-    ++resEnd;
+  // Find the last references for this symbol.
+  const ScriptSymRef* resLast = res;
+  while ((resLast + 1) != end && (resLast + 1)->sym == sym) {
+    ++resLast;
   }
 
-  return (ScriptSymRefSet){.begin = res, .end = resEnd + 1};
+  diag_assert(resFirst >= begin && resLast < end);
+  return (ScriptSymRefSet){.begin = resFirst, .end = resLast + 1};
 }
 
 String script_sym_kind_str(const ScriptSymKind kind) {

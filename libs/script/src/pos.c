@@ -173,6 +173,7 @@ String script_lookup_src(const ScriptLookup* l) {
 
 String script_lookup_src_range(const ScriptLookup* l, const ScriptRange range) {
   diag_assert(range.end >= range.start);
+  diag_assert(range.end <= l->srcSize);
   return string_slice(l->srcBuffer, range.start, range.end - range.start);
 }
 
