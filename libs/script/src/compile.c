@@ -844,6 +844,8 @@ static ScriptCompileError compile_intr(Context* ctx, const Target tgt, const Scr
     return compile_intr_unary(ctx, tgt, ScriptOp_Sin, args);
   case ScriptIntrinsic_Cos:
     return compile_intr_unary(ctx, tgt, ScriptOp_Cos, args);
+  case ScriptIntrinsic_Pow:
+    return compile_intr_binary(ctx, tgt, ScriptOp_Pow, args);
   case ScriptIntrinsic_Normalize:
     return compile_intr_unary(ctx, tgt, ScriptOp_Normalize, args);
   case ScriptIntrinsic_Magnitude:

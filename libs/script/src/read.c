@@ -340,6 +340,16 @@ static void script_builtin_init(void) {
     script_builtin_func_add(name, ScriptIntrinsic_Cos, doc, ret, args, array_elems(args));
   }
   {
+    const String       name   = string_lit("pow");
+    const String       doc    = string_lit("Raise the value to the given power.");
+    const ScriptMask   ret    = script_mask_num;
+    const ScriptSigArg args[] = {
+        {string_lit("v"), script_mask_num},
+        {string_lit("p"), script_mask_num},
+    };
+    script_builtin_func_add(name, ScriptIntrinsic_Pow, doc, ret, args, array_elems(args));
+  }
+  {
     const String       name   = string_lit("normalize");
     const String       doc    = string_lit("Normalize the given value.");
     const ScriptMask   ret    = script_mask_vec3 | script_mask_quat;

@@ -33,6 +33,7 @@
   VM_OP_SIMPLE_BINARY(      Angle,              script_val_angle                )\
   VM_OP_SIMPLE_UNARY(       Sin,                script_val_sin                  )\
   VM_OP_SIMPLE_UNARY(       Cos,                script_val_cos                  )\
+  VM_OP_SIMPLE_BINARY(      Pow,                script_val_pow                  )\
   VM_OP_SIMPLE_UNARY(       Normalize,          script_val_norm                 )\
   VM_OP_SIMPLE_UNARY(       Magnitude,          script_val_mag                  )\
   VM_OP_SIMPLE_UNARY(       Absolute,           script_val_abs                  )\
