@@ -168,9 +168,9 @@
           "additionalProperties": false,
           "properties": {
             "$type": { "const": "AssetPrefabTrait_LightAmbient" },
-            "intensity": { "title": "f32", "type": "number" }
+            "radiance": { "title": "GeoColor4", "description": "HDR Color (rgba)", "$ref": "#/$defs/GeoColor4" }
           },
-          "required": [ "$type", "intensity" ]
+          "required": [ "$type", "radiance" ]
         },
         {
           "type": "object",
@@ -366,7 +366,7 @@
         { "label": "New AssetPrefabTrait_LightSpot", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_LightSpot\",\n  \"radiance\": {},\n  \"angle\": 1,\n  \"length\": 1\n}" },
         { "label": "New AssetPrefabTrait_LightLine", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_LightLine\",\n  \"radiance\": {},\n  \"radius\": 1,\n  \"length\": 1\n}" },
         { "label": "New AssetPrefabTrait_LightDir", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_LightDir\",\n  \"radiance\": {}\n}" },
-        { "label": "New AssetPrefabTrait_LightAmbient", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_LightAmbient\",\n  \"intensity\": 1\n}" },
+        { "label": "New AssetPrefabTrait_LightAmbient", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_LightAmbient\",\n  \"radiance\": {}\n}" },
         { "label": "New AssetPrefabTrait_Lifetime", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Lifetime\",\n  \"duration\": 1\n}" },
         { "label": "New AssetPrefabTrait_Movement", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Movement\",\n  \"speed\": 1,\n  \"rotationSpeed\": 1,\n  \"radius\": 1,\n  \"weight\": 1\n}" },
         { "label": "New AssetPrefabTrait_Footstep", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Footstep\",\n  \"jointA\": \"placeholder\",\n  \"jointB\": \"placeholder\",\n  \"decalA\": \"placeholder\",\n  \"decalB\": \"placeholder\"\n}" },

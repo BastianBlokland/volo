@@ -4,7 +4,8 @@
 #include "pbr.glsl"
 
 struct AmbientData {
-  f32v4 packed; // x: ambientLight, y: mode, z, flags, w: unused
+  f32v4 radiance; // rgb: ambient radiance, w: unused.
+  u32v4 packed;   // x: mode, y, flags, zw: unused
 };
 
 bind_spec(0) const bool s_debug                = false;
@@ -62,13 +63,13 @@ f32 ao_sample_blur() {
   return aoSum / 9;
 }
 
-f32v3 ambient_diff_irradiance(const PbrSurface surf, const f32 intensity) {
-  return texture_cube(u_texDiffIrradiance, surf.normal).rgb * intensity;
+f32v3 ambient_diff_irradiance(const PbrSurface surf, const f32v3 radiance) {
+  return texture_cube(u_texDiffIrradiance, surf.normal).rgb * radiance;
 }
 
 f32v3 ambient_spec_irradiance(
     const PbrSurface surf,
-    const f32        intensity,
+    const f32v3      radiance,
     const f32        nDotV,
     const f32v3      fresnel,
     const f32v3      viewDir) {
@@ -76,7 +77,7 @@ f32v3 ambient_spec_irradiance(
   const f32   mip                = surf.roughness * s_specIrradianceMips;
   const f32v3 filteredIrradiance = texture_cube_lod(u_texSpecIrradiance, reflectDir, mip).rgb;
   const f32v2 brdf               = texture(u_texBrdfIntegration, f32v2(nDotV, surf.roughness)).rg;
-  return filteredIrradiance * (fresnel * brdf.x + brdf.y) * intensity;
+  return filteredIrradiance * (fresnel * brdf.x + brdf.y) * radiance;
 }
 
 void main() {
@@ -96,10 +97,10 @@ void main() {
   surf.roughness = geoAttr.roughness;
   surf.metalness = geoAttr.metalness;
 
-  const f32v3 viewDir      = normalize(u_global.camPosition.xyz - worldPos);
-  const f32   ambientLight = u_draw.packed.x;
-  const u32   mode         = floatBitsToUint(u_draw.packed.y);
-  const u32   flags        = floatBitsToUint(u_draw.packed.z);
+  const f32v3 viewDir  = normalize(u_global.camPosition.xyz - worldPos);
+  const f32v3 radiance = u_draw.radiance.rgb;
+  const u32   mode     = u_draw.packed.x;
+  const u32   flags    = u_draw.packed.y;
 
   f32 ambientOcclusion;
   if ((flags & c_flagsAmbientOcclusion) == 0) {
@@ -144,13 +145,13 @@ void main() {
       out_color               = pbr_fresnel_schlick_atten(nDotV, reflectance, surf.roughness);
     } break;
     case c_modeDebugDiffuseIrradiance:
-      out_color = ambient_diff_irradiance(surf, ambientLight);
+      out_color = ambient_diff_irradiance(surf, radiance);
       break;
     case c_modeDebugSpecularIrradiance: {
       const f32   nDotV       = max(dot(surf.normal, viewDir), 0);
       const f32v3 reflectance = pbr_reflectance(surf.color, surf.metalness);
       const f32v3 fresnel     = pbr_fresnel_schlick_atten(nDotV, reflectance, surf.roughness);
-      out_color               = ambient_spec_irradiance(surf, ambientLight, nDotV, fresnel, viewDir);
+      out_color               = ambient_spec_irradiance(surf, radiance, nDotV, fresnel, viewDir);
     } break;
     }
   } else {
@@ -158,18 +159,18 @@ void main() {
     // Ambient light.
     switch (mode) {
     case c_modeSolid:
-      out_color = surf.color * ambientLight * ambientOcclusion;
+      out_color = surf.color * radiance * ambientOcclusion;
       break;
     case c_modeDiffuseIrradiance:
     case c_modeSpecularIrradiance: {
       const f32   nDotV          = max(dot(surf.normal, viewDir), 0);
       const f32v3 reflectance    = pbr_reflectance(surf.color, surf.metalness);
       const f32v3 fresnel        = pbr_fresnel_schlick_atten(nDotV, reflectance, surf.roughness);
-      const f32v3 diffIrradiance = ambient_diff_irradiance(surf, ambientLight);
+      const f32v3 diffIrradiance = ambient_diff_irradiance(surf, radiance);
       out_color                  = (1.0 - fresnel) * diffIrradiance * surf.color * ambientOcclusion;
 
       if (mode == c_modeSpecularIrradiance) {
-        const f32v3 spec = ambient_spec_irradiance(surf, ambientLight, nDotV, fresnel, viewDir);
+        const f32v3 spec = ambient_spec_irradiance(surf, radiance, nDotV, fresnel, viewDir);
         out_color += spec * ambientOcclusion;
       }
     } break;

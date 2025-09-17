@@ -10,6 +10,7 @@
 #include "dev/hierarchy.h"
 #include "dev/inspector.h"
 #include "dev/panel.h"
+#include "dev/prefab.h"
 #include "dev/stats.h"
 #include "ecs/def.h"
 #include "ecs/entity.h"
@@ -154,6 +155,7 @@ static void ecs_destruct_hierarchy_panel(void* data) {
 
 ecs_view_define(HierarchyEntryView) {
   ecs_access_with(SceneLevelInstanceComp);
+  ecs_access_without(DevPrefabPreviewComp); // Hide previews in hierarchy.
   ecs_access_read(SceneNameComp);
   ecs_access_maybe_read(SceneAttachmentComp);
   ecs_access_maybe_read(SceneCreatorComp);
@@ -669,19 +671,7 @@ static Unicode hierarchy_icon_entity(HierarchyContext* ctx, const EcsEntityId e)
   if (ecs_world_has_t(ctx->world, e, SceneVfxSystemComp)) {
     return UiShape_Grain;
   }
-  if (ecs_world_has_t(ctx->world, e, SceneLightPointComp)) {
-    return UiShape_Light;
-  }
-  if (ecs_world_has_t(ctx->world, e, SceneLightSpotComp)) {
-    return UiShape_Light;
-  }
-  if (ecs_world_has_t(ctx->world, e, SceneLightLineComp)) {
-    return UiShape_Light;
-  }
-  if (ecs_world_has_t(ctx->world, e, SceneLightDirComp)) {
-    return UiShape_Light;
-  }
-  if (ecs_world_has_t(ctx->world, e, SceneLightAmbientComp)) {
+  if (ecs_world_has_t(ctx->world, e, SceneLightComp)) {
     return UiShape_Light;
   }
   if (ecs_world_has_t(ctx->world, e, SceneSoundComp)) {

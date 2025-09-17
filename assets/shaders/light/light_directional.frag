@@ -74,7 +74,7 @@ f32 shadow_frac(const f32v3 worldPos) {
    * the distance between two world-space points.
    */
   const f32v3 shadRefCoord = shadow_map_coord(worldPos + f32v3(0, 0, in_shadowParams.x));
-  const f32   filterSize   = length(shadRefCoord.xz - shadCoord.xz);
+  const f32   filterSize   = length(shadRefCoord.xy - shadCoord.xy);
 
   /**
    * Randomize the rotation of the sample points based on the position, this greatly reduces the
@@ -86,7 +86,8 @@ f32 shadow_frac(const f32v3 worldPos) {
   f32 shadowSum = 0;
   for (u32 i = 0; i < c_poissonDiskSampleCount; ++i) {
     const f32v2 poissonCoord = rotMat * c_poissonDisk[i];
-    const f32v3 sampleCoord  = f32v3(shadCoord.xy + poissonCoord * filterSize, shadCoord.z);
+    const f32   bias         = 0.00001;
+    const f32v3 sampleCoord  = f32v3(shadCoord.xy + poissonCoord * filterSize, shadCoord.z + bias);
     shadowSum += texture(u_texShadow, sampleCoord);
   }
   return shadowSum * c_pointDiskSampleCountInv;

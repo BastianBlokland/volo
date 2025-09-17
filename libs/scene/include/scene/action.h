@@ -142,6 +142,7 @@ typedef struct {
 } SceneActionUpdateVfxParam;
 
 typedef enum {
+  SceneActionLightParam_Ambient,
   SceneActionLightParam_Radiance,
   SceneActionLightParam_Length,
   SceneActionLightParam_Angle,

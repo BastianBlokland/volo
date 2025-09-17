@@ -52,9 +52,9 @@
     { "key": "UNIT_NAME_STRUCTURE_HOSPITAL", "value": "Medic Tent" },
     { "key": "UNIT_NAME_PROP_BARREL_EXPLOSIVE", "value": "Barrel" },
 
+    { "key": "LEVEL_NAME_NIGHT_TERROR", "value": "Night Terror" },
     { "key": "LEVEL_NAME_FRONTLINE", "value": "Frontline" },
     { "key": "LEVEL_NAME_DEFEND", "value": "Defend" },
-    { "key": "LEVEL_NAME_PLAYGROUND", "value": "Playground" },
     { "key": "LEVEL_NAME_UNKNOWN", "value": "Unknown" },
 
     { "key": "MENU_TITLE", "value": "Volo" },

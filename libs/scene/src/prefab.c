@@ -469,11 +469,13 @@ static void setup_sound(PrefabSetupContext* ctx, const AssetPrefabTraitSound* t)
 }
 
 static void setup_light_point(PrefabSetupContext* ctx, const AssetPrefabTraitLightPoint* t) {
+  ecs_world_add_empty_t(ctx->world, ctx->entity, SceneLightComp);
   ecs_world_add_t(
       ctx->world, ctx->entity, SceneLightPointComp, .radiance = t->radiance, .radius = t->radius);
 }
 
 static void setup_light_spot(PrefabSetupContext* ctx, const AssetPrefabTraitLightSpot* t) {
+  ecs_world_add_empty_t(ctx->world, ctx->entity, SceneLightComp);
   ecs_world_add_t(
       ctx->world,
       ctx->entity,
@@ -484,6 +486,7 @@ static void setup_light_spot(PrefabSetupContext* ctx, const AssetPrefabTraitLigh
 }
 
 static void setup_light_line(PrefabSetupContext* ctx, const AssetPrefabTraitLightLine* t) {
+  ecs_world_add_empty_t(ctx->world, ctx->entity, SceneLightComp);
   ecs_world_add_t(
       ctx->world,
       ctx->entity,
@@ -494,6 +497,7 @@ static void setup_light_line(PrefabSetupContext* ctx, const AssetPrefabTraitLigh
 }
 
 static void setup_light_dir(PrefabSetupContext* ctx, const AssetPrefabTraitLightDir* t) {
+  ecs_world_add_empty_t(ctx->world, ctx->entity, SceneLightComp);
   ecs_world_add_t(
       ctx->world,
       ctx->entity,
@@ -504,7 +508,8 @@ static void setup_light_dir(PrefabSetupContext* ctx, const AssetPrefabTraitLight
 }
 
 static void setup_light_ambient(PrefabSetupContext* ctx, const AssetPrefabTraitLightAmbient* t) {
-  ecs_world_add_t(ctx->world, ctx->entity, SceneLightAmbientComp, .intensity = t->intensity);
+  ecs_world_add_empty_t(ctx->world, ctx->entity, SceneLightComp);
+  ecs_world_add_t(ctx->world, ctx->entity, SceneLightAmbientComp, .radiance = t->radiance);
 }
 
 static void setup_lifetime(PrefabSetupContext* ctx, const AssetPrefabTraitLifetime* t) {

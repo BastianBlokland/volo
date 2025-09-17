@@ -39,7 +39,7 @@ void asset_data_init_script_scene(void) {
   static const String g_markerTypeDoc      = string_static("Supported types:\n\n-`Info`\n\n-`Danger`\n\n-`Goal`");
   static const String g_vfxParamDoc        = string_static("Supported parameters:\n\n-`Alpha`\n\n-`EmitMultiplier`");
   static const String g_renderableParamDoc = string_static("Supported parameters:\n\n-`Color`\n\n-`Alpha`\n\n-`Emissive`");
-  static const String g_lightParamDoc      = string_static("Supported parameters:\n\n-`Radiance`\n\n-`Length`\n\n-`Angle`");
+  static const String g_lightParamDoc      = string_static("Supported parameters:\n\n-`Ambient`\n\n-`Radiance`\n\n-`Length`\n\n-`Angle`");
   static const String g_soundParamDoc      = string_static("Supported parameters:\n\n-`Gain`\n\n-`Pitch`");
   static const String g_animParamDoc       = string_static("Supported parameters:\n\n-`Time`\n\n-`TimeNorm`\n\n-`Speed`\n\n-`Weight`\n\n-`Active`\n\n-`Loop`\n\n-`FadeIn`\n\n-`FadeOut`\n\n-`Duration`");
   {
@@ -154,7 +154,7 @@ void asset_data_init_script_scene(void) {
   {
     const String       name   = string_lit("time");
     const String       doc    = fmt_write_scratch("Lookup the current time.\n\n{}", fmt_text(g_clockDoc));
-    const ScriptMask   ret    = script_mask_num | script_mask_null;
+    const ScriptMask   ret    = script_mask_num;
     const ScriptSigArg args[] = {
         {string_lit("clock"), script_mask_str | script_mask_null},
     };
@@ -267,7 +267,7 @@ void asset_data_init_script_scene(void) {
   {
     const String       name   = string_lit("capable");
     const String       doc    = fmt_write_scratch("Test if the given entity has a specific capability.\n\n{}", fmt_text(g_capabilityDoc));
-    const ScriptMask   ret    = script_mask_bool | script_mask_null;
+    const ScriptMask   ret    = script_mask_bool;
     const ScriptSigArg args[] = {
         {string_lit("v"), script_mask_entity},
         {string_lit("capability"), script_mask_str},
@@ -277,7 +277,7 @@ void asset_data_init_script_scene(void) {
   {
     const String       name   = string_lit("active");
     const String       doc    = fmt_write_scratch("Test if the given entity is performing an activity.\n\n{}", fmt_text(g_activityDoc));
-    const ScriptMask   ret    = script_mask_bool | script_mask_null;
+    const ScriptMask   ret    = script_mask_bool;
     const ScriptSigArg args[] = {
         {string_lit("v"), script_mask_entity},
         {string_lit("activity"), script_mask_str},
@@ -334,17 +334,6 @@ void asset_data_init_script_scene(void) {
     bind(binder, name, doc, ret, args, array_elems(args));
   }
   {
-    const String       name   = string_lit("tell_global");
-    const String       doc    = fmt_write_scratch("Set a global property value.\n\n*Note*: The updated property is visible to scripts in the next frame.\n\n{}", fmt_text(g_combinatorDoc));
-    const ScriptMask   ret    = script_mask_null;
-    const ScriptSigArg args[] = {
-        {string_lit("key"), script_mask_str},
-        {string_lit("value"), script_mask_any},
-        {string_lit("combinator"), script_mask_str | script_mask_null},
-    };
-    bind(binder, name, doc, ret, args, array_elems(args));
-  }
-  {
     const String       name   = string_lit("ask");
     const String       doc    = fmt_write_scratch("Ask a source entity for a property value.\n\n*Note*: The result value is visible to the destination entity under the same key in the next frame.\n\n{}", fmt_text(g_combinatorDoc));
     const ScriptMask   ret    = script_mask_null;
@@ -370,7 +359,18 @@ void asset_data_init_script_scene(void) {
     bind(binder, name, doc, ret, args, array_elems(args));
   }
   {
-    const String       name   = string_lit("ask_global");
+    const String       name   = string_lit("global_tell");
+    const String       doc    = fmt_write_scratch("Set a global property value.\n\n*Note*: The updated property is visible to scripts in the next frame.\n\n{}", fmt_text(g_combinatorDoc));
+    const ScriptMask   ret    = script_mask_null;
+    const ScriptSigArg args[] = {
+        {string_lit("key"), script_mask_str},
+        {string_lit("value"), script_mask_any},
+        {string_lit("combinator"), script_mask_str | script_mask_null},
+    };
+    bind(binder, name, doc, ret, args, array_elems(args));
+  }
+  {
+    const String       name   = string_lit("global_ask");
     const String       doc    = fmt_write_scratch("Ask a global property value.\n\n*Note*: The result value is visible to the destination entity under the same key in the next frame.\n\n{}", fmt_text(g_combinatorDoc));
     const ScriptMask   ret    = script_mask_null;
     const ScriptSigArg args[] = {
@@ -381,8 +381,8 @@ void asset_data_init_script_scene(void) {
     bind(binder, name, doc, ret, args, array_elems(args));
   }
   {
-    const String       name   = string_lit("get_global");
-    const String       doc    = string_lit("Get a global property value.");
+    const String       name   = string_lit("global_load");
+    const String       doc    = string_lit("Load a global memory value.");
     const ScriptMask   ret    = script_mask_any;
     const ScriptSigArg args[] = {
         {string_lit("key"), script_mask_str},
@@ -553,7 +553,7 @@ void asset_data_init_script_scene(void) {
   {
     const String       name   = string_lit("renderable_spawn");
     const String       doc    = string_lit("Spawn a renderable entity.\n\n*Note*: Resulting entity is not automatically destroyed.\n\n*Note*: It takes one frame before it can be used with the 'renderable_param()' api.");
-    const ScriptMask   ret    = script_mask_bool | script_mask_null;
+    const ScriptMask   ret    = script_mask_entity;
     const ScriptSigArg args[] = {
         {string_lit("asset"), script_mask_entity},
         {string_lit("pos"), script_mask_vec3},
@@ -568,7 +568,7 @@ void asset_data_init_script_scene(void) {
   {
     const String       name   = string_lit("renderable_param");
     const String       doc    = fmt_write_scratch("Change or query a renderable parameter on the given entity.\n\nRequired capability: 'Renderable'\n\n{}", fmt_text(g_renderableParamDoc));
-    const ScriptMask   ret    = script_mask_bool | script_mask_null;
+    const ScriptMask   ret    = script_mask_color | script_mask_num | script_mask_null;
     const ScriptSigArg args[] = {
         {string_lit("v"), script_mask_entity},
         {string_lit("param"), script_mask_str},
@@ -679,7 +679,7 @@ void asset_data_init_script_scene(void) {
   {
     const String       name   = string_lit("light_param");
     const String       doc    = fmt_write_scratch("Change or query a light parameter on the given entity.\n\nRequired capability: 'Light'\n\n{}", fmt_text(g_lightParamDoc));
-    const ScriptMask   ret    = script_mask_num | script_mask_null;
+    const ScriptMask   ret    = script_mask_color | script_mask_num | script_mask_null;
     const ScriptSigArg args[] = {
         {string_lit("v"), script_mask_entity},
         {string_lit("param"), script_mask_str},
@@ -715,7 +715,7 @@ void asset_data_init_script_scene(void) {
   {
     const String       name   = string_lit("anim_param");
     const String       doc    = fmt_write_scratch("Change or query an animation parameter on the given entity.\n\nRequired capability: 'Animation'\n\n{}", fmt_text(g_animParamDoc));
-    const ScriptMask   ret    = script_mask_any;
+    const ScriptMask   ret    = script_mask_num | script_mask_bool | script_mask_null;
     const ScriptSigArg args[] = {
         {string_lit("v"), script_mask_entity},
         {string_lit("layer"), script_mask_str},

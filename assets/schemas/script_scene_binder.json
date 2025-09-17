@@ -142,7 +142,7 @@
       "name": "renderable_param",
       "doc": "Change or query a renderable parameter on the given entity.\n\nRequired capability: 'Renderable'\n\nSupported parameters:\n\n-`Color`\n\n-`Alpha`\n\n-`Emissive`",
       "sig": {
-        "ret": [ "null", "bool" ],
+        "ret": [ "null", "num", "color" ],
         "args": [
           { "name": "v", "mask": "entity" },
           { "name": "param", "mask": "str" },
@@ -235,7 +235,7 @@
       "name": "active",
       "doc": "Test if the given entity is performing an activity.\n\nSupported activities:\n\n-`Dead`\n\n-`Moving`\n\n-`Traveling`\n\n-`Attacking`\n\n-`Firing`\n\n-`AttackReadying`\n\n-`AttackAiming`",
       "sig": {
-        "ret": [ "null", "bool" ],
+        "ret": "bool",
         "args": [
           { "name": "v", "mask": "entity" },
           { "name": "activity", "mask": "str" }
@@ -295,21 +295,6 @@
       }
     },
     {
-      "name": "tell_global",
-      "doc": "Set a global property value.\n\n*Note*: The updated property is visible to scripts in the next frame.\n\nSupported combinators:\n\n-`Add`\n\n-`Sub`\n\n-`Mul`\n\n-`Div`\n\n-`Min`\n\n-`Max`\n\n-`And`\n\n-`Or`",
-      "sig": {
-        "ret": "null",
-        "args": [
-          { "name": "key", "mask": "str" },
-          { "name": "value", "mask": "any" },
-          {
-            "name": "combinator",
-            "mask": [ "null", "str" ]
-          }
-        ]
-      }
-    },
-    {
       "name": "vision",
       "doc": "Lookup the vision radius of the given entity.",
       "sig": {
@@ -333,7 +318,7 @@
       "name": "renderable_spawn",
       "doc": "Spawn a renderable entity.\n\n*Note*: Resulting entity is not automatically destroyed.\n\n*Note*: It takes one frame before it can be used with the 'renderable_param()' api.",
       "sig": {
-        "ret": [ "null", "bool" ],
+        "ret": "entity",
         "args": [
           { "name": "asset", "mask": "entity" },
           { "name": "pos", "mask": "vec3" },
@@ -577,7 +562,7 @@
       "name": "capable",
       "doc": "Test if the given entity has a specific capability.\n\nSupported capabilities:\n\n-`NavTravel`\n\n-`Animation`\n\n-`Attack`\n\n-`Status`\n\n-`Teleport`\n\n-`Bark`\n\n-`Renderable`\n\n-`Vfx`\n\n-`Light`\n\n-`Sound`",
       "sig": {
-        "ret": [ "null", "bool" ],
+        "ret": "bool",
         "args": [
           { "name": "v", "mask": "entity" },
           { "name": "capability", "mask": "str" }
@@ -705,16 +690,6 @@
       }
     },
     {
-      "name": "get_global",
-      "doc": "Get a global property value.",
-      "sig": {
-        "ret": "any",
-        "args": [
-          { "name": "key", "mask": "str" }
-        ]
-      }
-    },
-    {
       "name": "collision_box_spawn",
       "doc": "Spawn a collision box.\n\n*Note*: Resulting entity is not automatically destroyed.",
       "sig": {
@@ -756,21 +731,6 @@
       }
     },
     {
-      "name": "ask_global",
-      "doc": "Ask a global property value.\n\n*Note*: The result value is visible to the destination entity under the same key in the next frame.\n\nSupported combinators:\n\n-`Add`\n\n-`Sub`\n\n-`Mul`\n\n-`Div`\n\n-`Min`\n\n-`Max`\n\n-`And`\n\n-`Or`",
-      "sig": {
-        "ret": "null",
-        "args": [
-          { "name": "key", "mask": "str" },
-          { "name": "dst", "mask": "entity" },
-          {
-            "name": "combinator",
-            "mask": [ "null", "str" ]
-          }
-        ]
-      }
-    },
-    {
       "name": "mission_end",
       "doc": "End the current mission.\n\n*Note*: Only valid if there's a mission active.\n\nValid results:\n\n-`Success`\n\n-`Fail`.",
       "sig": {
@@ -789,6 +749,21 @@
           { "name": "pos", "mask": "vec3" },
           {
             "name": "faction",
+            "mask": [ "null", "str" ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "global_tell",
+      "doc": "Set a global property value.\n\n*Note*: The updated property is visible to scripts in the next frame.\n\nSupported combinators:\n\n-`Add`\n\n-`Sub`\n\n-`Mul`\n\n-`Div`\n\n-`Min`\n\n-`Max`\n\n-`And`\n\n-`Or`",
+      "sig": {
+        "ret": "null",
+        "args": [
+          { "name": "key", "mask": "str" },
+          { "name": "value", "mask": "any" },
+          {
+            "name": "combinator",
             "mask": [ "null", "str" ]
           }
         ]
@@ -878,6 +853,16 @@
       }
     },
     {
+      "name": "global_load",
+      "doc": "Load a global memory value.",
+      "sig": {
+        "ret": "any",
+        "args": [
+          { "name": "key", "mask": "str" }
+        ]
+      }
+    },
+    {
       "name": "attach",
       "doc": "Attach the given entity to another entity (optionally at a specific joint).",
       "sig": {
@@ -931,9 +916,9 @@
     },
     {
       "name": "light_param",
-      "doc": "Change or query a light parameter on the given entity.\n\nRequired capability: 'Light'\n\nSupported parameters:\n\n-`Radiance`\n\n-`Length`\n\n-`Angle`",
+      "doc": "Change or query a light parameter on the given entity.\n\nRequired capability: 'Light'\n\nSupported parameters:\n\n-`Ambient`\n\n-`Radiance`\n\n-`Length`\n\n-`Angle`",
       "sig": {
-        "ret": [ "null", "num" ],
+        "ret": [ "null", "num", "color" ],
         "args": [
           { "name": "v", "mask": "entity" },
           { "name": "param", "mask": "str" },
@@ -977,6 +962,21 @@
       "sig": {
         "ret": "null",
         "args": []
+      }
+    },
+    {
+      "name": "global_ask",
+      "doc": "Ask a global property value.\n\n*Note*: The result value is visible to the destination entity under the same key in the next frame.\n\nSupported combinators:\n\n-`Add`\n\n-`Sub`\n\n-`Mul`\n\n-`Div`\n\n-`Min`\n\n-`Max`\n\n-`And`\n\n-`Or`",
+      "sig": {
+        "ret": "null",
+        "args": [
+          { "name": "key", "mask": "str" },
+          { "name": "dst", "mask": "entity" },
+          {
+            "name": "combinator",
+            "mask": [ "null", "str" ]
+          }
+        ]
       }
     },
     {
@@ -1192,7 +1192,7 @@
       "name": "anim_param",
       "doc": "Change or query an animation parameter on the given entity.\n\nRequired capability: 'Animation'\n\nSupported parameters:\n\n-`Time`\n\n-`TimeNorm`\n\n-`Speed`\n\n-`Weight`\n\n-`Active`\n\n-`Loop`\n\n-`FadeIn`\n\n-`FadeOut`\n\n-`Duration`",
       "sig": {
-        "ret": "any",
+        "ret": [ "null", "num", "bool" ],
         "args": [
           { "name": "v", "mask": "entity" },
           { "name": "layer", "mask": "str" },
@@ -1205,7 +1205,7 @@
       "name": "time",
       "doc": "Lookup the current time.\n\nSupported clocks:\n\n-`LevelTime` (default)\n\n-`Time`\n\n-`RealTime`\n\n-`Delta`\n\n-`RealDelta`\n\n-`Ticks`",
       "sig": {
-        "ret": [ "null", "num" ],
+        "ret": "num",
         "args": [
           {
             "name": "clock",
