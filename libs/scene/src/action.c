@@ -366,7 +366,7 @@ static void action_update_light_param(ActionContext* ctx, const SceneActionUpdat
     switch (a->param) {
     case SceneActionLightParam_Ambient:
       if (amb) {
-        amb->intensity = a->value_f32;
+        amb->radiance = a->value_color;
       }
       break;
     case SceneActionLightParam_Radiance:

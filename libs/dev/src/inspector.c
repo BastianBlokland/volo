@@ -1225,7 +1225,7 @@ static void inspector_panel_draw_light(InspectorContext* ctx, UiTable* table) {
       inspector_panel_next(ctx, table);
       ui_label(ctx->canvas, string_lit("Ambient"));
       ui_table_next_column(ctx->canvas, table);
-      dev_widget_f32_limit(ctx->canvas, &amb->intensity, 0.0f, 10.0f, flags);
+      dev_widget_color(ctx->canvas, &amb->radiance, flags);
     }
   }
 }

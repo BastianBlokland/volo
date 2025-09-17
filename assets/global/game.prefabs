@@ -1054,7 +1054,7 @@
     {
       "name": "Sun",
       "traits": [
-        { "$type": "AssetPrefabTrait_LightAmbient", "intensity": 1.0 },
+        { "$type": "AssetPrefabTrait_LightAmbient", "radiance": { "r": 1.0, "g": 0.9, "b": 0.6, "a": 1.0 } },
         {
           "$type": "AssetPrefabTrait_LightDir",
           "radiance": { "r": 1, "g": 0.8, "b": 0.4, "a": 5 },
@@ -1066,7 +1066,7 @@
     {
       "name": "Moon",
       "traits": [
-        { "$type": "AssetPrefabTrait_LightAmbient", "intensity": 0.05 }
+        { "$type": "AssetPrefabTrait_LightAmbient", "radiance": { "r": 0.5, "g": 0.5, "b": 1.0, "a": 0.1 } }
       ]
     },
     {

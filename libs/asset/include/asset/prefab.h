@@ -102,7 +102,7 @@ typedef struct {
 } AssetPrefabTraitLightDir;
 
 typedef struct {
-  f32 intensity;
+  GeoColor radiance;
 } AssetPrefabTraitLightAmbient;
 
 typedef struct {

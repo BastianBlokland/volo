@@ -509,7 +509,7 @@ static void setup_light_dir(PrefabSetupContext* ctx, const AssetPrefabTraitLight
 
 static void setup_light_ambient(PrefabSetupContext* ctx, const AssetPrefabTraitLightAmbient* t) {
   ecs_world_add_empty_t(ctx->world, ctx->entity, SceneLightComp);
-  ecs_world_add_t(ctx->world, ctx->entity, SceneLightAmbientComp, .intensity = t->intensity);
+  ecs_world_add_t(ctx->world, ctx->entity, SceneLightAmbientComp, .radiance = t->radiance);
 }
 
 static void setup_lifetime(PrefabSetupContext* ctx, const AssetPrefabTraitLifetime* t) {

@@ -41,6 +41,6 @@ void rend_light_directional(RendLightComp*, GeoQuat rot, GeoColor radiance, Rend
 void rend_light_point(RendLightComp*, GeoVector pos, GeoColor radiance, f32 radius, RendLightFlags);
 void rend_light_spot(RendLightComp*, GeoVector posA, GeoVector posB, GeoColor radiance, f32 angle, RendLightFlags);
 void rend_light_line(RendLightComp*, GeoVector posA, GeoVector posB, GeoColor radiance, f32 radius, RendLightFlags);
-void rend_light_ambient(RendLightComp*, f32 intensity);
+void rend_light_ambient(RendLightComp*, GeoColor radiance);
 
 // clang-format on

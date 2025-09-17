@@ -23,10 +23,10 @@
 
 #include "light.h"
 
-static const f32 g_lightMinAmbient        = 0.01f; // NOTE: Total black looks pretty bad.
-static const f32 g_lightDirMaxShadowDist  = 250.0f;
-static const f32 g_lightDirShadowStepSize = 2.0f;
-static const f32 g_worldHeight            = 10.0f;
+static const GeoColor g_lightMinAmbient        = {0.01f, 0.01f, 0.01f}; // NOTE: Avoid total black.
+static const f32      g_lightDirMaxShadowDist  = 250.0f;
+static const f32      g_lightDirShadowStepSize = 2.0f;
+static const f32      g_worldHeight            = 10.0f;
 
 typedef enum {
   RendLightType_Directional,
@@ -75,7 +75,7 @@ typedef struct {
 } RendLightLine;
 
 typedef struct {
-  f32 intensity;
+  GeoColor radiance;
 } RendLightAmbient;
 
 typedef struct {
@@ -108,7 +108,7 @@ static const String g_lightGraphics[RendLightObj_Count] = {
 
 ecs_comp_define(RendLightRendererComp) {
   EcsEntityId objEntities[RendLightObj_Count];
-  f32         ambientIntensity;
+  GeoColor    ambientRadiance;
   bool        hasShadow;
   GeoMatrix   shadowTransMatrix, shadowProjMatrix;
 };
@@ -315,11 +315,11 @@ ecs_system_define(RendLightPushSys) {
 
     const SceneLightAmbientComp* ambientComp = ecs_view_read_t(itr, SceneLightAmbientComp);
     if (ambientComp) {
-      f32 intensity = ambientComp->intensity;
+      GeoColor radiance = ambientComp->radiance;
       if (scaleComp) {
-        intensity *= scaleComp->scale;
+        radiance.a *= scaleComp->scale;
       }
-      rend_light_ambient(light, intensity);
+      rend_light_ambient(light, radiance);
     }
   }
 }
@@ -442,8 +442,8 @@ ecs_system_define(RendLightRenderSys) {
   const RendLightVariation var  = debugLight ? RendLightVariation_Debug : RendLightVariation_Normal;
   const SceneTags          tags = SceneTags_Light;
 
-  renderer->hasShadow        = false;
-  renderer->ambientIntensity = 0.0f;
+  renderer->hasShadow       = false;
+  renderer->ambientRadiance = geo_color_black;
 
   // Clear debug output from the previous frame.
   if (debugLight && !debugLightFreeze) {
@@ -472,7 +472,8 @@ ecs_system_define(RendLightRenderSys) {
 
     dynarray_for_t(&light->entries, RendLight, entry) {
       if (entry->type == RendLightType_Ambient) {
-        renderer->ambientIntensity += entry->data_ambient.intensity;
+        const GeoColor radiance   = rend_radiance_resolve(entry->data_ambient.radiance);
+        renderer->ambientRadiance = geo_color_add(renderer->ambientRadiance, radiance);
         continue;
       }
       const u32       objIndex = rend_obj_index(entry->type, var);
@@ -782,17 +783,17 @@ void rend_light_line(
   }
 }
 
-void rend_light_ambient(RendLightComp* comp, const f32 intensity) {
+void rend_light_ambient(RendLightComp* comp, const GeoColor radiance) {
   rend_light_add(
       comp,
       (RendLight){
           .type         = RendLightType_Ambient,
-          .data_ambient = {.intensity = intensity},
+          .data_ambient = {.radiance = radiance},
       });
 }
 
-f32 rend_light_ambient_intensity(const RendLightRendererComp* renderer) {
-  return math_max(renderer->ambientIntensity, g_lightMinAmbient);
+GeoColor rend_light_ambient_radiance(const RendLightRendererComp* renderer) {
+  return geo_color_max(renderer->ambientRadiance, g_lightMinAmbient);
 }
 
 bool rend_light_has_shadow(const RendLightRendererComp* renderer) { return renderer->hasShadow; }

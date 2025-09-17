@@ -1603,7 +1603,7 @@ static ScriptVal eval_light_param(EvalContext* ctx, ScriptBinderCall* call) {
       switch (param) {
       case SceneActionLightParam_Ambient:
         if (amb) {
-          return script_num(amb->intensity);
+          return script_color(amb->radiance);
         }
         break;
       case SceneActionLightParam_Radiance:
@@ -1648,10 +1648,10 @@ static ScriptVal eval_light_param(EvalContext* ctx, ScriptBinderCall* call) {
       .param  = param,
   };
   switch (param) {
+  case SceneActionLightParam_Ambient:
   case SceneActionLightParam_Radiance:
     act->updateLightParam.value_color = script_arg_color(call, 2);
     break;
-  case SceneActionLightParam_Ambient:
   case SceneActionLightParam_Length:
   case SceneActionLightParam_Angle:
     act->updateLightParam.value_f32 = (f32)script_arg_num(call, 2);

@@ -343,7 +343,7 @@ static void painter_push_fog(RendPaintContext* ctx, const RendFogComp* fog, RvkI
   }
 }
 
-static void painter_push_ambient(RendPaintContext* ctx, const f32 intensity) {
+static void painter_push_ambient(RendPaintContext* ctx, const GeoColor radiance) {
   typedef enum {
     AmbientFlags_AmbientOcclusion     = 1 << 0,
     AmbientFlags_AmbientOcclusionBlur = 1 << 1,
@@ -351,7 +351,8 @@ static void painter_push_ambient(RendPaintContext* ctx, const f32 intensity) {
 
   struct {
     ALIGNAS(16)
-    GeoVector packed; // x: ambientLight, y: mode, z: flags, w: unused.
+    GeoColor radiance;  // rgb: radiance, w: unused.
+    u32      packed[4]; // x: mode, y: flags, zw: unused.
   } data;
 
   AmbientFlags flags = 0;
@@ -362,9 +363,9 @@ static void painter_push_ambient(RendPaintContext* ctx, const f32 intensity) {
     flags |= AmbientFlags_AmbientOcclusionBlur;
   }
 
-  data.packed.x = intensity;
-  data.packed.y = bits_u32_as_f32(ctx->settings->ambientMode);
-  data.packed.z = bits_u32_as_f32(flags);
+  data.radiance  = radiance;
+  data.packed[0] = ctx->settings->ambientMode;
+  data.packed[1] = flags;
 
   RvkRepositoryId graphicId;
   if (ctx->settings->ambientMode >= RendAmbientMode_DebugStart) {
@@ -859,7 +860,7 @@ static bool rend_canvas_paint_3d(
     rend_builder_attach_color(b, fwdColor, 0);
     rend_builder_attach_depth(b, geoDepth);
     painter_set_global_data(&ctx, &camMat, &projMat, geoSize, time, RendViewType_Main);
-    painter_push_ambient(&ctx, rend_light_ambient_intensity(light));
+    painter_push_ambient(&ctx, rend_light_ambient_radiance(light));
     switch ((u32)set->skyMode) {
     case RendSkyMode_Gradient:
       painter_push_simple(&ctx, RvkRepositoryId_SkyGradientGraphic, mem_empty);
