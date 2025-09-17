@@ -2,6 +2,9 @@
 /**
  * Day-night cycle controller.
  *
+ * Supports the following input properties:
+ * - "refLight": Reference to an entity containing a directional and ambient light.
+ *
  * Supports the following global input properties:
  * - "cfgDurationDay"  : How long the day lasts in seconds.
  * - "cfgDurationNight": How long the night lasts in seconds.
@@ -17,7 +20,7 @@ var counter  = global_load("cycleCounter") ?? 0
 var progress = global_load("cycleProgress") ?? 0.5
 var duration = (isDay ? global_load("cfgDurationDay") : global_load("cfgDurationNight")) ?? 30
 
-if ((progress += time("Delta") / duration) >= 1.0) {
+if ((progress += time("Delta") / duration) > 1.0) {
   isDay = !isDay
   if (isDay) {
     counter += 1
@@ -28,3 +31,29 @@ if ((progress += time("Delta") / duration) >= 1.0) {
 global_tell("cycleIsDay", isDay)
 global_tell("cycleCounter", counter)
 global_tell("cycleProgress", progress)
+
+if ($refLight) {
+  var angleXMin = 10 * deg_to_rad
+  var angleXMax = 170 * deg_to_rad
+  var angleX    = lerp(angleXMin, angleXMax, progress)
+  var angleY    = 65 * deg_to_rad
+  teleport($refLight, null, angle_axis(angleY, up) * angle_axis(angleX, right))
+
+  var radianceAmbientDay = color(1.0, 0.9, 0.6, 1.0)
+  var radianceDirDay     = color(1.0, 0.8, 0.4, 5)
+
+  var radianceAmbientNight = color(0.5, 0.5, 1.0, 0.2)
+  var radianceDirNight     = color(0.6, 0.6, 1.0, 0.1)
+
+  var intensity = sin(progress * pi)
+  var radianceAmbient
+  if (isDay) {
+    radianceAmbient = lerp(radianceAmbientDay, radianceAmbientNight, (1.0 - intensity) * 0.5)
+  } else {
+    radianceAmbient = lerp(radianceAmbientNight, radianceAmbientDay, (1.0 -intensity) * 0.5)
+  }
+  var radianceDir = (isDay ? radianceDirDay : radianceDirNight) * intensity
+
+  light_param($refLight, "Ambient", radianceAmbient)
+  light_param($refLight, "Radiance", radianceDir)
+}

@@ -7987,6 +7987,9 @@
       "id": 4221118547,
       "prefab": "DayCycle",
       "rotation": { "w": 1 },
+      "properties": [
+        { "$type": "AssetProperty_EntityLevel", "$name": "refLight", "$data": 1993375876 }
+      ],
       "sets": [ "global" ]
     },
     {
