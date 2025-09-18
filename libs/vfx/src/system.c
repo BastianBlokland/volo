@@ -15,6 +15,7 @@
 #include "log/logger.h"
 #include "rend/light.h"
 #include "scene/lifetime.h"
+#include "scene/light.h"
 #include "scene/tag.h"
 #include "scene/time.h"
 #include "scene/transform.h"
@@ -90,6 +91,12 @@ ecs_view_define(AssetView) {
   ecs_access_read(AssetVfxComp);
 }
 
+ecs_view_define(LightView) {
+  ecs_access_with(SceneLightComp);
+  ecs_access_read(SceneLightAmbientComp);
+  ecs_access_maybe_read(SceneScaleComp);
+}
+
 INLINE_HINT static f32 vfx_mod1(const f32 val) { return val - (u32)val; }
 
 /**
@@ -113,6 +120,31 @@ static f32 vfx_time_to_seconds(const TimeDuration dur) {
   static const f64 g_toSecMul = 1.0 / (f64)time_second;
   // NOTE: Potentially can be done in 32 bit but with nano-seconds its at the edge of f32 precision.
   return (f32)((f64)dur * g_toSecMul);
+}
+
+static GeoColor vfx_light_radiance_resolve(const GeoColor radiance) {
+  return (GeoColor){
+      .r = radiance.r * radiance.a,
+      .g = radiance.g * radiance.a,
+      .b = radiance.b * radiance.a,
+      .a = 1.0f,
+  };
+}
+
+static GeoColor vfx_light_radiance_query(EcsView* lightView) {
+  GeoColor result = geo_color(0, 0, 0, 0);
+  for (EcsIterator* itr = ecs_view_itr(lightView); ecs_view_walk(itr);) {
+    const SceneLightAmbientComp* ambientComp = ecs_view_read_t(itr, SceneLightAmbientComp);
+    GeoColor                     radiance    = ambientComp->radiance;
+
+    const SceneScaleComp* scaleComp = ecs_view_read_t(itr, SceneScaleComp);
+    if (scaleComp) {
+      radiance.a *= scaleComp->scale;
+    }
+
+    result = geo_color_add(result, radiance);
+  }
+  return vfx_light_radiance_resolve(result);
 }
 
 static const AssetAtlasComp* vfx_atlas_sprite(EcsWorld* world, const VfxAtlasManagerComp* man) {
@@ -531,7 +563,8 @@ static void vfx_instance_output_sprite(
     const SceneTags           sysTags,
     const SceneVfxSystemComp* sysCfg,
     const VfxTrans*           sysTrans,
-    const f32                 sysTimeRemSec) {
+    const f32                 sysTimeRemSec,
+    const GeoColor            lightRadiance) {
 
   if (sentinel_check(instance->spriteAtlasBaseIndex)) {
     return; // Sprites are optional.
@@ -561,6 +594,10 @@ static void vfx_instance_output_sprite(
   }
   color.a *= math_min(instance->ageSec * sprite->fadeInTimeInv, 1.0f);
   color.a *= math_min(timeRemSec * sprite->fadeOutTimeInv, 1.0f);
+
+  if (sprite->lit) {
+    color = geo_color_mul_comps(color, lightRadiance);
+  }
 
   const f32 flipbookFrac  = vfx_mod1(instance->ageSec * sprite->flipbookTimeInv);
   const u32 flipbookIndex = (u32)(flipbookFrac * (f32)sprite->flipbookCount);
@@ -682,6 +719,8 @@ ecs_system_define(VfxSystemRenderSys) {
 
   EcsIterator* assetItr = ecs_view_itr(ecs_world_view_t(world, AssetView));
 
+  const GeoColor lightRadiance = vfx_light_radiance_query(ecs_world_view_t(world, LightView));
+
   EcsView* renderView = ecs_world_view_t(world, RenderView);
   for (EcsIterator* itr = ecs_view_itr(renderView); ecs_view_walk(itr);) {
     const EcsEntityId                e        = ecs_view_entity(itr);
@@ -708,7 +747,15 @@ ecs_system_define(VfxSystemRenderSys) {
 
     dynarray_for_t(&state->instances, VfxSystemInstance, inst) {
       vfx_instance_output_sprite(
-          stats, inst, rendObjects, asset, sysTags, sysCfg, &sysTrans, sysTimeRemSec);
+          stats,
+          inst,
+          rendObjects,
+          asset,
+          sysTags,
+          sysCfg,
+          &sysTrans,
+          sysTimeRemSec,
+          lightRadiance);
       vfx_instance_output_light(stats, e, inst, light, asset, sysCfg, &sysTrans, sysTimeRemSec);
     }
   }
@@ -722,6 +769,7 @@ ecs_module_init(vfx_system_module) {
   ecs_register_view(ParticleSpriteRendObjView);
   ecs_register_view(AssetView);
   ecs_register_view(AtlasView);
+  ecs_register_view(LightView);
 
   ecs_register_system(VfxSystemStateInitSys, ecs_register_view(InitView));
   ecs_register_system(VfxSystemStateDeinitSys, ecs_register_view(DeinitView));
@@ -743,7 +791,8 @@ ecs_module_init(vfx_system_module) {
       ecs_register_view(RenderView),
       ecs_view_id(ParticleSpriteRendObjView),
       ecs_view_id(AssetView),
-      ecs_view_id(AtlasView));
+      ecs_view_id(AtlasView),
+      ecs_view_id(LightView));
 
   ecs_order(VfxSystemRenderSys, VfxOrder_Render);
 }
