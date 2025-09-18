@@ -11,7 +11,7 @@
       "expandForce": 7.5,
       "sprite": {
         "atlasEntry": "smoke",
-        "color": { "r": 0.6, "g": 0.45, "b": 0.25, "a": 0.5 },
+        "color": { "r": 0.6, "g": 0.45, "b": 0.25, "a": 0.6 },
         "blend": "Alpha",
         "facing": "BillboardSphere",
         "fadeInTime": 0.025,
@@ -19,7 +19,8 @@
         "scaleInTime": 0.025,
         "size": { "x": 1.0, "y": 1.0 },
         "geometryFade": true,
-        "shadowCaster": true
+        "shadowCaster": true,
+        "lit": true
       },
       "speed": { "min": 2.5, "max": 4 },
       "interval": 0.03,
