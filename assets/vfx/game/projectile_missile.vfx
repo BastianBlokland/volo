@@ -48,7 +48,8 @@
         "fadeOutTime": 0.8,
         "scaleInTime": 0.02,
         "geometryFade": true,
-        "shadowCaster": true
+        "shadowCaster": true,
+        "lit": true
       },
       "speed": { "min": 3, "max": 5 },
       "expandForce": 3,

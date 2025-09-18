@@ -92,7 +92,8 @@
         "scaleOutTime": { "title": "f32", "type": "number" },
         "geometryFade": { "title": "bool", "type": "boolean" },
         "shadowCaster": { "title": "bool", "type": "boolean" },
-        "distortion": { "title": "bool", "type": "boolean" }
+        "distortion": { "title": "bool", "type": "boolean" },
+        "lit": { "title": "bool", "type": "boolean" }
       },
       "required": [ "atlasEntry", "size" ],
       "defaultSnippets": [

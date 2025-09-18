@@ -87,7 +87,8 @@
         "fadeOutTime": 2.25,
         "scaleInTime": 1.5,
         "geometryFade": true,
-        "shadowCaster": true
+        "shadowCaster": true,
+        "lit": true
       },
       "speed": { "min": 3.5, "max": 5 },
       "count": 35,

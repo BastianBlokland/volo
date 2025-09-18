@@ -60,7 +60,8 @@
         "scaleInTime": 0.05,
         "size": { "x": 0.75, "y": 0.75 },
         "geometryFade": true,
-        "shadowCaster": true
+        "shadowCaster": true,
+        "lit": true
       },
       "speed": { "min": 6, "max": 35 },
       "count": 20,

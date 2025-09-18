@@ -38,14 +38,15 @@
       "force": { "y": -0.8 },
       "sprite": {
         "atlasEntry": "smoke",
-        "color": { "r": 0.1, "g": 0.1, "b": 0.1, "a": 1.5 },
+        "color": { "r": 0.1, "g": 0.1, "b": 0.1, "a": 1.25 },
         "blend": "Alpha",
         "facing": "BillboardSphere",
         "size": { "x": 1, "y": 1 },
         "fadeInTime": 0.05,
         "fadeOutTime": 0.5,
         "scaleInTime": 0.05,
-        "geometryFade": true
+        "geometryFade": true,
+        "lit": true
       },
       "speed": { "min": 3, "max": 5 },
       "expandForce": 3,
