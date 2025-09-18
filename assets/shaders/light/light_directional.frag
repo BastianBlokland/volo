@@ -86,7 +86,7 @@ f32 shadow_frac(const f32v3 worldPos) {
   f32 shadowSum = 0;
   for (u32 i = 0; i < c_poissonDiskSampleCount; ++i) {
     const f32v2 poissonCoord = rotMat * c_poissonDisk[i];
-    const f32   bias         = 0.00001;
+    const f32   bias         = 0.001;
     const f32v3 sampleCoord  = f32v3(shadCoord.xy + poissonCoord * filterSize, shadCoord.z + bias);
     shadowSum += texture(u_texShadow, sampleCoord);
   }
