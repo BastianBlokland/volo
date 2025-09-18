@@ -39,6 +39,7 @@ typedef struct {
   bool           geometryFade;                    // Aka 'soft particles'.
   bool           shadowCaster;
   bool           distortion; // Draw in the distortion pass instead of the forward pass.
+  bool           lit;        // Affected by lighting.
 } AssetVfxSprite;
 
 typedef struct {

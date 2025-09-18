@@ -39,7 +39,7 @@ typedef struct {
   GeoVector      size;
   f32            fadeInTime, fadeOutTime;
   f32            scaleInTime, scaleOutTime;
-  bool           geometryFade, shadowCaster, distortion;
+  bool           geometryFade, shadowCaster, distortion, lit;
 } AssetVfxSpriteDef;
 
 typedef struct {
@@ -145,6 +145,7 @@ static void vfx_build_sprite(const AssetVfxSpriteDef* def, AssetVfxSprite* out) 
   out->geometryFade    = def->geometryFade;
   out->shadowCaster    = def->shadowCaster;
   out->distortion      = def->distortion;
+  out->lit             = def->lit;
 }
 
 static void vfx_build_light(const AssetVfxLightDef* def, AssetVfxLight* out) {
@@ -283,6 +284,7 @@ void asset_data_init_vfx(void) {
   data_reg_field_t(g_dataReg, AssetVfxSpriteDef, geometryFade, data_prim_t(bool), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AssetVfxSpriteDef, shadowCaster, data_prim_t(bool), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AssetVfxSpriteDef, distortion, data_prim_t(bool), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetVfxSpriteDef, lit, data_prim_t(bool), .flags = DataFlags_Opt);
   data_reg_comment_t(g_dataReg, AssetVfxSpriteDef, "Optional sprite to render for each particle.");
 
   data_reg_struct_t(g_dataReg, AssetVfxLightDef);
