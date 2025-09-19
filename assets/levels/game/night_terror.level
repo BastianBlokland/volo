@@ -4,8 +4,8 @@
   "fogMode": "VisibilityBased",
   "startpoint": { "x": -8.3416, "z": -6.6783 },
   "properties": [
-    { "$type": "AssetProperty_Num", "$name": "cfgDurationNight", "$data": 30 },
-    { "$type": "AssetProperty_Num", "$name": "cfgDurationDay", "$data": 60 }
+    { "$type": "AssetProperty_Num", "$name": "cfgDurationNight", "$data": 180 },
+    { "$type": "AssetProperty_Num", "$name": "cfgDurationDay", "$data": 300 }
   ],
   "objects": [
     {
