@@ -2257,7 +2257,8 @@
       "prefab": "PropLampPost",
       "faction": "A",
       "position": { "x": -17.2992, "y": 0.6384, "z": -5.0399 },
-      "rotation": { "w": 1 }
+      "rotation": { "w": 1 },
+      "sets": [ "base" ]
     },
     {
       "id": 1205536812,
@@ -2445,7 +2446,8 @@
       "prefab": "PropLampPost",
       "faction": "A",
       "position": { "x": 25.6759, "y": 0.5466, "z": -3.764 },
-      "rotation": { "w": 1 }
+      "rotation": { "w": 1 },
+      "sets": [ "base" ]
     },
     {
       "id": 1306093291,
@@ -2654,6 +2656,14 @@
       "sets": [ "environment" ]
     },
     {
+      "id": 1471365473,
+      "prefab": "PropLampPost",
+      "faction": "A",
+      "position": { "x": 7.2198, "y": 0.3649, "z": -0.0947 },
+      "rotation": { "y": 0.8915, "w": -0.4531 },
+      "sets": [ "base" ]
+    },
+    {
       "id": 1475219157,
       "prefab": "PropPlant",
       "position": { "x": -92.1162, "y": 0.7876, "z": -0.8291 },
@@ -2851,7 +2861,8 @@
       "prefab": "PropLampPost",
       "faction": "A",
       "position": { "x": 1, "y": 0.3649, "z": -19 },
-      "rotation": { "y": 0.7071, "w": -0.7071 }
+      "rotation": { "y": 0.7071, "w": -0.7071 },
+      "sets": [ "base" ]
     },
     {
       "id": 1582127788,
