@@ -267,7 +267,8 @@ static void action_attach(ActionContext* ctx, const SceneActionAttach* a) {
   if (a->jointName) {
     attach->jointName = a->jointName;
   }
-  attach->offset = a->offset;
+  attach->offsetPos = a->offset;
+  attach->offsetRot = geo_quat_ident;
 }
 
 static void action_detach(ActionContext* ctx, const SceneActionDetach* a) {
