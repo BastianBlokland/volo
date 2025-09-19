@@ -925,7 +925,8 @@
               "min": { "x": -0.1, "y": 0, "z": -0.1 },
               "max": { "x": 0.1, "y": 3.7, "z": 0.1 }
             } ]
-        }
+        },
+        { "$type": "AssetPrefabTrait_Script", "scripts": [ "scripts/scene/effects/prop_streetlamp.script" ] }
       ]
     },
     {

@@ -1,0 +1,21 @@
+
+/**
+ * Streetlamp prop effects.
+ */
+
+var me            = self()
+var emissive      = color(1, 1, 0.7, 0.75)
+var lightPos      = vec3(-1, 5.7, 0.0)
+var lightRot      = angle_axis(90 * deg_to_rad, right)
+var lightAngle    = 50 * deg_to_rad
+var lightLength   = 10
+var lightRadiance = color(1, 1, 0.7, 50)
+
+if (!$light) {
+  renderable_param(me, "Emissive", emissive)
+
+  var light = light_spot_spawn(vec3(0, 0, 0), quat_ident, lightRadiance, lightAngle, lightLength)
+  attach(light, me, null, lightPos, lightRot)
+  destroy_after(light, me)
+  $light = light
+}
