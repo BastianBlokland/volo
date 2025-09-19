@@ -19,6 +19,7 @@ Assets:
 - Voices by https://voicemaker.in/ (paid plan)
 - Fonts by https://fonts.google.com/
 - Model by CGPitbull (https://assetstore.unity.com/packages/3d/environments/sci-fi/rts-93-headquarter-153554)
+- Model by Studio-Lab (https://www.fab.com/listings/c70b2519-ecfb-47df-8d1f-1022618e3860)
 - Model "Tank Low-Poly # 2" (https://skfb.ly/oEHOR) by Sidra is licensed under Creative Commons Attribution
 - Model "Mojo Barrier" (https://skfb.ly/ovnYu) by Sousinho is licensed under Creative Commons Attribution
 - Model "Button" (https://skfb.ly/o6s7M) by Kacper "Papysh" Żurawski is licensed under Creative Commons Attribution

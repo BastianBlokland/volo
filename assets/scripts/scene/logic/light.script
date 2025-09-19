@@ -10,7 +10,7 @@
 
 var fixture           = self()
 var lightRadius       = 5
-var lightIntensity    = 3.5
+var lightIntensity    = 1.5
 var emissiveIntensity = 0.5
 var lightOffset       = vec3(0.25, 0.5, 0)
 

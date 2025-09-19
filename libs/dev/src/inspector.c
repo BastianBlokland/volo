@@ -1123,9 +1123,14 @@ static void inspector_panel_draw_attachment(InspectorContext* ctx, UiTable* tabl
     }
 
     inspector_panel_next(ctx, table);
-    ui_label(ctx->canvas, string_lit("Offset"));
+    ui_label(ctx->canvas, string_lit("Position"));
     ui_table_next_column(ctx->canvas, table);
-    dev_widget_vec3(ctx->canvas, &attach->offset, flags);
+    dev_widget_vec3(ctx->canvas, &attach->offsetPos, flags);
+
+    inspector_panel_next(ctx, table);
+    ui_label(ctx->canvas, string_lit("Rotation"));
+    ui_table_next_column(ctx->canvas, table);
+    dev_widget_quat(ctx->canvas, &attach->offsetRot, flags);
   }
 }
 

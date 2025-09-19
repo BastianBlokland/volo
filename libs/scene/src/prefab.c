@@ -705,7 +705,8 @@ static void setup_attachment(PrefabSetupContext* ctx, const AssetPrefabTraitAtta
       .target     = ctx->entity,
       .jointIndex = sentinel_u32,
       .jointName  = t->joint,
-      .offset     = t->offset);
+      .offsetPos  = t->offset,
+      .offsetRot  = geo_quat_ident);
 }
 
 static void setup_production(PrefabSetupContext* ctx, const AssetPrefabTraitProduction* t) {

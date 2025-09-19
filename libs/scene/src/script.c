@@ -1207,15 +1207,19 @@ static ScriptVal eval_attach(EvalContext* ctx, ScriptBinderCall* call) {
     script_panic_raise(
         call->panicHandler, (ScriptPanic){ScriptPanic_ArgumentInvalid, .argIndex = 0});
   }
-  const EcsEntityId target = script_arg_entity(call, 1);
+  const EcsEntityId target    = script_arg_entity(call, 1);
+  const StringHash  jointName = script_arg_opt_str(call, 2, 0);
+  const GeoVector   offsetPos = script_arg_opt_vec3(call, 3, geo_vector(0));
+  const GeoQuat     offsetRot = script_arg_opt_quat(call, 4, geo_quat_ident);
 
   SceneAction* act = scene_action_push(ctx->actions, SceneActionType_Attach);
 
   act->attach = (SceneActionAttach){
       .entity    = entity,
       .target    = target,
-      .jointName = script_arg_opt_str(call, 2, 0),
-      .offset    = script_arg_opt_vec3(call, 3, geo_vector(0)),
+      .jointName = jointName,
+      .offsetPos = offsetPos,
+      .offsetRot = offsetRot,
   };
 
   return script_null();
@@ -1464,12 +1468,13 @@ static ScriptVal eval_vfx_param(EvalContext* ctx, ScriptBinderCall* call) {
     script_panic_raise(
         call->panicHandler, (ScriptPanic){ScriptPanic_MissingCapability, .argIndex = 0});
   }
+  const f32 value = (f32)script_arg_num_range(call, 2, 0.0, 1.0);
 
   SceneAction* act    = scene_action_push(ctx->actions, SceneActionType_UpdateVfxParam);
   act->updateVfxParam = (SceneActionUpdateVfxParam){
       .entity = entity,
       .param  = param,
-      .value  = (f32)script_arg_num_range(call, 2, 0.0, 1.0),
+      .value  = value,
   };
 
   return script_null();
@@ -1712,11 +1717,13 @@ static ScriptVal eval_sound_param(EvalContext* ctx, ScriptBinderCall* call) {
     script_panic_raise(
         call->panicHandler, (ScriptPanic){ScriptPanic_MissingCapability, .argIndex = 0});
   }
+  const f32 value = (f32)script_arg_num_range(call, 2, 0.0, 10.0);
+
   SceneAction* act      = scene_action_push(ctx->actions, SceneActionType_UpdateSoundParam);
   act->updateSoundParam = (SceneActionUpdateSoundParam){
       .entity = entity,
       .param  = param,
-      .value  = (f32)script_arg_num_range(call, 2, 0.0, 10.0),
+      .value  = value,
   };
   return script_null();
 }

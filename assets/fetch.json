@@ -300,7 +300,13 @@
         "headquarter/headquarter_color.png",
         "headquarter/headquarter_normal.png",
         "headquarter/headquarter_rough.png",
-        "headquarter/headquarter.glb"
+        "headquarter/headquarter.glb",
+        "lamppost/lamppost_color.png",
+        "lamppost/lamppost_emissive.png",
+        "lamppost/lamppost_metal.png",
+        "lamppost/lamppost_normal.png",
+        "lamppost/lamppost_rough.png",
+        "lamppost/lamppost.glb"
       ]
     }
   ]

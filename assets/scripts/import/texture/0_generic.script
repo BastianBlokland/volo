@@ -7,6 +7,14 @@ if (asset_id_match("*_normal*")) {
   fail_if(texture_type() != "u8", "Normal maps should use 8 bit pixels")
   texture_flag("Linear", true)
 }
+if (asset_id_match("*_metal*")) {
+  texture_channels(1) // Only a single channel is used for metallic maps.
+  texture_flag("Linear", true)
+}
+if (asset_id_match("*_rough*")) {
+  texture_channels(1) // Only a single channel is used for roughness maps.
+  texture_flag("Linear", true)
+}
 if (asset_id_match("*_lossless*")) {
   texture_flag("Lossless", true)
 }

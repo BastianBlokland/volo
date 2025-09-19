@@ -1,0 +1,42 @@
+
+/**
+ * Streetlamp prop effects.
+ */
+
+var me            = self()
+var time          = time("Time")
+var emissive      = color(1, 1, 0.7, 0.75)
+var lightRadiance = color(1, 1, 0.7, 55)
+
+if ($light) {
+  if (global_load("cycleIsDay")) {
+    renderable_param(me, "Emissive", black)
+    light_param($light, "Radiance", black)
+
+    // Turn on with a brief moment of flickering.
+    $flickerTime = time + random() * 2
+    $flickering  = true
+  } else {
+    var intensity = 1
+    if ($flickering) {
+      var pos = position(me)
+      intensity *= perlin3(vec3(time * 4.5, vec_x(pos), vec_z(pos)))
+    }
+    if (time >= $flickerTime) {
+      $flickerTime = time + random() * ($flickering ? 60 : 2)
+      $flickering  = !$flickering
+    }
+
+    renderable_param(me, "Emissive", emissive * intensity)
+    light_param($light, "Radiance", lightRadiance * intensity)
+  }
+} else {
+  var lightPos    = vec3(-1, 5.7, 0.0)
+  var lightRot    = angle_axis(90 * deg_to_rad, right)
+  var lightAngle  = random_between(40 * deg_to_rad, 60 * deg_to_rad)
+  var lightLength = 10
+  var light       = light_spot_spawn(vec3(0, 0, 0), quat_ident, black, lightAngle, lightLength)
+  attach(light, me, null, lightPos, lightRot)
+  destroy_after(light, me)
+  $light = light
+}

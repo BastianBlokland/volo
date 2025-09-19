@@ -48,8 +48,8 @@ ecs_system_define(SceneAttachmentSys) {
     const SceneSkeletonComp*  tgtSkel  = ecs_view_read_t(targetItr, SceneSkeletonComp);
     const SceneScaleComp*     tgtScale = ecs_view_read_t(targetItr, SceneScaleComp);
     if ((sentinel_check(attach->jointIndex) && !attach->jointName) || !tgtSkel) {
-      trans->position = scene_transform_to_world(tgtTrans, tgtScale, attach->offset);
-      trans->rotation = tgtTrans->rotation;
+      trans->position = scene_transform_to_world(tgtTrans, tgtScale, attach->offsetPos);
+      trans->rotation = geo_quat_mul(tgtTrans->rotation, attach->offsetRot);
 
       attachment_validate_pos(trans->position);
       continue;
@@ -77,12 +77,12 @@ ecs_system_define(SceneAttachmentSys) {
     const GeoMatrix tgtMatrix =
         scene_skeleton_joint_world(tgtTrans, tgtScale, tgtSkel, attach->jointIndex);
 
-    const GeoVector pos = geo_matrix_transform3_point(&tgtMatrix, attach->offset);
+    const GeoVector pos = geo_matrix_transform3_point(&tgtMatrix, attach->offsetPos);
     const GeoVector fwd = geo_matrix_transform3(&tgtMatrix, geo_forward);
     const GeoVector up  = geo_matrix_transform3(&tgtMatrix, geo_up);
 
     trans->position = pos;
-    trans->rotation = geo_quat_look(fwd, up);
+    trans->rotation = geo_quat_mul(geo_quat_look(fwd, up), attach->offsetRot);
 
     attachment_validate_pos(pos);
   }
@@ -112,7 +112,8 @@ void scene_attach_to_entity(EcsWorld* world, const EcsEntityId entity, const Ecs
       SceneAttachmentComp,
       .target     = target,
       .jointName  = 0,
-      .jointIndex = sentinel_u32);
+      .jointIndex = sentinel_u32,
+      .offsetRot  = geo_quat_ident);
 }
 
 void scene_attach_to_joint(
@@ -123,7 +124,8 @@ void scene_attach_to_joint(
       SceneAttachmentComp,
       .target     = target,
       .jointName  = 0,
-      .jointIndex = jointIndex);
+      .jointIndex = jointIndex,
+      .offsetRot  = geo_quat_ident);
 }
 
 void scene_attach_to_joint_name(
@@ -137,5 +139,6 @@ void scene_attach_to_joint_name(
       SceneAttachmentComp,
       .target     = target,
       .jointName  = jointName,
-      .jointIndex = sentinel_u32);
+      .jointIndex = sentinel_u32,
+      .offsetRot  = geo_quat_ident);
 }
