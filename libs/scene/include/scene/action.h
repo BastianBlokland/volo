@@ -82,7 +82,8 @@ typedef struct {
   EcsEntityId entity;
   EcsEntityId target;
   StringHash  jointName;
-  GeoVector   offset;
+  GeoVector   offsetPos;
+  GeoQuat     offsetRot;
 } SceneActionAttach;
 
 typedef struct {

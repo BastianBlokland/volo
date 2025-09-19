@@ -1215,7 +1215,8 @@ static ScriptVal eval_attach(EvalContext* ctx, ScriptBinderCall* call) {
       .entity    = entity,
       .target    = target,
       .jointName = script_arg_opt_str(call, 2, 0),
-      .offset    = script_arg_opt_vec3(call, 3, geo_vector(0)),
+      .offsetPos = script_arg_opt_vec3(call, 3, geo_vector(0)),
+      .offsetRot = geo_quat_ident,
   };
 
   return script_null();
