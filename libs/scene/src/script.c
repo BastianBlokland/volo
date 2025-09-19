@@ -1468,12 +1468,13 @@ static ScriptVal eval_vfx_param(EvalContext* ctx, ScriptBinderCall* call) {
     script_panic_raise(
         call->panicHandler, (ScriptPanic){ScriptPanic_MissingCapability, .argIndex = 0});
   }
+  const f32 value = (f32)script_arg_num_range(call, 2, 0.0, 1.0);
 
   SceneAction* act    = scene_action_push(ctx->actions, SceneActionType_UpdateVfxParam);
   act->updateVfxParam = (SceneActionUpdateVfxParam){
       .entity = entity,
       .param  = param,
-      .value  = (f32)script_arg_num_range(call, 2, 0.0, 1.0),
+      .value  = value,
   };
 
   return script_null();
@@ -1716,11 +1717,13 @@ static ScriptVal eval_sound_param(EvalContext* ctx, ScriptBinderCall* call) {
     script_panic_raise(
         call->panicHandler, (ScriptPanic){ScriptPanic_MissingCapability, .argIndex = 0});
   }
+  const f32 value = (f32)script_arg_num_range(call, 2, 0.0, 10.0);
+
   SceneAction* act      = scene_action_push(ctx->actions, SceneActionType_UpdateSoundParam);
   act->updateSoundParam = (SceneActionUpdateSoundParam){
       .entity = entity,
       .param  = param,
-      .value  = (f32)script_arg_num_range(call, 2, 0.0, 10.0),
+      .value  = value,
   };
   return script_null();
 }
