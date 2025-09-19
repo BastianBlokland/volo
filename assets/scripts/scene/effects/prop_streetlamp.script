@@ -11,10 +11,16 @@ var lightAngle    = 50 * deg_to_rad
 var lightLength   = 10
 var lightRadiance = color(1, 1, 0.7, 50)
 
-if (!$light) {
-  renderable_param(me, "Emissive", emissive)
-
-  var light = light_spot_spawn(vec3(0, 0, 0), quat_ident, lightRadiance, lightAngle, lightLength)
+if ($light) {
+  if (global_load("cycleIsDay")) {
+    renderable_param(me, "Emissive", black)
+    light_param($light, "Radiance", black)
+  } else {
+    renderable_param(me, "Emissive", emissive)
+    light_param($light, "Radiance", lightRadiance)
+  }
+} else {
+  var light = light_spot_spawn(vec3(0, 0, 0), quat_ident, black, lightAngle, lightLength)
   attach(light, me, null, lightPos, lightRot)
   destroy_after(light, me)
   $light = light
