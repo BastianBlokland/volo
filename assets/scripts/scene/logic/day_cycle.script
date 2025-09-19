@@ -45,14 +45,17 @@ if ($refLight) {
   var radianceAmbientNight = color(0.5, 0.5, 1.0, 0.225)
   var radianceDirNight     = color(0.6, 0.6, 1.0, 0.1)
 
-  var intensity = sin(progress * pi)
+  var intensity        = sin(progress * pi)
+  var intensityAmbient = pow(intensity, 0.6)
+  var intensityDir     = pow(intensity, 0.3)
+
   var radianceAmbient
   if (isDay) {
-    radianceAmbient = lerp(radianceAmbientDay, radianceAmbientNight, (1.0 - intensity) * 0.5)
+    radianceAmbient = lerp(radianceAmbientDay, radianceAmbientNight, (1.0 - intensityAmbient) * 0.5)
   } else {
-    radianceAmbient = lerp(radianceAmbientNight, radianceAmbientDay, (1.0 -intensity) * 0.5)
+    radianceAmbient = lerp(radianceAmbientNight, radianceAmbientDay, (1.0 - intensityAmbient) * 0.5)
   }
-  var radianceDir = (isDay ? radianceDirDay : radianceDirNight) * pow(intensity, 0.5)
+  var radianceDir = (isDay ? radianceDirDay : radianceDirNight) * intensityDir
 
   light_param($refLight, "Ambient", radianceAmbient)
   light_param($refLight, "Radiance", radianceDir)
