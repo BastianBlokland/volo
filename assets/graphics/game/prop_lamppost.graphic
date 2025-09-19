@@ -1,0 +1,21 @@
+{
+  "pass": "Geometry",
+  "shaders": [
+    { "program": "shaders/standard.vert" },
+    {
+      "program": "shaders/standard.frag",
+      "overrides": [
+        { "name": "normalMap", "binding": 0, "value": 1 },
+        { "name": "emissiveMap", "binding": 2, "value": 1 }
+      ]
+    }
+  ],
+  "samplers": [
+    { "texture": "external/lamppost/lamppost_color.png", "anisotropy": "x2" },
+    { "texture": "external/lamppost/lamppost_rough.png", "anisotropy": "x2" },
+    { "texture": "external/lamppost/lamppost_metal.png", "anisotropy": "x2" },
+    { "texture": "external/lamppost/lamppost_normal.png", "anisotropy": "x2" },
+    { "texture": "external/lamppost/lamppost_emissive.png", "anisotropy": "x2" }
+  ],
+  "mesh": "external/lamppost/lamppost.glb"
+}
