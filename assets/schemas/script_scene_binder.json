@@ -875,8 +875,12 @@
             "mask": [ "null", "str" ]
           },
           {
-            "name": "offset",
+            "name": "position",
             "mask": [ "null", "vec3" ]
+          },
+          {
+            "name": "rotation",
+            "mask": [ "null", "quat" ]
           }
         ]
       }
