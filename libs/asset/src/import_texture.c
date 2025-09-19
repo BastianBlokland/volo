@@ -569,7 +569,7 @@ bool asset_import_texture(
 
   // Apply flip.
   if (ctx.flip & AssetImportTextureFlip_Y) {
-    asset_texture_flip_y(outMem, ctx.width, ctx.height, channels, ctx.type);
+    asset_texture_flip_y(outMem, ctx.width, ctx.height, ctx.channels, ctx.type);
   }
 
   AssetTextureFlags outFlags = 0;
