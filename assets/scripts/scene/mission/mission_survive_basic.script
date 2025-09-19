@@ -7,7 +7,7 @@ if (mission_state() == "Idle") {
   mission_begin("MISSION_NAME_SURVIVE")
 
   $defendObj = objective_begin("OBJECTIVE_DEFEND")
-  objective_timeout($defendObj, 5 * 60, "Success")
+  objective_timeout($defendObj, 15 * 60, "Success")
 }
 
 if (mission_state() != "Active") {
