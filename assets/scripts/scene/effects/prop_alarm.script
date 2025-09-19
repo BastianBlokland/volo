@@ -11,7 +11,7 @@ var me             = self()
 var blinkFrequency = $cfgAlarmFrequency ?? 0.5
 var emissive       = color(1, 0.1, 0.05, 0.75)
 var lightOffset    = vec3(0.1, 3.8, 0.1)
-var lightRadiance  = color(1, 0.1, 0.05, 75)
+var lightRadiance  = color(1, 0.1, 0.05, 40)
 var lightRadius    = 10
 
 $lightAlarm ??= {

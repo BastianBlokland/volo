@@ -42,7 +42,7 @@ if ($refLight) {
   var radianceAmbientDay = color(1.0, 0.9, 0.6, 1.0)
   var radianceDirDay     = color(1.0, 0.8, 0.4, 2.5)
 
-  var radianceAmbientNight = color(0.5, 0.5, 1.0, 0.2)
+  var radianceAmbientNight = color(0.5, 0.5, 1.0, 0.225)
   var radianceDirNight     = color(0.6, 0.6, 1.0, 0.1)
 
   var intensity = sin(progress * pi)
