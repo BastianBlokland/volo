@@ -1502,7 +1502,7 @@ static void gltf_build_skeleton(
     const AssetImportAnim* importAnim = &importData->anims[i];
     const GltfAnim*        anim       = &ld->anims[importAnim->index];
 
-    resAnim->name = stringtable_lookup(g_stringtable, importAnim->nameHash);
+    resAnim->name = importAnim->nameHash;
 
     const f32 durationOrg = anim->duration;
 
