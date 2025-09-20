@@ -20,9 +20,9 @@
   _X_(AssetFormat_LevelBin,         level,              3  )                                       \
   _X_(AssetFormat_Locale,           locale,             1  )                                       \
   _X_(AssetFormat_LocaleBin,        locale,             1  )                                       \
-  _X_(AssetFormat_MeshBin,          mesh_bin,           2  )                                       \
-  _X_(AssetFormat_MeshGlb,          mesh_glb,           26 )                                       \
-  _X_(AssetFormat_MeshGltf,         mesh_gltf,          26 )                                       \
+  _X_(AssetFormat_MeshBin,          mesh_bin,           3  )                                       \
+  _X_(AssetFormat_MeshGlb,          mesh_glb,           27 )                                       \
+  _X_(AssetFormat_MeshGltf,         mesh_gltf,          27 )                                       \
   _X_(AssetFormat_MeshObj,          mesh_obj,           7  )                                       \
   _X_(AssetFormat_MeshProc,         mesh_proc,          2  )                                       \
   _X_(AssetFormat_Prefabs,          prefabs,            3  )                                       \
@@ -30,7 +30,7 @@
   _X_(AssetFormat_Products,         products,           1  )                                       \
   _X_(AssetFormat_ProductsBin,      products,           1  )                                       \
   _X_(AssetFormat_Raw,              raw,                0  ) /* Raw cannot be versioned. */        \
-  _X_(AssetFormat_Script,           script,             56 )                                       \
+  _X_(AssetFormat_Script,           script,             57 )                                       \
   _X_(AssetFormat_ScriptBin,        script_bin,         6  )                                       \
   _X_(AssetFormat_ShaderBin,        shader_bin,         3  )                                       \
   _X_(AssetFormat_ShaderGlslFrag,   shader_glsl_frag,   3  )                                       \

@@ -58,7 +58,7 @@ typedef struct {
 } AssetMeshAnimChannel;
 
 typedef struct {
-  String               name; // Interned.
+  StringHash           name;
   AssetMeshAnimFlags   flags;
   f32                  duration, time, speedMin, speedMax, weight;
   AssetMeshAnimChannel joints[asset_mesh_joints_max][AssetMeshAnimTarget_Count];

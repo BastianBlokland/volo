@@ -208,16 +208,6 @@
       }
     },
     {
-      "name": "name",
-      "doc": "Lookup the name of the given entity.",
-      "sig": {
-        "ret": [ "null", "str" ],
-        "args": [
-          { "name": "v", "mask": "entity" }
-        ]
-      }
-    },
-    {
       "name": "query_set",
       "doc": "Find all entities in the given set.\n\n*Note*: Returns a query handle.\n\nSupported factions:\n\n-`FactionA`\n\n-`FactionB`\n\n-`FactionC`\n\n-`FactionD`\n\n-`FactionNone`",
       "sig": {
@@ -430,6 +420,16 @@
       "doc": "Lookup the primary target of the given entity.",
       "sig": {
         "ret": [ "null", "entity" ],
+        "args": [
+          { "name": "v", "mask": "entity" }
+        ]
+      }
+    },
+    {
+      "name": "debug_name",
+      "doc": "Lookup the debug name (if present) of the given entity.",
+      "sig": {
+        "ret": [ "null", "str" ],
         "args": [
           { "name": "v", "mask": "entity" }
         ]

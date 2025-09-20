@@ -86,8 +86,14 @@ void ui_label_with_opts(UiCanvasComp* canvas, String text, const UiLabelOpts* op
     if (opts->flags & UiWidget_Translate) {
       text = loc_translate_str(text);
     }
-    const UiFlags flags = !string_is_empty(opts->tooltip) ? UiFlags_Interactable : UiFlags_None;
-    id                  = ui_canvas_draw_text(canvas, text, opts->fontSize, opts->align, flags);
+    UiFlags flags = 0;
+    if (!string_is_empty(opts->tooltip)) {
+      flags |= UiFlags_Interactable;
+    }
+    if (opts->allowWordBreak) {
+      flags |= UiFlags_AllowWordBreak;
+    }
+    id = ui_canvas_draw_text(canvas, text, opts->fontSize, opts->align, flags);
   }
   if (!string_is_empty(opts->tooltip)) {
     ui_tooltip(canvas, id, opts->tooltip, .maxSize = opts->tooltipMaxSize);

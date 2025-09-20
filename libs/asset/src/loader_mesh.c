@@ -94,7 +94,7 @@ void asset_data_init_mesh(void) {
   data_reg_field_t(g_dataReg, AssetMeshAnimChannel, valueData, data_prim_t(u32));
 
   data_reg_struct_t(g_dataReg, AssetMeshAnim);
-  data_reg_field_t(g_dataReg, AssetMeshAnim, name, data_prim_t(String), .flags = DataFlags_Intern);
+  data_reg_field_t(g_dataReg, AssetMeshAnim, name, data_prim_t(StringHash));
   data_reg_field_t(g_dataReg, AssetMeshAnim, flags, t_AssetMeshAnimFlags);
   data_reg_field_t(g_dataReg, AssetMeshAnim, duration, data_prim_t(f32));
   data_reg_field_t(g_dataReg, AssetMeshAnim, time, data_prim_t(f32));
