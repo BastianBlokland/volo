@@ -217,7 +217,6 @@ typedef enum {
   GltfError_AnimCountExceedsMaximum,
   GltfError_InvalidBuffer,
   GltfError_UnsupportedPrimitiveMode,
-  GltfError_UnsupportedInterpolationMode,
   GltfError_UnsupportedGlbVersion,
   GltfError_GlbJsonChunkMissing,
   GltfError_GlbChunkCountExceedsMaximum,
@@ -254,7 +253,6 @@ static String gltf_error_str(const GltfError err) {
       string_static("Animation count exceeds maximum"),
       string_static("Gltf invalid buffer"),
       string_static("Unsupported primitive mode, only triangle primitives supported"),
-      string_static("Unsupported interpolation mode, only linear interpolation supported"),
       string_static("Unsupported glb version"),
       string_static("Glb json chunk missing"),
       string_static("Glb chunk count exceeds maximum"),
@@ -1473,8 +1471,24 @@ static void gltf_build_skeleton(
         if (!gltf_access_check(ld, channel->accOutput, GltfType_f32, requiredComponents)) {
           goto Error;
         }
-        if (ld->access[channel->accInput].count != ld->access[channel->accOutput].count) {
-          goto Error;
+        const u32 inputCount  = ld->access[channel->accInput].count;
+        const u32 outputCount = ld->access[channel->accOutput].count;
+        switch (channel->interpolation) {
+        case GltfAnimInterp_Linear:
+          if (inputCount != outputCount) {
+            goto Error;
+          }
+          break;
+        case GltfAnimInterp_Step:
+          if (inputCount != outputCount) {
+            goto Error;
+          }
+          break;
+        case GltfAnimInterp_CubicSpline:
+          if ((inputCount != (outputCount * 3)) || inputCount < 2) {
+            goto Error;
+          }
+          break;
         }
       }
     }
