@@ -521,11 +521,12 @@ static void setup_movement(PrefabSetupContext* ctx, const AssetPrefabTraitMoveme
       ctx->world,
       ctx->entity,
       SceneLocomotionComp,
-      .maxSpeed         = t->speed,
-      .rotationSpeedRad = t->rotationSpeed,
-      .radius           = t->radius,
-      .weight           = t->weight,
-      .moveAnimation    = t->moveAnimation);
+      .maxSpeed           = t->speed,
+      .rotationSpeedRad   = t->rotationSpeed,
+      .radius             = t->radius,
+      .weight             = t->weight,
+      .moveAnimation      = t->moveAnimation,
+      .moveAnimationSpeed = t->moveAnimationSpeed);
 
   if (t->wheeled) {
     ecs_world_add_t(

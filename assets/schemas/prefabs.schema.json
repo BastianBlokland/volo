@@ -191,6 +191,7 @@
             "radius": { "title": "f32", "type": "number" },
             "weight": { "title": "f32", "type": "number" },
             "moveAnimation": { "title": "StringHash", "type": "string" },
+            "moveAnimationSpeed": { "title": "f32", "type": "number" },
             "navLayer": { "title": "AssetPrefabNavLayer", "$ref": "#/$defs/AssetPrefabNavLayer" },
             "wheeled": { "title": "bool", "type": "boolean" },
             "wheeledAcceleration": { "title": "f32", "type": "number" }
