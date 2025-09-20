@@ -183,6 +183,7 @@ static VkPresentModeKHR rvk_pick_presentmode(
       return available[i];
     }
   }
+  log_w("Fallback present mode unavailable");
   return VK_PRESENT_MODE_FIFO_KHR; // FIFO is required by the spec to be always available.
 }
 
