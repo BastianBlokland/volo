@@ -284,6 +284,30 @@ static ScriptVal import_eval_anim_name_match(AssetImportContext* ctx, ScriptBind
   return script_bool(string_match_glob(name, patternStr, StringMatchFlags_IgnoreCase));
 }
 
+static ScriptVal import_eval_anim_name_trim(AssetImportContext* ctx, ScriptBinderCall* call) {
+  AssetImportMesh* data       = ctx->data;
+  const u32        index      = (u32)script_arg_num_range(call, 0, 0, data->animCount - 1);
+  const StringHash prefixHash = script_arg_str(call, 1);
+  const StringHash suffixHash = script_arg_opt_str(call, 2, 0);
+  if (!data->anims[index].nameHash) {
+    return script_str_empty();
+  }
+  String name = stringtable_lookup(g_stringtable, data->anims[index].nameHash);
+
+  const String prefix = stringtable_lookup(g_stringtable, prefixHash);
+  if (string_starts_with(name, prefix)) {
+    name = string_slice(name, prefix.size, name.size - prefix.size);
+  }
+
+  const String suffix = suffixHash ? stringtable_lookup(g_stringtable, suffixHash) : string_empty;
+  if (string_ends_with(name, suffix)) {
+    name = string_slice(name, 0, name.size - suffix.size);
+  }
+
+  data->anims[index].nameHash = stringtable_add(g_stringtable, name);
+  return script_str(data->anims[index].nameHash);
+}
+
 static ScriptVal import_eval_anim_duration(AssetImportContext* ctx, ScriptBinderCall* call) {
   AssetImportMesh* data  = ctx->data;
   const u32        index = (u32)script_arg_num_range(call, 0, 0, data->animCount - 1);
@@ -587,6 +611,17 @@ void asset_data_init_import_mesh(void) {
         {string_lit("pattern"), script_mask_str},
     };
     asset_import_bind(binder, name, doc, ret, args, array_elems(args), import_eval_anim_name_match);
+  }
+  {
+    const String       name   = string_lit("anim_name_trim");
+    const String       doc    = string_lit("Remove a prefix (and optionally suffix) from the animation name at the given index. Returns the new name.");
+    const ScriptMask   ret    = script_mask_str;
+    const ScriptSigArg args[] = {
+        {string_lit("index"), script_mask_num},
+        {string_lit("prefix"), script_mask_str},
+        {string_lit("suffix"), script_mask_str | script_mask_null},
+    };
+    asset_import_bind(binder, name, doc, ret, args, array_elems(args), import_eval_anim_name_trim);
   }
   {
     const String       name   = string_lit("anim_duration");

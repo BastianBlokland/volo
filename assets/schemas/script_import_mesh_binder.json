@@ -111,6 +111,21 @@
       }
     },
     {
+      "name": "anim_name_trim",
+      "doc": "Remove a prefix (and optionally suffix) from the animation name at the given index. Returns the new name.",
+      "sig": {
+        "ret": "str",
+        "args": [
+          { "name": "index", "mask": "num" },
+          { "name": "prefix", "mask": "str" },
+          {
+            "name": "suffix",
+            "mask": [ "null", "str" ]
+          }
+        ]
+      }
+    },
+    {
       "name": "anim_count",
       "doc": "Query the amount of animations in the mesh.",
       "sig": {
