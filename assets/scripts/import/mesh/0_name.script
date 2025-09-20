@@ -1,0 +1,13 @@
+/**
+ * Name pre-processing rules.
+ */
+
+// Cleanup Mixamo joint naming convention.
+for (var jointIdx = 0; jointIdx != joint_count(); jointIdx += 1) {
+  joint_name_trim(jointIdx, "mixamorig:", "_End")
+}
+
+// Cleanup Blender animation naming convention.
+for (var animIdx = 0; animIdx != anim_count(); animIdx += 1) {
+  anim_name_trim(animIdx, "Armature|")
+}
