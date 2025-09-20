@@ -182,8 +182,9 @@ static void skel_draw_joints_layer(
     ui_label(
         canvas,
         fmt_write_scratch("{}{}", fmt_padding(depth), fmt_text(name)),
-        .fontSize = 12,
-        .tooltip  = name);
+        .fontSize       = 12,
+        .allowWordBreak = true,
+        .tooltip        = name);
     ui_table_next_column(canvas, table);
 
     const SceneJointPose pose = scene_skeleton_sample(skelTempl, layerIdx, joint, layer->time);
@@ -232,8 +233,9 @@ static void skel_draw_joints_def(
     ui_label(
         canvas,
         fmt_write_scratch("{}{}", fmt_padding(depth), fmt_text(name)),
-        .fontSize = 12,
-        .tooltip  = name);
+        .fontSize       = 12,
+        .allowWordBreak = true,
+        .tooltip        = name);
     ui_table_next_column(canvas, table);
 
     const SceneJointPose pose = scene_skeleton_sample_def(skelTempl, joint);
