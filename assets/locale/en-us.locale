@@ -104,6 +104,8 @@
     { "key": "MENU_LIMITER_OFF", "value": "Off" },
     { "key": "MENU_LIMITER_30", "value": "30hz" },
     { "key": "MENU_LIMITER_60", "value": "60hz" },
+    { "key": "MENU_LIMITER_90", "value": "90hz" },
+    { "key": "MENU_LIMITER_120", "value": "120hz" },
 
     { "key": "MENU_QUALITY", "value": "Quality" },
     { "key": "MENU_QUALITY_TOOLTIP", "value": "Select the rendering quality." },

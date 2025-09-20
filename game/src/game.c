@@ -222,6 +222,10 @@ static u16 game_limiter_freq_get(const GamePrefsComp* prefs) {
     return 30;
   case GameLimiter_60:
     return 60;
+  case GameLimiter_90:
+    return 90;
+  case GameLimiter_120:
+    return 120;
   case GameLimiter_Count:
     break;
   }

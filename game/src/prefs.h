@@ -14,6 +14,8 @@ typedef enum {
   GameLimiter_Off,
   GameLimiter_30,
   GameLimiter_60,
+  GameLimiter_90,
+  GameLimiter_120,
 
   GameLimiter_Count,
 } GameLimiter;

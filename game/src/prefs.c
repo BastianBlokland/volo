@@ -27,6 +27,8 @@ const String g_gameLimiterLabels[] = {
     string_static("MENU_LIMITER_OFF"),
     string_static("MENU_LIMITER_30"),
     string_static("MENU_LIMITER_60"),
+    string_static("MENU_LIMITER_90"),
+    string_static("MENU_LIMITER_120"),
 };
 ASSERT(array_elems(g_gameLimiterLabels) == GameLimiter_Count, "Incorrect number of limiter labels");
 
@@ -52,6 +54,8 @@ static void prefs_data_init(void) {
     data_reg_const_t(g_dataReg, GameLimiter, Off);
     data_reg_const_t(g_dataReg, GameLimiter, 30);
     data_reg_const_t(g_dataReg, GameLimiter, 60);
+    data_reg_const_t(g_dataReg, GameLimiter, 90);
+    data_reg_const_t(g_dataReg, GameLimiter, 120);
 
     data_reg_enum_t(g_dataReg, GameUiScale);
     data_reg_const_t(g_dataReg, GameUiScale, Small);
