@@ -1370,9 +1370,9 @@ ecs_system_define(GameUpdateSys) {
       menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_vsync, .size = 1};
       menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_limiter, .size = 1};
       menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_quality, .size = 1};
+      menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_fullscreen, .size = 1};
       menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_ui_scale, .size = 1};
       menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_locale, .size = 1};
-      menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_fullscreen, .size = 1};
       menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_credits, .size = 1};
       menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_quit, .size = 1};
       menu_draw(&ctx, loc_translate(GameId_MENU_TITLE), 400, menuEntries, menuEntriesCount);
@@ -1451,8 +1451,8 @@ ecs_system_define(GameUpdateSys) {
       menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_vsync, .size = 1};
       menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_limiter, .size = 1};
       menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_quality, .size = 1};
-      menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_ui_scale, .size = 1};
       menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_fullscreen, .size = 1};
+      menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_ui_scale, .size = 1};
       menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_menu_main, .size = 1};
       menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_quit, .size = 1};
       menu_draw(&ctx, loc_translate(GameId_MENU_PAUSED), 400, menuEntries, menuEntriesCount);
