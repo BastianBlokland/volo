@@ -23,7 +23,8 @@ typedef struct {
   UiWidgetFlags flags;
   u16           fontSize;
   UiAlign       align;
-  bool          selectable; // NOTE: Only supports single-line text.
+  bool          selectable;     // NOTE: Only supports single-line text.
+  bool          allowWordBreak; // Allow breaking up text in the middle of words.
   String        tooltip;
   UiVector      tooltipMaxSize;
 } UiLabelOpts;
