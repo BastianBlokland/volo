@@ -11,8 +11,7 @@
       "force": { "y": 1 },
       "sprite": {
         "atlasEntry": "fire_00",
-        "color": { "r": 1, "g": 0.2, "b": 0.05, "a": 75
-        },
+        "color": { "r": 1, "g": 0.2, "b": 0.05, "a": 75 },
         "blend": "Additive",
         "facing": "BillboardSphere",
         "flipbookCount": 16,
