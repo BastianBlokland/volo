@@ -42,6 +42,8 @@ Assets:
 - Model "Fern" (https://skfb.ly/o99LX) by evolveduk is licensed under Creative Commons Attribution
 - Model "Fences | Concretes | Metal | Desert | Old | Pack" (https://skfb.ly/o7CxG) by YadroGames is licensed under Creative Commons Attribution
 - Music by 'whvle' from Pixabay https://pixabay.com/music/beats-aboard-a-aurora-game-menu-pulse-203549/
+- Sound effect by 'HollywoodEdge' from Envato https://elements.envato.com/desert-background-ambience-7AWCJDL
+- Sound effect by 'prosoundfx' from Envato https://elements.envato.com/crickets-night-2-YCD4SYM
 - Sound effect by 'Pixabay' from Pixabay https://pixabay.com/sound-effects/bus-engine-idling-26992/
 - Sound effect by 'DennisH18' from Pixabay https://pixabay.com/sound-effects/tank-moving-143104/
 - Sound effect by 'Pixabay' from Pixabay https://pixabay.com/sound-effects/tanks-shooting-33651/
