@@ -16,7 +16,8 @@
         "size": { "x": 0.5, "y": 0.5 },
         "fadeInTime": 0.25,
         "fadeOutTime": 0.3,
-        "shadowCaster": true
+        "shadowCaster": true,
+        "lit": true
       },
       "expandForce": 0.5,
       "speed": { "min": 0.5, "max": 0.75 },
