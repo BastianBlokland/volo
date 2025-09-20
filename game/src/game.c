@@ -457,7 +457,7 @@ static void game_transition(const GameUpdateContext* ctx, const GameState state)
   case GameState_Result:
     ctx->timeSet->flags |= SceneTimeFlags_Paused;
 
-    ctx->winRendSet->exposure = 0.075f;
+    ctx->winRendSet->exposure = 0.05f;
 
     ctx->game->prevGrayscaleFrac   = ctx->winRendSet->grayscaleFrac;
     ctx->winRendSet->grayscaleFrac = 0.75f;
