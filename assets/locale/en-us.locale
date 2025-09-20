@@ -93,8 +93,19 @@
     { "key": "MENU_VOLUME", "value": "Volume" },
     { "key": "MENU_VOLUME_TOOLTIP", "value": "Change the sound volume." },
 
-    { "key": "MENU_POWERSAVING", "value": "Power saving" },
-    { "key": "MENU_POWERSAVING_TOOLTIP", "value": "Save power by limiting the frame-rate to 30hz." },
+    { "key": "MENU_EXPOSURE", "value": "Exposure" },
+    { "key": "MENU_EXPOSURE_TOOLTIP", "value": "Change the graphics exposure (brightness)." },
+
+    { "key": "MENU_VSYNC", "value": "VSync" },
+    { "key": "MENU_VSYNC_TOOLTIP", "value": "Vertical synchronization, synchronizes the game with the display refresh cycle." },
+
+    { "key": "MENU_LIMITER", "value": "Limiter" },
+    { "key": "MENU_LIMITER_TOOLTIP", "value": "Limit the maximum frame-rate" },
+    { "key": "MENU_LIMITER_OFF", "value": "Off" },
+    { "key": "MENU_LIMITER_30", "value": "30hz" },
+    { "key": "MENU_LIMITER_60", "value": "60hz" },
+    { "key": "MENU_LIMITER_90", "value": "90hz" },
+    { "key": "MENU_LIMITER_120", "value": "120hz" },
 
     { "key": "MENU_QUALITY", "value": "Quality" },
     { "key": "MENU_QUALITY_TOOLTIP", "value": "Select the rendering quality." },

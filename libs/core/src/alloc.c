@@ -50,10 +50,12 @@ void alloc_teardown(void) {
   alloc_pagecache_teardown();
   g_allocPageCache = null;
 
+#ifdef VOLO_MEMORY_LEAK_DETECT
   const u32 leakedPages = alloc_page_allocated_pages();
   if (leakedPages) {
     alloc_crash_with_msg("alloc: {} pages leaked during app runtime", fmt_int(leakedPages));
   }
+#endif
 }
 
 void alloc_init_thread(void) { g_allocScratch = alloc_scratch_init(); }
