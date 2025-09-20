@@ -1062,7 +1062,8 @@
         {
           "$type": "AssetPrefabTrait_Property",
           "properties": [
-            { "$name": "assetSndAmbiance", "$type": "AssetProperty_Asset", "$data": "external/sound/ambiance-01.wav" }
+            { "$name": "assetSndAmbianceDay", "$type": "AssetProperty_Asset", "$data": "external/sound/ambiance-desert-day-01.wav" },
+            { "$name": "assetSndAmbianceNight", "$type": "AssetProperty_Asset", "$data": "external/sound/ambiance-desert-night-01.wav" }
           ]
         }
       ]

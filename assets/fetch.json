@@ -306,7 +306,9 @@
         "lamppost/lamppost_metal.png",
         "lamppost/lamppost_normal.png",
         "lamppost/lamppost_rough.png",
-        "lamppost/lamppost.glb"
+        "lamppost/lamppost.glb",
+        "sound/ambiance-desert-day-01.wav",
+        "sound/ambiance-desert-night-01.wav"
       ]
     }
   ]

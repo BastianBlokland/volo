@@ -3,14 +3,32 @@
  * Ambiance effects.
  *
  * Supports the following input properties:
- * - "assetSndAmbiance": Looping ambiance sound effect.
+ * - "assetSndAmbianceDay": Looping day ambiance sound effect.
+ * - "assetSndAmbianceNight": Looping night ambiance sound effect.
  */
 
-if ($assetSndAmbiance && !$sndAmbiance) {
-  var soundPos     = null // 2d sound.
-  var soundGain    = 0.4
-  var soundPitch   = 1.0
-  var soundLooping = true
-  $sndAmbiance     = sound_spawn($assetSndAmbiance, soundPos, soundGain, soundPitch, soundLooping)
-  destroy_after($sndAmbiance, self())
+var ambianceGainDay   = 0.09
+var ambianceGainNight = 0.04
+var cycleIsDay        = global_load("cycleIsDay") ?? true
+var cycleProgress     = global_load("cycleProgress") ?? 0.5
+
+if ($sndAmbianceDay && $sndAmbianceNight) {
+  var intensity = (1.0 - pow(sin(cycleProgress * pi), 0.2)) * 0.5
+  if (cycleIsDay) {
+    sound_param($sndAmbianceDay, "Gain", (1.0 - intensity) * ambianceGainDay)
+    sound_param($sndAmbianceNight, "Gain", intensity * ambianceGainNight)
+  } else {
+    sound_param($sndAmbianceDay, "Gain", intensity * ambianceGainDay)
+    sound_param($sndAmbianceNight, "Gain", (1.0 - intensity) * ambianceGainNight)
+  }
+}
+
+if ($assetSndAmbianceDay && !$sndAmbianceDay) {
+  $sndAmbianceDay = sound_spawn($assetSndAmbianceDay, null, 0.0, 1.0, true)
+  destroy_after($sndAmbianceDay, self())
+}
+
+if ($assetSndAmbianceNight && !$sndAmbianceNight) {
+  $sndAmbianceNight = sound_spawn($assetSndAmbianceNight, null, 0.0, 1.0, true)
+  destroy_after($sndAmbianceNight, self())
 }
