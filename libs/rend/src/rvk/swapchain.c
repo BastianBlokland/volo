@@ -142,6 +142,18 @@ static VkPresentModeKHR rvk_preferred_presentmode(const RendPresentMode setting)
   diag_crash();
 }
 
+static VkPresentModeKHR rvk_fallback_presentmode(const RendPresentMode setting) {
+  switch (setting) {
+  case RendPresentMode_Immediate:
+  case RendPresentMode_VSync:
+  case RendPresentMode_VSyncRelaxed:
+    return VK_PRESENT_MODE_FIFO_KHR;
+  case RendPresentMode_Mailbox:
+    return VK_PRESENT_MODE_IMMEDIATE_KHR;
+  }
+  diag_crash();
+}
+
 static VkPresentModeKHR rvk_pick_presentmode(
     RvkLib* lib, RvkDevice* dev, const RendSettingsComp* settings, const VkSurfaceKHR surf) {
   VkPresentModeKHR available[32];
@@ -160,11 +172,17 @@ static VkPresentModeKHR rvk_pick_presentmode(
       return available[i];
     }
   }
+  const VkPresentModeKHR fallback = rvk_fallback_presentmode(settings->presentMode);
   log_w(
       "Preferred present mode unavailable",
       log_param("preferred", fmt_text(vkPresentModeKHRStr(preferred))),
-      log_param("fallback", fmt_text(vkPresentModeKHRStr(VK_PRESENT_MODE_FIFO_KHR))));
+      log_param("fallback", fmt_text(vkPresentModeKHRStr(fallback))));
 
+  for (u32 i = 0; i != availableCount; ++i) {
+    if (available[i] == fallback) {
+      return available[i];
+    }
+  }
   return VK_PRESENT_MODE_FIFO_KHR; // FIFO is required by the spec to be always available.
 }
 
