@@ -40,7 +40,7 @@ spec(set) {
   setup() {
     def = ecs_def_create(g_allocHeap);
     asset_register(def);
-    scene_register(def);
+    scene_register(def, &(SceneRegisterContext){.devSupport = true});
     ecs_register_module(def, set_test_module);
 
     world  = ecs_world_create(g_allocHeap, def);

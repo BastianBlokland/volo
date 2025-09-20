@@ -1568,7 +1568,7 @@ void app_ecs_register(EcsDef* def, const CliInvocation* invoc) {
   gap_register(def);
   input_register(def);
   loc_register(def);
-  rend_register(def, devSupport ? RendRegisterFlags_EnableStats : 0);
+  rend_register(def, &(RendRegisterContext){.enableStats = devSupport});
   scene_register(def, &(SceneRegisterContext){.devSupport = devSupport});
   snd_register(def);
   ui_register(def);
