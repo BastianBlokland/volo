@@ -107,15 +107,16 @@ static VkSurfaceFormatKHR rvk_pick_surface_format(RvkLib* lib, RvkDevice* dev, V
 }
 
 static u32
-rvk_pick_imagecount(const VkSurfaceCapabilitiesKHR* caps, const RendSettingsComp* settings) {
+rvk_pick_imagecount(const VkSurfaceCapabilitiesKHR* caps, const VkPresentModeKHR presentMode) {
   u32 imgCount;
-  switch (settings->presentMode) {
-  case RendPresentMode_Immediate:
+  switch (presentMode) {
+  case VK_PRESENT_MODE_IMMEDIATE_KHR:
     imgCount = 2; // one on-screen, and one being rendered to.
     break;
-  case RendPresentMode_VSync:
-  case RendPresentMode_VSyncRelaxed:
-  case RendPresentMode_Mailbox:
+  case VK_PRESENT_MODE_FIFO_KHR:
+  case VK_PRESENT_MODE_FIFO_RELAXED_KHR:
+  case VK_PRESENT_MODE_MAILBOX_KHR:
+  default:
     imgCount = 3; // one on-screen, one ready, and one being rendered to.
     break;
   }
@@ -216,7 +217,7 @@ static bool rvk_swapchain_init(RvkSwapchain* swap, const RendSettingsComp* setti
   const VkSwapchainCreateInfoKHR createInfo = {
       .sType              = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
       .surface            = swap->vkSurf,
-      .minImageCount      = rvk_pick_imagecount(&vkCaps, settings),
+      .minImageCount      = rvk_pick_imagecount(&vkCaps, presentMode),
       .imageFormat        = swap->vkSurfFormat.format,
       .imageColorSpace    = swap->vkSurfFormat.colorSpace,
       .imageExtent.width  = size.width,
