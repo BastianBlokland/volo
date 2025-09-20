@@ -7,6 +7,7 @@
 
 #ifndef VOLO_RELEASE
 #define VOLO_MEMORY_TRACKING
+#define VOLO_MEMORY_LEAK_DETECT
 #endif
 
 #define alloc_max_alloc_size (usize_mebibyte * 256)

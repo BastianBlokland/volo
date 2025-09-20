@@ -191,12 +191,14 @@ Allocator* alloc_block_create(Allocator* parent, const usize blockSize, const us
 void alloc_block_destroy(Allocator* allocator) {
   AllocatorBlock* allocBlock = (AllocatorBlock*)allocator;
 
+#ifdef VOLO_MEMORY_LEAK_DETECT
   if (allocBlock->allocatedBlocks) {
     alloc_crash_with_msg(
         "alloc: {} blocks of size {} leaked in block-allocator",
         fmt_int(allocBlock->allocatedBlocks),
         fmt_size(allocBlock->blockSize));
   }
+#endif
 
   allocBlock->freeHead = null;
   for (BlockChunk* chunk = allocBlock->chunkHead; chunk;) {
