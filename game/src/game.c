@@ -234,6 +234,7 @@ static void game_quality_apply(
     RendSettingsComp*       rendSetWin) {
 
   rendSetGlobal->limiterFreq = game_limiter_freq_get(prefs);
+  rendSetWin->presentMode = prefs->vsync ? RendPresentMode_VSyncRelaxed : RendPresentMode_Mailbox;
 
   // clang-format off
   static const RendFlags g_rendLowFeatures    = RendFlags_Shadows;
@@ -709,6 +710,25 @@ static void menu_entry_exposure(const GameUpdateContext* ctx, MAYBE_UNUSED const
     if (ctx->game->state != GameState_Pause) {
       ctx->winRendSet->exposure = game_exposure_value_get(ctx->prefs);
     }
+  }
+  ui_layout_pop(ctx->winCanvas);
+}
+
+static void menu_entry_vsync(const GameUpdateContext* ctx, MAYBE_UNUSED const u32 index) {
+  menu_draw_entry_frame(ctx);
+
+  ui_layout_push(ctx->winCanvas);
+  static const UiVector g_frameInset = {-40, -10};
+  ui_layout_grow(ctx->winCanvas, UiAlign_MiddleCenter, g_frameInset, UiBase_Absolute, Ui_XY);
+  ui_label(ctx->winCanvas, loc_translate(GameId_MENU_VSYNC));
+  if (ui_toggle(
+          ctx->winCanvas,
+          &ctx->prefs->vsync,
+          .align   = UiAlign_MiddleRight,
+          .size    = 25,
+          .tooltip = loc_translate(GameId_MENU_VSYNC_TOOLTIP))) {
+    ctx->prefs->dirty = true;
+    game_quality_apply(ctx->prefs, ctx->rendSetGlobal, ctx->winRendSet);
   }
   ui_layout_pop(ctx->winCanvas);
 }
@@ -1343,6 +1363,7 @@ ecs_system_define(GameUpdateSys) {
         menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_edit, .size = 1};
       }
       menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_volume, .size = 1};
+      menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_vsync, .size = 1};
       menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_limiter, .size = 1};
       menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_quality, .size = 1};
       menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_ui_scale, .size = 1};
@@ -1423,6 +1444,7 @@ ecs_system_define(GameUpdateSys) {
       }
       menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_volume, .size = 1};
       menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_exposure, .size = 1};
+      menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_vsync, .size = 1};
       menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_limiter, .size = 1};
       menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_quality, .size = 1};
       menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_ui_scale, .size = 1};

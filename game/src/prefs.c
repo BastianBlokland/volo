@@ -63,6 +63,7 @@ static void prefs_data_init(void) {
     data_reg_field_t(g_dataReg, GamePrefsComp, volume, data_prim_t(f32));
     data_reg_field_t(g_dataReg, GamePrefsComp, exposure, data_prim_t(f32));
     data_reg_field_t(g_dataReg, GamePrefsComp, limiter, t_GameLimiter);
+    data_reg_field_t(g_dataReg, GamePrefsComp, vsync, data_prim_t(bool));
     data_reg_field_t(g_dataReg, GamePrefsComp, fullscreen, data_prim_t(bool));
     data_reg_field_t(g_dataReg, GamePrefsComp, windowWidth, data_prim_t(u16));
     data_reg_field_t(g_dataReg, GamePrefsComp, windowHeight, data_prim_t(u16));
@@ -90,6 +91,7 @@ static void prefs_to_default(GamePrefsComp* prefs) {
   prefs->volume       = 100.0f;
   prefs->exposure     = 0.5f;
   prefs->limiter      = GameLimiter_Off;
+  prefs->vsync        = true;
   prefs->fullscreen   = true;
   prefs->windowWidth  = 1920;
   prefs->windowHeight = 1080;

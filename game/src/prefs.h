@@ -36,6 +36,7 @@ ecs_comp_extern_public(GamePrefsComp) {
   f32         volume;   // 0 - 100 (default: 100)
   f32         exposure; // 0 - 1   (default: 0.5)
   GameLimiter limiter;
+  bool        vsync; // Vertical display syncronization.
   bool        fullscreen;
   u16         windowWidth, windowHeight;
   GameQuality quality;
