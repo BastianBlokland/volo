@@ -93,6 +93,9 @@
     { "key": "MENU_VOLUME", "value": "Volume" },
     { "key": "MENU_VOLUME_TOOLTIP", "value": "Change the sound volume." },
 
+    { "key": "MENU_EXPOSURE", "value": "Exposure" },
+    { "key": "MENU_EXPOSURE_TOOLTIP", "value": "Change the graphics exposure (brightness)." },
+
     { "key": "MENU_POWERSAVING", "value": "Power saving" },
     { "key": "MENU_POWERSAVING_TOOLTIP", "value": "Save power by limiting the frame-rate to 30hz." },
 

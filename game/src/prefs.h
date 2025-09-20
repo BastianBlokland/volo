@@ -23,8 +23,9 @@ extern const String g_gameQualityLabels[GameQuality_Count]; // Localization keys
 extern const String g_gameUiScaleLabels[GameUiScale_Count]; // Localization keys.
 
 ecs_comp_extern_public(GamePrefsComp) {
-  bool        dirty; // Indicates that the preference file should be saved to disk.
-  f32         volume;
+  bool        dirty;    // Indicates that the preference file should be saved to disk.
+  f32         volume;   // 0 - 100 (default: 100)
+  f32         exposure; // 0 - 1   (default: 0.5)
   bool        powerSaving;
   bool        fullscreen;
   u16         windowWidth, windowHeight;

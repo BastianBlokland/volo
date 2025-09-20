@@ -102,7 +102,6 @@ ecs_comp_define(GameComp) {
   EcsEntityId levelAssets[GameLevelsMax];
   String      levelNames[GameLevelsMax];
 
-  f32 prevExposure;
   f32 prevGrayscaleFrac;
   f32 prevBloomIntensity;
 };
@@ -207,6 +206,12 @@ static void game_sound_play(
   if (snd_object_new(soundMixer, &sndHandle) == SndResult_Success) {
     snd_object_set_asset(soundMixer, sndHandle, asset_lookup(world, assets, id));
   }
+}
+
+static f32 game_exposure_get(const GamePrefsComp* prefs) {
+  static const f32 g_exposureMin = 0.25f;
+  static const f32 g_exposureMax = 1.75f;
+  return math_lerp(g_exposureMin, g_exposureMax, prefs->exposure);
 }
 
 static void game_quality_apply(
@@ -395,7 +400,7 @@ static void game_transition(const GameUpdateContext* ctx, const GameState state)
 
     ctx->winRendSet->bloomIntensity = ctx->game->prevBloomIntensity;
     ctx->winRendSet->grayscaleFrac  = ctx->game->prevGrayscaleFrac;
-    ctx->winRendSet->exposure       = ctx->game->prevExposure;
+    ctx->winRendSet->exposure       = game_exposure_get(ctx->prefs);
     break;
   default:
     break;
@@ -435,8 +440,7 @@ static void game_transition(const GameUpdateContext* ctx, const GameState state)
   case GameState_Result:
     ctx->timeSet->flags |= SceneTimeFlags_Paused;
 
-    ctx->game->prevExposure   = ctx->winRendSet->exposure;
-    ctx->winRendSet->exposure = 0.025f;
+    ctx->winRendSet->exposure = 0.075f;
 
     ctx->game->prevGrayscaleFrac   = ctx->winRendSet->grayscaleFrac;
     ctx->winRendSet->grayscaleFrac = 0.75f;
@@ -670,6 +674,29 @@ static void menu_entry_volume(const GameUpdateContext* ctx, MAYBE_UNUSED const u
           .tooltip    = loc_translate(GameId_MENU_VOLUME_TOOLTIP))) {
     ctx->prefs->dirty = true;
     snd_mixer_gain_set(ctx->soundMixer, ctx->prefs->volume * 1e-2f);
+  }
+  ui_layout_pop(ctx->winCanvas);
+}
+
+static void menu_entry_exposure(const GameUpdateContext* ctx, MAYBE_UNUSED const u32 index) {
+  menu_draw_entry_frame(ctx);
+
+  ui_layout_push(ctx->winCanvas);
+  static const UiVector g_frameInset = {-40, -10};
+  ui_layout_grow(ctx->winCanvas, UiAlign_MiddleCenter, g_frameInset, UiBase_Absolute, Ui_XY);
+  ui_label(ctx->winCanvas, loc_translate(GameId_MENU_EXPOSURE));
+  ui_layout_inner(
+      ctx->winCanvas, UiBase_Current, UiAlign_MiddleRight, ui_vector(0.5f, 1), UiBase_Current);
+  if (ui_slider(
+          ctx->winCanvas,
+          &ctx->prefs->exposure,
+          .handleSize = 25,
+          .thickness  = 10,
+          .tooltip    = loc_translate(GameId_MENU_EXPOSURE_TOOLTIP))) {
+    ctx->prefs->dirty = true;
+    if (ctx->game->state != GameState_Pause) {
+      ctx->winRendSet->exposure = game_exposure_get(ctx->prefs);
+    }
   }
   ui_layout_pop(ctx->winCanvas);
 }
@@ -1373,6 +1400,7 @@ ecs_system_define(GameUpdateSys) {
         menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_edit_current, .size = 1};
       }
       menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_volume, .size = 1};
+      menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_exposure, .size = 1};
       menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_powersaving, .size = 1};
       menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_quality, .size = 1};
       menuEntries[menuEntriesCount++] = (MenuEntry){&menu_entry_ui_scale, .size = 1};
@@ -1566,6 +1594,7 @@ bool app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
       game_window_create(world, assets, fullscreen, devSupport, width, height);
   RendSettingsComp* rendSettingsWin = rend_settings_window_init(world, mainWin);
   rendSettingsWin->flags |= RendFlags_2D;
+  rendSettingsWin->exposure = game_exposure_get(prefs);
 
   game_quality_apply(prefs, rendSettingsGlobal, rendSettingsWin);
   game_ui_settings_apply(prefs, uiSettingsGlobal);
