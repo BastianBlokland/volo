@@ -119,9 +119,16 @@ typedef struct {
   u32          accWeights;  // Access index [Optional].
 } GltfPrim;
 
+typedef enum {
+  GltfAnimInterp_Linear,
+  GltfAnimInterp_Step,
+  GltfAnimInterp_CubicSpline,
+} GltfAnimInterp;
+
 typedef struct {
-  u32 accInput;  // Access index [Optional].
-  u32 accOutput; // Access index [Optional].
+  GltfAnimInterp interpolation;
+  u32            accInput;  // Access index [Optional].
+  u32            accOutput; // Access index [Optional].
 } GltfAnimChannel;
 
 typedef struct {
@@ -968,9 +975,10 @@ static void gltf_parse_animations(GltfLoad* ld, GltfError* err) {
   GltfAnim* outAnim = ld->anims;
 
   enum { GltfMaxSamplerCount = 1024 };
-  u32 samplerAccInput[GltfMaxSamplerCount];
-  u32 samplerAccOutput[GltfMaxSamplerCount];
-  u32 samplerCnt;
+  GltfAnimInterp samplerInterp[GltfMaxSamplerCount];
+  u32            samplerAccInput[GltfMaxSamplerCount];
+  u32            samplerAccOutput[GltfMaxSamplerCount];
+  u32            samplerCnt;
 
   json_for_elems(ld->jDoc, animations, anim) {
     gltf_clear_anim_channels(outAnim);
@@ -989,23 +997,36 @@ static void gltf_parse_animations(GltfLoad* ld, GltfError* err) {
       if (json_type(ld->jDoc, sampler) != JsonType_Object) {
         goto Error;
       }
-      if (!gltf_json_field_u32(ld, sampler, string_lit("input"), &samplerAccInput[samplerCnt])) {
+      const u32 samplerIdx = samplerCnt++;
+      if (samplerIdx == GltfMaxSamplerCount) {
         goto Error;
       }
-      if (!gltf_json_field_u32(ld, sampler, string_lit("output"), &samplerAccOutput[samplerCnt])) {
+      if (!gltf_json_field_u32(ld, sampler, string_lit("input"), &samplerAccInput[samplerIdx])) {
         goto Error;
       }
-      if (++samplerCnt == GltfMaxSamplerCount) {
+      if (!gltf_json_field_u32(ld, sampler, string_lit("output"), &samplerAccOutput[samplerIdx])) {
         goto Error;
       }
-      const JsonVal interpolation = json_field_lit(ld->jDoc, sampler, "interpolation");
-      if (!gltf_json_check(ld, interpolation, JsonType_String)) {
-        continue; // 'interpolation' is optional, default is 'LINEAR'.
+      const JsonVal interpVal = json_field_lit(ld->jDoc, sampler, "interpolation");
+      if (!gltf_json_check(ld, interpVal, JsonType_String)) {
+        // 'interpolation' is optional, default is 'LINEAR'.
+        samplerInterp[samplerIdx] = GltfAnimInterp_Linear;
+        continue;
       }
-      if (!string_eq(json_string(ld->jDoc, interpolation), string_lit("LINEAR"))) {
-        *err = GltfError_UnsupportedInterpolationMode;
-        return;
+      const String interpStr = json_string(ld->jDoc, interpVal);
+      if (string_eq(interpStr, string_lit("LINEAR"))) {
+        samplerInterp[samplerIdx] = GltfAnimInterp_Linear;
+        continue;
       }
+      if (string_eq(interpStr, string_lit("STEP"))) {
+        samplerInterp[samplerIdx] = GltfAnimInterp_Step;
+        continue;
+      }
+      if (string_eq(interpStr, string_lit("CUBICSPLINE"))) {
+        samplerInterp[samplerIdx] = GltfAnimInterp_CubicSpline;
+        continue;
+      }
+      goto Error;
     }
 
     const JsonVal channels = json_field_lit(ld->jDoc, anim, "channels");
@@ -1044,7 +1065,10 @@ static void gltf_parse_animations(GltfLoad* ld, GltfError* err) {
       }
       diag_assert(samplerAccInput[samplerIdx]);
       outAnim->channels[jointIdx][channelTarget] = (GltfAnimChannel){
-          .accInput = samplerAccInput[samplerIdx], .accOutput = samplerAccOutput[samplerIdx]};
+          .interpolation = samplerInterp[samplerIdx],
+          .accInput      = samplerAccInput[samplerIdx],
+          .accOutput     = samplerAccOutput[samplerIdx],
+      };
     }
     ++outAnim;
   }
