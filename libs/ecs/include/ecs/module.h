@@ -155,7 +155,7 @@ typedef struct {
   struct s##_NAME_
 
 /**
- * Retrieve the module initialization context as provided to 'ecs_register_module_with_context()'.
+ * Retrieve the module initialization context as provided to 'ecs_register_module_ctx()'.
  */
 #define ecs_init_ctx() ecs_module_init_ctx(_builder)
 

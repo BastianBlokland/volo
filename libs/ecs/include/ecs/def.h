@@ -16,7 +16,7 @@ typedef struct sEcsDef EcsDef;
  * NOTE: The context pointer is passed to the init routine and can be used to customize the module.
  * Define a module initialization routine using the 'ecs_module_init(name)' macro.
  */
-#define ecs_register_module_with_context(_DEF_, _NAME_, _CTX_)                                     \
+#define ecs_register_module_ctx(_DEF_, _NAME_, _CTX_)                                              \
   void ecs_module_init_name(_NAME_)(EcsModuleBuilder*);                                            \
   ecs_def_register_module(_DEF_, string_lit(#_NAME_), &ecs_module_init_name(_NAME_), (_CTX_))
 

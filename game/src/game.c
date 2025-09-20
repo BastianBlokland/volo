@@ -1579,7 +1579,7 @@ void app_ecs_register(EcsDef* def, const CliInvocation* invoc) {
     dev_register(def);
   }
 
-  ecs_register_module_with_context(def, game_module, &gameInitCtx);
+  ecs_register_module_ctx(def, game_module, &gameInitCtx);
   ecs_register_module(def, game_cmd_module);
   ecs_register_module(def, game_hud_module);
   ecs_register_module(def, game_input_module);
