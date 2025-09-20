@@ -15,7 +15,11 @@ enum {
   SceneOrder_SetUpdate        = 800,
 };
 
+typedef struct {
+  bool devSupport;
+} SceneRegisterContext;
+
 /**
  * Register the ecs modules for the Scene library.
  */
-void scene_register(EcsDef*);
+void scene_register(EcsDef*, const SceneRegisterContext*);
