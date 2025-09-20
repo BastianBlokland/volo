@@ -106,7 +106,7 @@ static ScriptVal import_eval_vertex_scale(AssetImportContext* ctx, ScriptBinderC
   }
   script_arg_check(call, 0, script_mask_num | script_mask_vec3);
   if (script_type(call->args[0]) == ScriptType_Num) {
-    const f32 scale   = (f32)script_arg_num_range(call, 0, 1e-3, 1e+6);
+    const f32 scale   = (f32)script_arg_num_range(call, 0, -1e+6, 1e+6);
     data->vertexScale = geo_vector(scale, scale, scale);
   } else {
     data->vertexScale = script_arg_vec3(call, 0);
@@ -139,7 +139,7 @@ static ScriptVal import_eval_root_scale(AssetImportContext* ctx, ScriptBinderCal
   }
   script_arg_check(call, 0, script_mask_num | script_mask_vec3);
   if (script_type(call->args[0]) == ScriptType_Num) {
-    const f32 scale = (f32)script_arg_num_range(call, 0, 1e-3, 1e+6);
+    const f32 scale = (f32)script_arg_num_range(call, 0, -1e+6, 1e+6);
     data->rootScale = geo_vector(scale, scale, scale);
   } else {
     data->rootScale = script_arg_vec3(call, 0);
