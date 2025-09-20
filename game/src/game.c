@@ -457,7 +457,7 @@ static void game_transition(const GameUpdateContext* ctx, const GameState state)
   case GameState_Result:
     ctx->timeSet->flags |= SceneTimeFlags_Paused;
 
-    ctx->winRendSet->exposure = 0.075f;
+    ctx->winRendSet->exposure = 0.05f;
 
     ctx->game->prevGrayscaleFrac   = ctx->winRendSet->grayscaleFrac;
     ctx->winRendSet->grayscaleFrac = 0.75f;
@@ -1482,10 +1482,10 @@ ecs_system_define(GameUpdateSys) {
 
 typedef struct {
   bool devSupport;
-} GameInitContext;
+} GameRegisterContext;
 
 ecs_module_init(game_module) {
-  const GameInitContext* ctx = ecs_init_ctx();
+  const GameRegisterContext* ctx = ecs_init_ctx();
 
   ecs_register_comp(GameComp, .destructor = ecs_destruct_game_comp);
   ecs_register_comp(GameMainWindowComp);
@@ -1562,24 +1562,22 @@ static void game_crash_handler(const String message, void* ctx) {
 void app_ecs_register(EcsDef* def, const CliInvocation* invoc) {
   diag_crash_handler(game_crash_handler, null); // Register a crash handler.
 
-  const GameInitContext gameInitCtx = {
-      .devSupport = cli_parse_provided(invoc, g_optDev),
-  };
+  const bool devSupport = cli_parse_provided(invoc, g_optDev);
 
   asset_register(def);
   gap_register(def);
   input_register(def);
   loc_register(def);
-  rend_register(def, gameInitCtx.devSupport ? RendRegisterFlags_EnableStats : 0);
-  scene_register(def);
+  rend_register(def, &(RendRegisterContext){.enableStats = devSupport});
+  scene_register(def, &(SceneRegisterContext){.devSupport = devSupport});
   snd_register(def);
   ui_register(def);
   vfx_register(def);
-  if (gameInitCtx.devSupport) {
+  if (devSupport) {
     dev_register(def);
   }
 
-  ecs_register_module_with_context(def, game_module, &gameInitCtx);
+  ecs_register_module_ctx(def, game_module, &(GameRegisterContext){.devSupport = devSupport});
   ecs_register_module(def, game_cmd_module);
   ecs_register_module(def, game_hud_module);
   ecs_register_module(def, game_input_module);

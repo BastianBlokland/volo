@@ -156,6 +156,9 @@ void scene_debug_trace(
 }
 
 SceneDebugComp* scene_debug_init(EcsWorld* world, const EcsEntityId entity) {
+  if (sentinel_check(ecs_comp_id(SceneDebugComp))) {
+    return null; // Debug module not registered.
+  }
   return ecs_world_add_t(
       world, entity, SceneDebugComp, .data = dynarray_create_t(g_allocHeap, SceneDebug, 0));
 }

@@ -73,7 +73,8 @@
         "size": { "x": 0.05, "y": 0.05 },
         "fadeInTime": 0.005,
         "fadeOutTime": 0.15,
-        "shadowCaster": true
+        "shadowCaster": true,
+        "lit": true
       },
       "speed": { "min": 4, "max": 7 },
       "scale": { "min": 0.25, "max": 1.25 },

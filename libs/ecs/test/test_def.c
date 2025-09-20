@@ -77,7 +77,7 @@ spec(def) {
     const DefInitContext ctx = {
         .val = 42,
     };
-    ecs_register_module_with_context(def, def_test_module, &ctx);
+    ecs_register_module_ctx(def, def_test_module, &ctx);
   }
 
   it("can retrieve the amount of registered components") {

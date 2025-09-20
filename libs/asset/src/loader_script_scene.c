@@ -94,15 +94,6 @@ void asset_data_init_script_scene(void) {
     bind(binder, name, doc, ret, args, array_elems(args));
   }
   {
-    const String       name   = string_lit("name");
-    const String       doc    = string_lit("Lookup the name of the given entity.");
-    const ScriptMask   ret    = script_mask_str | script_mask_null;
-    const ScriptSigArg args[] = {
-        {string_lit("v"), script_mask_entity},
-    };
-    bind(binder, name, doc, ret, args, array_elems(args));
-  }
-  {
     const String       name   = string_lit("faction");
     const String       doc    = fmt_write_scratch("Lookup or change the faction of the given entity.\n\n{}", fmt_text(g_factionDoc));
     const ScriptMask   ret    = script_mask_str | script_mask_null;
@@ -835,6 +826,15 @@ void asset_data_init_script_scene(void) {
     const ScriptMask   ret    = script_mask_any;
     const ScriptSigArg args[] = {
         {string_lit("values"), script_mask_any, ScriptSigArgFlags_Multi},
+    };
+    bind(binder, name, doc, ret, args, array_elems(args));
+  }
+  {
+    const String       name   = string_lit("debug_name");
+    const String       doc    = string_lit("Lookup the debug name (if present) of the given entity.");
+    const ScriptMask   ret    = script_mask_str | script_mask_null;
+    const ScriptSigArg args[] = {
+        {string_lit("v"), script_mask_entity},
     };
     bind(binder, name, doc, ret, args, array_elems(args));
   }

@@ -534,12 +534,6 @@ static ScriptVal eval_scale(EvalContext* ctx, ScriptBinderCall* call) {
   return itr ? script_num(ecs_view_read_t(itr, SceneScaleComp)->scale) : script_null();
 }
 
-static ScriptVal eval_name(EvalContext* ctx, ScriptBinderCall* call) {
-  const EcsEntityId  e   = script_arg_entity(call, 0);
-  const EcsIterator* itr = ecs_view_maybe_jump(ctx->nameItr, e);
-  return itr ? script_str_or_null(ecs_view_read_t(itr, SceneNameComp)->nameDebug) : script_null();
-}
-
 static ScriptVal eval_faction(EvalContext* ctx, ScriptBinderCall* call) {
   const EcsEntityId e = script_arg_entity(call, 0);
   if (call->argCount == 1) {
@@ -1975,6 +1969,12 @@ static ScriptVal eval_random_of(EvalContext* ctx, ScriptBinderCall* call) {
   return choiceCount ? choices[(u32)(choiceCount * rng_sample_f32(g_rng))] : script_null();
 }
 
+static ScriptVal eval_debug_name(EvalContext* ctx, ScriptBinderCall* call) {
+  const EcsEntityId  e   = script_arg_entity(call, 0);
+  const EcsIterator* itr = ecs_view_maybe_jump(ctx->nameItr, e);
+  return itr ? script_str_or_null(ecs_view_read_t(itr, SceneNameComp)->nameDebug) : script_null();
+}
+
 static ScriptVal eval_debug_log(EvalContext* ctx, ScriptBinderCall* call) {
   DynString buffer = dynstring_create_over(alloc_alloc(g_allocScratch, usize_kibibyte, 1));
   for (u16 i = 0; i != call->argCount; ++i) {
@@ -2231,7 +2231,6 @@ static void eval_binder_init(void) {
     eval_bind(b, string_lit("velocity"),               eval_velocity);
     eval_bind(b, string_lit("rotation"),               eval_rotation);
     eval_bind(b, string_lit("scale"),                  eval_scale);
-    eval_bind(b, string_lit("name"),                   eval_name);
     eval_bind(b, string_lit("faction"),                eval_faction);
     eval_bind(b, string_lit("health"),                 eval_health);
     eval_bind(b, string_lit("health_stat"),            eval_health_stat);
@@ -2302,6 +2301,7 @@ static void eval_binder_init(void) {
     eval_bind(b, string_lit("objective_timeout"),      eval_objective_timeout);
     eval_bind(b, string_lit("objective_end"),          eval_objective_end);
     eval_bind(b, string_lit("random_of"),              eval_random_of);
+    eval_bind(b, string_lit("debug_name"),             eval_debug_name);
     eval_bind(b, string_lit("debug_log"),              eval_debug_log);
     eval_bind(b, string_lit("debug_line"),             eval_debug_line);
     eval_bind(b, string_lit("debug_sphere"),           eval_debug_sphere);

@@ -5,15 +5,17 @@
 #include "ecs/world.h"
 #include "scene/name.h"
 #include "scene/prefab.h"
+#include "scene/register.h"
 #include "scene/renderable.h"
 #include "scene/sound.h"
 #include "scene/vfx.h"
 
-static StringHash g_sceneNameLight, g_sceneNameCollision, g_sceneNameMarker, g_sceneNameUnnamed;
+static StringHash g_sceneDebugNameLight, g_sceneDebugNameCollision, g_sceneDebugNameMarker,
+    g_sceneDebugNameUnnamed;
 
 ecs_comp_define(SceneNameComp);
 
-ecs_view_define(InitDebugView) {
+ecs_view_define(DebugInitView) {
   ecs_access_with(SceneLevelInstanceComp);
   ecs_access_without(SceneNameComp);
   ecs_access_maybe_read(ScenePrefabInstanceComp);
@@ -23,69 +25,72 @@ ecs_view_define(InitDebugView) {
   ecs_access_maybe_read(SceneVfxSystemComp);
 }
 
-ecs_view_define(AssetView) { ecs_access_read(AssetComp); }
+ecs_view_define(DebugAssetView) { ecs_access_read(AssetComp); }
 
-static StringHash scene_debug_name_from_asset(const AssetComp* assetComp) {
+static StringHash debug_name_from_asset(const AssetComp* assetComp) {
   const String nameStr = path_stem(asset_id(assetComp));
   return stringtable_add(g_stringtable, nameStr);
 }
 
-static StringHash scene_name_find(EcsWorld* world, EcsIterator* entityItr, EcsIterator* assetItr) {
+static StringHash debug_name_find(EcsWorld* world, EcsIterator* entityItr, EcsIterator* assetItr) {
   const ScenePrefabInstanceComp* prefabInst = ecs_view_read_t(entityItr, ScenePrefabInstanceComp);
   if (prefabInst) {
     return prefabInst->prefabId;
   }
   const SceneRenderableComp* renderable = ecs_view_read_t(entityItr, SceneRenderableComp);
   if (renderable && ecs_view_maybe_jump(assetItr, renderable->graphic)) {
-    return scene_debug_name_from_asset(ecs_view_read_t(assetItr, AssetComp));
+    return debug_name_from_asset(ecs_view_read_t(assetItr, AssetComp));
   }
   const SceneVfxDecalComp* vfxDecal = ecs_view_read_t(entityItr, SceneVfxDecalComp);
   if (vfxDecal && ecs_view_maybe_jump(assetItr, vfxDecal->asset)) {
-    return scene_debug_name_from_asset(ecs_view_read_t(assetItr, AssetComp));
+    return debug_name_from_asset(ecs_view_read_t(assetItr, AssetComp));
   }
   const SceneVfxSystemComp* vfxSystem = ecs_view_read_t(entityItr, SceneVfxSystemComp);
   if (vfxSystem && ecs_view_maybe_jump(assetItr, vfxSystem->asset)) {
-    return scene_debug_name_from_asset(ecs_view_read_t(assetItr, AssetComp));
+    return debug_name_from_asset(ecs_view_read_t(assetItr, AssetComp));
   }
   const SceneSoundComp* soundComp = ecs_view_read_t(entityItr, SceneSoundComp);
   if (soundComp && ecs_view_maybe_jump(assetItr, soundComp->asset)) {
-    return scene_debug_name_from_asset(ecs_view_read_t(assetItr, AssetComp));
+    return debug_name_from_asset(ecs_view_read_t(assetItr, AssetComp));
   }
   if (ecs_world_has_t(world, ecs_view_entity(entityItr), SceneLightComp)) {
-    return g_sceneNameLight;
+    return g_sceneDebugNameLight;
   }
   if (ecs_world_has_t(world, ecs_view_entity(entityItr), SceneCollisionComp)) {
-    return g_sceneNameCollision;
+    return g_sceneDebugNameCollision;
   }
   if (ecs_world_has_t(world, ecs_view_entity(entityItr), SceneMarkerComp)) {
-    return g_sceneNameMarker;
+    return g_sceneDebugNameMarker;
   }
-  return g_sceneNameUnnamed;
+  return g_sceneDebugNameUnnamed;
 }
 
-ecs_system_define(SceneNameInitSys) {
-  EcsIterator* assetItr = ecs_view_itr(ecs_world_view_t(world, AssetView));
-
+ecs_system_define(SceneNameDebugSys) {
+  EcsIterator* assetItr = ecs_view_itr(ecs_world_view_t(world, DebugAssetView));
   /**
    * Assign a debug name to all level entities without a name.
    */
-  EcsView* initView = ecs_world_view_t(world, InitDebugView);
+  EcsView* initView = ecs_world_view_t(world, DebugInitView);
   for (EcsIterator* itr = ecs_view_itr(initView); ecs_view_walk(itr);) {
-    const StringHash debugName = scene_name_find(world, itr, assetItr);
+    const StringHash debugName = debug_name_find(world, itr, assetItr);
     ecs_world_add_t(world, ecs_view_entity(itr), SceneNameComp, .nameDebug = debugName);
   }
 }
 
 ecs_module_init(scene_name_module) {
-  g_sceneNameLight     = stringtable_add(g_stringtable, string_lit("Light"));
-  g_sceneNameCollision = stringtable_add(g_stringtable, string_lit("Collision"));
-  g_sceneNameMarker    = stringtable_add(g_stringtable, string_lit("Marker"));
-  g_sceneNameUnnamed   = stringtable_add(g_stringtable, string_lit("unnamed"));
+  const SceneRegisterContext* ctx = ecs_init_ctx();
 
   ecs_register_comp(SceneNameComp);
 
-  ecs_register_view(InitDebugView);
-  ecs_register_view(AssetView);
+  if (ctx->devSupport) {
+    g_sceneDebugNameLight     = stringtable_add(g_stringtable, string_lit("Light"));
+    g_sceneDebugNameCollision = stringtable_add(g_stringtable, string_lit("Collision"));
+    g_sceneDebugNameMarker    = stringtable_add(g_stringtable, string_lit("Marker"));
+    g_sceneDebugNameUnnamed   = stringtable_add(g_stringtable, string_lit("unnamed"));
 
-  ecs_register_system(SceneNameInitSys, ecs_view_id(InitDebugView), ecs_view_id(AssetView));
+    ecs_register_view(DebugInitView);
+    ecs_register_view(DebugAssetView);
+
+    ecs_register_system(SceneNameDebugSys, ecs_view_id(DebugInitView), ecs_view_id(DebugAssetView));
+  }
 }
