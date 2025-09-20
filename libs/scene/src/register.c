@@ -10,7 +10,6 @@ void scene_register(EcsDef* def, const SceneRegisterContext* ctx) {
   ecs_register_module_ctx(def, scene_camera_module, ctx);
   ecs_register_module_ctx(def, scene_collision_module, ctx);
   ecs_register_module_ctx(def, scene_creator_module, ctx);
-  ecs_register_module_ctx(def, scene_debug_module, ctx);
   ecs_register_module_ctx(def, scene_faction_module, ctx);
   ecs_register_module_ctx(def, scene_footstep_module, ctx);
   ecs_register_module_ctx(def, scene_health_module, ctx);
@@ -41,4 +40,7 @@ void scene_register(EcsDef* def, const SceneRegisterContext* ctx) {
   ecs_register_module_ctx(def, scene_vfx_module, ctx);
   ecs_register_module_ctx(def, scene_visibility_module, ctx);
   ecs_register_module_ctx(def, scene_weapon_module, ctx);
+  if (ctx->devSupport) {
+    ecs_register_module_ctx(def, scene_debug_module, ctx);
+  }
 }
