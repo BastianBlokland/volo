@@ -114,6 +114,7 @@ typedef struct {
   f32        rotationSpeed; // Radians per second.
   f32        radius, weight;
   StringHash moveAnimation; // Optional: 0 to disable.
+  f32        moveAnimationSpeed;
   u32        navLayer;
   bool       wheeled;
   f32        wheeledAcceleration;

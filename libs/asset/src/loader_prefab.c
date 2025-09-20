@@ -489,6 +489,9 @@ static bool prefab_data_normalizer_attachment(const Mem data) {
 static bool prefab_data_normalizer_movement(const Mem data) {
   AssetPrefabTraitMovement* movement = mem_as_t(data, AssetPrefabTraitMovement);
   movement->weight                   = math_max(movement->weight, trait_movement_weight_min);
+  if (movement->moveAnimationSpeed < f32_epsilon) {
+    movement->moveAnimationSpeed = 1.0f;
+  }
   return true;
 }
 
@@ -600,6 +603,7 @@ void asset_data_init_prefab(void) {
   data_reg_field_t(g_dataReg, AssetPrefabTraitMovement, radius, data_prim_t(f32), .flags = DataFlags_NotEmpty);
   data_reg_field_t(g_dataReg, AssetPrefabTraitMovement, weight, data_prim_t(f32), .flags = DataFlags_NotEmpty);
   data_reg_field_t(g_dataReg, AssetPrefabTraitMovement, moveAnimation, data_prim_t(StringHash), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetPrefabTraitMovement, moveAnimationSpeed, data_prim_t(f32), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AssetPrefabTraitMovement, navLayer, t_AssetPrefabNavLayer, .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AssetPrefabTraitMovement, wheeled, data_prim_t(bool), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AssetPrefabTraitMovement, wheeledAcceleration, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
