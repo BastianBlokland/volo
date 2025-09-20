@@ -23,6 +23,13 @@ const String g_gameQualityLabels[] = {
 };
 ASSERT(array_elems(g_gameQualityLabels) == GameQuality_Count, "Incorrect number of quality labels");
 
+const String g_gameLimiterLabels[] = {
+    string_static("MENU_LIMITER_OFF"),
+    string_static("MENU_LIMITER_30"),
+    string_static("MENU_LIMITER_60"),
+};
+ASSERT(array_elems(g_gameLimiterLabels) == GameLimiter_Count, "Incorrect number of limiter labels");
+
 const String g_gameUiScaleLabels[] = {
     string_static("MENU_UI_SCALE_SMALL"),
     string_static("MENU_UI_SCALE_NORMAL"),
@@ -41,6 +48,11 @@ static void prefs_data_init(void) {
     data_reg_const_t(g_dataReg, GameQuality, Medium);
     data_reg_const_t(g_dataReg, GameQuality, High);
 
+    data_reg_enum_t(g_dataReg, GameLimiter);
+    data_reg_const_t(g_dataReg, GameLimiter, Off);
+    data_reg_const_t(g_dataReg, GameLimiter, 30);
+    data_reg_const_t(g_dataReg, GameLimiter, 60);
+
     data_reg_enum_t(g_dataReg, GameUiScale);
     data_reg_const_t(g_dataReg, GameUiScale, Small);
     data_reg_const_t(g_dataReg, GameUiScale, Normal);
@@ -50,7 +62,7 @@ static void prefs_data_init(void) {
     data_reg_struct_t(g_dataReg, GamePrefsComp);
     data_reg_field_t(g_dataReg, GamePrefsComp, volume, data_prim_t(f32));
     data_reg_field_t(g_dataReg, GamePrefsComp, exposure, data_prim_t(f32));
-    data_reg_field_t(g_dataReg, GamePrefsComp, powerSaving, data_prim_t(bool));
+    data_reg_field_t(g_dataReg, GamePrefsComp, limiter, t_GameLimiter);
     data_reg_field_t(g_dataReg, GamePrefsComp, fullscreen, data_prim_t(bool));
     data_reg_field_t(g_dataReg, GamePrefsComp, windowWidth, data_prim_t(u16));
     data_reg_field_t(g_dataReg, GamePrefsComp, windowHeight, data_prim_t(u16));
@@ -77,7 +89,7 @@ static String prefs_path_scratch(void) {
 static void prefs_to_default(GamePrefsComp* prefs) {
   prefs->volume       = 100.0f;
   prefs->exposure     = 0.5f;
-  prefs->powerSaving  = false;
+  prefs->limiter      = GameLimiter_Off;
   prefs->fullscreen   = true;
   prefs->windowWidth  = 1920;
   prefs->windowHeight = 1080;
