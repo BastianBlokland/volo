@@ -70,6 +70,11 @@ AssetManagerComp* asset_manager_create_mem(
     EcsWorld*, AssetManagerFlags, const AssetMemRecord* records, usize recordCount);
 
 /**
+ * Check if dev support is enabled.
+ */
+bool asset_dev_support(const AssetManagerComp*);
+
+/**
  * Lookup a asset-entity by its id.
  * NOTE: The asset won't be loaded until 'asset_acquire()' is called.
  * Pre-condition: !string_is_empty(id).
