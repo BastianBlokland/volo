@@ -164,7 +164,7 @@ static void data_read_bin_header_internal(ReadCtx* ctx, DataBinHeader* out, Data
   if (!bin_pop_u32(ctx, &out->protocolVersion)) {
     goto Truncated;
   }
-  if (!out->protocolVersion || out->protocolVersion > 4) {
+  if (!out->protocolVersion || out->protocolVersion > 5) {
     *res = result_fail(
         DataReadError_Incompatible,
         "Input protocol version {} is unsupported",
@@ -660,10 +660,21 @@ static void data_read_bin_val(ReadCtx* ctx, DataReadResult* res) {
   diag_crash();
 }
 
-static void data_read_bin_stringhash_values(ReadCtx* ctx, DataReadResult* res) {
+static void
+data_read_bin_stringhash_values(ReadCtx* ctx, const DataBinHeader* header, DataReadResult* res) {
   u32 count;
   if (!bin_pop_u32(ctx, &count)) {
     goto Truncated;
+  }
+  Mem  reqBits;
+  bool allReq;
+  if (header->protocolVersion >= 5) {
+    if (!bin_pop_bytes(ctx, bits_to_bytes(count) + 1, &reqBits)) {
+      goto Truncated;
+    }
+    allReq = false;
+  } else {
+    allReq = true;
   }
   for (u32 i = 0; i != count; ++i) {
     u8 length;
@@ -674,6 +685,8 @@ static void data_read_bin_stringhash_values(ReadCtx* ctx, DataReadResult* res) {
     if (!bin_pop_bytes(ctx, length, &str)) {
       goto Truncated;
     }
+    const bool required = allReq || bitset_test(reqBits, i);
+    (void)required; // TODO: Only add to string-table if required or if dev is enabled.
     stringtable_add(g_stringtable, str);
   }
   *res = result_success();
@@ -731,7 +744,7 @@ String data_read_bin(
   data_read_bin_val(&ctx, res);
 
   if (header.protocolVersion >= 3) {
-    data_read_bin_stringhash_values(&ctx, res);
+    data_read_bin_stringhash_values(&ctx, &header, res);
   }
 
 Ret:
