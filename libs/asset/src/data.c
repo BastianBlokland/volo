@@ -293,7 +293,7 @@ void asset_data_init(const bool devSupport) {
     asset_data_init_procmesh();
     asset_data_init_proctex();
     asset_data_init_product();
-    asset_data_init_script_scene();
+    asset_data_init_script_scene(devSupport);
     asset_data_init_script();
     asset_data_init_shader();
     asset_data_init_sound();
