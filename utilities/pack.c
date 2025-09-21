@@ -375,7 +375,7 @@ AppType app_ecs_configure(CliApp* app) {
 void app_ecs_register(EcsDef* def, MAYBE_UNUSED const CliInvocation* invoc) {
   pack_data_init();
 
-  asset_register(def);
+  asset_register(def, &(AssetRegisterContext){0});
 
   ecs_register_module(def, pack_module);
 }

@@ -1564,7 +1564,7 @@ void app_ecs_register(EcsDef* def, const CliInvocation* invoc) {
 
   const bool devSupport = cli_parse_provided(invoc, g_optDev);
 
-  asset_register(def);
+  asset_register(def, &(AssetRegisterContext){.devSupport = devSupport});
   gap_register(def);
   input_register(def);
   loc_register(def);
