@@ -10,7 +10,7 @@
 #include "registry.h"
 
 static const String g_dataBinMagic           = string_static("VOLO");
-static const u32    g_dataBinProtocolVersion = 4;
+static const u32    g_dataBinProtocolVersion = 5;
 
 /**
  * Protocol version history:
@@ -18,7 +18,13 @@ static const u32    g_dataBinProtocolVersion = 4;
  * 2: Added crc32 checksum.
  * 3: Support string-hash values.
  * 4: Add total size to header.
+ * 5: Support string-hash 'required' bits.
  */
+
+typedef struct {
+  StringHash val;
+  bool       required; // Indicates that the string is needed for non-development purposes.
+} WriteStringHash;
 
 typedef struct {
   const DataReg* reg;
@@ -26,14 +32,23 @@ typedef struct {
   usize          checksumOffset, sizeOffset;
   DataMeta       meta;
   Mem            data;
-  DynArray*      stringHashes; // StringHash[]
+  DynArray*      stringHashes; // WriteStringHash[]
 } WriteCtx;
 
-static void bin_track_stringhash(const WriteCtx* ctx, const StringHash val) {
+static i8 write_stringhash_compare(const void* a, const void* b) {
+  return compare_stringhash(field_ptr(a, WriteStringHash, val), field_ptr(b, WriteStringHash, val));
+}
+
+static void bin_track_stringhash(const WriteCtx* ctx, const StringHash val, const bool required) {
   if (!val) {
     return; // Unset.
   }
-  *(StringHash*)dynarray_find_or_insert_sorted(ctx->stringHashes, compare_stringhash, &val) = val;
+
+  WriteStringHash* slot =
+      dynarray_find_or_insert_sorted(ctx->stringHashes, write_stringhash_compare, &val);
+
+  slot->val = val;
+  slot->required |= required;
 }
 
 static void bin_push_u8(const WriteCtx* ctx, const u8 val) {
@@ -110,9 +125,23 @@ static void data_write_bin_header(WriteCtx* ctx) {
 
 static void data_write_bin_stringhash_values(const WriteCtx* ctx) {
   const u32 count = (u32)math_min(ctx->stringHashes->size, u32_max);
+
+  // Push count.
   bin_push_u32(ctx, count);
+
+  // Push bitset of which string-hashes have a value that is required for non-dev purposes.
+  BitSet reqBits = mem_stack(bits_to_bytes(count) + 1);
+  mem_set(reqBits, 0);
   for (u32 i = 0; i != count; ++i) {
-    const StringHash strHash = *dynarray_at_t(ctx->stringHashes, i, StringHash);
+    if (dynarray_at_t(ctx->stringHashes, i, WriteStringHash)->required) {
+      bitset_set(reqBits, i);
+    }
+  }
+  mem_cpy(dynstring_push(ctx->out, reqBits.size), reqBits);
+
+  // Push strings.
+  for (u32 i = 0; i != count; ++i) {
+    const StringHash strHash = dynarray_at_t(ctx->stringHashes, i, WriteStringHash)->val;
     const String     str     = stringtable_lookup(g_stringtable, strHash);
     const u8         length  = (u8)math_min(str.size, u8_max);
     bin_push_u8(ctx, length);
@@ -166,7 +195,7 @@ static void data_write_bin_union(const WriteCtx* ctx) {
   } break;
   case DataUnionNameType_StringHash: {
     const StringHash nameHash = *data_union_name_hash(&decl->val_union, ctx->data);
-    bin_track_stringhash(ctx, nameHash);
+    bin_track_stringhash(ctx, nameHash, false /* required */);
     bin_push_u32(ctx, nameHash);
   } break;
   }
@@ -236,8 +265,9 @@ static void data_write_bin_val_single(const WriteCtx* ctx) {
     bin_push_mem(ctx, *mem_as_t(ctx->data, Mem));
     return;
   case DataKind_StringHash: {
-    const StringHash val = *mem_as_t(ctx->data, StringHash);
-    bin_track_stringhash(ctx, val);
+    const StringHash val      = *mem_as_t(ctx->data, StringHash);
+    const bool       required = (ctx->meta.flags & DataFlags_StringRequired) != 0;
+    bin_track_stringhash(ctx, val, required);
     bin_push_u32(ctx, val);
     return;
   }
@@ -369,7 +399,7 @@ void data_write_bin(const DataReg* reg, DynString* str, const DataMeta meta, con
 
   const usize strSizeInitial = str->size;
 
-  DynArray stringHashes = dynarray_create_t(g_allocScratch, StringHash, 1024);
+  DynArray stringHashes = dynarray_create_t(g_allocScratch, WriteStringHash, 1024);
 
   WriteCtx ctx = {
       .reg          = reg,
