@@ -1,5 +1,6 @@
 {
   "name": "scene",
+  "flags": [ "DevSupport" ],
   "filter": "scene/*.script",
   "functions": [
     {

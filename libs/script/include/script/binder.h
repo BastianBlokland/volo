@@ -18,7 +18,8 @@ typedef ScriptVal (*ScriptBinderFunc)(void* ctx, ScriptBinderCall*);
 
 typedef enum {
   ScriptBinderFlags_None,
-  ScriptBinderFlags_DisallowMemoryAccess = 1 << 0,
+  ScriptBinderFlags_DevSupport           = 1 << 0, // Include human readable strings.
+  ScriptBinderFlags_DisallowMemoryAccess = 1 << 1,
 } ScriptBinderFlags;
 
 /**

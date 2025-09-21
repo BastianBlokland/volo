@@ -20,6 +20,7 @@
 ASSERT(script_binder_max_funcs <= u16_max, "Binder slot needs to be representable by a u16");
 
 static const String g_scriptBinderFlagNames[] = {
+    string_static("DevSupport"),
     string_static("DisallowMemoryAccess"),
 };
 

@@ -17,9 +17,12 @@ static void bind(
   script_binder_declare(binder, name, doc, sig, null);
 }
 
-void asset_data_init_script_scene(void) {
-  const ScriptBinderFlags flags  = ScriptBinderFlags_None;
-  ScriptBinder*           binder = script_binder_create(g_allocPersist, string_lit("scene"), flags);
+void asset_data_init_script_scene(const bool devSupport) {
+  ScriptBinderFlags flags = ScriptBinderFlags_None;
+  if (devSupport) {
+    flags |= ScriptBinderFlags_DevSupport;
+  }
+  ScriptBinder* binder = script_binder_create(g_allocPersist, string_lit("scene"), flags);
   script_binder_filter_set(binder, string_lit("scene/*.script"));
 
   // clang-format off
