@@ -131,7 +131,7 @@ static void asset_data_init_types(void) {
   }
 
   data_reg_struct_t(g_dataReg, AssetRef);
-  data_reg_field_t(g_dataReg, AssetRef, id, data_prim_t(StringHash), .flags = DataFlags_NotEmpty | DataFlags_InlineField);
+  data_reg_field_t(g_dataReg, AssetRef, id, data_prim_t(StringHash), .flags = DataFlags_NotEmpty | DataFlags_InlineField | DataFlags_StringRequired);
   data_reg_comment_t(g_dataReg, AssetRef, "Asset reference");
 
   data_reg_struct_t(g_dataReg, AssetLevelRef);
