@@ -1,5 +1,4 @@
 #include "core/diag.h"
-#include "core/stringtable.h"
 #include "script/enum.h"
 #include "script/panic.h"
 
@@ -51,8 +50,7 @@ INLINE_HINT static u32 script_enum_find_value(const ScriptEnum* e, const i32 val
   return sentinel_u32;
 }
 
-void script_enum_push(ScriptEnum* e, const String name, const i32 value) {
-  const StringHash nameHash = stringtable_add(g_stringtable, name);
+void script_enum_push(ScriptEnum* e, const StringHash nameHash, const i32 value) {
   diag_assert_msg(!script_enum_contains_name(e, nameHash), "Duplicate name in ScriptEnum");
 
   const u32 index = script_enum_find_name(e, 0 /* unused nameHash */);
