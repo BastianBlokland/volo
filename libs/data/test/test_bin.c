@@ -25,8 +25,10 @@ static void test_bin_roundtrip(
   check_eq_int(dataHeader.size, writeStr.size);
   check_eq_int(dataHeader.checksum, data_read_bin_checksum(writeResult));
 
-  Mem          readData = mem_stack(data.size);
-  const String readRem  = data_read_bin(reg, writeResult, g_allocHeap, meta, readData, &readRes);
+  Mem                 readData  = mem_stack(data.size);
+  const DataReadFlags readFlags = DataReadFlags_None;
+  const String        readRem =
+      data_read_bin(reg, writeResult, g_allocHeap, meta, readFlags, readData, &readRes);
   if (readRes.error != DataReadError_None) {
     check_error("Roundtrip read failed: {}", fmt_text(readRes.errorMsg));
   }

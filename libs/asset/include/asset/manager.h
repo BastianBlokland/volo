@@ -10,9 +10,10 @@ typedef struct {
 
 typedef enum {
   AssetManagerFlags_None          = 0,
-  AssetManagerFlags_TrackChanges  = 1 << 0,
-  AssetManagerFlags_DelayUnload   = 1 << 1,
-  AssetManagerFlags_PortableCache = 1 << 2, // Supports a cache from a different asset directory.
+  AssetManagerFlags_DevSupport    = 1 << 0, // Load dev-only data (eg human readable strings).
+  AssetManagerFlags_TrackChanges  = 1 << 1,
+  AssetManagerFlags_DelayUnload   = 1 << 2,
+  AssetManagerFlags_PortableCache = 1 << 3, // Supports a cache from a different asset directory.
 } AssetManagerFlags;
 
 /**
@@ -67,6 +68,11 @@ AssetManagerComp* asset_manager_create_pack(EcsWorld*, AssetManagerFlags, String
  */
 AssetManagerComp* asset_manager_create_mem(
     EcsWorld*, AssetManagerFlags, const AssetMemRecord* records, usize recordCount);
+
+/**
+ * Check if dev support is enabled.
+ */
+bool asset_dev_support(const AssetManagerComp*);
 
 /**
  * Lookup a asset-entity by its id.

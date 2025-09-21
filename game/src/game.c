@@ -1585,8 +1585,11 @@ void app_ecs_register(EcsDef* def, const CliInvocation* invoc) {
 }
 
 static AssetManagerComp* game_init_assets(EcsWorld* world, const CliInvocation* invoc) {
-  const AssetManagerFlags flags        = AssetManagerFlags_DelayUnload;
-  const String            overridePath = cli_read_string(invoc, g_optAssets, string_empty);
+  AssetManagerFlags flags = AssetManagerFlags_DelayUnload;
+  if (cli_parse_provided(invoc, g_optDev)) {
+    flags |= AssetManagerFlags_DevSupport;
+  }
+  const String overridePath = cli_read_string(invoc, g_optAssets, string_empty);
   if (!string_is_empty(overridePath)) {
     const FileInfo overrideInfo = file_stat_path_sync(overridePath);
     switch (overrideInfo.type) {

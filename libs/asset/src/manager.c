@@ -754,6 +754,10 @@ AssetManagerComp* asset_manager_create_mem(
   return asset_manager_create_internal(world, repo, flags);
 }
 
+bool asset_dev_support(const AssetManagerComp* manager) {
+  return (manager->flags & AssetManagerFlags_DevSupport) != 0;
+}
+
 EcsEntityId asset_lookup(EcsWorld* world, AssetManagerComp* manager, const String id) {
   diag_assert_msg(!string_is_empty(id), "Asset id cannot be empty");
   diag_assert_msg(id.size <= asset_id_max_size, "Asset id size exceeds maximum");

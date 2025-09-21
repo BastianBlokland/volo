@@ -9,6 +9,7 @@
 #include "ecs/world.h"
 #include "geo/matrix.h"
 
+#include "import.h"
 #include "loader_mesh.h"
 #include "manager.h"
 #include "mesh_utils.h"
@@ -548,13 +549,18 @@ void asset_load_mesh_proc(
     const String              id,
     const EcsEntityId         entity,
     AssetSource*              src) {
-  (void)importEnv;
+
+  DataReadFlags readFlags = DataReadFlags_None;
+  if (asset_import_dev_support(importEnv)) {
+    readFlags |= DataReadFlags_DevSupport;
+  }
 
   String            errMsg;
   AssetMeshBuilder* builder = null;
   ProcMeshDef       def;
   DataReadResult    result;
-  data_read_json(g_dataReg, src->data, g_allocHeap, g_assetProcMeshDefMeta, mem_var(def), &result);
+  data_read_json(
+      g_dataReg, src->data, g_allocHeap, g_assetProcMeshDefMeta, readFlags, mem_var(def), &result);
 
   if (UNLIKELY(result.error)) {
     errMsg = result.errorMsg;

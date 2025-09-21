@@ -139,8 +139,9 @@ static bool cache_reg_open(AssetCache* c) {
     return false;
   }
 
-  DataReadResult readRes;
-  data_read_bin(g_dataReg, data, c->alloc, g_assetCacheMeta, mem_var(c->reg), &readRes);
+  const DataReadFlags readFlags = DataReadFlags_None;
+  DataReadResult      readRes;
+  data_read_bin(g_dataReg, data, c->alloc, g_assetCacheMeta, readFlags, mem_var(c->reg), &readRes);
   if (UNLIKELY(readRes.error)) {
     log_w(
         "Failed to read asset cache registry",

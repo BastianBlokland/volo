@@ -15,6 +15,7 @@
 #include "log/logger.h"
 
 #include "data.h"
+#include "import.h"
 #include "manager.h"
 #include "repo.h"
 
@@ -97,15 +98,21 @@ void asset_load_level(
     const String              id,
     const EcsEntityId         entity,
     AssetSource*              src) {
-  (void)importEnv;
+
+  DataReadFlags readFlags = DataReadFlags_None;
+  if (asset_import_dev_support(importEnv)) {
+    readFlags |= DataReadFlags_DevSupport;
+  }
 
   AssetLevel     lvl;
   String         errMsg;
   DataReadResult readRes;
   if (src->format == AssetFormat_LevelBin) {
-    data_read_bin(g_dataReg, src->data, g_allocHeap, g_assetLevelDefMeta, mem_var(lvl), &readRes);
+    data_read_bin(
+        g_dataReg, src->data, g_allocHeap, g_assetLevelDefMeta, readFlags, mem_var(lvl), &readRes);
   } else {
-    data_read_json(g_dataReg, src->data, g_allocHeap, g_assetLevelDefMeta, mem_var(lvl), &readRes);
+    data_read_json(
+        g_dataReg, src->data, g_allocHeap, g_assetLevelDefMeta, readFlags, mem_var(lvl), &readRes);
 
     /**
      * Ensure the objects are sorted on their id. The editor always produces json files with sorted

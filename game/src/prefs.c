@@ -170,9 +170,10 @@ GamePrefsComp* game_prefs_init(EcsWorld* world) {
   }
 
   // Parse the json.
-  DataReadResult result;
-  const Mem      outMem = mem_create(prefs, sizeof(GamePrefsComp));
-  data_read_json(g_dataReg, fileData, g_allocHeap, g_gamePrefsMeta, outMem, &result);
+  DataReadResult      result;
+  const DataReadFlags readFlags = DataReadFlags_None;
+  const Mem           outMem    = mem_create(prefs, sizeof(GamePrefsComp));
+  data_read_json(g_dataReg, fileData, g_allocHeap, g_gamePrefsMeta, readFlags, outMem, &result);
   if (UNLIKELY(result.error)) {
     log_e("Failed to parse preference file", log_param("err", fmt_text(result.errorMsg)));
     goto RetDefault;

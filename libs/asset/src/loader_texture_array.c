@@ -13,6 +13,7 @@
 #include "geo/color.h"
 #include "geo/quat.h"
 
+#include "import.h"
 #include "loader_texture.h"
 #include "manager.h"
 #include "repo.h"
@@ -619,13 +620,18 @@ void asset_load_tex_array(
     const String              id,
     const EcsEntityId         entity,
     AssetSource*              src) {
-  (void)importEnv;
   (void)id;
+
+  DataReadFlags readFlags = DataReadFlags_None;
+  if (asset_import_dev_support(importEnv)) {
+    readFlags |= DataReadFlags_DevSupport;
+  }
 
   String         errMsg;
   ArrayTexDef    def;
   DataReadResult result;
-  data_read_json(g_dataReg, src->data, g_allocHeap, g_assetTexArrayDefMeta, mem_var(def), &result);
+  data_read_json(
+      g_dataReg, src->data, g_allocHeap, g_assetTexArrayDefMeta, readFlags, mem_var(def), &result);
 
   if (UNLIKELY(result.error)) {
     errMsg = result.errorMsg;

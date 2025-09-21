@@ -712,11 +712,16 @@ void asset_load_tex_bin(
     const String              id,
     const EcsEntityId         entity,
     AssetSource*              src) {
-  (void)importEnv;
+
+  DataReadFlags readFlags = DataReadFlags_None;
+  if (asset_import_dev_support(importEnv)) {
+    readFlags |= DataReadFlags_DevSupport;
+  }
 
   AssetTextureComp tex;
   DataReadResult   result;
-  data_read_bin(g_dataReg, src->data, g_allocHeap, g_assetTexMeta, mem_var(tex), &result);
+  data_read_bin(
+      g_dataReg, src->data, g_allocHeap, g_assetTexMeta, readFlags, mem_var(tex), &result);
 
   if (UNLIKELY(result.error)) {
     asset_repo_close(src);

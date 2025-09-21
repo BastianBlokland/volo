@@ -8,6 +8,7 @@
 #include "ecs/view.h"
 #include "ecs/world.h"
 
+#include "import.h"
 #include "manager.h"
 #include "repo.h"
 
@@ -250,18 +251,24 @@ void asset_load_inputs(
     const String              id,
     const EcsEntityId         entity,
     AssetSource*              src) {
-  (void)importEnv;
 
   DynArray actions  = dynarray_create_t(g_allocHeap, AssetInputAction, 64);
   DynArray bindings = dynarray_create_t(g_allocHeap, AssetInputBinding, 128);
+
+  DataReadFlags readFlags = DataReadFlags_None;
+  if (asset_import_dev_support(importEnv)) {
+    readFlags |= DataReadFlags_DevSupport;
+  }
 
   AssetInputMapDef def;
   String           errMsg;
   DataReadResult   readRes;
   if (src->format == AssetFormat_InputsBin) {
-    data_read_bin(g_dataReg, src->data, g_allocHeap, g_assetInputDefMeta, mem_var(def), &readRes);
+    data_read_bin(
+        g_dataReg, src->data, g_allocHeap, g_assetInputDefMeta, readFlags, mem_var(def), &readRes);
   } else {
-    data_read_json(g_dataReg, src->data, g_allocHeap, g_assetInputDefMeta, mem_var(def), &readRes);
+    data_read_json(
+        g_dataReg, src->data, g_allocHeap, g_assetInputDefMeta, readFlags, mem_var(def), &readRes);
   }
   if (UNLIKELY(readRes.error)) {
     errMsg = readRes.errorMsg;

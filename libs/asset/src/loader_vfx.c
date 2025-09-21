@@ -11,6 +11,7 @@
 #include "ecs/world.h"
 
 #include "data.h"
+#include "import.h"
 #include "manager.h"
 #include "repo.h"
 
@@ -325,15 +326,21 @@ void asset_load_vfx(
     const String              id,
     const EcsEntityId         entity,
     AssetSource*              src) {
-  (void)importEnv;
+
+  DataReadFlags readFlags = DataReadFlags_None;
+  if (asset_import_dev_support(importEnv)) {
+    readFlags |= DataReadFlags_DevSupport;
+  }
 
   AssetVfxDef    def;
   String         errMsg;
   DataReadResult result;
   if (src->format == AssetFormat_VfxBin) {
-    data_read_bin(g_dataReg, src->data, g_allocHeap, g_assetVfxDefMeta, mem_var(def), &result);
+    data_read_bin(
+        g_dataReg, src->data, g_allocHeap, g_assetVfxDefMeta, readFlags, mem_var(def), &result);
   } else {
-    data_read_json(g_dataReg, src->data, g_allocHeap, g_assetVfxDefMeta, mem_var(def), &result);
+    data_read_json(
+        g_dataReg, src->data, g_allocHeap, g_assetVfxDefMeta, readFlags, mem_var(def), &result);
   }
   if (UNLIKELY(result.error)) {
     errMsg = result.errorMsg;

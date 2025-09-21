@@ -17,8 +17,9 @@ static void test_read_success(
     const DataMeta    meta,
     Mem               data) {
 
-  DataReadResult res;
-  const String   remaining = data_read_json(reg, input, g_allocHeap, meta, data, &res);
+  DataReadResult      res;
+  const DataReadFlags flags     = DataReadFlags_None;
+  const String        remaining = data_read_json(reg, input, g_allocHeap, meta, flags, data, &res);
 
   check_eq_string(remaining, string_empty);
   check_require_msg(
@@ -36,9 +37,10 @@ static void test_read_fail(
     const DataMeta      meta,
     const DataReadError err) {
 
-  Mem            data = mem_stack(data_meta_size(reg, meta));
-  DataReadResult res;
-  const String   remaining = data_read_json(reg, input, g_allocHeap, meta, data, &res);
+  Mem                 data = mem_stack(data_meta_size(reg, meta));
+  DataReadResult      res;
+  const DataReadFlags flags     = DataReadFlags_None;
+  const String        remaining = data_read_json(reg, input, g_allocHeap, meta, flags, data, &res);
 
   check_eq_string(remaining, string_empty);
   check_eq_int(res.error, err);

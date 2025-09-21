@@ -71,11 +71,16 @@ void asset_load_sound_bin(
     const String              id,
     const EcsEntityId         entity,
     AssetSource*              src) {
-  (void)importEnv;
+
+  DataReadFlags readFlags = DataReadFlags_None;
+  if (asset_import_dev_support(importEnv)) {
+    readFlags |= DataReadFlags_DevSupport;
+  }
 
   AssetSoundComp sound;
   DataReadResult result;
-  data_read_bin(g_dataReg, src->data, g_allocHeap, g_assetSoundMeta, mem_var(sound), &result);
+  data_read_bin(
+      g_dataReg, src->data, g_allocHeap, g_assetSoundMeta, readFlags, mem_var(sound), &result);
 
   if (UNLIKELY(result.error)) {
     asset_repo_close(src);

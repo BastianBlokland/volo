@@ -111,9 +111,10 @@ static bool fetch_config_load(const String path, FetchConfig* out) {
     log_e("Failed to map config file", log_param("err", fmt_text(file_result_str(fileRes))));
     goto Ret;
   }
-  DataReadResult result;
-  const Mem      outMem = mem_create(out, sizeof(FetchConfig));
-  data_read_json(g_dataReg, data, g_allocHeap, g_fetchConfigMeta, outMem, &result);
+  DataReadResult      result;
+  const DataReadFlags readFlags = DataReadFlags_None;
+  const Mem           outMem    = mem_create(out, sizeof(FetchConfig));
+  data_read_json(g_dataReg, data, g_allocHeap, g_fetchConfigMeta, readFlags, outMem, &result);
   if (result.error) {
     log_e("Failed to parse config file", log_param("err", fmt_text(result.errorMsg)));
     goto Ret;
@@ -192,9 +193,10 @@ static void fetch_registry_load_or_default(const String outputPath, FetchRegistr
   if ((fileRes = file_map(file, 0 /* offset */, 0 /* size */, FileHints_Prefetch, &data))) {
     goto Default;
   }
-  DataReadResult readRes;
-  const Mem      regMem = mem_create(out, sizeof(FetchRegistry));
-  data_read_bin(g_dataReg, data, g_allocHeap, g_fetchRegistryMeta, regMem, &readRes);
+  DataReadResult      readRes;
+  const DataReadFlags readFlags = DataReadFlags_None;
+  const Mem           regMem    = mem_create(out, sizeof(FetchRegistry));
+  data_read_bin(g_dataReg, data, g_allocHeap, g_fetchRegistryMeta, readFlags, regMem, &readRes);
   if (readRes.error) {
     log_w(
         "Failed to read fetch registry",

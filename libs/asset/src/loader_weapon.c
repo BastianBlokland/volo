@@ -12,6 +12,7 @@
 #include "ecs/view.h"
 
 #include "data.h"
+#include "import.h"
 #include "manager.h"
 #include "repo.h"
 
@@ -329,15 +330,21 @@ void asset_load_weapons(
     const String              id,
     const EcsEntityId         entity,
     AssetSource*              src) {
-  (void)importEnv;
   (void)id;
+
+  DataReadFlags readFlags = DataReadFlags_None;
+  if (asset_import_dev_support(importEnv)) {
+    readFlags |= DataReadFlags_DevSupport;
+  }
 
   AssetWeaponMapDef def;
   DataReadResult    result;
   if (src->format == AssetFormat_WeaponsBin) {
-    data_read_bin(g_dataReg, src->data, g_allocHeap, g_assetWeaponDefMeta, mem_var(def), &result);
+    data_read_bin(
+        g_dataReg, src->data, g_allocHeap, g_assetWeaponDefMeta, readFlags, mem_var(def), &result);
   } else {
-    data_read_json(g_dataReg, src->data, g_allocHeap, g_assetWeaponDefMeta, mem_var(def), &result);
+    data_read_json(
+        g_dataReg, src->data, g_allocHeap, g_assetWeaponDefMeta, readFlags, mem_var(def), &result);
   }
 
   if (UNLIKELY(result.error)) {

@@ -14,6 +14,7 @@
 #include "ecs/view.h"
 
 #include "data.h"
+#include "import.h"
 #include "manager.h"
 #include "repo.h"
 
@@ -716,15 +717,21 @@ void asset_load_prefabs(
     const String              id,
     const EcsEntityId         entity,
     AssetSource*              src) {
-  (void)importEnv;
   (void)id;
+
+  DataReadFlags readFlags = DataReadFlags_None;
+  if (asset_import_dev_support(importEnv)) {
+    readFlags |= DataReadFlags_DevSupport;
+  }
 
   AssetPrefabMapDef def;
   DataReadResult    result;
   if (src->format == AssetFormat_PrefabsBin) {
-    data_read_bin(g_dataReg, src->data, g_allocHeap, g_assetPrefabDefMeta, mem_var(def), &result);
+    data_read_bin(
+        g_dataReg, src->data, g_allocHeap, g_assetPrefabDefMeta, readFlags, mem_var(def), &result);
   } else {
-    data_read_json(g_dataReg, src->data, g_allocHeap, g_assetPrefabDefMeta, mem_var(def), &result);
+    data_read_json(
+        g_dataReg, src->data, g_allocHeap, g_assetPrefabDefMeta, readFlags, mem_var(def), &result);
   }
 
   if (UNLIKELY(result.error)) {
