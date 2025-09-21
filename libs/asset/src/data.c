@@ -259,7 +259,7 @@ static void asset_data_init_types(void) {
   g_assetGeoPlaneType      = t_GeoPlane;
 }
 
-void asset_data_init(void) {
+void asset_data_init(const bool devSupport) {
   static bool           g_init;
   static ThreadSpinLock g_initLock;
   if (g_init) {
@@ -282,8 +282,6 @@ void asset_data_init(void) {
     asset_data_init_fonttex();
     asset_data_init_graphic();
     asset_data_init_icon();
-    asset_data_init_import_mesh();
-    asset_data_init_import_texture();
     asset_data_init_inputmap();
     asset_data_init_level();
     asset_data_init_locale();
@@ -300,6 +298,12 @@ void asset_data_init(void) {
     asset_data_init_terrain();
     asset_data_init_vfx();
     asset_data_init_weapon();
+
+    // Development-only data types.
+    if (devSupport) {
+      asset_data_init_import_mesh();
+      asset_data_init_import_texture();
+    }
 
     g_init = true;
   }

@@ -4,7 +4,7 @@
 #include "ecs/def.h"
 
 void asset_register(EcsDef* def, const AssetRegisterContext* ctx) {
-  asset_data_init();
+  asset_data_init(ctx->devSupport);
 
   ecs_register_module_ctx(def, asset_decal_module, ctx);
   ecs_register_module_ctx(def, asset_font_module, ctx);
