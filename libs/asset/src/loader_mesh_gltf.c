@@ -119,9 +119,16 @@ typedef struct {
   u32          accWeights;  // Access index [Optional].
 } GltfPrim;
 
+typedef enum {
+  GltfAnimInterp_Linear,
+  GltfAnimInterp_Step,
+  GltfAnimInterp_CubicSpline,
+} GltfAnimInterp;
+
 typedef struct {
-  u32 accInput;  // Access index [Optional].
-  u32 accOutput; // Access index [Optional].
+  GltfAnimInterp interpolation;
+  u32            accInput;  // Access index [Optional].
+  u32            accOutput; // Access index [Optional].
 } GltfAnimChannel;
 
 typedef struct {
@@ -210,7 +217,6 @@ typedef enum {
   GltfError_AnimCountExceedsMaximum,
   GltfError_InvalidBuffer,
   GltfError_UnsupportedPrimitiveMode,
-  GltfError_UnsupportedInterpolationMode,
   GltfError_UnsupportedGlbVersion,
   GltfError_GlbJsonChunkMissing,
   GltfError_GlbChunkCountExceedsMaximum,
@@ -247,7 +253,6 @@ static String gltf_error_str(const GltfError err) {
       string_static("Animation count exceeds maximum"),
       string_static("Gltf invalid buffer"),
       string_static("Unsupported primitive mode, only triangle primitives supported"),
-      string_static("Unsupported interpolation mode, only linear interpolation supported"),
       string_static("Unsupported glb version"),
       string_static("Glb json chunk missing"),
       string_static("Glb chunk count exceeds maximum"),
@@ -482,7 +487,9 @@ static AssetMeshDataPtr gltf_data_push_access_vec(GltfLoad* ld, const u32 acc) {
   const AssetMeshDataPtr res = gltf_data_begin(ld, alignof(GeoVector));
   for (u32 i = 0; i != totalCompCount; i += compCount) {
     const Mem mem = dynarray_push(&ld->animData, sizeof(f32) * 4);
-    mem_set(mem, 0); // TODO: Avoid the duplicate writes of the used components.
+    if (compCount != 4) {
+      mem_set(mem, 0); // TODO: Avoid the duplicate writes of the used components.
+    }
     mem_cpy(mem, mem_create(&ld->access[acc].data_f32[i], sizeof(f32) * compCount));
   }
   return res;
@@ -498,6 +505,37 @@ gltf_data_push_access_norm16(GltfLoad* ld, const u32 acc, const f32 refValue) {
   for (u32 i = 0; i != ld->access[acc].count; ++i) {
     const f32 valNorm = ld->access[acc].data_f32[i] * refValueInv;
     *(u16*)dynarray_push(&ld->animData, sizeof(u16)).ptr = (u16)(valNorm * u16_max);
+  }
+  return res;
+}
+
+static AssetMeshDataPtr gltf_data_push_anim_cubicspline(GltfLoad* ld, const u32 acc) {
+  diag_assert(ld->access[acc].compType == GltfType_f32);
+  diag_assert((ld->access[acc].count % 3) == 0);
+  diag_assert((ld->access[acc].count / 3) >= 2);
+  const u32 compCount      = ld->access[acc].compCount;
+  const u32 totalCompCount = compCount * ld->access[acc].count;
+
+  /**
+   * Cubic spline interpolation includes three values for each entry:
+   * - Tangent-in.
+   * - Value.
+   * - Tangent-out.
+   * Spec: https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#interpolation-cubic
+   *
+   * HACK: In the runtime we only support linear (lerp / slerp) interpolation, for cubic-splines we
+   * just push the values and skip the tangents. This obviously results in different paths then
+   * using proper cubic-spline interpolation but for many simple animations (and with high keyframe
+   * rates) it is good enough.
+   */
+
+  const AssetMeshDataPtr res = gltf_data_begin(ld, alignof(GeoVector));
+  for (u32 i = compCount; i != totalCompCount; i += compCount * 3) {
+    const Mem mem = dynarray_push(&ld->animData, sizeof(f32) * 4);
+    if (compCount != 4) {
+      mem_set(mem, 0); // TODO: Avoid the duplicate writes of the used components.
+    }
+    mem_cpy(mem, mem_create(&ld->access[acc].data_f32[i], sizeof(f32) * compCount));
   }
   return res;
 }
@@ -968,9 +1006,10 @@ static void gltf_parse_animations(GltfLoad* ld, GltfError* err) {
   GltfAnim* outAnim = ld->anims;
 
   enum { GltfMaxSamplerCount = 1024 };
-  u32 samplerAccInput[GltfMaxSamplerCount];
-  u32 samplerAccOutput[GltfMaxSamplerCount];
-  u32 samplerCnt;
+  GltfAnimInterp samplerInterp[GltfMaxSamplerCount];
+  u32            samplerAccInput[GltfMaxSamplerCount];
+  u32            samplerAccOutput[GltfMaxSamplerCount];
+  u32            samplerCnt;
 
   json_for_elems(ld->jDoc, animations, anim) {
     gltf_clear_anim_channels(outAnim);
@@ -989,23 +1028,36 @@ static void gltf_parse_animations(GltfLoad* ld, GltfError* err) {
       if (json_type(ld->jDoc, sampler) != JsonType_Object) {
         goto Error;
       }
-      if (!gltf_json_field_u32(ld, sampler, string_lit("input"), &samplerAccInput[samplerCnt])) {
+      const u32 samplerIdx = samplerCnt++;
+      if (samplerIdx == GltfMaxSamplerCount) {
         goto Error;
       }
-      if (!gltf_json_field_u32(ld, sampler, string_lit("output"), &samplerAccOutput[samplerCnt])) {
+      if (!gltf_json_field_u32(ld, sampler, string_lit("input"), &samplerAccInput[samplerIdx])) {
         goto Error;
       }
-      if (++samplerCnt == GltfMaxSamplerCount) {
+      if (!gltf_json_field_u32(ld, sampler, string_lit("output"), &samplerAccOutput[samplerIdx])) {
         goto Error;
       }
-      const JsonVal interpolation = json_field_lit(ld->jDoc, sampler, "interpolation");
-      if (!gltf_json_check(ld, interpolation, JsonType_String)) {
-        continue; // 'interpolation' is optional, default is 'LINEAR'.
+      const JsonVal interpVal = json_field_lit(ld->jDoc, sampler, "interpolation");
+      if (!gltf_json_check(ld, interpVal, JsonType_String)) {
+        // 'interpolation' is optional, default is 'LINEAR'.
+        samplerInterp[samplerIdx] = GltfAnimInterp_Linear;
+        continue;
       }
-      if (!string_eq(json_string(ld->jDoc, interpolation), string_lit("LINEAR"))) {
-        *err = GltfError_UnsupportedInterpolationMode;
-        return;
+      const String interpStr = json_string(ld->jDoc, interpVal);
+      if (string_eq(interpStr, string_lit("LINEAR"))) {
+        samplerInterp[samplerIdx] = GltfAnimInterp_Linear;
+        continue;
       }
+      if (string_eq(interpStr, string_lit("STEP"))) {
+        samplerInterp[samplerIdx] = GltfAnimInterp_Step;
+        continue;
+      }
+      if (string_eq(interpStr, string_lit("CUBICSPLINE"))) {
+        samplerInterp[samplerIdx] = GltfAnimInterp_CubicSpline;
+        continue;
+      }
+      goto Error;
     }
 
     const JsonVal channels = json_field_lit(ld->jDoc, anim, "channels");
@@ -1044,7 +1096,10 @@ static void gltf_parse_animations(GltfLoad* ld, GltfError* err) {
       }
       diag_assert(samplerAccInput[samplerIdx]);
       outAnim->channels[jointIdx][channelTarget] = (GltfAnimChannel){
-          .accInput = samplerAccInput[samplerIdx], .accOutput = samplerAccOutput[samplerIdx]};
+          .interpolation = samplerInterp[samplerIdx],
+          .accInput      = samplerAccInput[samplerIdx],
+          .accOutput     = samplerAccOutput[samplerIdx],
+      };
     }
     ++outAnim;
   }
@@ -1449,8 +1504,24 @@ static void gltf_build_skeleton(
         if (!gltf_access_check(ld, channel->accOutput, GltfType_f32, requiredComponents)) {
           goto Error;
         }
-        if (ld->access[channel->accInput].count != ld->access[channel->accOutput].count) {
-          goto Error;
+        const u32 inputCount  = ld->access[channel->accInput].count;
+        const u32 outputCount = ld->access[channel->accOutput].count;
+        switch (channel->interpolation) {
+        case GltfAnimInterp_Linear:
+          if (inputCount != outputCount) {
+            goto Error;
+          }
+          break;
+        case GltfAnimInterp_Step:
+          if (inputCount != outputCount) {
+            goto Error;
+          }
+          break;
+        case GltfAnimInterp_CubicSpline:
+          if ((inputCount != (outputCount * 3)) || inputCount < 2) {
+            goto Error;
+          }
+          break;
         }
       }
     }
@@ -1504,8 +1575,7 @@ static void gltf_build_skeleton(
 
     resAnim->name = importAnim->nameHash;
 
-    const f32 durationOrg = anim->duration;
-
+    const f32 durOrg = anim->duration;
     for (u32 jointIndex = 0; jointIndex != ld->jointCount; ++jointIndex) {
       bool anyTargetAnimated = false;
       for (AssetMeshAnimTarget target = 0; target != AssetMeshAnimTarget_Count; ++target) {
@@ -1513,15 +1583,21 @@ static void gltf_build_skeleton(
         AssetMeshAnimChannel*  resChannel = &resAnim->joints[jointIndex][target];
 
         if (!sentinel_check(srcChannel->accInput) && importAnim->mask[jointIndex] > f32_epsilon) {
-          *resChannel = (AssetMeshAnimChannel){
-              .frameCount = ld->access[srcChannel->accInput].count,
-              .timeData   = gltf_data_push_access_norm16(ld, srcChannel->accInput, durationOrg),
-              .valueData  = gltf_data_push_access_vec(ld, srcChannel->accOutput),
-          };
+          resChannel->frameCount = ld->access[srcChannel->accInput].count;
+          resChannel->timeData   = gltf_data_push_access_norm16(ld, srcChannel->accInput, durOrg);
+          switch (srcChannel->interpolation) {
+          case GltfAnimInterp_Linear:
+          case GltfAnimInterp_Step: // TODO: Actually support step interpolation.
+            resChannel->valueData = gltf_data_push_access_vec(ld, srcChannel->accOutput);
+            break;
+          case GltfAnimInterp_CubicSpline:
+            resChannel->valueData = gltf_data_push_anim_cubicspline(ld, srcChannel->accOutput);
+            break;
+          }
           if (target == AssetMeshAnimTarget_Rotation) {
             gltf_process_anim_channel_rot(ld, resChannel);
           }
-          gltf_process_anim_channel(ld, resChannel, target, durationOrg);
+          gltf_process_anim_channel(ld, resChannel, target, durOrg);
           anyTargetAnimated |= resChannel->frameCount > 0;
         } else {
           *resChannel = (AssetMeshAnimChannel){0};
