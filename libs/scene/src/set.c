@@ -5,7 +5,6 @@
 #include "core/intrinsic.h"
 #include "core/sentinel.h"
 #include "core/stringtable.h"
-#include "core/thread.h"
 #include "ecs/entity.h"
 #include "ecs/view.h"
 #include "ecs/world.h"
@@ -222,27 +221,6 @@ static struct {
     {string_static("unit"), SceneId_unit, SceneTags_Unit, SetFlags_None},
     {string_static("selected"), SceneId_selected, SceneTags_Selected, SetFlags_Volatile},
 };
-
-static void set_wellknown_tags_init_locked(void) {
-#if scene_set_wellknown_names
-  for (u32 i = 0; i != array_elems(g_setWellknownTagEntries); ++i) {
-    stringtable_add(g_stringtable, g_setWellknownTagEntries[i].setName);
-  }
-#endif
-}
-
-static void set_wellknown_tags_init(void) {
-  static bool           g_init;
-  static ThreadSpinLock g_initLock;
-  if (UNLIKELY(!g_init)) {
-    thread_spinlock_lock(&g_initLock);
-    if (!g_init) {
-      set_wellknown_tags_init_locked();
-      g_init = true;
-    }
-    thread_spinlock_unlock(&g_initLock);
-  }
-}
 
 static SceneTags set_wellknown_tags(const StringHash set) {
   for (u32 i = 0; i != array_elems(g_setWellknownTagEntries); ++i) {
@@ -563,7 +541,13 @@ ecs_system_define(SceneSetUpdateSys) {
 }
 
 ecs_module_init(scene_set_module) {
-  set_wellknown_tags_init();
+
+  const SceneRegisterContext* ctx = ecs_init_ctx();
+  if (ctx->devSupport) {
+    for (u32 i = 0; i != array_elems(g_setWellknownTagEntries); ++i) {
+      stringtable_add(g_stringtable, g_setWellknownTagEntries[i].setName);
+    }
+  }
 
   ecs_register_comp(SceneSetEnvComp, .destructor = ecs_destruct_set_env_comp);
   ecs_register_comp(SceneSetMemberComp, .combinator = ecs_combine_set_member);

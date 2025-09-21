@@ -1,6 +1,6 @@
 {
   "name": "import-texture",
-  "flags": [ "DisallowMemoryAccess" ],
+  "flags": [ "DevSupport", "DisallowMemoryAccess" ],
   "filter": "import/texture/*.script",
   "functions": [
     {

@@ -352,11 +352,14 @@ import_eval_texture_trans_replace(AssetImportContext* ctx, ScriptBinderCall* cal
   return script_null();
 }
 
-void asset_data_init_import_texture(void) {
+void asset_data_init_import_texture(const bool devSupport) {
   import_init_enum_flags();
   import_init_enum_pixel_type();
 
-  const ScriptBinderFlags flags = ScriptBinderFlags_DisallowMemoryAccess;
+  ScriptBinderFlags flags = ScriptBinderFlags_DisallowMemoryAccess;
+  if (devSupport) {
+    flags |= ScriptBinderFlags_DevSupport;
+  }
   ScriptBinder* binder = script_binder_create(g_allocPersist, string_lit("import-texture"), flags);
   script_binder_filter_set(binder, string_lit("import/texture/*.script"));
 

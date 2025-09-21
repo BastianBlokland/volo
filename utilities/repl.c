@@ -324,7 +324,7 @@ static ScriptVal repl_bind_print_base64(void* ctx, ScriptBinderCall* call) {
 }
 
 static ScriptBinder* repl_bind_init(void) {
-  const ScriptBinderFlags flags  = ScriptBinderFlags_None;
+  const ScriptBinderFlags flags  = ScriptBinderFlags_DevSupport;
   ScriptBinder*           binder = script_binder_create(g_allocHeap, string_lit("repl"), flags);
   const String            doc    = string_empty;
   const ScriptSig*        sig    = null;

@@ -428,10 +428,13 @@ static ScriptVal import_eval_anim_mask_fade_down(AssetImportContext* ctx, Script
   return script_null();
 }
 
-void asset_data_init_import_mesh(void) {
+void asset_data_init_import_mesh(const bool devSupport) {
   import_init_enum_anim_flags();
 
-  const ScriptBinderFlags flags = ScriptBinderFlags_DisallowMemoryAccess;
+  ScriptBinderFlags flags = ScriptBinderFlags_DisallowMemoryAccess;
+  if (devSupport) {
+    flags |= ScriptBinderFlags_DevSupport;
+  }
   ScriptBinder* binder = script_binder_create(g_allocPersist, string_lit("import-mesh"), flags);
   script_binder_filter_set(binder, string_lit("import/mesh/*.script"));
 

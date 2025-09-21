@@ -1,6 +1,6 @@
 {
   "name": "import-mesh",
-  "flags": [ "DisallowMemoryAccess" ],
+  "flags": [ "DevSupport", "DisallowMemoryAccess" ],
   "filter": "import/mesh/*.script",
   "functions": [
     {

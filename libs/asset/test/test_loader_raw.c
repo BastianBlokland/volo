@@ -30,7 +30,7 @@ spec(loader_raw) {
 
   setup() {
     def = ecs_def_create(g_allocHeap);
-    asset_register(def);
+    asset_register(def, &(AssetRegisterContext){0});
     ecs_register_module(def, loader_raw_test_module);
 
     world = ecs_world_create(g_allocHeap, def);

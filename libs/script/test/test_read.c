@@ -21,7 +21,7 @@ spec(read) {
     doc   = script_create(g_allocHeap);
     diags = script_diag_bag_create(g_allocHeap, ScriptDiagFilter_All);
 
-    binder = script_binder_create(g_allocHeap, string_lit("test"), ScriptBinderFlags_None);
+    binder = script_binder_create(g_allocHeap, string_lit("test"), ScriptBinderFlags_DevSupport);
     const String           documentation = string_empty;
     const ScriptSig*       nullSig       = null;
     const ScriptBinderFunc nullFunc      = null;
