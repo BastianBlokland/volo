@@ -69,6 +69,7 @@ if("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
   set(VOLO_COMPILER "gcc")
   add_compile_definitions(VOLO_GCC)
   add_compile_options(
+    -std=gnu11
     $<$<BOOL:${VOLO_WERROR}>:-Werror> # Warnings as errors.
     -Wall -Wextra  -Wshadow
 
@@ -109,6 +110,7 @@ elseif("${CMAKE_C_COMPILER_ID}" STREQUAL "Clang")
     $<$<BOOL:${VOLO_SANITIZE}>:VOLO_ASAN>
     )
   add_compile_options(
+    -std=gnu11
     $<$<BOOL:${VOLO_WERROR}>:-Werror> # Warnings as errors.
     -Wall -Wextra -Wshadow -Wgnu-empty-initializer -Wconversion
 
