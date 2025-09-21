@@ -2,6 +2,11 @@
 #include "data/registry.h"
 
 typedef enum {
+  DataReadFlags_None       = 0,
+  DataReadFlags_DevSupport = 1 << 0, // Support dev-only data be read.
+} DataReadFlags;
+
+typedef enum {
   DataReadError_None,
   DataReadError_Corrupted,
   DataReadError_Malformed,
@@ -68,7 +73,8 @@ String data_read_json(const DataReg*, String, Allocator*, DataMeta, Mem data, Da
  * Pre-condition: DataMeta definition is not modified in parallel with this call.
  * Pre-condition: res != null.
  */
-String data_read_bin(const DataReg*, String, Allocator*, DataMeta, Mem data, DataReadResult*);
+String data_read_bin(
+    const DataReg*, String, Allocator*, DataMeta, DataReadFlags, Mem data, DataReadResult*);
 
 typedef struct {
   u32           protocolVersion;
