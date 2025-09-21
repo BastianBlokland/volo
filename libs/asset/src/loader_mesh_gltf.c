@@ -487,7 +487,9 @@ static AssetMeshDataPtr gltf_data_push_access_vec(GltfLoad* ld, const u32 acc) {
   const AssetMeshDataPtr res = gltf_data_begin(ld, alignof(GeoVector));
   for (u32 i = 0; i != totalCompCount; i += compCount) {
     const Mem mem = dynarray_push(&ld->animData, sizeof(f32) * 4);
-    mem_set(mem, 0); // TODO: Avoid the duplicate writes of the used components.
+    if (compCount != 4) {
+      mem_set(mem, 0); // TODO: Avoid the duplicate writes of the used components.
+    }
     mem_cpy(mem, mem_create(&ld->access[acc].data_f32[i], sizeof(f32) * compCount));
   }
   return res;
@@ -503,6 +505,37 @@ gltf_data_push_access_norm16(GltfLoad* ld, const u32 acc, const f32 refValue) {
   for (u32 i = 0; i != ld->access[acc].count; ++i) {
     const f32 valNorm = ld->access[acc].data_f32[i] * refValueInv;
     *(u16*)dynarray_push(&ld->animData, sizeof(u16)).ptr = (u16)(valNorm * u16_max);
+  }
+  return res;
+}
+
+static AssetMeshDataPtr gltf_data_push_anim_cubicspline(GltfLoad* ld, const u32 acc) {
+  diag_assert(ld->access[acc].compType == GltfType_f32);
+  diag_assert((ld->access[acc].count % 3) == 0);
+  diag_assert((ld->access[acc].count / 3) >= 2);
+  const u32 compCount      = ld->access[acc].compCount;
+  const u32 totalCompCount = compCount * ld->access[acc].count;
+
+  /**
+   * Cubic spline interpolation includes three values for each entry:
+   * - Tangent-in.
+   * - Value.
+   * - Tangent-out.
+   * Spec: https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#interpolation-cubic
+   *
+   * HACK: In the runtime we only support linear (lerp / slerp) interpolation, for cubic-splines we
+   * just push the values and skip the tangents. This obviously results in different paths then
+   * using proper cubic-spline interpolation but for many simple animations (and with high keyframe
+   * rates) it is good enough.
+   */
+
+  const AssetMeshDataPtr res = gltf_data_begin(ld, alignof(GeoVector));
+  for (u32 i = compCount; i != totalCompCount; i += compCount * 3) {
+    const Mem mem = dynarray_push(&ld->animData, sizeof(f32) * 4);
+    if (compCount != 4) {
+      mem_set(mem, 0); // TODO: Avoid the duplicate writes of the used components.
+    }
+    mem_cpy(mem, mem_create(&ld->access[acc].data_f32[i], sizeof(f32) * compCount));
   }
   return res;
 }
@@ -1542,8 +1575,7 @@ static void gltf_build_skeleton(
 
     resAnim->name = importAnim->nameHash;
 
-    const f32 durationOrg = anim->duration;
-
+    const f32 durOrg = anim->duration;
     for (u32 jointIndex = 0; jointIndex != ld->jointCount; ++jointIndex) {
       bool anyTargetAnimated = false;
       for (AssetMeshAnimTarget target = 0; target != AssetMeshAnimTarget_Count; ++target) {
@@ -1551,15 +1583,21 @@ static void gltf_build_skeleton(
         AssetMeshAnimChannel*  resChannel = &resAnim->joints[jointIndex][target];
 
         if (!sentinel_check(srcChannel->accInput) && importAnim->mask[jointIndex] > f32_epsilon) {
-          *resChannel = (AssetMeshAnimChannel){
-              .frameCount = ld->access[srcChannel->accInput].count,
-              .timeData   = gltf_data_push_access_norm16(ld, srcChannel->accInput, durationOrg),
-              .valueData  = gltf_data_push_access_vec(ld, srcChannel->accOutput),
-          };
+          resChannel->frameCount = ld->access[srcChannel->accInput].count;
+          resChannel->timeData   = gltf_data_push_access_norm16(ld, srcChannel->accInput, durOrg);
+          switch (srcChannel->interpolation) {
+          case GltfAnimInterp_Linear:
+          case GltfAnimInterp_Step: // TODO: Actually support step interpolation.
+            resChannel->valueData = gltf_data_push_access_vec(ld, srcChannel->accOutput);
+            break;
+          case GltfAnimInterp_CubicSpline:
+            resChannel->valueData = gltf_data_push_anim_cubicspline(ld, srcChannel->accOutput);
+            break;
+          }
           if (target == AssetMeshAnimTarget_Rotation) {
             gltf_process_anim_channel_rot(ld, resChannel);
           }
-          gltf_process_anim_channel(ld, resChannel, target, durationOrg);
+          gltf_process_anim_channel(ld, resChannel, target, durOrg);
           anyTargetAnimated |= resChannel->frameCount > 0;
         } else {
           *resChannel = (AssetMeshAnimChannel){0};
