@@ -3,7 +3,7 @@
 
 typedef enum {
   DataReadFlags_None       = 0,
-  DataReadFlags_DevSupport = 1 << 0, // Support dev-only data be read.
+  DataReadFlags_DevSupport = 1 << 0, // Read development-only data.
 } DataReadFlags;
 
 typedef enum {
