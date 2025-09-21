@@ -7,54 +7,54 @@
 // clang-format off
 
 #define ASSET_FOREACH_LOADER(_X_)                                                                  \
-  _X_(AssetFormat_Decal,            decal,              1  )                                       \
+  _X_(AssetFormat_Decal,            decal,              2  )                                       \
   _X_(AssetFormat_DecalBin,         decal,              1  )                                       \
-  _X_(AssetFormat_FontTtf,          font_ttf,           3  )                                       \
-  _X_(AssetFormat_Graphic,          graphic,            1  )                                       \
+  _X_(AssetFormat_FontTtf,          font_ttf,           4  )                                       \
+  _X_(AssetFormat_Graphic,          graphic,            2  )                                       \
   _X_(AssetFormat_GraphicBin,       graphic,            1  )                                       \
-  _X_(AssetFormat_Icon,             icon,               1  )                                       \
+  _X_(AssetFormat_Icon,             icon,               2  )                                       \
   _X_(AssetFormat_IconBin,          icon_bin,           2  )                                       \
-  _X_(AssetFormat_Inputs,           inputs,             2  )                                       \
+  _X_(AssetFormat_Inputs,           inputs,             3  )                                       \
   _X_(AssetFormat_InputsBin,        inputs,             1  )                                       \
-  _X_(AssetFormat_Level,            level,              3  )                                       \
+  _X_(AssetFormat_Level,            level,              4  )                                       \
   _X_(AssetFormat_LevelBin,         level,              3  )                                       \
-  _X_(AssetFormat_Locale,           locale,             1  )                                       \
+  _X_(AssetFormat_Locale,           locale,             2  )                                       \
   _X_(AssetFormat_LocaleBin,        locale,             1  )                                       \
   _X_(AssetFormat_MeshBin,          mesh_bin,           3  )                                       \
-  _X_(AssetFormat_MeshGlb,          mesh_glb,           28 )                                       \
-  _X_(AssetFormat_MeshGltf,         mesh_gltf,          28 )                                       \
-  _X_(AssetFormat_MeshObj,          mesh_obj,           7  )                                       \
-  _X_(AssetFormat_MeshProc,         mesh_proc,          2  )                                       \
-  _X_(AssetFormat_Prefabs,          prefabs,            3  )                                       \
+  _X_(AssetFormat_MeshGlb,          mesh_glb,           29 )                                       \
+  _X_(AssetFormat_MeshGltf,         mesh_gltf,          29 )                                       \
+  _X_(AssetFormat_MeshObj,          mesh_obj,           8  )                                       \
+  _X_(AssetFormat_MeshProc,         mesh_proc,          3  )                                       \
+  _X_(AssetFormat_Prefabs,          prefabs,            4  )                                       \
   _X_(AssetFormat_PrefabsBin,       prefabs,            2  )                                       \
-  _X_(AssetFormat_Products,         products,           1  )                                       \
+  _X_(AssetFormat_Products,         products,           2  )                                       \
   _X_(AssetFormat_ProductsBin,      products,           1  )                                       \
   _X_(AssetFormat_Raw,              raw,                0  ) /* Raw cannot be versioned. */        \
-  _X_(AssetFormat_Script,           script,             57 )                                       \
+  _X_(AssetFormat_Script,           script,             58 )                                       \
   _X_(AssetFormat_ScriptBin,        script_bin,         6  )                                       \
   _X_(AssetFormat_ShaderBin,        shader_bin,         3  )                                       \
-  _X_(AssetFormat_ShaderGlslFrag,   shader_glsl_frag,   3  )                                       \
-  _X_(AssetFormat_ShaderGlslVert,   shader_glsl_vert,   3  )                                       \
-  _X_(AssetFormat_ShaderSpv,        shader_spv,         2  )                                       \
+  _X_(AssetFormat_ShaderGlslFrag,   shader_glsl_frag,   4  )                                       \
+  _X_(AssetFormat_ShaderGlslVert,   shader_glsl_vert,   4  )                                       \
+  _X_(AssetFormat_ShaderSpv,        shader_spv,         3  )                                       \
   _X_(AssetFormat_SoundBin,         sound_bin,          2  )                                       \
-  _X_(AssetFormat_SoundWav,         sound_wav,          1  )                                       \
-  _X_(AssetFormat_Terrain,          terrain,            1  )                                       \
+  _X_(AssetFormat_SoundWav,         sound_wav,          2  )                                       \
+  _X_(AssetFormat_Terrain,          terrain,            2  )                                       \
   _X_(AssetFormat_TerrainBin,       terrain,            1  )                                       \
-  _X_(AssetFormat_TexArray,         tex_array,          2  )                                       \
-  _X_(AssetFormat_TexAtlas,         tex_atlas,          2  )                                       \
+  _X_(AssetFormat_TexArray,         tex_array,          3  )                                       \
+  _X_(AssetFormat_TexAtlas,         tex_atlas,          4  )                                       \
   _X_(AssetFormat_TexAtlasBin,      tex_atlas_bin,      2  )                                       \
   _X_(AssetFormat_TexBin,           tex_bin,            4  )                                       \
-  _X_(AssetFormat_TexFont,          tex_font,           1  )                                       \
+  _X_(AssetFormat_TexFont,          tex_font,           2  )                                       \
   _X_(AssetFormat_TexFontBin,       tex_font_bin,       2  )                                       \
-  _X_(AssetFormat_TexHeight16,      tex_height16,       2  )                                       \
-  _X_(AssetFormat_TexHeight32,      tex_height32,       2  )                                       \
-  _X_(AssetFormat_TexPng,           tex_png,            2  )                                       \
-  _X_(AssetFormat_TexPpm,           tex_ppm,            2  )                                       \
-  _X_(AssetFormat_TexProc,          tex_proc,           2  )                                       \
-  _X_(AssetFormat_TexTga,           tex_tga,            2  )                                       \
-  _X_(AssetFormat_Vfx,              vfx,                1  )                                       \
+  _X_(AssetFormat_TexHeight16,      tex_height16,       3  )                                       \
+  _X_(AssetFormat_TexHeight32,      tex_height32,       3  )                                       \
+  _X_(AssetFormat_TexPng,           tex_png,            3  )                                       \
+  _X_(AssetFormat_TexPpm,           tex_ppm,            3  )                                       \
+  _X_(AssetFormat_TexProc,          tex_proc,           3  )                                       \
+  _X_(AssetFormat_TexTga,           tex_tga,            3  )                                       \
+  _X_(AssetFormat_Vfx,              vfx,                3  )                                       \
   _X_(AssetFormat_VfxBin,           vfx,                1  )                                       \
-  _X_(AssetFormat_Weapons,          weapons,            1  )                                       \
+  _X_(AssetFormat_Weapons,          weapons,            2  )                                       \
   _X_(AssetFormat_WeaponsBin,       weapons,            1  )
 
 #define ASSET_LOADER_ITR(_FORMAT_, _NAME_, _VERSION_) \
