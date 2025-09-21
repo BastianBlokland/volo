@@ -127,10 +127,16 @@ void script_binder_declare(
 
   // TODO: Add error when auxillary allocator runs out of space.
 
-  binder->names[binder->count] = stringtable_add(g_stringtable, name);
   binder->funcs[binder->count] = func ? func : binder_func_fallback;
-  binder->docs[binder->count]  = string_maybe_dup(binder->allocAux, doc);
-  binder->sigs[binder->count]  = sig ? script_sig_clone(binder->allocAux, sig) : null;
+  if (binder->flags & ScriptBinderFlags_DevSupport) {
+    binder->names[binder->count] = stringtable_add(g_stringtable, name);
+    binder->sigs[binder->count]  = sig ? script_sig_clone(binder->allocAux, sig) : null;
+    binder->docs[binder->count]  = string_maybe_dup(binder->allocAux, doc);
+  } else {
+    binder->names[binder->count] = string_hash(name);
+    binder->sigs[binder->count]  = null;
+    binder->docs[binder->count]  = string_empty;
+  }
   ++binder->count;
 }
 
@@ -166,8 +172,10 @@ ScriptBinderSlot script_binder_slot_lookup(const ScriptBinder* binder, const Str
 String script_binder_slot_name(const ScriptBinder* binder, const ScriptBinderSlot slot) {
   diag_assert_msg(binder->finalized, "Binder has not been finalized");
   diag_assert_msg(slot < binder->count, "Invalid slot");
-
-  return stringtable_lookup(g_stringtable, binder->names[slot]);
+  if (binder->flags & ScriptBinderFlags_DevSupport) {
+    return stringtable_lookup(g_stringtable, binder->names[slot]);
+  }
+  return string_empty; // Name unknown.
 }
 
 String script_binder_slot_doc(const ScriptBinder* binder, const ScriptBinderSlot slot) {
@@ -250,7 +258,9 @@ static JsonVal binder_func_to_json(JsonDoc* d, const ScriptBinder* b, const Scri
   const JsonVal obj = json_add_object(d);
   json_add_field_lit(d, obj, "name", json_add_string(d, name));
   json_add_field_lit(d, obj, "doc", json_add_string(d, docu));
-  json_add_field_lit(d, obj, "sig", binder_sig_to_json(d, sig));
+  if (sig) {
+    json_add_field_lit(d, obj, "sig", binder_sig_to_json(d, sig));
+  }
   return obj;
 }
 
