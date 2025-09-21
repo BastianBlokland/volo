@@ -2587,7 +2587,7 @@ void gap_pal_modal_error(String message) {
   }
 
   font                  = xcb.generate_id(xcb.con);
-  const String fontName = string_lit("-*-fixed-bold-*");
+  const String fontName = string_lit("*");
   xcb.open_font(xcb.con, font, (u16)fontName.size, fontName.ptr);
 
   u16       lineHeight = 0;
