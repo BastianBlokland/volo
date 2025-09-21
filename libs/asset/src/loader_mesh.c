@@ -1,4 +1,5 @@
 #include "core/alloc.h"
+#include "core/stringtable.h"
 #include "data/read.h"
 #include "data/utils.h"
 #include "ecs/entity.h"
@@ -147,6 +148,15 @@ void asset_load_mesh_bin(
 
   *ecs_world_add_t(world, entity, AssetMeshComp) = bundle.mesh;
   if (bundle.skeleton) {
+
+    // Add the joint names to the string-table for debug purposes.
+    const u8* jointNamesItr = mem_at_u8(bundle.skeleton->data, bundle.skeleton->jointNames);
+    for (u32 joint = 0; joint != bundle.skeleton->jointCount; ++joint) {
+      const u8 size = *jointNamesItr++;
+      stringtable_add(g_stringtable, mem_create(jointNamesItr, size));
+      jointNamesItr += size;
+    }
+
     *ecs_world_add_t(world, entity, AssetMeshSkeletonComp) = *bundle.skeleton;
     alloc_free_t(g_allocHeap, bundle.skeleton);
   }

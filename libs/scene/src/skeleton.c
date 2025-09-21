@@ -6,7 +6,6 @@
 #include "core/dynarray.h"
 #include "core/math.h"
 #include "core/rng.h"
-#include "core/stringtable.h"
 #include "ecs/entity.h"
 #include "ecs/utils.h"
 #include "ecs/view.h"
@@ -278,14 +277,6 @@ static void scene_asset_templ_init(SceneSkeletonTemplComp* tl, const AssetMeshSk
   tl->jointNames     = (const StringHash*)mem_at_u8(tl->data, asset->jointNameHashes);
   tl->rootPose       = (const SceneJointPose*)mem_at_u8(tl->data, asset->rootTransform);
   tl->rootTransform  = geo_matrix_trs(tl->rootPose->t, tl->rootPose->r, tl->rootPose->s);
-
-  // Add the joint names to the string-table for debug purposes.
-  const u8* jointNamesItr = mem_at_u8(tl->data, asset->jointNames);
-  for (u32 joint = 0; joint != asset->jointCount; ++joint) {
-    const u8 size = *jointNamesItr++;
-    stringtable_add(g_stringtable, mem_create(jointNamesItr, size));
-    jointNamesItr += size;
-  }
 }
 
 static void scene_skeleton_templ_load_done(EcsWorld* world, EcsIterator* itr, const bool failure) {
