@@ -2092,6 +2092,9 @@ static void read_sym_push_extern(ScriptReadContext* ctx) {
   if (!ctx->syms || !ctx->binder) {
     return;
   }
+  if (!(script_binder_flags(ctx->binder) & ScriptBinderFlags_DevSupport)) {
+    return; // Development support not enabled for the binder and thus no human readable strings.
+  }
   ScriptBinderSlot itr = script_binder_first(ctx->binder);
   for (; !sentinel_check(itr); itr = script_binder_next(ctx->binder, itr)) {
     const String     label = script_binder_slot_name(ctx->binder, itr);
