@@ -27,7 +27,12 @@ typedef enum {
   DataFlags_ExternalMemory = 1 << 3, // Support external allocations on this memory type.
   DataFlags_InlineField    = 1 << 4, // Inline in parent if this is the only field.
   DataFlags_Sort           = 1 << 5, // The container should remain sorted.
-  DataFlags_TransferToBase = DataFlags_Intern | DataFlags_Sort | DataFlags_ExternalMemory,
+  DataFlags_StringRequired = 1 << 6, // String is required for a StringHash (even for non-dev).
+
+  // clang-format off
+  DataFlags_Hash           = DataFlags_NotEmpty | DataFlags_Sort | DataFlags_ExternalMemory | DataFlags_StringRequired,
+  DataFlags_TransferToBase = DataFlags_Intern | DataFlags_Sort | DataFlags_ExternalMemory | DataFlags_StringRequired,
+  // clang-format on
 } DataFlags;
 
 typedef enum {
