@@ -19,6 +19,11 @@
 
 ASSERT(script_binder_max_funcs <= u16_max, "Binder slot needs to be representable by a u16");
 
+enum {
+  // NOTE: Dev and non-dev binders are compatible.
+  ScriptBinderFlags_HashMask = ~ScriptBinderFlags_DevSupport,
+};
+
 static const String g_scriptBinderFlagNames[] = {
     string_static("DevSupport"),
     string_static("DisallowMemoryAccess"),
@@ -58,7 +63,7 @@ static ScriptBinderHash binder_hash_compute(const ScriptBinder* binder) {
     hashA = bits_hash_32_combine(hashA, binder->names[i]);
   }
 
-  u32 hashB = bits_hash_32_val(binder->flags);
+  u32 hashB = bits_hash_32_val(binder->flags & ScriptBinderFlags_HashMask);
   hashB     = bits_hash_32_combine(hashB, bits_hash_32_val(binder->count));
   return (u64)hashA | ((u64)hashB << 32u);
 }
