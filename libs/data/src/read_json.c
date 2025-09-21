@@ -24,13 +24,14 @@
   }
 
 typedef struct {
-  const DataReg* reg;
-  Allocator*     alloc;
-  DynArray*      allocations;
-  const JsonDoc* doc;
-  const JsonVal  val;
-  const DataMeta meta;
-  Mem            data;
+  const DataReadFlags flags;
+  const DataReg*      reg;
+  Allocator*          alloc;
+  DynArray*           allocations;
+  const JsonDoc*      doc;
+  const JsonVal       val;
+  const DataMeta      meta;
+  Mem                 data;
 } ReadCtx;
 
 static void data_read_json_val(const ReadCtx*, DataReadResult*);
@@ -314,6 +315,7 @@ static void data_read_json_struct(const ReadCtx* ctx, DataReadResult* res, u32 f
 
   dynarray_for_t(&decl->val_struct.fields, DataDeclField, fieldDecl) {
     const ReadCtx fieldCtx = {
+        .flags       = ctx->flags,
         .reg         = ctx->reg,
         .alloc       = ctx->alloc,
         .allocations = ctx->allocations,
@@ -449,6 +451,7 @@ static void data_read_json_union(const ReadCtx* ctx, DataReadResult* res) {
        * Struct fields are inlined into the current json object.
        */
       const ReadCtx choiceCtx = {
+          .flags       = ctx->flags,
           .reg         = ctx->reg,
           .alloc       = ctx->alloc,
           .allocations = ctx->allocations,
@@ -469,6 +472,7 @@ static void data_read_json_union(const ReadCtx* ctx, DataReadResult* res) {
         return;
       }
       const ReadCtx choiceCtx = {
+          .flags       = ctx->flags,
           .reg         = ctx->reg,
           .alloc       = ctx->alloc,
           .allocations = ctx->allocations,
@@ -692,6 +696,7 @@ static void data_read_json_val_single(const ReadCtx* ctx, DataReadResult* res) {
       mem_set(ctx->data, 0); // Initialize non-specified memory to zero.
 
       const ReadCtx inlineCtx = {
+          .flags       = ctx->flags,
           .reg         = ctx->reg,
           .alloc       = ctx->alloc,
           .allocations = ctx->allocations,
@@ -745,6 +750,7 @@ static void data_read_json_val_pointer(const ReadCtx* ctx, DataReadResult* res) 
   data_register_alloc(ctx, mem);
 
   const ReadCtx subCtx = {
+      .flags       = ctx->flags,
       .reg         = ctx->reg,
       .alloc       = ctx->alloc,
       .allocations = ctx->allocations,
@@ -763,6 +769,7 @@ static void data_read_json_val_elems(const ReadCtx* ctx, void* out, DataReadResu
   void* outItr = out;
   json_for_elems(ctx->doc, ctx->val, elem) {
     const ReadCtx elemCtx = {
+        .flags       = ctx->flags,
         .reg         = ctx->reg,
         .alloc       = ctx->alloc,
         .allocations = ctx->allocations,
@@ -889,12 +896,13 @@ static void data_read_json_val(const ReadCtx* ctx, DataReadResult* res) {
 }
 
 String data_read_json(
-    const DataReg*  reg,
-    const String    input,
-    Allocator*      alloc,
-    const DataMeta  meta,
-    Mem             data,
-    DataReadResult* res) {
+    const DataReg*      reg,
+    const String        input,
+    Allocator*          alloc,
+    const DataMeta      meta,
+    const DataReadFlags flags,
+    Mem                 data,
+    DataReadResult*     res) {
 
   JsonDoc* doc         = json_create(g_allocHeap, 512);
   DynArray allocations = dynarray_create_t(g_allocHeap, Mem, 64);
@@ -910,6 +918,7 @@ String data_read_json(
   }
 
   const ReadCtx ctx = {
+      .flags       = flags,
       .reg         = reg,
       .alloc       = alloc,
       .allocations = &allocations,
