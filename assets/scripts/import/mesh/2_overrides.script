@@ -1,5 +1,5 @@
 /**
- * Mesh scale import rules.
+ * Mesh overrides import rules.
  */
 
 if (asset_id_match("external/headquarter/*")) {
