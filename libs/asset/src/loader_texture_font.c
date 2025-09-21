@@ -13,6 +13,7 @@
 #include "ecs/view.h"
 #include "ecs/world.h"
 
+#include "import.h"
 #include "loader_texture.h"
 #include "manager.h"
 #include "repo.h"
@@ -469,12 +470,17 @@ void asset_load_tex_font(
     const String              id,
     const EcsEntityId         entity,
     AssetSource*              src) {
-  (void)importEnv;
+
+  DataReadFlags readFlags = DataReadFlags_None;
+  if (asset_import_dev_support(importEnv)) {
+    readFlags |= DataReadFlags_DevSupport;
+  }
 
   String         errMsg;
   FontTexDef     def;
   DataReadResult result;
-  data_read_json(g_dataReg, src->data, g_allocHeap, g_assetFontTexDefMeta, mem_var(def), &result);
+  data_read_json(
+      g_dataReg, src->data, g_allocHeap, g_assetFontTexDefMeta, readFlags, mem_var(def), &result);
 
   if (UNLIKELY(result.error)) {
     errMsg = result.errorMsg;
@@ -513,12 +519,22 @@ void asset_load_tex_font_bin(
     const String              id,
     const EcsEntityId         entity,
     AssetSource*              src) {
-  (void)importEnv;
+
+  DataReadFlags readFlags = DataReadFlags_None;
+  if (asset_import_dev_support(importEnv)) {
+    readFlags |= DataReadFlags_DevSupport;
+  }
 
   FontTexBundle  bundle;
   DataReadResult result;
   data_read_bin(
-      g_dataReg, src->data, g_allocHeap, g_assetFontTexBundleMeta, mem_var(bundle), &result);
+      g_dataReg,
+      src->data,
+      g_allocHeap,
+      g_assetFontTexBundleMeta,
+      readFlags,
+      mem_var(bundle),
+      &result);
 
   if (UNLIKELY(result.error)) {
     asset_repo_close(src);

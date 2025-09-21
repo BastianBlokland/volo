@@ -8,6 +8,7 @@
 #include "ecs/world.h"
 
 #include "data.h"
+#include "import.h"
 #include "manager.h"
 #include "repo.h"
 
@@ -205,17 +206,23 @@ void asset_load_graphic(
     const String              id,
     const EcsEntityId         entity,
     AssetSource*              src) {
-  (void)importEnv;
   (void)id;
+
+  DataReadFlags readFlags = DataReadFlags_None;
+  if (asset_import_dev_support(importEnv)) {
+    readFlags |= DataReadFlags_DevSupport;
+  }
 
   AssetGraphicComp* graphicComp = ecs_world_add_t(world, entity, AssetGraphicComp);
   const Mem         graphicMem  = mem_create(graphicComp, sizeof(AssetGraphicComp));
 
   DataReadResult result;
   if (src->format == AssetFormat_GraphicBin) {
-    data_read_bin(g_dataReg, src->data, g_allocHeap, g_assetGraphicDefMeta, graphicMem, &result);
+    data_read_bin(
+        g_dataReg, src->data, g_allocHeap, g_assetGraphicDefMeta, readFlags, graphicMem, &result);
   } else {
-    data_read_json(g_dataReg, src->data, g_allocHeap, g_assetGraphicDefMeta, graphicMem, &result);
+    data_read_json(
+        g_dataReg, src->data, g_allocHeap, g_assetGraphicDefMeta, readFlags, graphicMem, &result);
   }
   if (result.error) {
     asset_mark_load_failure(world, entity, id, result.errorMsg, -1 /* errorCode */);

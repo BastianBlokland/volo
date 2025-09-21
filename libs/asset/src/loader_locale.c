@@ -6,6 +6,7 @@
 #include "ecs/view.h"
 #include "ecs/world.h"
 
+#include "import.h"
 #include "manager.h"
 #include "repo.h"
 
@@ -64,17 +65,23 @@ void asset_load_locale(
     const String              id,
     const EcsEntityId         entity,
     AssetSource*              src) {
-  (void)importEnv;
   (void)id;
+
+  DataReadFlags readFlags = DataReadFlags_None;
+  if (asset_import_dev_support(importEnv)) {
+    readFlags |= DataReadFlags_DevSupport;
+  }
 
   AssetLocaleComp* localeComp = ecs_world_add_t(world, entity, AssetLocaleComp);
   const Mem        localeMem  = mem_create(localeComp, sizeof(AssetLocaleComp));
 
   DataReadResult result;
   if (src->format == AssetFormat_LocaleBin) {
-    data_read_bin(g_dataReg, src->data, g_allocHeap, g_assetLocaleDefMeta, localeMem, &result);
+    data_read_bin(
+        g_dataReg, src->data, g_allocHeap, g_assetLocaleDefMeta, readFlags, localeMem, &result);
   } else {
-    data_read_json(g_dataReg, src->data, g_allocHeap, g_assetLocaleDefMeta, localeMem, &result);
+    data_read_json(
+        g_dataReg, src->data, g_allocHeap, g_assetLocaleDefMeta, readFlags, localeMem, &result);
   }
   if (result.error) {
     asset_mark_load_failure(world, entity, id, result.errorMsg, -1 /* errorCode */);

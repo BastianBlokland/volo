@@ -215,8 +215,10 @@ static bool asset_repo_pack_read_header(File* file, const String filePath, Asset
         log_param("error", fmt_text(file_result_str(fileRes))));
     return false;
   }
-  DataReadResult readRes;
-  data_read_bin(g_dataReg, mapping, g_allocHeap, g_assetPackMeta, mem_var(*out), &readRes);
+  const DataReadFlags readFlags = DataReadFlags_None;
+  DataReadResult      readRes;
+  data_read_bin(
+      g_dataReg, mapping, g_allocHeap, g_assetPackMeta, readFlags, mem_var(*out), &readRes);
   if (UNLIKELY(readRes.error)) {
     log_e(
         "Failed to read pack header",

@@ -83,7 +83,8 @@ static i32 blob2j_run(const Blob2jConfig* cfg, File* inputFile, File* outputFile
   const usize dataAlign = data_meta_align(g_dataReg, dataMeta);
   data                  = alloc_alloc(g_allocHeap, dataSize, dataAlign);
 
-  data_read_bin(g_dataReg, dynstring_view(&buffer), g_allocHeap, dataMeta, data, &readRes);
+  const DataReadFlags flags = DataReadFlags_None;
+  data_read_bin(g_dataReg, dynstring_view(&buffer), g_allocHeap, dataMeta, flags, data, &readRes);
   if (readRes.error) {
     file_write_sync(
         g_fileStdErr,

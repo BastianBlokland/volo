@@ -51,9 +51,10 @@ static bool idgen_config_load(const String path, IdGenConfig* out) {
     log_e("Failed to map config file", log_param("err", fmt_text(file_result_str(fileRes))));
     goto Ret;
   }
-  DataReadResult result;
-  const Mem      outMem = mem_create(out, sizeof(IdGenConfig));
-  data_read_json(g_dataReg, data, g_allocHeap, g_idGenConfigMeta, outMem, &result);
+  const DataReadFlags readFlags = DataReadFlags_None;
+  DataReadResult      result;
+  const Mem           outMem = mem_create(out, sizeof(IdGenConfig));
+  data_read_json(g_dataReg, data, g_allocHeap, g_idGenConfigMeta, readFlags, outMem, &result);
   if (result.error) {
     log_e("Failed to parse config file", log_param("err", fmt_text(result.errorMsg)));
     goto Ret;

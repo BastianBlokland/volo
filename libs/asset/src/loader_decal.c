@@ -8,6 +8,7 @@
 #include "ecs/view.h"
 #include "ecs/world.h"
 
+#include "import.h"
 #include "manager.h"
 #include "repo.h"
 
@@ -150,16 +151,22 @@ void asset_load_decal(
     const String              id,
     const EcsEntityId         entity,
     AssetSource*              src) {
-  (void)importEnv;
   (void)id;
+
+  DataReadFlags readFlags = DataReadFlags_None;
+  if (asset_import_dev_support(importEnv)) {
+    readFlags |= DataReadFlags_DevSupport;
+  }
 
   DecalDef       def;
   String         errMsg;
   DataReadResult result;
   if (src->format == AssetFormat_DecalBin) {
-    data_read_bin(g_dataReg, src->data, g_allocHeap, g_assetDecalDefMeta, mem_var(def), &result);
+    data_read_bin(
+        g_dataReg, src->data, g_allocHeap, g_assetDecalDefMeta, readFlags, mem_var(def), &result);
   } else {
-    data_read_json(g_dataReg, src->data, g_allocHeap, g_assetDecalDefMeta, mem_var(def), &result);
+    data_read_json(
+        g_dataReg, src->data, g_allocHeap, g_assetDecalDefMeta, readFlags, mem_var(def), &result);
   }
   if (UNLIKELY(result.error)) {
     errMsg = result.errorMsg;

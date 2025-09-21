@@ -14,6 +14,7 @@
 #include "ecs/view.h"
 #include "ecs/world.h"
 
+#include "import.h"
 #include "loader_texture.h"
 #include "manager.h"
 #include "repo.h"
@@ -381,12 +382,17 @@ void asset_load_tex_atlas(
     const String              id,
     const EcsEntityId         entity,
     AssetSource*              src) {
-  (void)importEnv;
+
+  DataReadFlags readFlags = DataReadFlags_None;
+  if (asset_import_dev_support(importEnv)) {
+    readFlags |= DataReadFlags_DevSupport;
+  }
 
   String         errMsg;
   AtlasDef       def;
   DataReadResult result;
-  data_read_json(g_dataReg, src->data, g_allocHeap, g_assetAtlasDefMeta, mem_var(def), &result);
+  data_read_json(
+      g_dataReg, src->data, g_allocHeap, g_assetAtlasDefMeta, readFlags, mem_var(def), &result);
 
   if (UNLIKELY(result.error)) {
     errMsg = result.errorMsg;
@@ -447,12 +453,22 @@ void asset_load_tex_atlas_bin(
     const String              id,
     const EcsEntityId         entity,
     AssetSource*              src) {
-  (void)importEnv;
+
+  DataReadFlags readFlags = DataReadFlags_None;
+  if (asset_import_dev_support(importEnv)) {
+    readFlags |= DataReadFlags_DevSupport;
+  }
 
   AtlasBundle    bundle;
   DataReadResult result;
   data_read_bin(
-      g_dataReg, src->data, g_allocHeap, g_assetAtlasBundleMeta, mem_var(bundle), &result);
+      g_dataReg,
+      src->data,
+      g_allocHeap,
+      g_assetAtlasBundleMeta,
+      readFlags,
+      mem_var(bundle),
+      &result);
 
   if (UNLIKELY(result.error)) {
     asset_repo_close(src);

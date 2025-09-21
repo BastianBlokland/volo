@@ -135,9 +135,21 @@ void asset_load_mesh_bin(
     const EcsEntityId         entity,
     AssetSource*              src) {
 
+  DataReadFlags readFlags = DataReadFlags_None;
+  if (asset_import_dev_support(importEnv)) {
+    readFlags |= DataReadFlags_DevSupport;
+  }
+
   AssetMeshBundle bundle;
   DataReadResult  result;
-  data_read_bin(g_dataReg, src->data, g_allocHeap, g_assetMeshBundleMeta, mem_var(bundle), &result);
+  data_read_bin(
+      g_dataReg,
+      src->data,
+      g_allocHeap,
+      g_assetMeshBundleMeta,
+      readFlags,
+      mem_var(bundle),
+      &result);
 
   if (UNLIKELY(result.error)) {
     asset_repo_close(src);
@@ -148,7 +160,7 @@ void asset_load_mesh_bin(
   *ecs_world_add_t(world, entity, AssetMeshComp) = bundle.mesh;
   if (bundle.skeleton) {
 
-    if (asset_import_dev_support(importEnv)) {
+    if (readFlags & DataReadFlags_DevSupport) {
       // Add the joint names to the string-table for debug purposes.
       const u8* jointNamesItr = mem_at_u8(bundle.skeleton->data, bundle.skeleton->jointNames);
       for (u32 joint = 0; joint != bundle.skeleton->jointCount; ++joint) {

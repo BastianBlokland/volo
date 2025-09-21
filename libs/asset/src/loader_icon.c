@@ -11,6 +11,7 @@
 #include "ecs/view.h"
 
 #include "data.h"
+#include "import.h"
 #include "manager.h"
 #include "repo.h"
 
@@ -263,12 +264,17 @@ void asset_load_icon(
     const String              id,
     const EcsEntityId         entity,
     AssetSource*              src) {
-  (void)importEnv;
+
+  DataReadFlags readFlags = DataReadFlags_None;
+  if (asset_import_dev_support(importEnv)) {
+    readFlags |= DataReadFlags_DevSupport;
+  }
 
   IconDef        iconDef;
   String         errMsg;
   DataReadResult readRes;
-  data_read_json(g_dataReg, src->data, g_allocHeap, g_assetIconDefMeta, mem_var(iconDef), &readRes);
+  data_read_json(
+      g_dataReg, src->data, g_allocHeap, g_assetIconDefMeta, readFlags, mem_var(iconDef), &readRes);
   if (UNLIKELY(readRes.error)) {
     errMsg = readRes.errorMsg;
     goto Error;
@@ -291,11 +297,16 @@ void asset_load_icon_bin(
     const String              id,
     const EcsEntityId         entity,
     AssetSource*              src) {
-  (void)importEnv;
+
+  DataReadFlags readFlags = DataReadFlags_None;
+  if (asset_import_dev_support(importEnv)) {
+    readFlags |= DataReadFlags_DevSupport;
+  }
 
   AssetIconComp  icon;
   DataReadResult result;
-  data_read_bin(g_dataReg, src->data, g_allocHeap, g_assetIconMeta, mem_var(icon), &result);
+  data_read_bin(
+      g_dataReg, src->data, g_allocHeap, g_assetIconMeta, readFlags, mem_var(icon), &result);
 
   if (UNLIKELY(result.error)) {
     asset_repo_close(src);

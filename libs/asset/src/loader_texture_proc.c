@@ -11,6 +11,7 @@
 #include "ecs/world.h"
 #include "geo/vector.h"
 
+#include "import.h"
 #include "loader_texture.h"
 #include "manager.h"
 #include "repo.h"
@@ -347,12 +348,17 @@ void asset_load_tex_proc(
     const String              id,
     const EcsEntityId         entity,
     AssetSource*              src) {
-  (void)importEnv;
+
+  DataReadFlags readFlags = DataReadFlags_None;
+  if (asset_import_dev_support(importEnv)) {
+    readFlags |= DataReadFlags_DevSupport;
+  }
 
   String         errMsg;
   ProcTexDef     def;
   DataReadResult result;
-  data_read_json(g_dataReg, src->data, g_allocHeap, g_assetTexProcDefMeta, mem_var(def), &result);
+  data_read_json(
+      g_dataReg, src->data, g_allocHeap, g_assetTexProcDefMeta, readFlags, mem_var(def), &result);
 
   if (UNLIKELY(result.error)) {
     errMsg = result.errorMsg;
