@@ -19,7 +19,7 @@ static ScriptEnum g_importAnimFlags;
 
 static void import_init_enum_anim_flags(void) {
 #define ENUM_PUSH(_ENUM_, _NAME_)                                                                  \
-  script_enum_push((_ENUM_), string_lit(#_NAME_), AssetMeshAnimFlags_##_NAME_);
+  script_enum_push((_ENUM_), string_hash_lit(#_NAME_), AssetMeshAnimFlags_##_NAME_);
 
   ENUM_PUSH(&g_importAnimFlags, Active);
   ENUM_PUSH(&g_importAnimFlags, Loop);

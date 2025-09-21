@@ -109,70 +109,70 @@ static ScriptEnum g_scriptEnumCombinator,
 // clang-format on
 
 static void eval_enum_init_combinator(void) {
-  script_enum_push(&g_scriptEnumCombinator, string_lit("None"), -1);
-  script_enum_push(&g_scriptEnumCombinator, string_lit("Add"), 0);
-  script_enum_push(&g_scriptEnumCombinator, string_lit("Sub"), 1);
-  script_enum_push(&g_scriptEnumCombinator, string_lit("Mul"), 2);
-  script_enum_push(&g_scriptEnumCombinator, string_lit("Div"), 3);
-  script_enum_push(&g_scriptEnumCombinator, string_lit("Min"), 4);
-  script_enum_push(&g_scriptEnumCombinator, string_lit("Max"), 5);
-  script_enum_push(&g_scriptEnumCombinator, string_lit("And"), 6);
-  script_enum_push(&g_scriptEnumCombinator, string_lit("Or"), 7);
+  script_enum_push(&g_scriptEnumCombinator, string_hash_lit("None"), -1);
+  script_enum_push(&g_scriptEnumCombinator, string_hash_lit("Add"), 0);
+  script_enum_push(&g_scriptEnumCombinator, string_hash_lit("Sub"), 1);
+  script_enum_push(&g_scriptEnumCombinator, string_hash_lit("Mul"), 2);
+  script_enum_push(&g_scriptEnumCombinator, string_hash_lit("Div"), 3);
+  script_enum_push(&g_scriptEnumCombinator, string_hash_lit("Min"), 4);
+  script_enum_push(&g_scriptEnumCombinator, string_hash_lit("Max"), 5);
+  script_enum_push(&g_scriptEnumCombinator, string_hash_lit("And"), 6);
+  script_enum_push(&g_scriptEnumCombinator, string_hash_lit("Or"), 7);
 }
 
 static void eval_enum_init_faction(void) {
-  script_enum_push(&g_scriptEnumFaction, string_lit("FactionA"), SceneFaction_A);
-  script_enum_push(&g_scriptEnumFaction, string_lit("FactionB"), SceneFaction_B);
-  script_enum_push(&g_scriptEnumFaction, string_lit("FactionC"), SceneFaction_C);
-  script_enum_push(&g_scriptEnumFaction, string_lit("FactionD"), SceneFaction_D);
-  script_enum_push(&g_scriptEnumFaction, string_lit("FactionNone"), SceneFaction_None);
+  script_enum_push(&g_scriptEnumFaction, string_hash_lit("FactionA"), SceneFaction_A);
+  script_enum_push(&g_scriptEnumFaction, string_hash_lit("FactionB"), SceneFaction_B);
+  script_enum_push(&g_scriptEnumFaction, string_hash_lit("FactionC"), SceneFaction_C);
+  script_enum_push(&g_scriptEnumFaction, string_hash_lit("FactionD"), SceneFaction_D);
+  script_enum_push(&g_scriptEnumFaction, string_hash_lit("FactionNone"), SceneFaction_None);
 }
 
 static void eval_enum_init_clock(void) {
-  script_enum_push(&g_scriptEnumClock, string_lit("LevelTime"), 0);
-  script_enum_push(&g_scriptEnumClock, string_lit("Time"), 1);
-  script_enum_push(&g_scriptEnumClock, string_lit("RealTime"), 2);
-  script_enum_push(&g_scriptEnumClock, string_lit("Delta"), 3);
-  script_enum_push(&g_scriptEnumClock, string_lit("RealDelta"), 4);
-  script_enum_push(&g_scriptEnumClock, string_lit("Ticks"), 5);
+  script_enum_push(&g_scriptEnumClock, string_hash_lit("LevelTime"), 0);
+  script_enum_push(&g_scriptEnumClock, string_hash_lit("Time"), 1);
+  script_enum_push(&g_scriptEnumClock, string_hash_lit("RealTime"), 2);
+  script_enum_push(&g_scriptEnumClock, string_hash_lit("Delta"), 3);
+  script_enum_push(&g_scriptEnumClock, string_hash_lit("RealDelta"), 4);
+  script_enum_push(&g_scriptEnumClock, string_hash_lit("Ticks"), 5);
 }
 
 static void eval_enum_init_nav_layer(void) {
   for (SceneNavLayer layer = 0; layer != SceneNavLayer_Count; ++layer) {
-    script_enum_push(&g_scriptEnumNavLayer, g_sceneNavLayerNames[layer], layer);
+    script_enum_push(&g_scriptEnumNavLayer, string_hash(g_sceneNavLayerNames[layer]), layer);
   }
 }
 
 static void eval_enum_init_nav_find(void) {
-  script_enum_push(&g_scriptEnumNavFind, string_lit("ClosestCell"), 0);
-  script_enum_push(&g_scriptEnumNavFind, string_lit("UnblockedCell"), 1);
-  script_enum_push(&g_scriptEnumNavFind, string_lit("FreeCell"), 2);
+  script_enum_push(&g_scriptEnumNavFind, string_hash_lit("ClosestCell"), 0);
+  script_enum_push(&g_scriptEnumNavFind, string_hash_lit("UnblockedCell"), 1);
+  script_enum_push(&g_scriptEnumNavFind, string_hash_lit("FreeCell"), 2);
 }
 
 static void eval_enum_init_capability(void) {
   for (SceneScriptCapability cap = 0; cap != SceneScriptCapability_Count; ++cap) {
-    script_enum_push(&g_scriptEnumCapability, g_sceneScriptCapabilityNames[cap], cap);
+    script_enum_push(&g_scriptEnumCapability, string_hash(g_sceneScriptCapabilityNames[cap]), cap);
   }
 }
 
 static void eval_enum_init_activity(void) {
-  script_enum_push(&g_scriptEnumActivity, string_lit("Dead"), 0);
-  script_enum_push(&g_scriptEnumActivity, string_lit("Moving"), 1);
-  script_enum_push(&g_scriptEnumActivity, string_lit("Traveling"), 2);
-  script_enum_push(&g_scriptEnumActivity, string_lit("Attacking"), 3);
-  script_enum_push(&g_scriptEnumActivity, string_lit("Firing"), 4);
-  script_enum_push(&g_scriptEnumActivity, string_lit("AttackReadying"), 5);
-  script_enum_push(&g_scriptEnumActivity, string_lit("AttackAiming"), 6);
+  script_enum_push(&g_scriptEnumActivity, string_hash_lit("Dead"), 0);
+  script_enum_push(&g_scriptEnumActivity, string_hash_lit("Moving"), 1);
+  script_enum_push(&g_scriptEnumActivity, string_hash_lit("Traveling"), 2);
+  script_enum_push(&g_scriptEnumActivity, string_hash_lit("Attacking"), 3);
+  script_enum_push(&g_scriptEnumActivity, string_hash_lit("Firing"), 4);
+  script_enum_push(&g_scriptEnumActivity, string_hash_lit("AttackReadying"), 5);
+  script_enum_push(&g_scriptEnumActivity, string_hash_lit("AttackAiming"), 6);
 }
 
 static void eval_enum_init_target_exclude(void) {
-  script_enum_push(&g_scriptEnumTargetExclude, string_lit("Unreachable"), 0);
-  script_enum_push(&g_scriptEnumTargetExclude, string_lit("Obscured"), 1);
+  script_enum_push(&g_scriptEnumTargetExclude, string_hash_lit("Unreachable"), 0);
+  script_enum_push(&g_scriptEnumTargetExclude, string_hash_lit("Obscured"), 1);
 }
 
 static void eval_enum_init_renderable_param(void) {
 #define PUSH_RENDERABLE_PARAM(_ENUM_, _NAME_)                                                      \
-  script_enum_push((_ENUM_), string_lit(#_NAME_), SceneActionRenderableParam_##_NAME_);
+  script_enum_push((_ENUM_), string_hash_lit(#_NAME_), SceneActionRenderableParam_##_NAME_);
 
   PUSH_RENDERABLE_PARAM(&g_scriptEnumRenderableParam, Color);
   PUSH_RENDERABLE_PARAM(&g_scriptEnumRenderableParam, Alpha);
@@ -183,7 +183,7 @@ static void eval_enum_init_renderable_param(void) {
 
 static void eval_enum_init_vfx_param(void) {
 #define PUSH_VFX_PARAM(_ENUM_, _NAME_)                                                             \
-  script_enum_push((_ENUM_), string_lit(#_NAME_), SceneActionVfxParam_##_NAME_);
+  script_enum_push((_ENUM_), string_hash_lit(#_NAME_), SceneActionVfxParam_##_NAME_);
 
   PUSH_VFX_PARAM(&g_scriptEnumVfxParam, Alpha);
   PUSH_VFX_PARAM(&g_scriptEnumVfxParam, EmitMultiplier);
@@ -193,7 +193,7 @@ static void eval_enum_init_vfx_param(void) {
 
 static void eval_enum_init_light_param(void) {
 #define PUSH_LIGHT_PARAM(_ENUM_, _NAME_)                                                           \
-  script_enum_push((_ENUM_), string_lit(#_NAME_), SceneActionLightParam_##_NAME_);
+  script_enum_push((_ENUM_), string_hash_lit(#_NAME_), SceneActionLightParam_##_NAME_);
 
   PUSH_LIGHT_PARAM(&g_scriptEnumLightParam, Ambient);
   PUSH_LIGHT_PARAM(&g_scriptEnumLightParam, Radiance);
@@ -205,7 +205,7 @@ static void eval_enum_init_light_param(void) {
 
 static void eval_enum_init_sound_param(void) {
 #define PUSH_SOUND_PARAM(_ENUM_, _NAME_)                                                           \
-  script_enum_push((_ENUM_), string_lit(#_NAME_), SceneActionSoundParam_##_NAME_);
+  script_enum_push((_ENUM_), string_hash_lit(#_NAME_), SceneActionSoundParam_##_NAME_);
 
   PUSH_SOUND_PARAM(&g_scriptEnumSoundParam, Gain);
   PUSH_SOUND_PARAM(&g_scriptEnumSoundParam, Pitch);
@@ -215,7 +215,7 @@ static void eval_enum_init_sound_param(void) {
 
 static void eval_enum_init_anim_param(void) {
 #define PUSH_ANIM_PARAM(_ENUM_, _NAME_)                                                            \
-  script_enum_push((_ENUM_), string_lit(#_NAME_), SceneActionAnimParam_##_NAME_);
+  script_enum_push((_ENUM_), string_hash_lit(#_NAME_), SceneActionAnimParam_##_NAME_);
 
   PUSH_ANIM_PARAM(&g_scriptEnumAnimParam, Time);
   PUSH_ANIM_PARAM(&g_scriptEnumAnimParam, TimeNorm);
@@ -232,50 +232,50 @@ static void eval_enum_init_anim_param(void) {
 
 static void eval_enum_init_layer(void) {
   // clang-format off
-  script_enum_push(&g_scriptEnumLayer, string_lit("Environment"),       SceneLayer_Environment);
-  script_enum_push(&g_scriptEnumLayer, string_lit("Destructible"),      SceneLayer_Destructible);
-  script_enum_push(&g_scriptEnumLayer, string_lit("Infantry"),          SceneLayer_Infantry);
-  script_enum_push(&g_scriptEnumLayer, string_lit("Vehicle"),           SceneLayer_Vehicle);
-  script_enum_push(&g_scriptEnumLayer, string_lit("Structure"),         SceneLayer_Structure);
-  script_enum_push(&g_scriptEnumLayer, string_lit("Unit"),              SceneLayer_Unit);
-  script_enum_push(&g_scriptEnumLayer, string_lit("Debug"),             SceneLayer_Debug);
-  script_enum_push(&g_scriptEnumLayer, string_lit("AllIncludingDebug"), SceneLayer_AllIncludingDebug);
-  script_enum_push(&g_scriptEnumLayer, string_lit("AllNonDebug"),       SceneLayer_AllNonDebug);
+  script_enum_push(&g_scriptEnumLayer, string_hash_lit("Environment"),       SceneLayer_Environment);
+  script_enum_push(&g_scriptEnumLayer, string_hash_lit("Destructible"),      SceneLayer_Destructible);
+  script_enum_push(&g_scriptEnumLayer, string_hash_lit("Infantry"),          SceneLayer_Infantry);
+  script_enum_push(&g_scriptEnumLayer, string_hash_lit("Vehicle"),           SceneLayer_Vehicle);
+  script_enum_push(&g_scriptEnumLayer, string_hash_lit("Structure"),         SceneLayer_Structure);
+  script_enum_push(&g_scriptEnumLayer, string_hash_lit("Unit"),              SceneLayer_Unit);
+  script_enum_push(&g_scriptEnumLayer, string_hash_lit("Debug"),             SceneLayer_Debug);
+  script_enum_push(&g_scriptEnumLayer, string_hash_lit("AllIncludingDebug"), SceneLayer_AllIncludingDebug);
+  script_enum_push(&g_scriptEnumLayer, string_hash_lit("AllNonDebug"),       SceneLayer_AllNonDebug);
   // clang-format on
 }
 
 static void eval_enum_init_query_option(void) {
-  script_enum_push(&g_scriptEnumQueryOption, string_lit("FactionSelf"), 1);
-  script_enum_push(&g_scriptEnumQueryOption, string_lit("FactionOther"), 2);
+  script_enum_push(&g_scriptEnumQueryOption, string_hash_lit("FactionSelf"), 1);
+  script_enum_push(&g_scriptEnumQueryOption, string_hash_lit("FactionOther"), 2);
 }
 
 static void eval_enum_init_status(void) {
   for (SceneStatusType type = 0; type != SceneStatusType_Count; ++type) {
-    script_enum_push(&g_scriptEnumStatus, scene_status_name(type), type);
+    script_enum_push(&g_scriptEnumStatus, string_hash(scene_status_name(type)), type);
   }
 }
 
 static void eval_enum_init_bark(void) {
   for (SceneBarkType bark = 0; bark != SceneBarkType_Count; ++bark) {
-    script_enum_push(&g_scriptEnumBark, scene_bark_name(bark), bark);
+    script_enum_push(&g_scriptEnumBark, string_hash(scene_bark_name(bark)), bark);
   }
 }
 
 static void eval_enum_init_health_stat(void) {
   for (SceneHealthStat stat = 0; stat != SceneHealthStat_Count; ++stat) {
-    script_enum_push(&g_scriptEnumHealthStat, scene_health_stat_name(stat), stat);
+    script_enum_push(&g_scriptEnumHealthStat, string_hash(scene_health_stat_name(stat)), stat);
   }
 }
 
 static void eval_enum_init_marker_type(void) {
   for (SceneMarkerType type = 0; type != SceneMarkerType_Count; ++type) {
-    script_enum_push(&g_scriptEnumMarkerType, scene_marker_name(type), type);
+    script_enum_push(&g_scriptEnumMarkerType, string_hash(scene_marker_name(type)), type);
   }
 }
 
 static void eval_enum_init_mission_state(void) {
   for (SceneMissionState state = 0; state != SceneMissionState_Count; ++state) {
-    script_enum_push(&g_scriptEnumMissionState, scene_mission_state_str(state), state);
+    script_enum_push(&g_scriptEnumMissionState, string_hash(scene_mission_state_str(state)), state);
   }
 }
 

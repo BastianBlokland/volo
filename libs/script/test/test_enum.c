@@ -4,15 +4,15 @@
 spec(enum_) {
   it("can check if it contains a name") {
     ScriptEnum e = {0};
-    script_enum_push(&e, string_lit("a"), 1);
-    script_enum_push(&e, string_lit("b"), 42);
-    script_enum_push(&e, string_lit("c"), 1337);
-    script_enum_push(&e, string_lit("d"), 1337);
-    script_enum_push(&e, string_lit("e"), 1337);
-    script_enum_push(&e, string_lit("f"), 1337);
-    script_enum_push(&e, string_lit("g"), 1337);
-    script_enum_push(&e, string_lit("h"), 1337);
-    script_enum_push(&e, string_lit("i"), 1337);
+    script_enum_push(&e, string_hash_lit("a"), 1);
+    script_enum_push(&e, string_hash_lit("b"), 42);
+    script_enum_push(&e, string_hash_lit("c"), 1337);
+    script_enum_push(&e, string_hash_lit("d"), 1337);
+    script_enum_push(&e, string_hash_lit("e"), 1337);
+    script_enum_push(&e, string_hash_lit("f"), 1337);
+    script_enum_push(&e, string_hash_lit("g"), 1337);
+    script_enum_push(&e, string_hash_lit("h"), 1337);
+    script_enum_push(&e, string_hash_lit("i"), 1337);
 
     check(script_enum_contains_name(&e, string_hash_lit("a")));
     check(script_enum_contains_name(&e, string_hash_lit("b")));
@@ -28,9 +28,9 @@ spec(enum_) {
 
   it("can lookup values") {
     ScriptEnum e = {0};
-    script_enum_push(&e, string_lit("a"), 1);
-    script_enum_push(&e, string_lit("b"), 42);
-    script_enum_push(&e, string_lit("c"), 1337);
+    script_enum_push(&e, string_hash_lit("a"), 1);
+    script_enum_push(&e, string_hash_lit("b"), 42);
+    script_enum_push(&e, string_hash_lit("c"), 1337);
 
     check_eq_int(script_enum_lookup_value(&e, string_hash_lit("a"), null), 1);
     check_eq_int(script_enum_lookup_value(&e, string_hash_lit("b"), null), 42);
@@ -39,9 +39,9 @@ spec(enum_) {
 
   it("can optionally lookup a value") {
     ScriptEnum e = {0};
-    script_enum_push(&e, string_lit("a"), 1);
-    script_enum_push(&e, string_lit("b"), 42);
-    script_enum_push(&e, string_lit("c"), 1337);
+    script_enum_push(&e, string_hash_lit("a"), 1);
+    script_enum_push(&e, string_hash_lit("b"), 42);
+    script_enum_push(&e, string_hash_lit("c"), 1337);
 
     check_eq_int(script_enum_lookup_maybe_value(&e, string_hash_lit("a"), -1), 1);
     check_eq_int(script_enum_lookup_maybe_value(&e, string_hash_lit("b"), -1), 42);
@@ -51,9 +51,9 @@ spec(enum_) {
 
   it("can lookup names") {
     ScriptEnum e = {0};
-    script_enum_push(&e, string_lit("a"), 1);
-    script_enum_push(&e, string_lit("b"), 42);
-    script_enum_push(&e, string_lit("c"), 1337);
+    script_enum_push(&e, string_hash_lit("a"), 1);
+    script_enum_push(&e, string_hash_lit("b"), 42);
+    script_enum_push(&e, string_hash_lit("c"), 1337);
 
     check_eq_int(script_enum_lookup_name(&e, -1), 0);
     check_eq_int(script_enum_lookup_name(&e, 0), 0);

@@ -8,7 +8,7 @@ typedef struct sScriptEnum {
   ALIGNAS(16) i32 values[script_enum_max_entries];
 } ScriptEnum;
 
-void script_enum_push(ScriptEnum*, String name, i32 value);
+void script_enum_push(ScriptEnum*, StringHash nameHash, i32 value);
 
 bool script_enum_contains_name(const ScriptEnum*, StringHash nameHash);
 

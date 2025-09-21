@@ -19,7 +19,7 @@ static ScriptEnum g_importTextureFlags, g_importTexturePixelType;
 
 static void import_init_enum_flags(void) {
 #define ENUM_PUSH(_ENUM_, _NAME_)                                                                  \
-  script_enum_push((_ENUM_), string_lit(#_NAME_), AssetImportTextureFlags_##_NAME_);
+  script_enum_push((_ENUM_), string_hash_lit(#_NAME_), AssetImportTextureFlags_##_NAME_);
 
   ENUM_PUSH(&g_importTextureFlags, Lossless);
   ENUM_PUSH(&g_importTextureFlags, Linear);
@@ -31,7 +31,7 @@ static void import_init_enum_flags(void) {
 
 static void import_init_enum_pixel_type(void) {
 #define ENUM_PUSH(_ENUM_, _NAME_)                                                                  \
-  script_enum_push((_ENUM_), string_lit(#_NAME_), AssetTextureType_##_NAME_);
+  script_enum_push((_ENUM_), string_hash_lit(#_NAME_), AssetTextureType_##_NAME_);
 
   ENUM_PUSH(&g_importTexturePixelType, u8);
   ENUM_PUSH(&g_importTexturePixelType, u16);
