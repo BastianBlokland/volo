@@ -46,7 +46,10 @@ static const String g_assetImportScriptPaths[AssetImportType_Count] = {
     [AssetImportType_Texture] = string_static("scripts/import/texture/*.script"),
 };
 
-ecs_comp_define(AssetImportEnvComp) { AssetImportHandler handlers[AssetImportType_Count]; };
+ecs_comp_define(AssetImportEnvComp) {
+  bool devSupport; // Is development support enabled (NOTE: Should not influence on-disk data).
+  AssetImportHandler handlers[AssetImportType_Count];
+};
 
 static void ecs_destruct_import_env_comp(void* data) {
   AssetImportEnvComp* comp = data;
@@ -91,6 +94,7 @@ MAYBE_UNUSED static AssetImportType import_type_for_domain(const AssetScriptDoma
 
 static AssetImportEnvComp* import_env_init(EcsWorld* world, AssetManagerComp* manager) {
   AssetImportEnvComp* res = ecs_world_add_t(world, ecs_world_global(world), AssetImportEnvComp);
+  res->devSupport         = asset_dev_support(manager);
 
   EcsEntityId assets[asset_query_max_results];
   u32         assetCount;
@@ -278,6 +282,8 @@ ecs_module_init(asset_import_module) {
   ecs_register_system(AssetImportDeinitSys, ecs_view_id(DeinitGlobalView));
   ecs_order(AssetImportDeinitSys, AssetOrder_Deinit);
 }
+
+bool asset_import_dev_support(const AssetImportEnvComp* env) { return env->devSupport; }
 
 bool asset_import_ready(const AssetImportEnvComp* env, const String assetId) {
   /**

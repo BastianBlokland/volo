@@ -8,6 +8,12 @@
 ecs_comp_extern(AssetImportEnvComp);
 
 /**
+ * Has development support been enabled.
+ * NOTE: Should not influence the on-disk data format.
+ */
+bool asset_import_dev_support(const AssetImportEnvComp*);
+
+/**
  * Check if we are ready to import an asset with the given id.
  */
 bool asset_import_ready(const AssetImportEnvComp*, String assetId);
