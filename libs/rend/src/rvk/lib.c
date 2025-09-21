@@ -158,10 +158,16 @@ static VkInstance rvk_inst_create(
     createInfo.pNext = &validationFeatures;
   }
 
-  VkInstance result;
-  rvk_api_check(
-      string_lit("createInstance"), loaderApi->createInstance(&createInfo, vkAlloc, &result));
-  return result;
+  VkInstance     instance;
+  const VkResult result = loaderApi->createInstance(&createInfo, vkAlloc, &instance);
+  if (result != VK_SUCCESS) {
+    log_e(
+        "Failed to create Vulkan instance",
+        log_param("error-code", fmt_int(result)),
+        log_param("error", fmt_text(vkResultStr(result))));
+    return null;
+  }
+  return instance;
 }
 
 static int rvk_messenger_severity_mask(const RvkLibFlags flags) {
@@ -346,6 +352,11 @@ RvkLib* rvk_lib_create(const RendSettingsGlobalComp* set) {
   }
 
   lib->vkInst = rvk_inst_create(&loaderApi, &lib->vkAlloc, lib->flags);
+  if (!lib->vkInst) {
+    dynlib_destroy(vulkanLib);
+    alloc_free_t(g_allocHeap, lib);
+    return null;
+  }
   rvk_api_check(string_lit("loadInstance"), vkLoadInstance(lib->vkInst, &loaderApi, &lib->api));
 
   if (lib->flags & RvkLibFlags_Debug) {
