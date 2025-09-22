@@ -253,6 +253,9 @@ NO_INLINE_HINT FLATTEN_HINT NO_ASAN SymbolStack symbol_stack_walk(void) {
   for (; sym_is_stack_ptr(fp) && bits_aligned_ptr(fp, sizeof(uptr)); fp = fp->prev) {
     const SymbolAddrRel addrRel = sym_addr_rel(fp->retAddr);
     if (sentinel_check(addrRel)) {
+      if (UNLIKELY(fp == fp->prev)) {
+        break; // Frame points to itself; malformed stack.
+      }
       continue; // Function does not belong to our executable.
     }
     stack.frames[frameIndex++] = addrRel;
