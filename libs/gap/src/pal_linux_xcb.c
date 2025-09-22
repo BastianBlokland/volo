@@ -2622,6 +2622,7 @@ void gap_pal_modal_error(String message) {
   pal_xcb_set_window_type(&xcb, window, xcb.atomWmWindowTypeDialog);
   pal_xcb_set_window_min_size(&xcb, window, textSize);
   pal_xcb_title_set(&xcb, window, string_lit("Error"));
+  pal_xcb_register_delete_msg(&xcb, window); // Register a custom delete message atom.
   xcb.map_window(xcb.con, window);
 
   // clang-format off
@@ -2674,6 +2675,13 @@ void gap_pal_modal_error(String message) {
       for (u32 i = 0; i != lineCount; ++i) {
         pal_xcb_draw_text(&xcb, window, gc, pos, lines[i]);
         pos.y += lineHeight + lineSpacing;
+      }
+    } break;
+
+    case 33 /* XCB_CLIENT_MESSAGE */: {
+      const XcbClientMessageEvent* clientMsg = (const void*)evt;
+      if (clientMsg->data[0] == xcb.atomDeleteMsg) {
+        goto Close;
       }
     } break;
     }
