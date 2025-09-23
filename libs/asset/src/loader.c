@@ -21,8 +21,8 @@
   _X_(AssetFormat_Locale,           locale,             2  )                                       \
   _X_(AssetFormat_LocaleBin,        locale,             1  )                                       \
   _X_(AssetFormat_MeshBin,          mesh_bin,           3  )                                       \
-  _X_(AssetFormat_MeshGlb,          mesh_glb,           29 )                                       \
-  _X_(AssetFormat_MeshGltf,         mesh_gltf,          29 )                                       \
+  _X_(AssetFormat_MeshGlb,          mesh_glb,           30 )                                       \
+  _X_(AssetFormat_MeshGltf,         mesh_gltf,          30 )                                       \
   _X_(AssetFormat_MeshObj,          mesh_obj,           8  )                                       \
   _X_(AssetFormat_MeshProc,         mesh_proc,          3  )                                       \
   _X_(AssetFormat_Prefabs,          prefabs,            4  )                                       \
