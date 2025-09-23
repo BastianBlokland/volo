@@ -421,6 +421,7 @@ typedef struct {
   XcbCookie               (SYS_DECL* close_font)(XcbConnection*, XcbFont);
   XcbCookie               (SYS_DECL* query_text_extents)(XcbConnection*, XcbFont, u32 textLen, const u16* textData);
   XcbTextExtentsData*     (SYS_DECL* query_text_extents_reply)(XcbConnection*, XcbCookie, XcbGenericError**);
+  XcbCookie               (SYS_DECL* clear_area)(XcbConnection*, u8 exposures, XcbWindow, i16 x, i16 y, u16 width, u16 height);
   XcbCookie               (SYS_DECL* image_text_16)(XcbConnection*, u8 textLen, XcbDrawable, XcbGcContext, i16 x, i16 y, const u16* textData);
   XcbGenericEvent*        (SYS_DECL* poll_for_event)(XcbConnection*);
   XcbGenericEvent*        (SYS_DECL* wait_for_event)(XcbConnection*);
@@ -916,6 +917,10 @@ static GapVector pal_xcb_measure_text(Xcb* xcb, const XcbFont font, String text)
   return result;
 }
 
+static void pal_xcb_clear(Xcb* xcb, const XcbWindow window, const GapVector size) {
+  xcb->clear_area(xcb->con, false, window, 0, 0, (u16)size.width, (u16)size.height);
+}
+
 static void pal_xcb_draw_text(
     Xcb* xcb, const XcbWindow window, const XcbGcContext gc, const GapVector pos, String text) {
   u16     charData[u8_max];
@@ -1001,6 +1006,7 @@ static bool pal_init_xcb(Allocator* alloc, Xcb* out, const PalXcbInitFlags flags
   XCB_LOAD_SYM(query_text_extents);
   XCB_LOAD_SYM(query_text_extents_reply);
   XCB_LOAD_SYM(image_text_16);
+  XCB_LOAD_SYM(clear_area);
   XCB_LOAD_SYM(poll_for_event);
   XCB_LOAD_SYM(wait_for_event);
   XCB_LOAD_SYM(put_image);
@@ -2672,6 +2678,7 @@ void gap_pal_modal_error(String message) {
       GapVector pos = gap_vector(
           windowSizeHalf.width - textSizeHalf.width,
           windowSizeHalf.height - textSizeHalf.height + lineHeight);
+      pal_xcb_clear(&xcb, window, windowSize);
       for (u32 i = 0; i != lineCount; ++i) {
         pal_xcb_draw_text(&xcb, window, gc, pos, lines[i]);
         pos.y += lineHeight + lineSpacing;
