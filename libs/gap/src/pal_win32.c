@@ -280,7 +280,7 @@ static void pal_cursor_clip_release(void) {
   }
 }
 
-static GapKey pal_win32_translate_key(const u8 scanCode) {
+static GapKey pal_win32_map_key(const u8 scanCode) {
   switch (scanCode) {
   case 0x2A: // Left-shift.
   case 0x36: // Right-shift.
@@ -721,13 +721,13 @@ pal_event(GapPal* pal, const HWND wnd, const UINT msg, const WPARAM wParam, cons
   case WM_KEYDOWN:
   case WM_SYSKEYDOWN: {
     const u8 scanCode = LOBYTE(HIWORD(lParam));
-    pal_event_press(window, pal_win32_translate_key(scanCode));
+    pal_event_press(window, pal_win32_map_key(scanCode));
     return true;
   }
   case WM_KEYUP:
   case WM_SYSKEYUP: {
     const u8 scanCode = LOBYTE(HIWORD(lParam));
-    pal_event_release(window, pal_win32_translate_key(scanCode));
+    pal_event_release(window, pal_win32_map_key(scanCode));
     return true;
   }
   case WM_MOUSEWHEEL: {
