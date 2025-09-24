@@ -790,6 +790,50 @@ static GapKey pal_xcb_map_key(const XkbKeycode key) {
   return GapKey_None;
 }
 
+static XkbKeycode pal_xcb_unmap_key(const GapKey key) {
+  static const XkbKeycode g_keyCodes[GapKey_Count] = {
+      [GapKey_Shift] = 0x32,       [GapKey_Control] = 0x25,
+      [GapKey_Alt] = 0x40,         [GapKey_Backspace] = 0x16,
+      [GapKey_Delete] = 0x77,      [GapKey_Tab] = 0x17,
+      [GapKey_Tilde] = 0x31,       [GapKey_Return] = 0x24,
+      [GapKey_Escape] = 0x9,       [GapKey_Space] = 0x41,
+      [GapKey_Plus] = 0x15,        [GapKey_Minus] = 0x14,
+      [GapKey_Home] = 0x6E,        [GapKey_End] = 0x73,
+      [GapKey_PageUp] = 0x70,      [GapKey_PageDown] = 0x75,
+      [GapKey_ArrowUp] = 0x6F,     [GapKey_ArrowDown] = 0x74,
+      [GapKey_ArrowRight] = 0x72,  [GapKey_ArrowLeft] = 0x71,
+      [GapKey_BracketLeft] = 0x22, [GapKey_BracketRight] = 0x23,
+
+      [GapKey_A] = 0x26,           [GapKey_B] = 0x38,
+      [GapKey_C] = 0x36,           [GapKey_D] = 0x28,
+      [GapKey_E] = 0x1A,           [GapKey_F] = 0x29,
+      [GapKey_G] = 0x2A,           [GapKey_H] = 0x2B,
+      [GapKey_I] = 0x1F,           [GapKey_J] = 0x2C,
+      [GapKey_K] = 0x2D,           [GapKey_L] = 0x2E,
+      [GapKey_M] = 0x3A,           [GapKey_N] = 0x39,
+      [GapKey_O] = 0x20,           [GapKey_P] = 0x21,
+      [GapKey_Q] = 0x18,           [GapKey_R] = 0x1B,
+      [GapKey_S] = 0x27,           [GapKey_T] = 0x1C,
+      [GapKey_U] = 0x1E,           [GapKey_V] = 0x37,
+      [GapKey_W] = 0x19,           [GapKey_X] = 0x35,
+      [GapKey_Y] = 0x1D,           [GapKey_Z] = 0x34,
+
+      [GapKey_Alpha0] = 0x13,      [GapKey_Alpha1] = 0xA,
+      [GapKey_Alpha2] = 0xB,       [GapKey_Alpha3] = 0xC,
+      [GapKey_Alpha4] = 0xD,       [GapKey_Alpha5] = 0xE,
+      [GapKey_Alpha6] = 0xF,       [GapKey_Alpha7] = 0x10,
+      [GapKey_Alpha8] = 0x11,      [GapKey_Alpha9] = 0x12,
+
+      [GapKey_F1] = 0x43,          [GapKey_F2] = 0x44,
+      [GapKey_F3] = 0x45,          [GapKey_F4] = 0x46,
+      [GapKey_F5] = 0x47,          [GapKey_F6] = 0x48,
+      [GapKey_F7] = 0x49,          [GapKey_F8] = 0x4A,
+      [GapKey_F9] = 0x4B,          [GapKey_F10] = 0x4C,
+      [GapKey_F11] = 0x5F,         [GapKey_F12] = 0x60,
+  };
+  return g_keyCodes[key];
+}
+
 /**
  * Synchonously retrieve an xcb atom by name.
  * Xcb atoms are named tokens that are used in the x11 specification.
