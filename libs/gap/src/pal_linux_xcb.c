@@ -256,6 +256,7 @@ typedef struct sXkbContext XkbContext;
 typedef struct sXkbKeyMap  XkbKeyMap;
 typedef struct sXkbState   XkbState;
 typedef u32                XkbKeycode;
+typedef u32                XkbKeysym;
 typedef u32                XkbStateComponent;
 typedef u32                XkbModMask;
 typedef u32                XkbLayoutIndex;
@@ -442,6 +443,7 @@ typedef struct {
   XcbCookie         (SYS_DECL* select_events_checked)(XcbConnection*, u16 deviceSpec, u16 affectWhich, u16 clear, u16 selectAll, u16 affectMap, u16 map, const void* details);
   const char*       (SYS_DECL* keymap_layout_get_name)(XkbKeyMap*, u32 index);
   i32               (SYS_DECL* get_core_keyboard_device_id)(XcbConnection*);
+  XkbKeysym         (SYS_DECL* state_key_get_one_sym)(XkbState*, XkbKeycode);
   i32               (SYS_DECL* state_key_get_utf8)(XkbState*, XkbKeycode, char* buffer, usize size);
   XkbStateComponent (SYS_DECL* state_update_mask)(XkbState*, XkbModMask depressed, XkbModMask latched, XkbModMask locked, XkbLayoutIndex depressedLayout, XkbLayoutIndex latchedLayout, XkbLayoutIndex lockedLayout);
   int               (SYS_DECL* setup_xkb_extension)(XcbConnection*, u16 xkbMajor, u16 xkbMinor, i32 flags, u16* xkbMajorOut, u16* xkbMinorOut, u8* baseEventOut, u8* baseErrorOut);
@@ -633,7 +635,7 @@ static String pal_xcb_err_str(const int xcbErrCode) {
   }
 }
 
-static GapKey pal_xcb_translate_key(const XkbKeycode key) {
+static GapKey pal_xcb_map_key(const XkbKeycode key) {
   switch (key) {
   case 0x32: // Left-shift.
   case 0x3E: // Right-shift.
@@ -1171,6 +1173,7 @@ static bool pal_init_xkb(Xcb* xcb, Allocator* alloc, XkbCommon* out) {
   XKB_LOAD_SYM(xkb, keymap_layout_get_name);
   XKB_LOAD_SYM(xkb, keymap_num_layouts);
   XKB_LOAD_SYM(xkb, keymap_unref);
+  XKB_LOAD_SYM(xkb, state_key_get_one_sym);
   XKB_LOAD_SYM(xkb, state_key_get_utf8);
   XKB_LOAD_SYM(xkb, state_unref);
   XKB_LOAD_SYM(xkb, state_update_mask);
@@ -1566,6 +1569,30 @@ static GapVector pal_query_cursor_pos(GapPal* pal, const GapWindowId winId) {
 Return:
   pal->xcb.free(data);
   return result;
+}
+
+static GapKey pal_translate_key(GapPal* pal, const XkbKeycode key) {
+  /**
+   * Translate a physical key-code into a supported GapKey.
+   *
+   * NOTE: GapKey should be (mostly) independent of the users keyboard layout as for game input its
+   * about the location of the key and not about the semantic meaning. Exceptions to this are cases
+   * where not respecting the user's layout could result in inputs clashing with other programs (eg
+   * swapping the Alt and Super keys).
+   */
+  if (pal->extensions & GapPalXcbExtFlags_Xkb) {
+    // Use the user's keymap to support swapping Alt and Super.
+    const XkbKeysym sym = pal->xkb.state_key_get_one_sym(pal->xkb.state, key);
+    switch (sym) /* https://xkbcommon.org/doc/current/xkbcommon-keysyms_8h.html */ {
+    case 0xFFE9: // Left-alt.
+    case 0xFFEA: // Right-alt.
+      return GapKey_Alt;
+    case 0xFFEB:          // Left-super.
+    case 0xFFEC:          // Right-super.
+      return GapKey_None; // Reserve the super-key for the window-manager.
+    }
+  }
+  return pal_xcb_map_key(key);
 }
 
 static void pal_event_close(GapPal* pal, const GapWindowId windowId) {
@@ -2063,13 +2090,13 @@ void gap_pal_update(GapPal* pal) {
 
     case 2 /* XCB_KEY_PRESS */: {
       const XcbKeyEvent* pressMsg = (const void*)evt;
-      pal_event_press(pal, pressMsg->event, pal_xcb_translate_key(pressMsg->detail));
+      pal_event_press(pal, pressMsg->event, pal_translate_key(pal, pressMsg->detail));
       pal_event_text(pal, pressMsg->event, pressMsg->detail);
     } break;
 
     case 3 /* XCB_KEY_RELEASE */: {
       const XcbKeyEvent* releaseMsg = (const void*)evt;
-      pal_event_release(pal, releaseMsg->event, pal_xcb_translate_key(releaseMsg->detail));
+      pal_event_release(pal, releaseMsg->event, pal_translate_key(pal, releaseMsg->detail));
     } break;
 
     case 29 /* XCB_SELECTION_CLEAR */: {
@@ -2662,9 +2689,11 @@ void gap_pal_modal_error(String message) {
 
     case 3: /* XCB_KEY_RELEASE */ {
       const XcbKeyEvent* releaseMsg = (const void*)evt;
-      const GapKey       key        = pal_xcb_translate_key(releaseMsg->detail);
-      if (key == GapKey_Escape) {
+      switch (pal_xcb_map_key(releaseMsg->detail)) {
+      case GapKey_Escape:
         goto Close;
+      default:
+        break;
       }
     } break;
 
