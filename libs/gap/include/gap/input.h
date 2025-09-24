@@ -107,11 +107,13 @@ typedef enum eGapParam {
 
 /**
  * Single character representation of a key, or null if there is no single char representation.
+ * NOTE: These correspond to an ANSI (US English) keyboard layout, should not be user facing.
  */
 Unicode gap_key_char(GapKey);
 
 /**
  * Textual representation of a key.
+ * NOTE: These correspond to an ANSI (US English) keyboard layout, should not be user facing.
  */
 String gap_key_str(GapKey);
 
