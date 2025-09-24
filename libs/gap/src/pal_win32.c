@@ -433,7 +433,7 @@ static GapKey pal_win32_map_key(const u8 scanCode) {
   return GapKey_None;
 }
 
-static u8 pal_xcb_unmap_key(const GapKey key) {
+static u8 pal_win32_unmap_key(const GapKey key) {
   static const u8 g_scanCodes[GapKey_Count] = {
       [GapKey_Shift] = 0x2A,       [GapKey_Control] = 0x1D,
       [GapKey_Alt] = 0x38,         [GapKey_Backspace] = 0x0E,
@@ -995,6 +995,26 @@ void gap_pal_cursor_load(GapPal* pal, const GapCursor id, const AssetIconComp* a
   }
   pal->cursors[id] = cursor;
   pal->cursorIcons |= 1 << id;
+}
+
+bool gap_pal_key_name(const GapPal* pal, const GapKey key, DynString* out) {
+  (void)pal;
+  const u8 scanCode = pal_win32_unmap_key(key);
+  if (!scanCode) {
+    return false;
+  }
+  const LONG param = ((LONG)scanCode << 16) | ((LONG)1 << 25 /* "Do not care" bit */);
+  wchar_t    buffer[64];
+  const int  charCount = GetKeyNameText(param, buffer, array_elems(buffer));
+  if (!charCount) {
+    return false;
+  }
+  const String name = winutils_from_widestr_scratch(buffer, charCount);
+  if (string_is_empty(name)) {
+    return false;
+  }
+  dynstring_append(out, name);
+  return true;
 }
 
 GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
