@@ -633,7 +633,7 @@ static String pal_xcb_err_str(const int xcbErrCode) {
   }
 }
 
-static GapKey pal_xcb_translate_key(const XkbKeycode key) {
+static GapKey pal_xcb_translate_raw_key(const XkbKeycode key) {
   switch (key) {
   case 0x32: // Left-shift.
   case 0x3E: // Right-shift.
@@ -2063,13 +2063,13 @@ void gap_pal_update(GapPal* pal) {
 
     case 2 /* XCB_KEY_PRESS */: {
       const XcbKeyEvent* pressMsg = (const void*)evt;
-      pal_event_press(pal, pressMsg->event, pal_xcb_translate_key(pressMsg->detail));
+      pal_event_press(pal, pressMsg->event, pal_xcb_translate_raw_key(pressMsg->detail));
       pal_event_text(pal, pressMsg->event, pressMsg->detail);
     } break;
 
     case 3 /* XCB_KEY_RELEASE */: {
       const XcbKeyEvent* releaseMsg = (const void*)evt;
-      pal_event_release(pal, releaseMsg->event, pal_xcb_translate_key(releaseMsg->detail));
+      pal_event_release(pal, releaseMsg->event, pal_xcb_translate_raw_key(releaseMsg->detail));
     } break;
 
     case 29 /* XCB_SELECTION_CLEAR */: {
@@ -2662,7 +2662,7 @@ void gap_pal_modal_error(String message) {
 
     case 3: /* XCB_KEY_RELEASE */ {
       const XcbKeyEvent* releaseMsg = (const void*)evt;
-      const GapKey       key        = pal_xcb_translate_key(releaseMsg->detail);
+      const GapKey       key        = pal_xcb_translate_raw_key(releaseMsg->detail);
       if (key == GapKey_Escape) {
         goto Close;
       }
