@@ -442,6 +442,7 @@ typedef struct {
   // clang-format off
   XcbCookie         (SYS_DECL* select_events_checked)(XcbConnection*, u16 deviceSpec, u16 affectWhich, u16 clear, u16 selectAll, u16 affectMap, u16 map, const void* details);
   const char*       (SYS_DECL* keymap_layout_get_name)(XkbKeyMap*, u32 index);
+  const char*       (SYS_DECL* keymap_key_get_name)(XkbKeyMap*, XkbKeycode);
   i32               (SYS_DECL* get_core_keyboard_device_id)(XcbConnection*);
   XkbKeysym         (SYS_DECL* state_key_get_one_sym)(XkbState*, XkbKeycode);
   i32               (SYS_DECL* state_key_get_utf8)(XkbState*, XkbKeycode, char* buffer, usize size);
@@ -1229,6 +1230,7 @@ static bool pal_init_xkb(Xcb* xcb, Allocator* alloc, XkbCommon* out) {
   XKB_LOAD_SYM(xkb, context_new);
   XKB_LOAD_SYM(xkb, context_unref);
   XKB_LOAD_SYM(xkb, keymap_layout_get_name);
+  XKB_LOAD_SYM(xkb, keymap_key_get_name);
   XKB_LOAD_SYM(xkb, keymap_num_layouts);
   XKB_LOAD_SYM(xkb, keymap_unref);
   XKB_LOAD_SYM(xkb, state_key_get_one_sym);
@@ -2335,6 +2337,27 @@ void gap_pal_cursor_load(GapPal* pal, const GapCursor id, const AssetIconComp* a
       gap_pal_window_cursor_set(pal, window->id, id);
     }
   }
+}
+
+bool gap_pal_key_name(const GapPal* pal, const GapKey key, DynString* out) {
+  if (!(pal->extensions & GapPalXcbExtFlags_Xkb)) {
+    return false; // Xkb is not available.
+  }
+  const XkbKeycode keyCode = pal_xcb_unmap_key(key);
+  if (!keyCode) {
+    return false;
+  }
+  diag_assert(pal->xkb.keymap);
+  const char* nameNullTerm = pal->xkb.keymap_key_get_name(pal->xkb.keymap, keyCode);
+  if (!nameNullTerm) {
+    return false;
+  }
+  const String name = string_from_null_term(nameNullTerm);
+  if (string_is_empty(name)) {
+    return false;
+  }
+  dynstring_append(out, name);
+  return true;
 }
 
 GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
