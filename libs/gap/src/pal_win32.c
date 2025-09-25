@@ -997,7 +997,7 @@ void gap_pal_cursor_load(GapPal* pal, const GapCursor id, const AssetIconComp* a
   pal->cursorIcons |= 1 << id;
 }
 
-bool gap_pal_key_name(const GapPal* pal, const GapKey key, DynString* out) {
+bool gap_pal_key_label(const GapPal* pal, const GapKey key, DynString* out) {
   (void)pal;
   const u8 scanCode = pal_win32_unmap_key(key);
   if (!scanCode) {

@@ -6,6 +6,7 @@
  * Forward header for the gap library.
  */
 
+ecs_comp_extern(GapPlatformComp);
 ecs_comp_extern(GapWindowComp);
 
 typedef enum eGapCursor       GapCursor;

@@ -1,6 +1,7 @@
 #pragma once
 #include "core/string.h"
 #include "core/unicode.h"
+#include "gap/forward.h"
 
 /**
  * Represents a physical key (independent of the users keyboard layout).
@@ -116,6 +117,11 @@ Unicode gap_key_char(GapKey);
  * NOTE: These correspond to an ANSI (US English) keyboard layout, should not be user facing.
  */
 String gap_key_str(GapKey);
+
+/**
+ * Write the label (in the user's keyboard layout) of the key.
+ */
+bool gap_key_label(const GapPlatformComp*, GapKey, DynString* out);
 
 /**
  * Textual representation of a parameter.

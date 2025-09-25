@@ -2339,7 +2339,7 @@ void gap_pal_cursor_load(GapPal* pal, const GapCursor id, const AssetIconComp* a
   }
 }
 
-bool gap_pal_key_name(const GapPal* pal, const GapKey key, DynString* out) {
+bool gap_pal_key_label(const GapPal* pal, const GapKey key, DynString* out) {
   if (!(pal->extensions & GapPalXcbExtFlags_Xkb)) {
     return false; // Xkb is not available.
   }

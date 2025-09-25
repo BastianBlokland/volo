@@ -3,6 +3,7 @@
 #include "core/forward.h"
 
 #include "input.h"
+#include "platform.h"
 
 static const Unicode g_keyChars[GapKey_Count] = {
     [GapKey_Plus] = '+',        [GapKey_Minus] = '-',
@@ -122,6 +123,10 @@ String gap_key_str(const GapKey key) {
   }
   diag_assert(key >= 0 && key < GapKey_Count);
   return g_keyStrs[key];
+}
+
+bool gap_key_label(const GapPlatformComp* plat, const GapKey key, DynString* out) {
+  return gap_pal_key_label(plat->pal, key, out);
 }
 
 static const String g_paramStrs[] = {
