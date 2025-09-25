@@ -27,7 +27,7 @@ typedef enum {
 } GapWindowRequests;
 
 ecs_comp_define(GapWindowComp) {
-  GapPal* pal;
+  GapPal* pal; // NOTE: Should only be used in the window destructor, otherwise potentially unsafe.
   String  title;
   String  displayName;
   uptr    nativeAppHandle;
