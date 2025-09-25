@@ -10,7 +10,7 @@
 
 /**
  * X11 client implementation using the xcb library.
- * Optionally uses the xkbcommon, xfixes, randr and render extensions.
+ * Optionally uses the xkbcommon, keysyms, xfixes, randr and render extensions.
  *
  * Standard: https://www.x.org/docs/ICCCM/icccm.pdf
  * Xcb: https://xcb.freedesktop.org/manual/
@@ -252,14 +252,15 @@ typedef struct {
   int                rem, index;
 } XcbPictFormatInfoItr;
 
-typedef struct sXkbContext XkbContext;
-typedef struct sXkbKeyMap  XkbKeyMap;
-typedef struct sXkbState   XkbState;
-typedef u32                XkbKeycode;
-typedef u32                XkbKeysym;
-typedef u32                XkbStateComponent;
-typedef u32                XkbModMask;
-typedef u32                XkbLayoutIndex;
+typedef struct sXkbContext    XkbContext;
+typedef struct sXkbKeyMap     XkbKeyMap;
+typedef struct sXkbState      XkbState;
+typedef u32                   XkbKeycode;
+typedef u32                   XkbKeysym;
+typedef u32                   XkbStateComponent;
+typedef u32                   XkbModMask;
+typedef u32                   XkbLayoutIndex;
+typedef struct sXcbKeySymbols XcbKeySymbols;
 
 typedef struct {
   u8           responseType, xkbType;
@@ -460,6 +461,17 @@ typedef struct {
 } XkbCommon;
 
 typedef struct {
+  DynLib*        lib;
+  XcbKeySymbols* syms;
+
+  // clang-format off
+  XcbKeySymbols* (SYS_DECL* key_symbols_alloc)(XcbConnection*);
+  void           (SYS_DECL* key_symbols_free)(XcbKeySymbols*);
+  XkbKeysym      (SYS_DECL* key_symbols_get_keysym)(XcbKeySymbols*, XkbKeycode, int col);
+  // clang-format on
+} XcbKeysyms;
+
+typedef struct {
   DynLib* lib;
   // clang-format off
   void*     (SYS_DECL* query_version_reply)(XcbConnection*, XcbCookie, XcbGenericError**);
@@ -512,10 +524,11 @@ typedef struct {
 } XRender;
 
 typedef enum {
-  GapPalXcbExtFlags_Xkb    = 1 << 0,
-  GapPalXcbExtFlags_XFixes = 1 << 1,
-  GapPalXcbExtFlags_Randr  = 1 << 2,
-  GapPalXcbExtFlags_Render = 1 << 3,
+  GapPalXcbExtFlags_Xkb     = 1 << 0,
+  GapPalXcbExtFlags_Keysyms = 1 << 1,
+  GapPalXcbExtFlags_XFixes  = 1 << 2,
+  GapPalXcbExtFlags_Randr   = 1 << 3,
+  GapPalXcbExtFlags_Render  = 1 << 4,
 } GapPalXcbExtFlags;
 
 typedef enum {
@@ -554,11 +567,12 @@ struct sGapPal {
   GapPalXcbExtFlags extensions;
   GapPalFlags       flags;
 
-  Xcb       xcb;
-  XkbCommon xkb;
-  XFixes    xfixes;
-  XRandr    xrandr;
-  XRender   xrender;
+  Xcb        xcb;
+  XkbCommon  xkb;
+  XcbKeysyms keysyms;
+  XFixes     xfixes;
+  XRandr     xrandr;
+  XRender    xrender;
 
   Mem       icons[GapIcon_Count];
   XcbCursor cursors[GapCursor_Count];
@@ -1301,6 +1315,46 @@ static bool pal_init_xkb(Xcb* xcb, Allocator* alloc, XkbCommon* out) {
 }
 
 /**
+ * Initialize keysyms extension, contains key-symbol utilities.
+ */
+static bool pal_init_keysyms(Xcb* xcb, Allocator* alloc, XcbKeysyms* out) {
+  DynLibResult loadRes = dynlib_load(alloc, string_lit("libxcb-keysyms.so"), &out->lib);
+  if (loadRes != DynLibResult_Success) {
+    const String err = dynlib_result_str(loadRes);
+    log_w("Failed to load XcbKeysyms ('libxcb-keysyms.so')", log_param("err", fmt_text(err)));
+    return false;
+  }
+
+#define KEYSYMS_LOAD_SYM(_NAME_)                                                                   \
+  do {                                                                                             \
+    const String symName = string_lit("xcb_" #_NAME_);                                             \
+    out->_NAME_          = dynlib_symbol(out->lib, symName);                                       \
+    if (!out->_NAME_) {                                                                            \
+      log_w("XcbKeysyms symbol '{}' missing", log_param("sym", fmt_text(symName)));                \
+      return false;                                                                                \
+    }                                                                                              \
+  } while (false)
+
+  KEYSYMS_LOAD_SYM(key_symbols_alloc);
+  KEYSYMS_LOAD_SYM(key_symbols_free);
+  KEYSYMS_LOAD_SYM(key_symbols_get_keysym);
+
+#undef KEYSYMS_LOAD_SYM
+
+  out->syms = out->key_symbols_alloc(xcb->con);
+  if (!out->syms) {
+    log_w("Failed to initialize XcbKeysyms");
+    return false;
+  }
+
+  log_i(
+      "Xcb extension initialized",
+      log_param("ext", fmt_text_lit("XcbKeysyms")),
+      log_param("path", fmt_path(dynlib_path(out->lib))));
+  return true;
+}
+
+/**
  * Initialize xfixes extension, contains various utilities.
  */
 static bool pal_init_xfixes(Xcb* xcb, Allocator* alloc, XFixes* out) {
@@ -1502,6 +1556,9 @@ static bool pal_init_xrender(Xcb* xcb, Allocator* alloc, XRender* out) {
 static void pal_init_extensions(GapPal* pal) {
   if (pal_init_xkb(&pal->xcb, pal->alloc, &pal->xkb)) {
     pal->extensions |= GapPalXcbExtFlags_Xkb;
+  }
+  if (pal_init_keysyms(&pal->xcb, pal->alloc, &pal->keysyms)) {
+    pal->extensions |= GapPalXcbExtFlags_Keysyms;
   }
   if (pal_init_xfixes(&pal->xcb, pal->alloc, &pal->xfixes)) {
     pal->extensions |= GapPalXcbExtFlags_XFixes;
@@ -1974,6 +2031,9 @@ void gap_pal_destroy(GapPal* pal) {
   if (pal->xkb.state) {
     pal->xkb.state_unref(pal->xkb.state);
   }
+  if (pal->keysyms.syms) {
+    pal->keysyms.key_symbols_free(pal->keysyms.syms);
+  }
 
   array_for_t(pal->icons, Mem, icon) { alloc_maybe_free(pal->alloc, *icon); }
   array_for_t(pal->cursors, XcbCursor, cursor) {
@@ -1988,6 +2048,9 @@ void gap_pal_destroy(GapPal* pal) {
   dynlib_destroy(pal->xcb.lib);
   if (pal->xkb.lib) {
     dynlib_destroy(pal->xkb.lib);
+  }
+  if (pal->keysyms.lib) {
+    dynlib_destroy(pal->keysyms.lib);
   }
   if (pal->xfixes.lib) {
     dynlib_destroy(pal->xfixes.lib);
@@ -2340,14 +2403,15 @@ void gap_pal_cursor_load(GapPal* pal, const GapCursor id, const AssetIconComp* a
 }
 
 bool gap_pal_key_label(const GapPal* pal, const GapKey key, DynString* out) {
-  if (!(pal->extensions & GapPalXcbExtFlags_Xkb)) {
-    return false; // Xkb is not available.
+  const GapPalXcbExtFlags reqExts = GapPalXcbExtFlags_Xkb | GapPalXcbExtFlags_Keysyms;
+  if ((pal->extensions & reqExts) != reqExts) {
+    return false; // Required extensions not available.
   }
   const XkbKeycode keyCode = pal_xcb_unmap_key(key);
   if (!keyCode) {
     return false;
   }
-  const XkbKeysym keySym = pal->xkb.state_key_get_one_sym(pal->xkb.state, keyCode);
+  const XkbKeysym keySym = pal->keysyms.key_symbols_get_keysym(pal->keysyms.syms, keyCode, 0);
 
   char buffer[64];
   pal->xkb.keysym_get_name(keySym, buffer, sizeof(buffer));
