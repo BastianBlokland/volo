@@ -447,6 +447,7 @@ typedef struct {
   XkbKeysym         (SYS_DECL* state_key_get_one_sym)(XkbState*, XkbKeycode);
   i32               (SYS_DECL* state_key_get_utf8)(XkbState*, XkbKeycode, char* buffer, usize size);
   XkbStateComponent (SYS_DECL* state_update_mask)(XkbState*, XkbModMask depressed, XkbModMask latched, XkbModMask locked, XkbLayoutIndex depressedLayout, XkbLayoutIndex latchedLayout, XkbLayoutIndex lockedLayout);
+  XkbKeysym         (SYS_DECL* keysym_to_upper)(XkbKeysym);
   int               (SYS_DECL* keysym_get_name)(XkbKeysym, char* buffer, usize size);
   int               (SYS_DECL* setup_xkb_extension)(XcbConnection*, u16 xkbMajor, u16 xkbMinor, i32 flags, u16* xkbMajorOut, u16* xkbMinorOut, u8* baseEventOut, u8* baseErrorOut);
   u32               (SYS_DECL* keymap_num_layouts)(XkbKeyMap*);
@@ -1250,6 +1251,7 @@ static bool pal_init_xkb(Xcb* xcb, Allocator* alloc, XkbCommon* out) {
   XKB_LOAD_SYM(xkb, state_key_get_utf8);
   XKB_LOAD_SYM(xkb, state_unref);
   XKB_LOAD_SYM(xkb, state_update_mask);
+  XKB_LOAD_SYM(xkb, keysym_to_upper);
   XKB_LOAD_SYM(xkb, keysym_get_name);
 
 #undef XKB_LOAD_SYM
@@ -2411,10 +2413,11 @@ bool gap_pal_key_label(const GapPal* pal, const GapKey key, DynString* out) {
   if (!keyCode) {
     return false;
   }
-  const XkbKeysym keySym = pal->keysyms.key_symbols_get_keysym(pal->keysyms.syms, keyCode, 0);
+  const XkbKeysym keySym      = pal->keysyms.key_symbols_get_keysym(pal->keysyms.syms, keyCode, 0);
+  const XkbKeysym keySymUpper = pal->xkb.keysym_to_upper(keySym);
 
   char buffer[64];
-  pal->xkb.keysym_get_name(keySym, buffer, sizeof(buffer));
+  pal->xkb.keysym_get_name(keySymUpper, buffer, sizeof(buffer));
   const String name = string_from_null_term(buffer);
 
   if (string_is_empty(name)) {
