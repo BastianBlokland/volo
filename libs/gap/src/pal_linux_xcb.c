@@ -1296,8 +1296,8 @@ static bool pal_init_xkb(Xcb* xcb, Allocator* alloc, XkbCommon* out) {
     return false;
   }
   out->state = out->state_new_from_device(out->keymap, xcb->con, out->deviceId);
-  if (!out->keymap) {
-    log_w("Failed to retrieve the Xkb keyboard state");
+  if (!out->state) {
+    log_w("Failed to create a Xkb keyboard state");
     return false;
   }
 
