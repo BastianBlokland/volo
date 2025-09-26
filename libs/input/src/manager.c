@@ -19,7 +19,6 @@
 
 typedef struct {
   StringHash nameHash;
-  GapKey     primarykey;
   String     label; // Allocated in the info allocator (reset every frame).
 } InputActionInfo;
 
@@ -244,10 +243,7 @@ static void input_update_action_info(
     }
     const AssetInputBinding* primaryBinding = &map->bindings.values[action->bindingIndex];
 
-    InputActionInfo info = {
-        .nameHash   = action->name,
-        .primarykey = primaryBinding->key,
-    };
+    InputActionInfo info = {.nameHash = action->name};
 
     dynstring_clear(&labelBuffer);
     input_label_binding_write(platform, primaryBinding, &labelBuffer);
