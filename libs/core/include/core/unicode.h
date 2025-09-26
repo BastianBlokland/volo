@@ -28,3 +28,8 @@ typedef enum eUnicode {
  * Test if the given unicode codepoint is an ascii character (<= 127).
  */
 #define unicode_is_ascii(_UNICODE_) ((_UNICODE_) <= 127)
+
+/**
+ * Test if the given unicode codepoint is an ascii control character.
+ */
+bool unicode_is_control(Unicode);
