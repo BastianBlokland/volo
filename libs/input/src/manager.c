@@ -368,12 +368,12 @@ bool input_triggered(const InputManagerComp* manager, const StringHash actionHas
   return dynarray_search_linear(&manMut->triggeredActions, compare_stringhash, &actionHash) != null;
 }
 
-GapKey input_primary_key(const InputManagerComp* manager, const StringHash actionHash) {
+String input_label(const InputManagerComp* manager, const StringHash actionHash) {
   InputManagerComp*      manMut = (InputManagerComp*)manager;
   const InputActionInfo  key    = {.nameHash = actionHash};
   const InputActionInfo* info =
       dynarray_search_binary(&manMut->actionInfos, input_compare_action_info, &key);
-  return info ? info->primarykey : GapKey_None;
+  return info ? info->label : string_empty;
 }
 
 void input_layer_enable(InputManagerComp* manager, const StringHash layerHash) {
