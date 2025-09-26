@@ -999,6 +999,22 @@ void gap_pal_cursor_load(GapPal* pal, const GapCursor id, const AssetIconComp* a
 
 bool gap_pal_key_label(const GapPal* pal, const GapKey key, DynString* out) {
   (void)pal;
+  switch (key) {
+  case GapKey_MouseLeft:
+    return dynstring_append(out, string_lit("MouseLeft")), true;
+  case GapKey_MouseRight:
+    return dynstring_append(out, string_lit("MouseRight")), true;
+  case GapKey_MouseMiddle:
+    return dynstring_append(out, string_lit("MouseMiddle")), true;
+  case GapKey_MouseExtra1:
+    return dynstring_append(out, string_lit("MouseExtra1")), true;
+  case GapKey_MouseExtra2:
+    return dynstring_append(out, string_lit("MouseExtra2")), true;
+  case GapKey_MouseExtra3:
+    return dynstring_append(out, string_lit("MouseExtra3")), true;
+  default:
+    break;
+  }
   const u8 scanCode = pal_win32_unmap_key(key);
   if (!scanCode) {
     return false;
