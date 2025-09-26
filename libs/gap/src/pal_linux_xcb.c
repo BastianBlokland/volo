@@ -1269,8 +1269,11 @@ static bool pal_init_xkb(Xcb* xcb, Allocator* alloc, XkbCommon* out) {
     return false;
   }
 
-  const u16       deviceSpec = 256 /* XCB_XKB_ID_USE_CORE_KBD */;
-  const u16       eventTypes = 4 /* XCB_XKB_EVENT_TYPE_STATE_NOTIFY */;
+  const u16 deviceSpec = 256 /* XCB_XKB_ID_USE_CORE_KBD */;
+  u16       eventTypes = 0;
+  eventTypes |= 1 /* XCB_XKB_EVENT_TYPE_NEW_KEYBOARD_NOTIFY */;
+  eventTypes |= 2 /* XCB_XKB_EVENT_TYPE_MAP_NOTIFY */;
+  eventTypes |= 4 /* XCB_XKB_EVENT_TYPE_STATE_NOTIFY */;
   const XcbCookie selectEventsCookie =
       out->select_events_checked(xcb->con, deviceSpec, eventTypes, 0, eventTypes, 0, 0, null);
   err = xcb->request_check(xcb->con, selectEventsCookie);
@@ -2266,6 +2269,14 @@ void gap_pal_update(GapPal* pal) {
         const XkbEventAny* xkbEvent = (const void*)evt;
         if (xkbEvent->deviceId == pal->xkb.deviceId) {
           switch (xkbEvent->xkbType) {
+          case 0 /* XCB_XKB_NEW_KEYBOARD_NOTIFY */:
+          case 1 /* XCB_XKB_MAP_NOTIFY */: {
+            if (pal->keysyms.syms) {
+              // Recreate the key-symbol state when the key mapping changes.
+              pal->keysyms.key_symbols_free(pal->keysyms.syms);
+              pal->keysyms.syms = pal->keysyms.key_symbols_alloc(pal->xcb.con);
+            }
+          } break;
           case 2 /* XCB_XKB_STATE_NOTIFY */: {
             const XkbEventStateNotify* stateNotify = (const void*)evt;
             pal->xkb.state_update_mask(
