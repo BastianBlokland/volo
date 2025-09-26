@@ -3,6 +3,7 @@
 #include "core/array.h"
 #include "core/diag.h"
 #include "core/dynarray.h"
+#include "core/dynstring.h"
 #include "core/stringtable.h"
 #include "ecs/utils.h"
 #include "ecs/view.h"
@@ -19,6 +20,7 @@
 typedef struct {
   StringHash nameHash;
   GapKey     primarykey;
+  String     label; // Allocated in the info allocator (reset every frame).
 } InputActionInfo;
 
 ecs_comp_define(InputManagerComp) {
@@ -209,7 +211,8 @@ static void input_update_triggered(
 
 static void input_update_action_info(
     InputManagerComp* manager, const GapPlatformComp* platform, const AssetInputMapComp* map) {
-  (void)platform;
+
+  DynString labelBuffer = dynstring_create_over(mem_stack(512));
 
   for (usize i = 0; i != map->actions.count; ++i) {
     const AssetInputAction* action = &map->actions.values[i];
@@ -218,10 +221,15 @@ static void input_update_action_info(
     }
     const AssetInputBinding* primaryBinding = &map->bindings.values[action->bindingIndex];
 
-    const InputActionInfo info = {
+    InputActionInfo info = {
         .nameHash   = action->name,
         .primarykey = primaryBinding->key,
     };
+
+    dynstring_clear(&labelBuffer);
+    gap_key_label(platform, primaryBinding->key, &labelBuffer);
+    info.label = string_maybe_dup(manager->infoAlloc, dynstring_view(&labelBuffer));
+
     if (dynarray_search_binary(&manager->actionInfos, input_compare_action_info, &info)) {
       const String actionNameStr = stringtable_lookup(g_stringtable, action->name);
       log_w(
