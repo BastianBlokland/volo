@@ -2324,7 +2324,7 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
 
   const String instanceName = string_lit("volo"); // TODO: Support customizing per window.
   const String className    = string_lit("volo");
-  pal_xcb_class_set(&pal->xcb, id, instanceName, className);
+  pal_xcb_class_set(&pal->xcb, (XcbWindow)id, instanceName, className);
 
   *dynarray_push_t(&pal->windows, GapPalWindow) = (GapPalWindow){
       .id                          = id,
