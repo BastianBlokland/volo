@@ -3,12 +3,14 @@
 #include "core/array.h"
 #include "core/diag.h"
 #include "core/dynarray.h"
+#include "core/stringtable.h"
 #include "ecs/utils.h"
 #include "ecs/view.h"
 #include "ecs/world.h"
 #include "gap/window.h"
 #include "input/manager.h"
 #include "input/register.h"
+#include "log/logger.h"
 
 #include "resource.h"
 
@@ -214,6 +216,14 @@ static void input_update_action_info(
         .nameHash   = action->name,
         .primarykey = primaryBinding->key,
     };
+    if (dynarray_search_binary(&manager->actionInfos, input_compare_action_info, &info)) {
+      const String actionNameStr = stringtable_lookup(g_stringtable, action->name);
+      log_w(
+          "Duplicate input action",
+          log_param("action-hash", fmt_int(action->name)),
+          log_param("action-name", fmt_text(actionNameStr)));
+      continue;
+    }
     *dynarray_insert_sorted_t(
         &manager->actionInfos, InputActionInfo, input_compare_action_info, &info) = info;
   }
