@@ -2476,7 +2476,7 @@ bool gap_pal_key_label(const GapPal* pal, const GapKey key, DynString* out) {
   }
 
   /**
-   * Return if unicode representation if available.
+   * Return unicode representation if available.
    */
   const Unicode cp = pal->xkb.keysym_to_utf32(keySymUpper);
   if (cp && !unicode_is_control(cp)) {
