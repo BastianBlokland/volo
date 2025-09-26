@@ -64,6 +64,7 @@ add_library(core STATIC
   src/time.c
   src/tty_pal.c
   src/tty.c
+  src/unicode.c
   src/utf8.c
   src/version.c
   src/winutils.c

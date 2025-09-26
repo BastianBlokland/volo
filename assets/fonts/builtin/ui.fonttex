@@ -8,13 +8,13 @@
     {
       "id": "fonts/roboto_medium.ttf",
       "spacing": 0.05,
-      "characters": "\u0020!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~ãńïŻ"
+      "characters": "\u0020!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~ãńïŻ§ÁÅ¨½´º¡ÌÈ²ÀÉÇ«Üßüàéèçóőúå"
     },
     {
       "id": "fonts/robotomono_medium.ttf",
       "variation": 1,
       "spacing": 0.05,
-      "characters": "\u0020!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~ãńïŻ"
+      "characters": "\u0020!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~ãńïŻ§ÁÅ¨½´º¡ÌÈ²ÀÉÇ«Üßüàéèçóőúå"
     },
     {
       "id": "fonts/materialicons_regular.ttf",
