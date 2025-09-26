@@ -2459,17 +2459,17 @@ bool gap_pal_key_label(const GapPal* pal, const GapKey key, DynString* out) {
   case 0xFFE2: // Right-shift.
     return dynstring_append(out, string_lit("Shift")), true;
   case 0x60: // Grave.
-    return dynstring_append(out, string_lit("Tilde")), true;
+    return dynstring_append(out, string_lit("~")), true;
   case 0x20: // Space.
     return dynstring_append(out, string_lit("Space")), true;
   case 0x3D: // Equal.
-    return dynstring_append(out, string_lit("Equal")), true;
+    return dynstring_append(out, string_lit("=")), true;
   case 0x2D: // Minus.
-    return dynstring_append(out, string_lit("Minus")), true;
+    return dynstring_append(out, string_lit("-")), true;
   case 0x5B: // Bracket-left.
-    return dynstring_append(out, string_lit("BracketLeft")), true;
+    return dynstring_append(out, string_lit("[")), true;
   case 0x5D: // Bracket-right.
-    return dynstring_append(out, string_lit("BracketRight")), true;
+    return dynstring_append(out, string_lit("]")), true;
   }
 
   /**
