@@ -389,9 +389,6 @@ void rvk_canvas_end(RvkCanvas* canvas) {
 
 bool rvk_canvas_wait_for_prev_present(const RvkCanvas* canvas) {
   const RvkCanvasFrame* frame = &canvas->frames[canvas->jobIdx];
-  if (sentinel_check(frame->swapchainIdx)) {
-    return false;
-  }
 
   /**
    * Wait for the previous frame to be rendered and presented.
@@ -400,6 +397,10 @@ bool rvk_canvas_wait_for_prev_present(const RvkCanvas* canvas) {
   trace_begin_msg("rend_wait_job", TraceColor_White, "rend_wait_{}", fmt_int(frame->frameIdx));
   rvk_job_wait_for_done(frame->job);
   trace_end();
+
+  if (sentinel_check(frame->swapchainIdx)) {
+    return false;
+  }
 
   trace_begin("rend_wait_swapchain", TraceColor_White);
   rvk_swapchain_wait_for_present(canvas->swapchain, 1 /* numBehind */);
