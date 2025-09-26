@@ -2470,6 +2470,10 @@ bool gap_pal_key_label(const GapPal* pal, const GapKey key, DynString* out) {
     return dynstring_append(out, string_lit("[")), true;
   case 0x5D: // Bracket-right.
     return dynstring_append(out, string_lit("]")), true;
+  case 0x28: // Parenthesis-left.
+    return dynstring_append(out, string_lit("(")), true;
+  case 0x29: // Parenthesis-right.
+    return dynstring_append(out, string_lit(")")), true;
   }
 
   /**
