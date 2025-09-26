@@ -10,6 +10,7 @@ add_library(dev STATIC
   src/gizmo.c
   src/grid.c
   src/hierarchy.c
+  src/input.c
   src/inspector.c
   src/interface.c
   src/level.c

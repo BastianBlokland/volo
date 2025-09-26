@@ -13,6 +13,7 @@
 #include "ecs/entity.h"
 #include "ecs/utils.h"
 #include "ecs/view.h"
+#include "gap/forward.h"
 #include "input/manager.h"
 #include "log/logger.h"
 #include "scene/camera.h"
