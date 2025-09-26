@@ -14,6 +14,8 @@
 
 #include "resource.h"
 
+#define input_label_chunk_size (1 * usize_kibibyte)
+
 typedef struct {
   StringHash nameHash;
   GapKey     primarykey;
@@ -31,13 +33,16 @@ ecs_comp_define(InputManagerComp) {
   TimeDuration    doubleclickInterval;
   DynArray        triggeredActions; // StringHash[], names of the triggered actions. Not sorted.
   DynArray        activeLayers;     // StringHash[], names of the active layers. Not sorted.
-  DynArray        actionInfos;      // InputActionInfo[], sorted on the name.
+
+  Allocator* infoAlloc;   // Allocator for transient info data (for example label strings).
+  DynArray   actionInfos; // InputActionInfo[], sorted on the name.
 };
 
 static void ecs_destruct_input_manager(void* data) {
   InputManagerComp* comp = data;
   dynarray_destroy(&comp->triggeredActions);
   dynarray_destroy(&comp->activeLayers);
+  alloc_chunked_destroy(comp->infoAlloc);
   dynarray_destroy(&comp->actionInfos);
 }
 
@@ -63,7 +68,8 @@ static InputManagerComp* input_manager_create(EcsWorld* world) {
       InputManagerComp,
       .triggeredActions = dynarray_create_t(g_allocHeap, StringHash, 8),
       .activeLayers     = dynarray_create_t(g_allocHeap, StringHash, 2),
-      .actionInfos      = dynarray_create_t(g_allocHeap, InputActionInfo, 64));
+      .infoAlloc   = alloc_chunked_create(g_allocHeap, alloc_bump_create, input_label_chunk_size),
+      .actionInfos = dynarray_create_t(g_allocHeap, InputActionInfo, 64));
 }
 
 static const AssetInputMapComp* input_map_asset(EcsWorld* world, const EcsEntityId entity) {
@@ -258,6 +264,7 @@ ecs_system_define(InputUpdateSys) {
   input_update_cursor(manager, win);
   manager->doubleclickInterval = gap_window_doubleclick_interval(win);
 
+  alloc_reset(manager->infoAlloc);
   dynarray_clear(&manager->actionInfos);
 
   EcsEntityId mapAssets[input_resource_max_maps];
