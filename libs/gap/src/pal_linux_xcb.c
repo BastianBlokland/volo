@@ -806,6 +806,20 @@ static XcbAtom pal_xcb_atom(Xcb* xcb, const String name) {
   return result;
 }
 
+static void
+pal_xcb_class_set(Xcb* xcb, const XcbWindow window, const String instance, const String class) {
+  const String val = fmt_write_scratch("{}\0{}\0", fmt_text(instance), fmt_text(class));
+  xcb->change_property(
+      xcb->con,
+      0 /* XCB_PROP_MODE_REPLACE */,
+      window,
+      67 /* XCB_ATOM_WM_CLASS */,
+      xcb->atomUtf8String,
+      sizeof(u8) * 8,
+      (u32)val.size,
+      val.ptr);
+}
+
 static void pal_xcb_title_set(Xcb* xcb, const XcbWindow window, const String title) {
   xcb->change_property(
       xcb->con,
@@ -2307,6 +2321,10 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
 
   pal_xcb_create_window(&pal->xcb, (XcbWindow)id, size, g_eventMask);
   pal_xcb_register_delete_msg(&pal->xcb, (XcbWindow)id); // Register a custom delete message atom.
+
+  const String instanceName = string_lit("volo"); // TODO: Support customizing per window.
+  const String className    = string_lit("volo");
+  pal_xcb_class_set(&pal->xcb, id, instanceName, className);
 
   *dynarray_push_t(&pal->windows, GapPalWindow) = (GapPalWindow){
       .id                          = id,
