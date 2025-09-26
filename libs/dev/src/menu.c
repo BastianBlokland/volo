@@ -9,6 +9,7 @@
 #include "dev/grid.h"
 #include "dev/hierarchy.h"
 #include "dev/id.h"
+#include "dev/input.h"
 #include "dev/inspector.h"
 #include "dev/interface.h"
 #include "dev/level.h"
@@ -159,6 +160,12 @@ static const struct {
         .iconShape    = UiShape_Diamond,
         .detachedSize = {.x = 850, .y = 500},
         .openFunc     = dev_vfx_panel_open,
+    },
+    {
+        .name         = string_static("Input"),
+        .iconShape    = UiShape_Keyboard,
+        .detachedSize = {.x = 500, .y = 190},
+        .openFunc     = dev_input_panel_open,
     },
     {
         .name         = string_static("Interface"),

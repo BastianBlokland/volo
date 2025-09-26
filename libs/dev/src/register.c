@@ -9,6 +9,7 @@ void dev_register(EcsDef* def) {
   ecs_register_module(def, dev_gizmo_module);
   ecs_register_module(def, dev_grid_module);
   ecs_register_module(def, dev_hierarchy_module);
+  ecs_register_module(def, dev_input_module);
   ecs_register_module(def, dev_inspector_module);
   ecs_register_module(def, dev_interface_module);
   ecs_register_module(def, dev_level_module);
