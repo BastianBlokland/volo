@@ -2441,11 +2441,17 @@ bool gap_pal_key_label(const GapPal* pal, const GapKey key, DynString* out) {
   if (!keyCode) {
     return false;
   }
-  const XkbKeysym keySym      = pal->keysyms.key_symbols_get_keysym(pal->keysyms.syms, keyCode, 0);
-  const XkbKeysym keySymUpper = pal->xkb.keysym_to_upper(keySym);
+  const XkbKeysym keySym = pal->keysyms.key_symbols_get_keysym(pal->keysyms.syms, keyCode, 0);
+  switch (keySym) {
+  case 0xFFE9: // Left-alt.
+  case 0xFFEA: // Right-alt.
+  case 0xFFEB: // Left-super (Alt and super swap is active).
+  case 0xFFEC: // Right-super (Alt and super swap is active).
+    return dynstring_append(out, string_lit("Alt")), true;
+  }
 
   char buffer[64];
-  pal->xkb.keysym_get_name(keySymUpper, buffer, sizeof(buffer));
+  pal->xkb.keysym_get_name(pal->xkb.keysym_to_upper(keySym), buffer, sizeof(buffer));
   const String name = string_from_null_term(buffer);
 
   if (string_is_empty(name)) {
