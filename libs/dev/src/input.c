@@ -1,13 +1,18 @@
 #include "core/array.h"
+#include "core/dynstring.h"
 #include "core/format.h"
 #include "dev/panel.h"
 #include "ecs/view.h"
 #include "ecs/world.h"
+#include "gap/input.h"
 #include "input/manager.h"
 #include "ui/canvas.h"
+#include "ui/layout.h"
 #include "ui/panel.h"
 #include "ui/scrollview.h"
 #include "ui/shape.h"
+#include "ui/table.h"
+#include "ui/widget.h"
 
 typedef enum {
   DevInputTab_Platform,
@@ -23,13 +28,74 @@ ASSERT(array_elems(g_inputTabNames) == DevInputTab_Count, "Incorrect number of n
 ecs_comp_define(DevInputPanelComp) {
   UiPanel      panel;
   UiScrollview scrollview;
+  bool         pressedKeysOnly;
+  u32          lastRowCount;
 };
+
+static void platform_options_draw(UiCanvasComp* canvas, DevInputPanelComp* panelComp) {
+  ui_layout_push(canvas);
+
+  UiTable table = ui_table(.spacing = ui_vector(10, 5), .rowHeight = 20);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 120);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 25);
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Pressed only:"));
+  ui_table_next_column(canvas, &table);
+  ui_toggle(canvas, &panelComp->pressedKeysOnly);
+
+  ui_layout_pop(canvas);
+}
 
 static void platform_panel_tab_draw(
     UiCanvasComp* c, DevInputPanelComp* panelComp, const GapPlatformComp* platform) {
-  (void)c;
-  (void)panelComp;
-  (void)platform;
+  platform_options_draw(c, panelComp);
+  ui_layout_grow(c, UiAlign_BottomCenter, ui_vector(0, -35), UiBase_Absolute, Ui_Y);
+  ui_layout_container_push(c, UiClip_None, UiLayer_Normal);
+
+  UiTable table = ui_table(.spacing = ui_vector(10, 5));
+  ui_table_add_column(&table, UiTableColumn_Fixed, 150);
+  ui_table_add_column(&table, UiTableColumn_Flexible, 0);
+
+  ui_table_draw_header(
+      c,
+      &table,
+      (const UiTableColumnName[]){
+          {string_lit("Key"), string_lit("Platform key.")},
+          {string_lit("Label"), string_lit("Platform key label.")},
+      });
+
+  const f32 height = ui_table_height(&table, panelComp->lastRowCount);
+  ui_scrollview_begin(c, &panelComp->scrollview, UiLayer_Normal, height);
+
+  DynString labelBuffer = dynstring_create_over(mem_stack(64));
+
+  ui_canvas_id_block_next(c); // Start the list of keys on its own id block.
+  panelComp->lastRowCount = 0;
+  for (GapKey key = 0; key != GapKey_Count; ++key) {
+    const f32              y    = ui_table_height(&table, panelComp->lastRowCount++);
+    const UiScrollviewCull cull = ui_scrollview_cull(&panelComp->scrollview, y, table.rowHeight);
+    if (cull == UiScrollviewCull_After) {
+      break;
+    }
+    if (cull == UiScrollviewCull_Before) {
+      continue;
+    }
+
+    dynstring_clear(&labelBuffer);
+    gap_key_label(platform, key, &labelBuffer);
+
+    ui_table_jump_row(c, &table, panelComp->lastRowCount - 1);
+    ui_table_draw_row_bg(c, &table, ui_color(48, 48, 48, 192));
+    ui_label(c, gap_key_str(key));
+
+    ui_table_next_column(c, &table);
+    ui_label(c, dynstring_view(&labelBuffer));
+  }
+  ui_canvas_id_block_next(c);
+
+  ui_scrollview_end(c, &panelComp->scrollview);
+  ui_layout_container_pop(c);
 }
 
 static void input_panel_draw(
