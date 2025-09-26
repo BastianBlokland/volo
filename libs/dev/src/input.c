@@ -1,6 +1,7 @@
 #include "core/array.h"
 #include "core/dynstring.h"
 #include "core/format.h"
+#include "core/stringtable.h"
 #include "dev/panel.h"
 #include "ecs/view.h"
 #include "ecs/world.h"
@@ -16,12 +17,14 @@
 #include "ui/widget.h"
 
 typedef enum {
+  DevInputTab_Actions,
   DevInputTab_Platform,
 
   DevInputTab_Count,
 } DevInputTab;
 
 static const String g_inputTabNames[] = {
+    string_static("Actions"),
     string_static("Platform"),
 };
 ASSERT(array_elems(g_inputTabNames) == DevInputTab_Count, "Incorrect number of names");
@@ -32,6 +35,66 @@ ecs_comp_define(DevInputPanelComp) {
   bool         downKeysOnly;
   u32          lastRowCount;
 };
+
+static void actions_panel_tab_draw(
+    UiCanvasComp* c, DevInputPanelComp* panelComp, const InputManagerComp* input) {
+  ui_layout_container_push(c, UiClip_None, UiLayer_Normal);
+
+  UiTable table = ui_table(.spacing = ui_vector(10, 5));
+  ui_table_add_column(&table, UiTableColumn_Fixed, 300);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 100);
+  ui_table_add_column(&table, UiTableColumn_Flexible, 0);
+
+  ui_table_draw_header(
+      c,
+      &table,
+      (const UiTableColumnName[]){
+          {string_lit("Name"), string_lit("Action name.")},
+          {string_lit("Triggered"), string_lit("Is this action currently being triggered?")},
+          {string_lit("Label"), string_lit("Action label.")},
+      });
+
+  const InputActionInfo* actionData  = input_actions_data(input);
+  const u32              actionCount = input_actions_count(input);
+
+  const f32 height = ui_table_height(&table, panelComp->lastRowCount);
+  ui_scrollview_begin(c, &panelComp->scrollview, UiLayer_Normal, height);
+
+  ui_canvas_id_block_next(c); // Start the list of actions on its own id block.
+  panelComp->lastRowCount = 0;
+  for (u32 actionIndex = 0; actionIndex != actionCount; ++actionIndex) {
+    const InputActionInfo* actionInfo = &actionData[actionIndex];
+    const f32              y          = ui_table_height(&table, panelComp->lastRowCount++);
+    const UiScrollviewCull cull = ui_scrollview_cull(&panelComp->scrollview, y, table.rowHeight);
+    if (cull == UiScrollviewCull_After) {
+      break;
+    }
+    if (cull == UiScrollviewCull_Before) {
+      continue;
+    }
+    const String actionName  = stringtable_lookup(g_stringtable, actionInfo->nameHash);
+    const bool   isTriggered = input_triggered(input, actionInfo->nameHash);
+
+    ui_table_jump_row(c, &table, panelComp->lastRowCount - 1);
+    ui_table_draw_row_bg(
+        c, &table, isTriggered ? ui_color(16, 64, 16, 192) : ui_color(48, 48, 48, 192));
+    if (string_is_empty(actionName)) {
+      ui_label(c, fmt_write_scratch("#{}", fmt_int(actionInfo->nameHash)));
+    } else {
+      ui_label(c, actionName);
+    }
+
+    ui_table_next_column(c, &table);
+    ui_label(c, isTriggered ? string_lit("yes") : string_lit("no"));
+
+    ui_table_next_column(c, &table);
+    ui_label(c, actionInfo->label);
+  }
+  ui_canvas_id_block_next(c);
+
+  ui_scrollview_end(c, &panelComp->scrollview);
+  ui_layout_container_pop(c);
+}
 
 static void platform_options_draw(UiCanvasComp* canvas, DevInputPanelComp* panelComp) {
   ui_layout_push(canvas);
@@ -122,8 +185,6 @@ static void input_panel_draw(
     const InputManagerComp* input,
     const GapPlatformComp*  platform,
     const GapWindowComp*    activeWindow) {
-  (void)input;
-
   const String title = fmt_write_scratch("{} Input Panel", fmt_ui_shape(Keyboard));
   ui_panel_begin(
       c,
@@ -134,6 +195,9 @@ static void input_panel_draw(
       .topBarColor = ui_color(100, 0, 0, 192));
 
   switch (panelComp->panel.activeTab) {
+  case DevInputTab_Actions:
+    actions_panel_tab_draw(c, panelComp, input);
+    break;
   case DevInputTab_Platform:
     platform_panel_tab_draw(c, panelComp, platform, activeWindow);
     break;
