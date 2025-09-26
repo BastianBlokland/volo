@@ -2271,6 +2271,7 @@ void gap_pal_update(GapPal* pal) {
           switch (xkbEvent->xkbType) {
           case 0 /* XCB_XKB_NEW_KEYBOARD_NOTIFY */:
           case 1 /* XCB_XKB_MAP_NOTIFY */: {
+            log_i("Keyboard layout updated");
             if (pal->keysyms.syms) {
               // Recreate the key-symbol state when the key mapping changes.
               pal->keysyms.key_symbols_free(pal->keysyms.syms);
@@ -2416,6 +2417,22 @@ void gap_pal_cursor_load(GapPal* pal, const GapCursor id, const AssetIconComp* a
 }
 
 bool gap_pal_key_label(const GapPal* pal, const GapKey key, DynString* out) {
+  switch (key) {
+  case GapKey_MouseLeft:
+    return dynstring_append(out, string_lit("MouseLeft")), true;
+  case GapKey_MouseRight:
+    return dynstring_append(out, string_lit("MouseRight")), true;
+  case GapKey_MouseMiddle:
+    return dynstring_append(out, string_lit("MouseMiddle")), true;
+  case GapKey_MouseExtra1:
+    return dynstring_append(out, string_lit("MouseExtra1")), true;
+  case GapKey_MouseExtra2:
+    return dynstring_append(out, string_lit("MouseExtra2")), true;
+  case GapKey_MouseExtra3:
+    return dynstring_append(out, string_lit("MouseExtra3")), true;
+  default:
+    break;
+  }
   const GapPalXcbExtFlags reqExts = GapPalXcbExtFlags_Xkb | GapPalXcbExtFlags_Keysyms;
   if ((pal->extensions & reqExts) != reqExts) {
     return false; // Required extensions not available.
@@ -2424,11 +2441,42 @@ bool gap_pal_key_label(const GapPal* pal, const GapKey key, DynString* out) {
   if (!keyCode) {
     return false;
   }
-  const XkbKeysym keySym      = pal->keysyms.key_symbols_get_keysym(pal->keysyms.syms, keyCode, 0);
-  const XkbKeysym keySymUpper = pal->xkb.keysym_to_upper(keySym);
+  const XkbKeysym keySym = pal->keysyms.key_symbols_get_keysym(pal->keysyms.syms, keyCode, 0);
 
+  /**
+   * Normalize the name of common keys.
+   */
+  switch (keySym) {
+  case 0xFFE9: // Left-alt.
+  case 0xFFEA: // Right-alt.
+  case 0xFFEB: // Left-super (Alt and super swap is active).
+  case 0xFFEC: // Right-super (Alt and super swap is active).
+    return dynstring_append(out, string_lit("Alt")), true;
+  case 0xFFE3: // Left-control.
+  case 0xFFE4: // Right-control.
+    return dynstring_append(out, string_lit("Control")), true;
+  case 0xFFE1: // Left-shift.
+  case 0xFFE2: // Right-shift.
+    return dynstring_append(out, string_lit("Shift")), true;
+  case 0x60: // Grave.
+    return dynstring_append(out, string_lit("~")), true;
+  case 0x20: // Space.
+    return dynstring_append(out, string_lit("Space")), true;
+  case 0x3D: // Equal.
+    return dynstring_append(out, string_lit("=")), true;
+  case 0x2D: // Minus.
+    return dynstring_append(out, string_lit("-")), true;
+  case 0x5B: // Bracket-left.
+    return dynstring_append(out, string_lit("[")), true;
+  case 0x5D: // Bracket-right.
+    return dynstring_append(out, string_lit("]")), true;
+  }
+
+  /**
+   * Retrieve the platform name for the key.
+   */
   char buffer[64];
-  pal->xkb.keysym_get_name(keySymUpper, buffer, sizeof(buffer));
+  pal->xkb.keysym_get_name(pal->xkb.keysym_to_upper(keySym), buffer, sizeof(buffer));
   const String name = string_from_null_term(buffer);
 
   if (string_is_empty(name)) {
@@ -2498,7 +2546,6 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
 }
 
 void gap_pal_window_destroy(GapPal* pal, const GapWindowId windowId) {
-
   pal->xcb.destroy_window(pal->xcb.con, (XcbWindow)windowId);
 
   for (usize i = 0; i != pal->windows.size; ++i) {
