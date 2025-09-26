@@ -209,6 +209,29 @@ static void input_update_triggered(
   }
 }
 
+static void input_label_key_write(const GapPlatformComp* p, const GapKey key, DynString* out) {
+  if (!gap_key_label(p, key, out)) {
+    dynstring_append(out, gap_key_str(key));
+  }
+}
+
+static void input_label_binding_write(
+    const GapPlatformComp* p, const AssetInputBinding* binding, DynString* out) {
+  if (binding->requiredModifiers & InputModifier_Shift) {
+    input_label_key_write(p, GapKey_Shift, out);
+    dynstring_append_char(out, '+');
+  }
+  if (binding->requiredModifiers & InputModifier_Control) {
+    input_label_key_write(p, GapKey_Control, out);
+    dynstring_append_char(out, '+');
+  }
+  if (binding->requiredModifiers & InputModifier_Alt) {
+    input_label_key_write(p, GapKey_Alt, out);
+    dynstring_append_char(out, '+');
+  }
+  input_label_key_write(p, binding->key, out);
+}
+
 static void input_update_action_info(
     InputManagerComp* manager, const GapPlatformComp* platform, const AssetInputMapComp* map) {
 
@@ -227,7 +250,7 @@ static void input_update_action_info(
     };
 
     dynstring_clear(&labelBuffer);
-    gap_key_label(platform, primaryBinding->key, &labelBuffer);
+    input_label_binding_write(platform, primaryBinding, &labelBuffer);
     info.label = string_maybe_dup(manager->infoAlloc, dynstring_view(&labelBuffer));
 
     if (dynarray_search_binary(&manager->actionInfos, input_compare_action_info, &info)) {
