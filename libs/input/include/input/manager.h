@@ -62,9 +62,16 @@ TimeDuration    input_doubleclick_interval(const InputManagerComp*);
 #define input_triggered_lit(_MANAGER_, _ACTION_LIT_)                                               \
   input_triggered((_MANAGER_), string_hash_lit(_ACTION_LIT_))
 
-bool input_triggered(const InputManagerComp*, StringHash actionHash);
-
+bool   input_triggered(const InputManagerComp*, StringHash actionHash);
 String input_label(const InputManagerComp*, StringHash actionHash);
+
+typedef struct {
+  StringHash nameHash;
+  String     label; // Memory valid for 1 frame.
+} InputActionInfo;
+
+const InputActionInfo* input_actions_data(const InputManagerComp*);
+u32                    input_actions_count(const InputManagerComp*);
 
 void input_layer_enable(InputManagerComp*, StringHash layerHash);
 void input_layer_disable(InputManagerComp*, StringHash layerHash);

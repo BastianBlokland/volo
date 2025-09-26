@@ -17,11 +17,6 @@
 
 #define input_label_chunk_size (1 * usize_kibibyte)
 
-typedef struct {
-  StringHash nameHash;
-  String     label; // Allocated in the info allocator (reset every frame).
-} InputActionInfo;
-
 ecs_comp_define(InputManagerComp) {
   EcsEntityId     activeWindow;
   InputBlocker    blockers : 16;
@@ -371,6 +366,12 @@ String input_label(const InputManagerComp* manager, const StringHash actionHash)
       dynarray_search_binary(&manMut->actionInfos, input_compare_action_info, &key);
   return info ? info->label : string_empty;
 }
+
+const InputActionInfo* input_actions_data(const InputManagerComp* manager) {
+  return dynarray_begin_t(&manager->actionInfos, InputActionInfo);
+}
+
+u32 input_actions_count(const InputManagerComp* manager) { return (u32)manager->actionInfos.size; }
 
 void input_layer_enable(InputManagerComp* manager, const StringHash layerHash) {
   diag_assert(layerHash != 0);
