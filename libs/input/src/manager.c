@@ -198,14 +198,18 @@ static void input_update_triggered(
   }
 }
 
-static void input_update_key_info(InputManagerComp* manager, const AssetInputMapComp* map) {
+static void input_update_action_info(InputManagerComp* manager, const AssetInputMapComp* map) {
   for (usize i = 0; i != map->actions.count; ++i) {
     const AssetInputAction* action = &map->actions.values[i];
     if (UNLIKELY(!action->bindingCount)) {
       continue;
     }
     const AssetInputBinding* primaryBinding = &map->bindings.values[action->bindingIndex];
-    const InputActionInfo    info = {.nameHash = action->name, .primarykey = primaryBinding->key};
+
+    const InputActionInfo info = {
+        .nameHash   = action->name,
+        .primarykey = primaryBinding->key,
+    };
     *dynarray_insert_sorted_t(
         &manager->actionInfos, InputActionInfo, input_compare_action_info, &info) = info;
   }
@@ -247,7 +251,7 @@ ecs_system_define(InputUpdateSys) {
     const AssetInputMapComp* map = input_map_asset(world, mapAssets[i]);
     if (map && input_layer_active(manager, map->layer)) {
       input_update_triggered(manager, map, win);
-      input_update_key_info(manager, map);
+      input_update_action_info(manager, map);
     }
   }
 }
@@ -313,8 +317,9 @@ bool input_triggered(const InputManagerComp* manager, const StringHash actionHas
 
 GapKey input_primary_key(const InputManagerComp* manager, const StringHash actionHash) {
   InputManagerComp*      manMut = (InputManagerComp*)manager;
-  const InputActionInfo* info   = dynarray_search_binary(
-      &manMut->actionInfos, input_compare_action_info, &(InputActionInfo){.nameHash = actionHash});
+  const InputActionInfo  key    = {.nameHash = actionHash};
+  const InputActionInfo* info =
+      dynarray_search_binary(&manMut->actionInfos, input_compare_action_info, &key);
   return info ? info->primarykey : GapKey_None;
 }
 
