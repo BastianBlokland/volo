@@ -66,10 +66,8 @@ static void actions_panel_tab_draw(
     const InputActionInfo* actionInfo = &actionData[actionIndex];
     const f32              y          = ui_table_height(&table, panelComp->lastRowCount++);
     const UiScrollviewCull cull = ui_scrollview_cull(&panelComp->scrollview, y, table.rowHeight);
-    if (cull == UiScrollviewCull_After) {
-      break;
-    }
-    if (cull == UiScrollviewCull_Before) {
+    if (cull != UiScrollviewCull_Inside) {
+      ui_canvas_id_skip(c, 3);
       continue;
     }
     const String actionName  = stringtable_lookup(g_stringtable, actionInfo->nameHash);
@@ -81,14 +79,14 @@ static void actions_panel_tab_draw(
     if (string_is_empty(actionName)) {
       ui_label(c, fmt_write_scratch("#{}", fmt_int(actionInfo->nameHash)));
     } else {
-      ui_label(c, actionName);
+      ui_label(c, actionName, .selectable = true);
     }
 
     ui_table_next_column(c, &table);
     ui_label(c, isTriggered ? string_lit("yes") : string_lit("no"));
 
     ui_table_next_column(c, &table);
-    ui_label(c, actionInfo->label);
+    ui_label(c, actionInfo->label, .selectable = true);
   }
   ui_canvas_id_block_next(c);
 
@@ -150,19 +148,16 @@ static void platform_panel_tab_draw(
     }
     const f32              y    = ui_table_height(&table, panelComp->lastRowCount++);
     const UiScrollviewCull cull = ui_scrollview_cull(&panelComp->scrollview, y, table.rowHeight);
-    if (cull == UiScrollviewCull_After) {
-      break;
-    }
-    if (cull == UiScrollviewCull_Before) {
+    if (cull != UiScrollviewCull_Inside) {
+      ui_canvas_id_skip(c, 4);
       continue;
     }
-
     dynstring_clear(&labelBuffer);
     gap_key_label(platform, key, &labelBuffer);
 
     ui_table_jump_row(c, &table, panelComp->lastRowCount - 1);
     ui_table_draw_row_bg(c, &table, isDown ? ui_color(16, 64, 16, 192) : ui_color(48, 48, 48, 192));
-    ui_label(c, gap_key_str(key));
+    ui_label(c, gap_key_str(key), .selectable = true);
 
     ui_table_next_column(c, &table);
     ui_label(c, fmt_write_scratch("{}", fmt_int(key)));
@@ -171,7 +166,7 @@ static void platform_panel_tab_draw(
     ui_label(c, isDown ? string_lit("yes") : string_lit("no"));
 
     ui_table_next_column(c, &table);
-    ui_label(c, dynstring_view(&labelBuffer));
+    ui_label(c, dynstring_view(&labelBuffer), .selectable = true);
   }
   ui_canvas_id_block_next(c);
 
