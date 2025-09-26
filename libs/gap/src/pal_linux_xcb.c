@@ -2271,6 +2271,7 @@ void gap_pal_update(GapPal* pal) {
           switch (xkbEvent->xkbType) {
           case 0 /* XCB_XKB_NEW_KEYBOARD_NOTIFY */:
           case 1 /* XCB_XKB_MAP_NOTIFY */: {
+            log_i("Keyboard layout updated");
             if (pal->keysyms.syms) {
               // Recreate the key-symbol state when the key mapping changes.
               pal->keysyms.key_symbols_free(pal->keysyms.syms);
@@ -2498,7 +2499,6 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
 }
 
 void gap_pal_window_destroy(GapPal* pal, const GapWindowId windowId) {
-
   pal->xcb.destroy_window(pal->xcb.con, (XcbWindow)windowId);
 
   for (usize i = 0; i != pal->windows.size; ++i) {
