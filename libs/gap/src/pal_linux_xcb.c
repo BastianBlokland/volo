@@ -2442,14 +2442,39 @@ bool gap_pal_key_label(const GapPal* pal, const GapKey key, DynString* out) {
     return false;
   }
   const XkbKeysym keySym = pal->keysyms.key_symbols_get_keysym(pal->keysyms.syms, keyCode, 0);
+
+  /**
+   * Normalize the name of common keys.
+   */
   switch (keySym) {
   case 0xFFE9: // Left-alt.
   case 0xFFEA: // Right-alt.
   case 0xFFEB: // Left-super (Alt and super swap is active).
   case 0xFFEC: // Right-super (Alt and super swap is active).
     return dynstring_append(out, string_lit("Alt")), true;
+  case 0xFFE3: // Left-control.
+  case 0xFFE4: // Right-control.
+    return dynstring_append(out, string_lit("Control")), true;
+  case 0xFFE1: // Left-shift.
+  case 0xFFE2: // Right-shift.
+    return dynstring_append(out, string_lit("Shift")), true;
+  case 0x60: // Grave.
+    return dynstring_append(out, string_lit("Tilde")), true;
+  case 0x20: // Space.
+    return dynstring_append(out, string_lit("Space")), true;
+  case 0x3D: // Equal.
+    return dynstring_append(out, string_lit("Equal")), true;
+  case 0x2D: // Minus.
+    return dynstring_append(out, string_lit("Minus")), true;
+  case 0x5B: // Bracket-left.
+    return dynstring_append(out, string_lit("BracketLeft")), true;
+  case 0x5D: // Bracket-right.
+    return dynstring_append(out, string_lit("BracketRight")), true;
   }
 
+  /**
+   * Retrieve the platform name for the key.
+   */
   char buffer[64];
   pal->xkb.keysym_get_name(pal->xkb.keysym_to_upper(keySym), buffer, sizeof(buffer));
   const String name = string_from_null_term(buffer);
