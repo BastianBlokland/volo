@@ -46,6 +46,7 @@ static i8 input_compare_action_info(const void* a, const void* b) {
 
 ecs_view_define(GlobalView) {
   ecs_access_read(InputResourceComp);
+  ecs_access_read(GapPlatformComp);
   ecs_access_maybe_write(InputManagerComp);
 }
 
@@ -198,7 +199,10 @@ static void input_update_triggered(
   }
 }
 
-static void input_update_action_info(InputManagerComp* manager, const AssetInputMapComp* map) {
+static void input_update_action_info(
+    InputManagerComp* manager, const GapPlatformComp* platform, const AssetInputMapComp* map) {
+  (void)platform;
+
   for (usize i = 0; i != map->actions.count; ++i) {
     const AssetInputAction* action = &map->actions.values[i];
     if (UNLIKELY(!action->bindingCount)) {
@@ -230,6 +234,7 @@ ecs_system_define(InputUpdateSys) {
   manager->cursorDeltaNorm[1] = 0;
   dynarray_clear(&manager->triggeredActions);
 
+  const GapPlatformComp*   platform = ecs_view_read_t(globalItr, GapPlatformComp);
   const InputResourceComp* resource = ecs_view_read_t(globalItr, InputResourceComp);
 
   input_refresh_active_window(world, manager);
@@ -251,7 +256,7 @@ ecs_system_define(InputUpdateSys) {
     const AssetInputMapComp* map = input_map_asset(world, mapAssets[i]);
     if (map && input_layer_active(manager, map->layer)) {
       input_update_triggered(manager, map, win);
-      input_update_action_info(manager, map);
+      input_update_action_info(manager, platform, map);
     }
   }
 }
