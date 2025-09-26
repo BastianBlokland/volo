@@ -1019,9 +1019,38 @@ bool gap_pal_key_label(const GapPal* pal, const GapKey key, DynString* out) {
   if (!scanCode) {
     return false;
   }
-  const LONG param = ((LONG)scanCode << 16) | ((LONG)1 << 25 /* "Do not care" bit */);
+
+  /**
+   * Normalize the name of common keys.
+   */
+  const UINT virtualKey = MapVirtualKey(scanCode, MAPVK_VSC_TO_VK);
+  switch (virtualKey) {
+  case VK_DELETE:
+    return dynstring_append(out, string_lit("Delete")), true;
+  case VK_HOME:
+    return dynstring_append(out, string_lit("Home")), true;
+  case VK_END:
+    return dynstring_append(out, string_lit("End")), true;
+  case VK_LEFT:
+    return dynstring_append(out, string_lit("Left")), true;
+  case VK_RIGHT:
+    return dynstring_append(out, string_lit("Right")), true;
+  case VK_UP:
+    return dynstring_append(out, string_lit("Up")), true;
+  case VK_DOWN:
+    return dynstring_append(out, string_lit("Down")), true;
+  case VK_PRIOR:
+    return dynstring_append(out, string_lit("Prior")), true;
+  case VK_NEXT:
+    return dynstring_append(out, string_lit("Next")), true;
+  }
+
+  /**
+   * Retrieve the platform name for the key.
+   */
+  const LONG nameParam = ((LONG)scanCode << 16) | ((LONG)1 << 25 /* "Do not care" bit */);
   wchar_t    buffer[64];
-  const int  charCount = GetKeyNameText(param, buffer, array_elems(buffer));
+  const int  charCount = GetKeyNameText(nameParam, buffer, array_elems(buffer));
   if (!charCount) {
     return false;
   }
