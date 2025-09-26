@@ -8,6 +8,7 @@
 #include "dev/stats.h"
 #include "ecs/view.h"
 #include "ecs/world.h"
+#include "gap/forward.h"
 #include "geo/box.h"
 #include "input/manager.h"
 #include "rend/object.h"

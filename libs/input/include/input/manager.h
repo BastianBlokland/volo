@@ -1,6 +1,5 @@
 #pragma once
 #include "ecs/module.h"
-#include "gap/forward.h"
 
 /**
  * Controls the cursor behavior:
