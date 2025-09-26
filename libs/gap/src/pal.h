@@ -53,6 +53,8 @@ void    gap_pal_flush(GapPal*);
 void gap_pal_icon_load(GapPal*, GapIcon, const AssetIconComp*);
 void gap_pal_cursor_load(GapPal*, GapCursor, const AssetIconComp*);
 
+bool gap_pal_key_label(const GapPal*, GapKey, DynString* out); // Label in the users key layout.
+
 GapWindowId       gap_pal_window_create(GapPal*, GapVector size);
 void              gap_pal_window_destroy(GapPal*, GapWindowId);
 GapPalWindowFlags gap_pal_window_flags(const GapPal*, GapWindowId);

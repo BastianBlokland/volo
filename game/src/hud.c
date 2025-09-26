@@ -1062,12 +1062,10 @@ static void hud_production_queue_hotkey_draw(
     UiCanvasComp* c, const InputManagerComp* input, const StringHash actionHash) {
   static const UiVector g_size = {.x = 20, .y = 20};
 
-  const GapKey  actionPrimaryKey     = input_primary_key(input, actionHash);
-  const Unicode actionPrimaryKeyChar = gap_key_char(actionPrimaryKey);
-  if (!actionPrimaryKeyChar) {
+  const String actionLabel = input_label(input, actionHash);
+  if (string_is_empty(actionLabel)) {
     return;
   }
-  const String hotkeyText = fmt_write_scratch("{}", fmt_char(actionPrimaryKeyChar));
 
   ui_style_push(c);
   ui_layout_push(c);
@@ -1081,7 +1079,7 @@ static void hud_production_queue_hotkey_draw(
   ui_canvas_draw_glyph(c, UiShape_Circle, 0, UiFlags_None);
 
   ui_style_color(c, ui_color_white);
-  ui_label(c, hotkeyText, .align = UiAlign_MiddleCenter, .fontSize = 14);
+  ui_label(c, actionLabel, .align = UiAlign_MiddleCenter, .fontSize = 14);
 
   ui_layout_pop(c);
   ui_style_pop(c);

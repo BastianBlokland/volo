@@ -280,7 +280,7 @@ static void pal_cursor_clip_release(void) {
   }
 }
 
-static GapKey pal_win32_translate_key(const u8 scanCode) {
+static GapKey pal_win32_map_key(const u8 scanCode) {
   switch (scanCode) {
   case 0x2A: // Left-shift.
   case 0x36: // Right-shift.
@@ -431,6 +431,50 @@ static GapKey pal_win32_translate_key(const u8 scanCode) {
   }
   // log_d("Unrecognised win32 key", log_param("scancode", fmt_int(scanCode, .base = 16)));
   return GapKey_None;
+}
+
+static u8 pal_win32_unmap_key(const GapKey key) {
+  static const u8 g_scanCodes[GapKey_Count] = {
+      [GapKey_Shift] = 0x2A,       [GapKey_Control] = 0x1D,
+      [GapKey_Alt] = 0x38,         [GapKey_Backspace] = 0x0E,
+      [GapKey_Delete] = 0x53,      [GapKey_Tab] = 0x0F,
+      [GapKey_Tilde] = 0x29,       [GapKey_Return] = 0x1C,
+      [GapKey_Escape] = 0x01,      [GapKey_Space] = 0x39,
+      [GapKey_Plus] = 0x0D,        [GapKey_Minus] = 0x0C,
+      [GapKey_Home] = 0x47,        [GapKey_End] = 0x4F,
+      [GapKey_PageUp] = 0x49,      [GapKey_PageDown] = 0x51,
+      [GapKey_ArrowUp] = 0x48,     [GapKey_ArrowDown] = 0x50,
+      [GapKey_ArrowRight] = 0x4D,  [GapKey_ArrowLeft] = 0x4B,
+      [GapKey_BracketLeft] = 0x1A, [GapKey_BracketRight] = 0x1B,
+
+      [GapKey_A] = 0x1E,           [GapKey_B] = 0x30,
+      [GapKey_C] = 0x2E,           [GapKey_D] = 0x20,
+      [GapKey_E] = 0x12,           [GapKey_F] = 0x21,
+      [GapKey_G] = 0x22,           [GapKey_H] = 0x23,
+      [GapKey_I] = 0x17,           [GapKey_J] = 0x24,
+      [GapKey_K] = 0x25,           [GapKey_L] = 0x26,
+      [GapKey_M] = 0x32,           [GapKey_N] = 0x31,
+      [GapKey_O] = 0x18,           [GapKey_P] = 0x19,
+      [GapKey_Q] = 0x10,           [GapKey_R] = 0x13,
+      [GapKey_S] = 0x1F,           [GapKey_T] = 0x14,
+      [GapKey_U] = 0x16,           [GapKey_V] = 0x2F,
+      [GapKey_W] = 0x11,           [GapKey_X] = 0x2D,
+      [GapKey_Y] = 0x15,           [GapKey_Z] = 0x2C,
+
+      [GapKey_Alpha0] = 0x0B,      [GapKey_Alpha1] = 0x02,
+      [GapKey_Alpha2] = 0x03,      [GapKey_Alpha3] = 0x04,
+      [GapKey_Alpha4] = 0x05,      [GapKey_Alpha5] = 0x06,
+      [GapKey_Alpha6] = 0x07,      [GapKey_Alpha7] = 0x08,
+      [GapKey_Alpha8] = 0x09,      [GapKey_Alpha9] = 0x0A,
+
+      [GapKey_F1] = 0x3B,          [GapKey_F2] = 0x3C,
+      [GapKey_F3] = 0x3D,          [GapKey_F4] = 0x3E,
+      [GapKey_F5] = 0x3F,          [GapKey_F6] = 0x40,
+      [GapKey_F7] = 0x41,          [GapKey_F8] = 0x42,
+      [GapKey_F9] = 0x43,          [GapKey_F10] = 0x44,
+      [GapKey_F11] = 0x57,         [GapKey_F12] = 0x58,
+  };
+  return g_scanCodes[key];
 }
 
 static void pal_event_close(GapPalWindow* window) {
@@ -721,13 +765,13 @@ pal_event(GapPal* pal, const HWND wnd, const UINT msg, const WPARAM wParam, cons
   case WM_KEYDOWN:
   case WM_SYSKEYDOWN: {
     const u8 scanCode = LOBYTE(HIWORD(lParam));
-    pal_event_press(window, pal_win32_translate_key(scanCode));
+    pal_event_press(window, pal_win32_map_key(scanCode));
     return true;
   }
   case WM_KEYUP:
   case WM_SYSKEYUP: {
     const u8 scanCode = LOBYTE(HIWORD(lParam));
-    pal_event_release(window, pal_win32_translate_key(scanCode));
+    pal_event_release(window, pal_win32_map_key(scanCode));
     return true;
   }
   case WM_MOUSEWHEEL: {
@@ -951,6 +995,26 @@ void gap_pal_cursor_load(GapPal* pal, const GapCursor id, const AssetIconComp* a
   }
   pal->cursors[id] = cursor;
   pal->cursorIcons |= 1 << id;
+}
+
+bool gap_pal_key_label(const GapPal* pal, const GapKey key, DynString* out) {
+  (void)pal;
+  const u8 scanCode = pal_win32_unmap_key(key);
+  if (!scanCode) {
+    return false;
+  }
+  const LONG param = ((LONG)scanCode << 16) | ((LONG)1 << 25 /* "Do not care" bit */);
+  wchar_t    buffer[64];
+  const int  charCount = GetKeyNameText(param, buffer, array_elems(buffer));
+  if (!charCount) {
+    return false;
+  }
+  const String name = winutils_from_widestr_scratch(buffer, charCount);
+  if (string_is_empty(name)) {
+    return false;
+  }
+  dynstring_append(out, name);
+  return true;
 }
 
 GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {

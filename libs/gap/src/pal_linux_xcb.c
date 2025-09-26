@@ -10,7 +10,7 @@
 
 /**
  * X11 client implementation using the xcb library.
- * Optionally uses the xkbcommon, xfixes, randr and render extensions.
+ * Optionally uses the xkbcommon, keysyms, xfixes, randr and render extensions.
  *
  * Standard: https://www.x.org/docs/ICCCM/icccm.pdf
  * Xcb: https://xcb.freedesktop.org/manual/
@@ -252,14 +252,15 @@ typedef struct {
   int                rem, index;
 } XcbPictFormatInfoItr;
 
-typedef struct sXkbContext XkbContext;
-typedef struct sXkbKeyMap  XkbKeyMap;
-typedef struct sXkbState   XkbState;
-typedef u32                XkbKeycode;
-typedef u32                XkbKeysym;
-typedef u32                XkbStateComponent;
-typedef u32                XkbModMask;
-typedef u32                XkbLayoutIndex;
+typedef struct sXkbContext    XkbContext;
+typedef struct sXkbKeyMap     XkbKeyMap;
+typedef struct sXkbState      XkbState;
+typedef u32                   XkbKeycode;
+typedef u32                   XkbKeysym;
+typedef u32                   XkbStateComponent;
+typedef u32                   XkbModMask;
+typedef u32                   XkbLayoutIndex;
+typedef struct sXcbKeySymbols XcbKeySymbols;
 
 typedef struct {
   u8           responseType, xkbType;
@@ -446,6 +447,8 @@ typedef struct {
   XkbKeysym         (SYS_DECL* state_key_get_one_sym)(XkbState*, XkbKeycode);
   i32               (SYS_DECL* state_key_get_utf8)(XkbState*, XkbKeycode, char* buffer, usize size);
   XkbStateComponent (SYS_DECL* state_update_mask)(XkbState*, XkbModMask depressed, XkbModMask latched, XkbModMask locked, XkbLayoutIndex depressedLayout, XkbLayoutIndex latchedLayout, XkbLayoutIndex lockedLayout);
+  XkbKeysym         (SYS_DECL* keysym_to_upper)(XkbKeysym);
+  int               (SYS_DECL* keysym_get_name)(XkbKeysym, char* buffer, usize size);
   int               (SYS_DECL* setup_xkb_extension)(XcbConnection*, u16 xkbMajor, u16 xkbMinor, i32 flags, u16* xkbMajorOut, u16* xkbMinorOut, u8* baseEventOut, u8* baseErrorOut);
   u32               (SYS_DECL* keymap_num_layouts)(XkbKeyMap*);
   void              (SYS_DECL* context_unref)(XkbContext*);
@@ -457,6 +460,17 @@ typedef struct {
   XkbState*         (SYS_DECL* state_new_from_device)(XkbKeyMap*, XcbConnection*, i32 deviceId);
   // clang-format on
 } XkbCommon;
+
+typedef struct {
+  DynLib*        lib;
+  XcbKeySymbols* syms;
+
+  // clang-format off
+  XcbKeySymbols* (SYS_DECL* key_symbols_alloc)(XcbConnection*);
+  void           (SYS_DECL* key_symbols_free)(XcbKeySymbols*);
+  XkbKeysym      (SYS_DECL* key_symbols_get_keysym)(XcbKeySymbols*, XkbKeycode, int col);
+  // clang-format on
+} XcbKeysyms;
 
 typedef struct {
   DynLib* lib;
@@ -511,10 +525,11 @@ typedef struct {
 } XRender;
 
 typedef enum {
-  GapPalXcbExtFlags_Xkb    = 1 << 0,
-  GapPalXcbExtFlags_XFixes = 1 << 1,
-  GapPalXcbExtFlags_Randr  = 1 << 2,
-  GapPalXcbExtFlags_Render = 1 << 3,
+  GapPalXcbExtFlags_Xkb     = 1 << 0,
+  GapPalXcbExtFlags_Keysyms = 1 << 1,
+  GapPalXcbExtFlags_XFixes  = 1 << 2,
+  GapPalXcbExtFlags_Randr   = 1 << 3,
+  GapPalXcbExtFlags_Render  = 1 << 4,
 } GapPalXcbExtFlags;
 
 typedef enum {
@@ -553,11 +568,12 @@ struct sGapPal {
   GapPalXcbExtFlags extensions;
   GapPalFlags       flags;
 
-  Xcb       xcb;
-  XkbCommon xkb;
-  XFixes    xfixes;
-  XRandr    xrandr;
-  XRender   xrender;
+  Xcb        xcb;
+  XkbCommon  xkb;
+  XcbKeysyms keysyms;
+  XFixes     xfixes;
+  XRandr     xrandr;
+  XRender    xrender;
 
   Mem       icons[GapIcon_Count];
   XcbCursor cursors[GapCursor_Count];
@@ -788,6 +804,50 @@ static GapKey pal_xcb_map_key(const XkbKeycode key) {
   }
   // log_d("Unrecognised xcb key", log_param("keycode", fmt_int(key, .base = 16)));
   return GapKey_None;
+}
+
+static XkbKeycode pal_xcb_unmap_key(const GapKey key) {
+  static const XkbKeycode g_keyCodes[GapKey_Count] = {
+      [GapKey_Shift] = 0x32,       [GapKey_Control] = 0x25,
+      [GapKey_Alt] = 0x40,         [GapKey_Backspace] = 0x16,
+      [GapKey_Delete] = 0x77,      [GapKey_Tab] = 0x17,
+      [GapKey_Tilde] = 0x31,       [GapKey_Return] = 0x24,
+      [GapKey_Escape] = 0x9,       [GapKey_Space] = 0x41,
+      [GapKey_Plus] = 0x15,        [GapKey_Minus] = 0x14,
+      [GapKey_Home] = 0x6E,        [GapKey_End] = 0x73,
+      [GapKey_PageUp] = 0x70,      [GapKey_PageDown] = 0x75,
+      [GapKey_ArrowUp] = 0x6F,     [GapKey_ArrowDown] = 0x74,
+      [GapKey_ArrowRight] = 0x72,  [GapKey_ArrowLeft] = 0x71,
+      [GapKey_BracketLeft] = 0x22, [GapKey_BracketRight] = 0x23,
+
+      [GapKey_A] = 0x26,           [GapKey_B] = 0x38,
+      [GapKey_C] = 0x36,           [GapKey_D] = 0x28,
+      [GapKey_E] = 0x1A,           [GapKey_F] = 0x29,
+      [GapKey_G] = 0x2A,           [GapKey_H] = 0x2B,
+      [GapKey_I] = 0x1F,           [GapKey_J] = 0x2C,
+      [GapKey_K] = 0x2D,           [GapKey_L] = 0x2E,
+      [GapKey_M] = 0x3A,           [GapKey_N] = 0x39,
+      [GapKey_O] = 0x20,           [GapKey_P] = 0x21,
+      [GapKey_Q] = 0x18,           [GapKey_R] = 0x1B,
+      [GapKey_S] = 0x27,           [GapKey_T] = 0x1C,
+      [GapKey_U] = 0x1E,           [GapKey_V] = 0x37,
+      [GapKey_W] = 0x19,           [GapKey_X] = 0x35,
+      [GapKey_Y] = 0x1D,           [GapKey_Z] = 0x34,
+
+      [GapKey_Alpha0] = 0x13,      [GapKey_Alpha1] = 0xA,
+      [GapKey_Alpha2] = 0xB,       [GapKey_Alpha3] = 0xC,
+      [GapKey_Alpha4] = 0xD,       [GapKey_Alpha5] = 0xE,
+      [GapKey_Alpha6] = 0xF,       [GapKey_Alpha7] = 0x10,
+      [GapKey_Alpha8] = 0x11,      [GapKey_Alpha9] = 0x12,
+
+      [GapKey_F1] = 0x43,          [GapKey_F2] = 0x44,
+      [GapKey_F3] = 0x45,          [GapKey_F4] = 0x46,
+      [GapKey_F5] = 0x47,          [GapKey_F6] = 0x48,
+      [GapKey_F7] = 0x49,          [GapKey_F8] = 0x4A,
+      [GapKey_F9] = 0x4B,          [GapKey_F10] = 0x4C,
+      [GapKey_F11] = 0x5F,         [GapKey_F12] = 0x60,
+  };
+  return g_keyCodes[key];
 }
 
 /**
@@ -1191,6 +1251,8 @@ static bool pal_init_xkb(Xcb* xcb, Allocator* alloc, XkbCommon* out) {
   XKB_LOAD_SYM(xkb, state_key_get_utf8);
   XKB_LOAD_SYM(xkb, state_unref);
   XKB_LOAD_SYM(xkb, state_update_mask);
+  XKB_LOAD_SYM(xkb, keysym_to_upper);
+  XKB_LOAD_SYM(xkb, keysym_get_name);
 
 #undef XKB_LOAD_SYM
 
@@ -1207,8 +1269,11 @@ static bool pal_init_xkb(Xcb* xcb, Allocator* alloc, XkbCommon* out) {
     return false;
   }
 
-  const u16       deviceSpec = 256 /* XCB_XKB_ID_USE_CORE_KBD */;
-  const u16       eventTypes = 4 /* XCB_XKB_EVENT_TYPE_STATE_NOTIFY */;
+  const u16 deviceSpec = 256 /* XCB_XKB_ID_USE_CORE_KBD */;
+  u16       eventTypes = 0;
+  eventTypes |= 1 /* XCB_XKB_EVENT_TYPE_NEW_KEYBOARD_NOTIFY */;
+  eventTypes |= 2 /* XCB_XKB_EVENT_TYPE_MAP_NOTIFY */;
+  eventTypes |= 4 /* XCB_XKB_EVENT_TYPE_STATE_NOTIFY */;
   const XcbCookie selectEventsCookie =
       out->select_events_checked(xcb->con, deviceSpec, eventTypes, 0, eventTypes, 0, 0, null);
   err = xcb->request_check(xcb->con, selectEventsCookie);
@@ -1234,8 +1299,8 @@ static bool pal_init_xkb(Xcb* xcb, Allocator* alloc, XkbCommon* out) {
     return false;
   }
   out->state = out->state_new_from_device(out->keymap, xcb->con, out->deviceId);
-  if (!out->keymap) {
-    log_w("Failed to retrieve the Xkb keyboard state");
+  if (!out->state) {
+    log_w("Failed to create a Xkb keyboard state");
     return false;
   }
 
@@ -1251,6 +1316,46 @@ static bool pal_init_xkb(Xcb* xcb, Allocator* alloc, XkbCommon* out) {
       log_param("device-id", fmt_int(out->deviceId)),
       log_param("layout-count", fmt_int(layoutCount)),
       log_param("main-layout-name", fmt_text(layoutName)));
+  return true;
+}
+
+/**
+ * Initialize keysyms extension, contains key-symbol utilities.
+ */
+static bool pal_init_keysyms(Xcb* xcb, Allocator* alloc, XcbKeysyms* out) {
+  DynLibResult loadRes = dynlib_load(alloc, string_lit("libxcb-keysyms.so"), &out->lib);
+  if (loadRes != DynLibResult_Success) {
+    const String err = dynlib_result_str(loadRes);
+    log_w("Failed to load XcbKeysyms ('libxcb-keysyms.so')", log_param("err", fmt_text(err)));
+    return false;
+  }
+
+#define KEYSYMS_LOAD_SYM(_NAME_)                                                                   \
+  do {                                                                                             \
+    const String symName = string_lit("xcb_" #_NAME_);                                             \
+    out->_NAME_          = dynlib_symbol(out->lib, symName);                                       \
+    if (!out->_NAME_) {                                                                            \
+      log_w("XcbKeysyms symbol '{}' missing", log_param("sym", fmt_text(symName)));                \
+      return false;                                                                                \
+    }                                                                                              \
+  } while (false)
+
+  KEYSYMS_LOAD_SYM(key_symbols_alloc);
+  KEYSYMS_LOAD_SYM(key_symbols_free);
+  KEYSYMS_LOAD_SYM(key_symbols_get_keysym);
+
+#undef KEYSYMS_LOAD_SYM
+
+  out->syms = out->key_symbols_alloc(xcb->con);
+  if (!out->syms) {
+    log_w("Failed to initialize XcbKeysyms");
+    return false;
+  }
+
+  log_i(
+      "Xcb extension initialized",
+      log_param("ext", fmt_text_lit("XcbKeysyms")),
+      log_param("path", fmt_path(dynlib_path(out->lib))));
   return true;
 }
 
@@ -1456,6 +1561,9 @@ static bool pal_init_xrender(Xcb* xcb, Allocator* alloc, XRender* out) {
 static void pal_init_extensions(GapPal* pal) {
   if (pal_init_xkb(&pal->xcb, pal->alloc, &pal->xkb)) {
     pal->extensions |= GapPalXcbExtFlags_Xkb;
+  }
+  if (pal_init_keysyms(&pal->xcb, pal->alloc, &pal->keysyms)) {
+    pal->extensions |= GapPalXcbExtFlags_Keysyms;
   }
   if (pal_init_xfixes(&pal->xcb, pal->alloc, &pal->xfixes)) {
     pal->extensions |= GapPalXcbExtFlags_XFixes;
@@ -1928,6 +2036,9 @@ void gap_pal_destroy(GapPal* pal) {
   if (pal->xkb.state) {
     pal->xkb.state_unref(pal->xkb.state);
   }
+  if (pal->keysyms.syms) {
+    pal->keysyms.key_symbols_free(pal->keysyms.syms);
+  }
 
   array_for_t(pal->icons, Mem, icon) { alloc_maybe_free(pal->alloc, *icon); }
   array_for_t(pal->cursors, XcbCursor, cursor) {
@@ -1942,6 +2053,9 @@ void gap_pal_destroy(GapPal* pal) {
   dynlib_destroy(pal->xcb.lib);
   if (pal->xkb.lib) {
     dynlib_destroy(pal->xkb.lib);
+  }
+  if (pal->keysyms.lib) {
+    dynlib_destroy(pal->keysyms.lib);
   }
   if (pal->xfixes.lib) {
     dynlib_destroy(pal->xfixes.lib);
@@ -2155,6 +2269,14 @@ void gap_pal_update(GapPal* pal) {
         const XkbEventAny* xkbEvent = (const void*)evt;
         if (xkbEvent->deviceId == pal->xkb.deviceId) {
           switch (xkbEvent->xkbType) {
+          case 0 /* XCB_XKB_NEW_KEYBOARD_NOTIFY */:
+          case 1 /* XCB_XKB_MAP_NOTIFY */: {
+            if (pal->keysyms.syms) {
+              // Recreate the key-symbol state when the key mapping changes.
+              pal->keysyms.key_symbols_free(pal->keysyms.syms);
+              pal->keysyms.syms = pal->keysyms.key_symbols_alloc(pal->xcb.con);
+            }
+          } break;
           case 2 /* XCB_XKB_STATE_NOTIFY */: {
             const XkbEventStateNotify* stateNotify = (const void*)evt;
             pal->xkb.state_update_mask(
@@ -2291,6 +2413,29 @@ void gap_pal_cursor_load(GapPal* pal, const GapCursor id, const AssetIconComp* a
       gap_pal_window_cursor_set(pal, window->id, id);
     }
   }
+}
+
+bool gap_pal_key_label(const GapPal* pal, const GapKey key, DynString* out) {
+  const GapPalXcbExtFlags reqExts = GapPalXcbExtFlags_Xkb | GapPalXcbExtFlags_Keysyms;
+  if ((pal->extensions & reqExts) != reqExts) {
+    return false; // Required extensions not available.
+  }
+  const XkbKeycode keyCode = pal_xcb_unmap_key(key);
+  if (!keyCode) {
+    return false;
+  }
+  const XkbKeysym keySym      = pal->keysyms.key_symbols_get_keysym(pal->keysyms.syms, keyCode, 0);
+  const XkbKeysym keySymUpper = pal->xkb.keysym_to_upper(keySym);
+
+  char buffer[64];
+  pal->xkb.keysym_get_name(keySymUpper, buffer, sizeof(buffer));
+  const String name = string_from_null_term(buffer);
+
+  if (string_is_empty(name)) {
+    return false;
+  }
+  dynstring_append(out, name);
+  return true;
 }
 
 GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {

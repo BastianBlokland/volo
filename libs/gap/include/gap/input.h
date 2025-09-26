@@ -1,6 +1,7 @@
 #pragma once
 #include "core/string.h"
 #include "core/unicode.h"
+#include "gap/forward.h"
 
 /**
  * Represents a physical key (independent of the users keyboard layout).
@@ -106,14 +107,15 @@ typedef enum eGapParam {
 } GapParam;
 
 /**
- * Single character representation of a key, or null if there is no single char representation.
- */
-Unicode gap_key_char(GapKey);
-
-/**
  * Textual representation of a key.
+ * NOTE: These correspond to an ANSI (US English) keyboard layout, should not be user facing.
  */
 String gap_key_str(GapKey);
+
+/**
+ * Write the label (in the user's keyboard layout) of the key.
+ */
+bool gap_key_label(const GapPlatformComp*, GapKey, DynString* out);
 
 /**
  * Textual representation of a parameter.
