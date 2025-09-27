@@ -254,9 +254,9 @@ static void menu_child_open_detached(
   const EcsEntityId    detachedWindow = gap_window_create(world, mode, flags, size, icon, title);
   RendSettingsComp*    rendSettings   = rend_settings_window_init(world, detachedWindow);
 
-  // No vsync on the detached window to reduce impact on the rendering of the main window.
-  rendSettings->flags       = RendFlags_2D;
-  rendSettings->presentMode = RendPresentMode_Immediate;
+  // No vsync on the detached window to not interfere with vsync of the main window.
+  rendSettings->flags    = RendFlags_2D;
+  rendSettings->syncMode = RendSyncMode_Immediate;
 
   const DevPanelType type  = DevPanelType_Detached;
   const EcsEntityId  panel = g_menuChildConfig[childIndex].openFunc(world, detachedWindow, type);

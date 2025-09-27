@@ -238,7 +238,7 @@ static void game_quality_apply(
     RendSettingsComp*       rendSetWin) {
 
   rendSetGlobal->limiterFreq = game_limiter_freq_get(prefs);
-  rendSetWin->presentMode = prefs->vsync ? RendPresentMode_VSyncRelaxed : RendPresentMode_Mailbox;
+  rendSetWin->syncMode       = prefs->vsync ? RendSyncMode_VSync : RendSyncMode_Immediate;
 
   // clang-format off
   static const RendFlags g_rendLowFeatures    = RendFlags_Shadows;

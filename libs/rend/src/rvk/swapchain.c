@@ -11,6 +11,7 @@
 #include "swapchain.h"
 
 #define swapchain_images_max 5
+#define swapchain_presentmode_desired_max 8
 
 typedef enum {
   RvkSwapchainFlags_OutOfDate = 1 << 0,
@@ -22,7 +23,7 @@ struct sRvkSwapchain {
   VkSurfaceKHR       vkSurf;
   VkSurfaceFormatKHR vkSurfFormat;
   VkSwapchainKHR     vkSwap;
-  RendPresentMode    presentModeSetting;
+  RendSyncMode       syncMode;
   RvkSwapchainFlags  flags;
   RvkSize            size;
   u32                imgCount;
@@ -129,30 +130,21 @@ rvk_pick_imagecount(const VkSurfaceCapabilitiesKHR* caps, const VkPresentModeKHR
   return imgCount;
 }
 
-static VkPresentModeKHR rvk_preferred_presentmode(const RendPresentMode setting) {
-  switch (setting) {
-  case RendPresentMode_Immediate:
-    return VK_PRESENT_MODE_IMMEDIATE_KHR;
-  case RendPresentMode_VSync:
-    return VK_PRESENT_MODE_FIFO_KHR;
-  case RendPresentMode_VSyncRelaxed:
-    return VK_PRESENT_MODE_FIFO_RELAXED_KHR;
-  case RendPresentMode_Mailbox:
-    return VK_PRESENT_MODE_MAILBOX_KHR;
+static u32 rvk_pick_presentmode_desired(
+    const RendSyncMode mode,
+    VkPresentModeKHR   out[PARAM_ARRAY_SIZE(swapchain_presentmode_desired_max)]) {
+  u32 count = 0;
+  switch (mode) {
+  case RendSyncMode_Immediate:
+    out[count++] = VK_PRESENT_MODE_MAILBOX_KHR;   // Mailbox prevents tearing without blocking.
+    out[count++] = VK_PRESENT_MODE_IMMEDIATE_KHR; // Tearing mode.
+    break;
+  case RendSyncMode_VSync:
+    out[count++] = VK_PRESENT_MODE_FIFO_RELAXED_KHR; // Vsync with tearing if too slow.
+    out[count++] = VK_PRESENT_MODE_FIFO_KHR;         // Vsync mode.
+    break;
   }
-  diag_crash();
-}
-
-static VkPresentModeKHR rvk_fallback_presentmode(const RendPresentMode setting) {
-  switch (setting) {
-  case RendPresentMode_Immediate:
-  case RendPresentMode_VSync:
-  case RendPresentMode_VSyncRelaxed:
-    return VK_PRESENT_MODE_FIFO_KHR;
-  case RendPresentMode_Mailbox:
-    return VK_PRESENT_MODE_IMMEDIATE_KHR;
-  }
-  diag_crash();
+  return count;
 }
 
 static VkPresentModeKHR rvk_pick_presentmode(
@@ -167,24 +159,20 @@ static VkPresentModeKHR rvk_pick_presentmode(
       &availableCount,
       available);
 
-  const VkPresentModeKHR preferred = rvk_preferred_presentmode(settings->presentMode);
-  for (u32 i = 0; i != availableCount; ++i) {
-    if (available[i] == preferred) {
-      return available[i];
-    }
-  }
-  const VkPresentModeKHR fallback = rvk_fallback_presentmode(settings->presentMode);
-  log_w(
-      "Preferred present mode unavailable",
-      log_param("preferred", fmt_text(vkPresentModeKHRStr(preferred))),
-      log_param("fallback", fmt_text(vkPresentModeKHRStr(fallback))));
+  VkPresentModeKHR desired[swapchain_presentmode_desired_max];
+  const u32        desiredCount = rvk_pick_presentmode_desired(settings->syncMode, desired);
 
-  for (u32 i = 0; i != availableCount; ++i) {
-    if (available[i] == fallback) {
-      return available[i];
+  for (u32 desiredIdx = 0; desiredIdx != desiredCount; ++desiredIdx) {
+    const VkPresentModeKHR mode = desired[desiredIdx];
+
+    for (u32 availableIdx = 0; availableIdx != availableCount; ++availableIdx) {
+      if (available[availableIdx] == mode) {
+        return mode; // Mode supported.
+      }
     }
   }
-  log_w("Fallback present mode unavailable");
+
+  log_w("All desired present modes unavailable");
   return VK_PRESENT_MODE_FIFO_KHR; // FIFO is required by the spec to be always available.
 }
 
@@ -257,8 +245,8 @@ static bool rvk_swapchain_init(RvkSwapchain* swap, const RendSettingsComp* setti
   }
 
   swap->flags &= ~RvkSwapchainFlags_OutOfDate;
-  swap->presentModeSetting = settings->presentMode;
-  swap->size               = size;
+  swap->syncMode = settings->syncMode;
+  swap->size     = size;
 
   log_i(
       "Vulkan swapchain created",
@@ -339,7 +327,7 @@ bool rvk_swapchain_prepare(
 
   const bool outOfDate      = (swap->flags & RvkSwapchainFlags_OutOfDate) != 0;
   const bool changedSize    = !rvk_size_equal(size, swap->size);
-  const bool changedPresent = swap->presentModeSetting != settings->presentMode;
+  const bool changedPresent = swap->syncMode != settings->syncMode;
 
   if (!swap->vkSwap || outOfDate || changedSize || changedPresent) {
     /**
