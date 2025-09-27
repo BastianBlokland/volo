@@ -4,7 +4,7 @@
   "displayName": "volo",
   "description": "Ide support for the Volo engine",
   "license": "MIT",
-  "version": "0.0.22",
+  "version": "0.0.23",
   "repository": {
     "type": "git",
     "url": "https://github.com/bastianblokland/volo"
@@ -14,14 +14,14 @@
   },
   "main": "./out/extension",
   "dependencies": {
-    "vscode-languageclient": "^8.1.0"
+    "vscode-languageclient": "^9.0.1"
   },
   "devDependencies": {
-    "@types/node": "^16.18.34",
-    "@types/vscode": "^1.75.1",
-    "@vscode/vsce": "^2.21.1",
-    "esbuild": "^0.19.4",
-    "typescript": "^5.2.2"
+    "@types/node": "^24.5.2",
+    "@types/vscode": "^1.104.0",
+    "@vscode/vsce": "^3.6.2",
+    "esbuild": "^0.25.10",
+    "typescript": "^5.9.2"
   },
   "scripts": {
     "vscode:prepublish": "npm run esbuild-base -- --minify",
