@@ -16,6 +16,7 @@
         "offsetX": { "title": "f32", "type": "number" },
         "offsetY": { "title": "f32", "type": "number" },
         "offsetZ": { "title": "f32", "type": "number" },
+        "offsetAngle": { "title": "f32", "type": "number" },
         "uncapped": { "title": "bool", "type": "boolean" }
       },
       "required": [ "type", "axis" ],
