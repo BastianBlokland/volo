@@ -23,6 +23,7 @@ double SYS_DECL sin(double);
 double SYS_DECL sqrt(double);
 float SYS_DECL  sqrtf(float);
 float SYS_DECL  cbrtf(float);
+double SYS_DECL tan(double);
 float SYS_DECL  tanf(float);
 
 #pragma intrinsic(_BitScanForward)
@@ -46,6 +47,7 @@ float SYS_DECL  tanf(float);
 #pragma intrinsic(sin)
 #pragma intrinsic(sqrt)
 #pragma intrinsic(sqrtf)
+#pragma intrinsic(tan)
 #pragma intrinsic(tanf)
 
 #define intrinsic_acos_f32 acosf
@@ -66,6 +68,7 @@ float SYS_DECL  tanf(float);
 #define intrinsic_sqrt_f32 sqrtf
 #define intrinsic_sqrt_f64 sqrt
 #define intrinsic_cbrt_f32 cbrtf
+#define intrinsic_tan_f64 tan
 #define intrinsic_tan_f32 tanf
 
 #else
@@ -88,6 +91,7 @@ float SYS_DECL  tanf(float);
 #define intrinsic_sqrt_f32 __builtin_sqrtf
 #define intrinsic_sqrt_f64 __builtin_sqrt
 #define intrinsic_cbrt_f32 __builtin_cbrtf
+#define intrinsic_tan_f64 __builtin_tan
 #define intrinsic_tan_f32 __builtin_tanf
 
 #endif
