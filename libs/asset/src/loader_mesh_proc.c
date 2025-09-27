@@ -49,6 +49,7 @@ typedef struct {
   f32          length;
   f32          scaleX, scaleY, scaleZ;
   f32          offsetX, offsetY, offsetZ;
+  f32          offsetAngle;
   bool         uncapped;
 } ProcMeshDef;
 
@@ -349,12 +350,13 @@ static void procmesh_generate_cone(ProcMeshGenerator* gen) {
 }
 
 static void procmesh_generate_cylinder(ProcMeshGenerator* gen) {
-  const u32 numSegs    = math_max(4, gen->def->subdivisions);
-  const f32 segStep    = math_pi_f32 * 2.0f / numSegs;
-  const f32 invNumSegs = 1.0f / numSegs;
-  const f32 radius     = 0.5f;
+  const u32 numSegs     = math_max(4, gen->def->subdivisions);
+  const f32 segStep     = math_pi_f32 * 2.0f / numSegs;
+  const f32 invNumSegs  = 1.0f / numSegs;
+  const f32 radius      = 0.5f;
+  const f32 angleOffset = gen->def->offsetAngle * math_deg_to_rad;
   for (u32 i = 0; i != numSegs; ++i) {
-    const f32 angleRight = i * segStep;
+    const f32 angleRight = i * segStep + angleOffset;
     const f32 angleLeft  = angleRight - segStep;
     const f32 leftX = math_sin_f32(angleLeft), leftY = math_cos_f32(angleLeft);
     const f32 rightX = math_sin_f32(angleRight), rightY = math_cos_f32(angleRight);
@@ -537,6 +539,7 @@ void asset_data_init_procmesh(void) {
   data_reg_field_t(g_dataReg, ProcMeshDef, offsetX, data_prim_t(f32), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, ProcMeshDef, offsetY, data_prim_t(f32), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, ProcMeshDef, offsetZ, data_prim_t(f32), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, ProcMeshDef, offsetAngle, data_prim_t(f32), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, ProcMeshDef, uncapped, data_prim_t(bool), .flags = DataFlags_Opt);
   // clang-format on
 

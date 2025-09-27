@@ -1,0 +1,12 @@
+{
+  "pass": "Geometry",
+  "shaders": [
+    { "program": "shaders/standard.vert" },
+    { "program": "shaders/standard.frag" }
+  ],
+  "samplers": [
+    { "texture": "textures/builtin/white.proctex" },
+    { "texture": "textures/builtin/zero.proctex" }
+  ],
+  "mesh": "meshes/builtin/hexagon.procmesh"
+}
