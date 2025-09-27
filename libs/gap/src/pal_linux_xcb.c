@@ -2876,6 +2876,7 @@ void gap_pal_modal_error(String message) {
   pal_xcb_wm_state_update(&xcb, window, xcb.atomWmStateModal, true);
   pal_xcb_set_window_type(&xcb, window, xcb.atomWmWindowTypeDialog);
   pal_xcb_set_window_min_size(&xcb, window, textSize);
+  pal_xcb_class_set(&xcb, window, string_lit("volo-error"), string_lit("volo"));
   pal_xcb_title_set(&xcb, window, string_lit("Error"));
   pal_xcb_register_delete_msg(&xcb, window); // Register a custom delete message atom.
   xcb.map_window(xcb.con, window);
