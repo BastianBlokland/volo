@@ -44,7 +44,7 @@ void rend_settings_to_default(RendSettingsComp* s) {
              RendFlags_Decals               |
              RendFlags_VfxShadows;
   // clang-format on
-  s->presentMode               = RendPresentMode_VSyncRelaxed;
+  s->syncMode                  = RendSyncMode_VSync;
   s->ambientMode               = RendAmbientMode_SpecularIrradiance;
   s->skyMode                   = RendSkyMode_None;
   s->exposure                  = 1.0f;

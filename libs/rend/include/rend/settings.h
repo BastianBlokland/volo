@@ -24,33 +24,10 @@ typedef enum eRendFlags {
   RendFlags_DebugOverlay = RendFlags_DebugFog | RendFlags_DebugShadow | RendFlags_DebugDistortion,
 } RendFlags;
 
-typedef enum eRendPresentMode {
-  /**
-   * Don't wait for a vblank but immediately output the new image.
-   * NOTE: This mode may result in visible tearing.
-   */
-  RendPresentMode_Immediate,
-
-  /**
-   * Wait for the next vblank to output the new image.
-   */
-  RendPresentMode_VSync,
-
-  /**
-   * Wait for the next vblank if the application is early, if the application is late then
-   * immediately output the new image.
-   * NOTE: This mode may result in visible tearing when the application is late for the vblank.
-   */
-  RendPresentMode_VSyncRelaxed,
-
-  /**
-   * Wait for the next vblank to output a new image, but does not block acquiring a next image.
-   * If the application finishes another image before the vblank then it will replace the currently
-   * waiting image.
-   */
-  RendPresentMode_Mailbox,
-
-} RendPresentMode;
+typedef enum eRendSyncMode {
+  RendSyncMode_Immediate,
+  RendSyncMode_VSync,
+} RendSyncMode;
 
 typedef enum eRendAmbientMode {
   RendAmbientMode_Solid,
@@ -94,7 +71,7 @@ typedef enum {
 
 ecs_comp_extern_public(RendSettingsComp) {
   RendFlags            flags;
-  RendPresentMode      presentMode;
+  RendSyncMode         syncMode;
   RendAmbientMode      ambientMode;
   RendSkyMode          skyMode;
   f32                  exposure;

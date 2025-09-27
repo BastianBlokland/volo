@@ -36,12 +36,10 @@
 
 // clang-format off
 
-static const String g_tooltipPresent          = string_static("Presentation mode.\n\n"
+static const String g_tooltipSync          = string_static("Presentation sync mode.\n\n"
                                                             "Options:\n"
                                                             "- \a.bImmediate\ar: Don't wait for a vblank but immediately output the new image.\n"
-                                                            "- \a.bSync\ar: Wait for the next vblank to output the new image.\n"
-                                                            "- \a.bVSyncRelaxed\ar: Wait for the next vblank if the application is early, if the application is late then immediately output the new image.\n"
-                                                            "- \a.bMailbox\ar: Wait for the next vblank to output a new image, but does not block acquiring a next image. If the application finishes another image before the vblank then it will replace the currently waiting image.");
+                                                            "- \a.bSync\ar: Wait for the next vblank to output the new image.\n");
 static const String g_tooltipScale            = string_static("Render resolution scale.");
 static const String g_tooltipLimiter          = string_static("Frame frequency limiter (in hz).\n\a.bNote\ar: 0 disables the limiter.");
 static const String g_tooltipFrustumCulling   = string_static("Should objects be culled if their bounds are outside of the view frustum?");
@@ -169,11 +167,9 @@ static const String g_resTypeNames[] = {
 };
 ASSERT(array_elems(g_resTypeNames) == DevRendResType_Count, "Incorrect number of names");
 
-static const String g_presentOptions[] = {
+static const String g_syncOptions[] = {
     string_static("Immediate"),
     string_static("VSync"),
-    string_static("VSyncRelaxed"),
-    string_static("Mailbox"),
 };
 
 static const String g_ambientModeNames[] = {
@@ -620,14 +616,14 @@ static void rend_settings_tab_draw(
   ui_table_add_column(&table, UiTableColumn_Fixed, 350);
 
   ui_table_next_row(canvas, &table);
-  ui_label(canvas, string_lit("Present mode"));
+  ui_label(canvas, string_lit("Sync mode"));
   ui_table_next_column(canvas, &table);
   ui_select(
       canvas,
-      (i32*)&settings->presentMode,
-      g_presentOptions,
-      array_elems(g_presentOptions),
-      .tooltip = g_tooltipPresent);
+      (i32*)&settings->syncMode,
+      g_syncOptions,
+      array_elems(g_syncOptions),
+      .tooltip = g_tooltipSync);
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Limiter"));
