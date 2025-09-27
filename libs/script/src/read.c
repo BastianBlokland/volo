@@ -340,6 +340,24 @@ static void script_builtin_init(void) {
     script_builtin_func_add(name, ScriptIntrinsic_Cos, doc, ret, args, array_elems(args));
   }
   {
+    const String       name   = string_lit("tan");
+    const String       doc    = string_lit("Evaluate the tangent function.");
+    const ScriptMask   ret    = script_mask_num;
+    const ScriptSigArg args[] = {
+        {string_lit("v"), script_mask_num},
+    };
+    script_builtin_func_add(name, ScriptIntrinsic_Tan, doc, ret, args, array_elems(args));
+  }
+  {
+    const String       name   = string_lit("sqrt");
+    const String       doc    = string_lit("Evaluate the square-root function.");
+    const ScriptMask   ret    = script_mask_num;
+    const ScriptSigArg args[] = {
+        {string_lit("v"), script_mask_num},
+    };
+    script_builtin_func_add(name, ScriptIntrinsic_Sqrt, doc, ret, args, array_elems(args));
+  }
+  {
     const String       name   = string_lit("pow");
     const String       doc    = string_lit("Raise the value to the given power.");
     const ScriptMask   ret    = script_mask_num;

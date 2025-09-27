@@ -32,6 +32,8 @@ typedef enum eScriptIntrinsic {
   ScriptIntrinsic_Angle,             // Args: lhs, rhs.
   ScriptIntrinsic_Sin,               // Args: value.
   ScriptIntrinsic_Cos,               // Args: value.
+  ScriptIntrinsic_Tan,               // Args: value.
+  ScriptIntrinsic_Sqrt,              // Args: value.
   ScriptIntrinsic_Pow,               // Args: lhs, rhs.
   ScriptIntrinsic_Normalize,         // Args: value.
   ScriptIntrinsic_Magnitude,         // Args: value.
