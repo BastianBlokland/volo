@@ -10,7 +10,7 @@
     "url": "https://github.com/bastianblokland/volo"
   },
   "engines": {
-    "vscode": "^1.75.0"
+    "vscode": "^1.104.0"
   },
   "main": "./out/extension",
   "dependencies": {
