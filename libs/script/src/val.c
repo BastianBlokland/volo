@@ -812,6 +812,13 @@ ScriptVal script_val_cos(const ScriptVal val) {
   return val_null();
 }
 
+ScriptVal script_val_tan(const ScriptVal val) {
+  if (val_type(val) == ScriptType_Num) {
+    return val_num(intrinsic_tan_f64(val_as_num(val)));
+  }
+  return val_null();
+}
+
 ScriptVal script_val_sqrt(const ScriptVal val) {
   if (val_type(val) == ScriptType_Num) {
     return val_num(intrinsic_sqrt_f64(val_as_num(val)));
