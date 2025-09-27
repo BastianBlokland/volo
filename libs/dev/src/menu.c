@@ -197,6 +197,7 @@ ecs_comp_define(DevMenuComp) {
   EcsEntityId window;
   EcsEntityId menuEntity;
   EcsEntityId childEntities[array_elems(g_menuChildConfig)];
+  u64         detachedChildren; // Bitset that indicates if child window are detached or not.
 };
 
 ecs_view_define(GlobalView) {
@@ -230,6 +231,7 @@ static void menu_child_open(
   const EcsEntityId  panel = g_menuChildConfig[childIndex].openFunc(world, menu->window, type);
   ecs_world_add_t(world, panel, SceneLifetimeOwnerComp, .owners[0] = menuEntity);
   menu->childEntities[childIndex] = panel;
+  menu->detachedChildren &= ~(u64_lit(1) << childIndex);
 }
 
 static void menu_child_open_detached(
@@ -265,6 +267,7 @@ static void menu_child_open_detached(
   ecs_world_add_t(world, panel, SceneLifetimeOwnerComp, .owners[0] = menuEntity);
 
   menu->childEntities[childIndex] = panel;
+  menu->detachedChildren |= u64_lit(1) << childIndex;
 }
 
 static EcsEntityId menu_child_topmost(EcsWorld* world, const DevMenuComp* menu) {
@@ -416,7 +419,14 @@ void dev_menu_edit_panels_open(EcsWorld* world, DevMenuComp* menu) {
 
 void dev_menu_edit_panels_close(EcsWorld* world, DevMenuComp* menu) {
   for (u32 childIndex = 0; childIndex != array_elems(menu->childEntities); ++childIndex) {
-    if (g_menuChildConfig[childIndex].openOnEdit && menu_child_is_open(world, menu, childIndex)) {
+    if (!g_menuChildConfig[childIndex].openOnEdit) {
+      continue; // Not an edit panel.
+    }
+    const bool isDetached = (menu->detachedChildren & (u64_lit(1) << childIndex)) != 0;
+    if (isDetached) {
+      continue; // Keep detached panels open.
+    }
+    if (menu_child_is_open(world, menu, childIndex)) {
       ecs_world_entity_destroy(world, menu->childEntities[childIndex]);
       menu->childEntities[childIndex] = 0;
     }
