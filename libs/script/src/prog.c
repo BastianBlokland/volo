@@ -33,6 +33,8 @@
   VM_OP_SIMPLE_BINARY(      Angle,              script_val_angle                )\
   VM_OP_SIMPLE_UNARY(       Sin,                script_val_sin                  )\
   VM_OP_SIMPLE_UNARY(       Cos,                script_val_cos                  )\
+  VM_OP_SIMPLE_UNARY(       Tan,                script_val_tan                  )\
+  VM_OP_SIMPLE_UNARY(       Sqrt,               script_val_sqrt                 )\
   VM_OP_SIMPLE_BINARY(      Pow,                script_val_pow                  )\
   VM_OP_SIMPLE_UNARY(       Normalize,          script_val_norm                 )\
   VM_OP_SIMPLE_UNARY(       Magnitude,          script_val_mag                  )\

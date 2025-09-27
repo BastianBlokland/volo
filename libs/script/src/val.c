@@ -812,6 +812,20 @@ ScriptVal script_val_cos(const ScriptVal val) {
   return val_null();
 }
 
+ScriptVal script_val_tan(const ScriptVal val) {
+  if (val_type(val) == ScriptType_Num) {
+    return val_num(intrinsic_tan_f64(val_as_num(val)));
+  }
+  return val_null();
+}
+
+ScriptVal script_val_sqrt(const ScriptVal val) {
+  if (val_type(val) == ScriptType_Num) {
+    return val_num(intrinsic_sqrt_f64(val_as_num(val)));
+  }
+  return val_null();
+}
+
 ScriptVal script_val_pow(const ScriptVal x, const ScriptVal y) {
   if (val_type(x) == ScriptType_Num && val_type(y) == ScriptType_Num) {
     return val_num(intrinsic_pow_f64(val_as_num(x), val_as_num(y)));
