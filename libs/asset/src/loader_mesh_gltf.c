@@ -159,13 +159,14 @@ ecs_comp_define(AssetGltfLoadComp) {
   JsonDoc*      jDoc;
   JsonVal       jRoot;
   GltfLoadPhase phase;
-  GltfBuffer*   buffers;
-  GltfView*     views;
-  GltfAccess*   access;
-  GltfPrim*     prims;
-  GltfJoint*    joints;
-  GltfAnim*     anims;
-  DynArray      animData; // u8[].
+  GltfBuffer*   buffers;    // GltfBuffer[bufferCount].
+  GltfView*     views;      // GltfView[viewCount].
+  GltfAccess*   access;     // GltfAccess[accessCount].
+  GltfPrim*     prims;      // GltfPrim[primCount].
+  GltfJoint*    joints;     // GltfJoint[jointCount].
+  u32*          jointRemap; // u32[jointCount], mapping from gltf joint-index to imported index.
+  GltfAnim*     anims;      // GltfAnim[animCount].
+  DynArray      animData;   // u8[].
   u32           bufferCount;
   u32           viewCount;
   u32           accessCount;
@@ -857,7 +858,11 @@ static void gltf_parse_skin(GltfLoad* ld, GltfError* err) {
     *err = GltfError_JointCountExceedsMaximum;
     return;
   }
-  ld->joints = alloc_array_t(ld->transientAlloc, GltfJoint, ld->jointCount);
+  ld->joints     = alloc_array_t(ld->transientAlloc, GltfJoint, ld->jointCount);
+  ld->jointRemap = alloc_array_t(ld->transientAlloc, u32, ld->jointCount);
+
+  // Initialize to an invalid joint-mapping (will be computed when sorting the joints).
+  mem_set(mem_create(ld->jointRemap, sizeof(u32) * ld->jointCount), 0xFF);
 
   GltfJoint* outJoint = ld->joints;
   json_for_elems(ld->jDoc, joints, joint) {
@@ -887,6 +892,16 @@ static bool gltf_skeleton_is_topologically_sorted(GltfLoad* ld) {
     }
   }
   return true;
+}
+
+static void gltf_joint_topologically_insert(
+    GltfLoad* ld, const u32 jointIdx, BitSet processed, u32* out, u32* outCount) {
+  if (bitset_test(processed, jointIdx)) {
+    return; // Already processed.
+  }
+  bitset_set(processed, jointIdx);
+  gltf_joint_topologically_insert(ld, ld->joints[jointIdx].parentIndex, processed, out, outCount);
+  out[(*outCount)++] = jointIdx;
 }
 
 static void gltf_parse_skeleton_nodes(GltfLoad* ld, GltfError* err) {
@@ -926,9 +941,33 @@ static void gltf_parse_skeleton_nodes(GltfLoad* ld, GltfError* err) {
     ++nodeIndex;
   }
 
-  // Verify that the joint parents appear earlier then their children.
-  if (!gltf_skeleton_is_topologically_sorted(ld)) {
-    goto Error;
+  // Sort the joints so that parents appear earlier then their children.
+  if (gltf_skeleton_is_topologically_sorted(ld)) {
+    for (u32 i = 0; i != ld->jointCount; ++i) {
+      ld->jointRemap[i] = i; // Identity joint mapping.
+    }
+  } else {
+    // Compute a sorted joint mapping.
+    u8  processed[bits_to_bytes(asset_mesh_joints_max) + 1] = {0};
+    u32 processedCount                                      = 0;
+    for (u32 i = 0; i != ld->jointCount; ++i) {
+      gltf_joint_topologically_insert(ld, i, mem_var(processed), ld->jointRemap, &processedCount);
+    }
+    diag_assert(processedCount == ld->jointCount);
+
+    // Apply the sorting.
+    GltfJoint jointsSorted[asset_mesh_joints_max];
+    for (u32 i = 0; i != ld->jointCount; ++i) {
+      jointsSorted[i]             = ld->joints[ld->jointRemap[i]];
+      jointsSorted[i].parentIndex = ld->jointRemap[jointsSorted[i].parentIndex];
+    }
+    const usize jointsSize = sizeof(GltfJoint) * ld->jointCount;
+    mem_cpy(mem_create(ld->joints, jointsSize), mem_create(jointsSorted, jointsSize));
+
+    // Verify that the joints are sorted.
+    if (!gltf_skeleton_is_topologically_sorted(ld)) {
+      goto Error; // No topological sorting was possible (no common root or contains cycles).
+    }
   }
 
   *err = GltfError_None;
@@ -1223,10 +1262,10 @@ static void gltf_vertex_skin(
     out->weights.comps[i] = weight;
     switch (ld->access[prim->accJoints].compType) {
     case GltfType_u8:
-      out->joints[i] = ld->access[prim->accJoints].data_u8[attr * 4 + i];
+      out->joints[i] = (u8)ld->jointRemap[ld->access[prim->accJoints].data_u8[attr * 4 + i]];
       break;
     case GltfType_u16:
-      out->joints[i] = (u8)ld->access[prim->accJoints].data_u16[attr * 4 + i];
+      out->joints[i] = (u8)ld->jointRemap[ld->access[prim->accJoints].data_u16[attr * 4 + i]];
       break;
     default:
       diag_crash();
