@@ -1,0 +1,8 @@
+{
+  "type": "Cylinder",
+  "axis": "Up",
+  "subdivisions": 6,
+  "scaleX": 1, "scaleY": 1, "scaleZ": 1,
+  "offsetX": 0, "offsetY": 0, "offsetZ": 0,
+  "offsetAngle": 0
+}
