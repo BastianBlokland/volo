@@ -122,6 +122,13 @@ void jobs_scheduler_wait_help(const JobId job) {
        * When nesting jobs (calling jobs_scheduler_wait_help() inside a job task) we should not
        * sleep the thread as doing so could starve the job-system and lead to a deadlock.
        */
+      if (g_jobsWorkerCount == 1) {
+        /**
+         * NOTE: When using a single worker its important to regularly execute work for other jobs
+         * as otherwise we could starve the system.
+         */
+        executor_help();
+      }
       yieldsRem = MaxYields;
       continue;
     }
