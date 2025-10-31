@@ -89,6 +89,7 @@ if("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
     $<$<NOT:$<BOOL:${VOLO_SIMD}>>:-fno-tree-vectorize> # No vectorization when SIMD is disabled.
     $<$<BOOL:${VOLO_LTO}>:-flto> # Link time optimization.
     $<$<BOOL:${VOLO_LTO}>:-fno-fat-lto-objects>
+    $<$<BOOL:${WIN32}>:-Wa,-muse-unaligned-vector-move> # To support Win32 SEH, see: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=54412
     )
   add_link_options(
     -g # Enable debug symbols.
