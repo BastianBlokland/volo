@@ -3,6 +3,7 @@
 #include "core/forward.h"
 #include "core/math.h"
 #include "geo/color.h"
+#include "log/logger.h"
 
 #include "desc.h"
 #include "device.h"
@@ -334,8 +335,9 @@ static RvkImage rvk_image_create_backed(
 
   const VkFormatFeatureFlags vkFormatFeatures = rvk_image_format_features(caps);
   if (UNLIKELY(!rvk_device_format_supported(dev, vkFormat, vkFormatFeatures))) {
-    diag_crash_msg(
-        "Image format {} does not support requested features", fmt_text(vkFormatStr(vkFormat)));
+    log_e(
+        "Image format does not support requested features",
+        log_param("format", fmt_text(vkFormatStr(vkFormat))));
   }
   if (UNLIKELY(layers > dev->vkProperties.limits.maxImageArrayLayers)) {
     diag_crash_msg("Image layer count {} unsupported", fmt_int(layers));
