@@ -34,6 +34,7 @@
           pkgs.xorg.libxcb
           pkgs.xorg.xcbutilkeysyms
           pkgs.libxkbcommon
+          pkgs.alsa-lib
         ];
 
         LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath [
@@ -44,6 +45,7 @@
           pkgs.xorg.libxcb
           pkgs.xorg.xcbutilkeysyms
           pkgs.libxkbcommon
+          pkgs.alsa-lib
         ];
       };
 
