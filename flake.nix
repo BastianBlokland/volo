@@ -30,12 +30,20 @@
           pkgs.shaderc
           pkgs.vulkan-tools
           pkgs.openssl
+          pkgs.vulkan-loader
+          pkgs.xorg.libxcb
+          pkgs.xorg.xcbutilkeysyms
+          pkgs.libxkbcommon
         ];
 
         LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath [
           pkgs.elfutils
           pkgs.openssl
           pkgs.shaderc
+          pkgs.vulkan-loader
+          pkgs.xorg.libxcb
+          pkgs.xorg.xcbutilkeysyms
+          pkgs.libxkbcommon
         ];
       };
 
