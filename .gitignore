@@ -26,3 +26,9 @@
 /ide/vscode/volo/node_modules/
 /ide/vscode/volo/out/
 /ide/vscode/volo/*.vsix
+
+# Development environment.
+/.direnv/
+
+# Llvm pgo data.
+**/*.profraw
