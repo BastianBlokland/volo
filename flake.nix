@@ -49,6 +49,8 @@
             pkgs.libxkbcommon
             pkgs.alsa-lib
           ];
+
+          VK_LOADER_DEBUG = "error"; # error,warn,info
         };
 
         default = llvm;
