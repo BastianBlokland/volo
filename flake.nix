@@ -39,16 +39,19 @@
             pkgs.alsa-lib
           ];
 
-          LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath [
-            pkgs.elfutils
-            pkgs.openssl
-            pkgs.shaderc
-            pkgs.vulkan-loader
-            pkgs.xorg.libxcb
-            pkgs.xorg.xcbutilkeysyms
-            pkgs.libxkbcommon
-            pkgs.alsa-lib
-          ];
+          # Configure runtime dependencies.
+          NIX_LDFLAGS = "-rpath ${
+            pkgs.lib.makeLibraryPath [
+              pkgs.elfutils
+              pkgs.openssl
+              pkgs.shaderc
+              pkgs.vulkan-loader
+              pkgs.xorg.libxcb
+              pkgs.xorg.xcbutilkeysyms
+              pkgs.libxkbcommon
+              pkgs.alsa-lib
+            ]
+          }";
 
           VK_LOADER_DEBUG = "error"; # error,warn,info
         };
