@@ -89,8 +89,9 @@ typedef struct {
 typedef enum {
   FormatTextFlags_None                = 0,
   FormatTextFlags_ToLower             = 1 << 0,
-  FormatTextFlags_SingleLine          = 1 << 1,
-  FormatTextFlags_EscapeNonPrintAscii = 1 << 2,
+  FormatTextFlags_ToUpper             = 1 << 1,
+  FormatTextFlags_SingleLine          = 1 << 2,
+  FormatTextFlags_EscapeNonPrintAscii = 1 << 3,
 } FormatTextFlags;
 
 /**
@@ -151,6 +152,7 @@ typedef enum {
   FormatArgType_Size,
   FormatArgType_Char,
   FormatArgType_Text,
+  FormatArgType_StringHash,
   FormatArgType_Path,
   FormatArgType_TtyStyle,
   FormatArgType_Padding,
@@ -170,6 +172,7 @@ struct sFormatArg {
     TimeReal         value_time;
     usize            value_size;
     String           value_text;
+    StringHash       value_stringhash;
     u8               value_char;
     String           value_path;
     TtyStyle         value_ttystyle;
@@ -302,6 +305,13 @@ struct sFormatArg {
 #define fmt_char(_VAL_, ...) ((FormatArg){ .type = FormatArgType_Char,                             \
   .value_char = (_VAL_),                                                                           \
   .opts_text  = format_opts_text(__VA_ARGS__)})
+
+/**
+ * Create string-hash formatting argument.
+ */
+#define fmt_stringhash(_VAL_, ...) ((FormatArg){ .type = FormatArgType_StringHash,                 \
+  .value_stringhash = (_VAL_),                                                                     \
+  .opts_text        = format_opts_text(__VA_ARGS__)})
 
 /**
  * Create file path formatting argument.
@@ -468,6 +478,11 @@ void format_write_text(DynString*, String val, const FormatOptsText*);
  * Pre-condition: val.size <= usize_gibibyte.
  */
 void format_write_text_wrapped(DynString*, String val, usize maxWidth, String linePrefix);
+
+/**
+ * Write a string-hash.
+ */
+void format_write_stringhash(DynString*, StringHash val, const FormatOptsText*);
 
 /**
  * Write a character.
