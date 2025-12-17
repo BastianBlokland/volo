@@ -15,6 +15,7 @@ bool cli_validate_i64(const String input);
 /**
  * Validate if the given input is a valid unsigned integer.
  */
+bool cli_validate_u8(const String input);
 bool cli_validate_u16(const String input);
 bool cli_validate_u64(const String input);
 
