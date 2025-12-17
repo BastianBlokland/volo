@@ -191,11 +191,11 @@ static String ui_text_line(
       cursorConsumed.charIndex = text.size - remainingText.size;
 
       if (esc.type == UiEscape_Background || esc.type == UiEscape_Reset) {
-        ui_text_background_end(bgCollector, cursorAccepted.pixel);
+        ui_text_background_end(bgCollector, cursorConsumed.pixel);
       }
       switch (esc.type) {
       case UiEscape_Background:
-        ui_text_background_start(bgCollector, out, esc.escBackground.value, cursorAccepted.pixel);
+        ui_text_background_start(bgCollector, out, esc.escBackground.value, cursorConsumed.pixel);
         break;
       case UiEscape_PadUntil:
         cursorConsumed.pixel += ui_text_to_stop(

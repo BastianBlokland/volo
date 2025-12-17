@@ -213,6 +213,15 @@ String ui_escape_color_scratch(const UiColor color) {
       fmt_int(color.a, .base = 16, .minDigits = 2));
 }
 
+String ui_escape_background_scratch(const UiColor color) {
+  return fmt_write_scratch(
+      "\33@{}{}{}{}",
+      fmt_int(color.r, .base = 16, .minDigits = 2),
+      fmt_int(color.g, .base = 16, .minDigits = 2),
+      fmt_int(color.b, .base = 16, .minDigits = 2),
+      fmt_int(color.a, .base = 16, .minDigits = 2));
+}
+
 String ui_escape_outline_scratch(const u8 outline) {
   return fmt_write_scratch("\33|{}", fmt_int(outline, .base = 16, .minDigits = 2));
 }

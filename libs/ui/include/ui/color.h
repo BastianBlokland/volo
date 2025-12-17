@@ -45,6 +45,11 @@ ASSERT(sizeof(UiColor) == 4, "UiColor has to be 32 bits");
 // clang-format on
 
 /**
+ * Construct a Ui-color from normalized floats.
+ */
+UiColor ui_color_from_f32(f32 r, f32 g, f32 b, f32 a);
+
+/**
  * Calculate the linearly interpolated color from x to y at time t.
  * NOTE: Does not clamp t (so can extrapolate too).
  */
@@ -54,6 +59,11 @@ UiColor ui_color_lerp(UiColor x, UiColor y, f32 t);
  * Multiply the rgb components by the given scalar.
  */
 UiColor ui_color_mul(UiColor, f32 scalar);
+
+/**
+ * Add two colors together.
+ */
+UiColor ui_color_add(UiColor, UiColor);
 
 /**
  * Create a formatting argument for a color.
