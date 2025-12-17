@@ -1,13 +1,14 @@
 #include "app/cli.h"
 #include "cli/app.h"
 #include "cli/parse.h"
-#include "cli/validate.h"
 #include "core/alloc.h"
 #include "core/diag.h"
 #include "core/dynstring.h"
 #include "core/file.h"
+#include "core/file_iterator.h"
 #include "core/format.h"
 #include "core/math.h"
+#include "core/path.h"
 #include "core/sort.h"
 #include "core/stringtable.h"
 #include "core/time.h"
@@ -2056,19 +2057,19 @@ Ret:
   return out;
 }
 
-static CliId g_optStdio, g_optBinders;
+static CliId g_optStdio, g_optBinderPath;
 
 AppType app_cli_configure(CliApp* app) {
-  cli_app_register_desc(app, string_lit("Volo Script Language Server"));
+  cli_app_register_desc(app, string_lit("Generals Script Language Server"));
 
   g_optStdio = cli_register_flag(app, 0, string_lit("stdio"), CliOptionFlags_None);
   cli_register_desc(app, g_optStdio, string_lit("Use stdin and stdout for communication."));
 
-  g_optBinders = cli_register_flag(app, 'b', string_lit("binders"), CliOptionFlags_MultiValue);
-  const String binderDesc = string_lit("Script binder schemas to use."
-                                       "\nFirst matching binder is used per doc.");
-  cli_register_desc(app, g_optBinders, binderDesc);
-  cli_register_validator(app, g_optBinders, cli_validate_file_regular);
+  g_optBinderPath = cli_register_flag(app, 'b', string_lit("binders"), CliOptionFlags_Value);
+  const String binderDesc = string_lit(
+      "Path to a script binder (can contain a glob pattern for multiple binders)."
+      "\nFirst matching binder is used per doc.");
+  cli_register_desc(app, g_optBinderPath, binderDesc);
 
   return AppType_Console;
 }
@@ -2076,19 +2077,39 @@ AppType app_cli_configure(CliApp* app) {
 i32 app_cli_run(MAYBE_UNUSED const CliApp* app, const CliInvocation* invoc) {
   i32           exitCode                              = 0;
   ScriptBinder* scriptBinders[lsp_script_binders_max] = {0};
+  u32           scriptBinderCount                     = 0;
 
-  const CliParseValues binderArgs = cli_parse_values(invoc, g_optBinders);
-  if (binderArgs.count > lsp_script_binders_max) {
-    file_write_sync(g_fileStdErr, string_lit("lsp: Binder count exceeds maximum.\n"));
-    exitCode = 1;
-    goto Exit;
-  }
-  for (u32 i = 0; i != binderArgs.count; ++i) {
-    scriptBinders[i] = lsp_read_binder_file(binderArgs.values[i]);
-    if (!scriptBinders[i]) {
-      exitCode = 1;
-      goto Exit;
+  CliParseValues binderPathOpt = cli_parse_values(invoc, g_optBinderPath);
+  if (binderPathOpt.count) {
+    const String pattern    = path_filename(binderPathOpt.values[0]);
+    String       searchPath = path_parent(binderPathOpt.values[0]);
+    if (string_is_empty(searchPath)) {
+      searchPath = g_pathWorkingDir;
     }
+    FileIterator* fileItr = file_iterator_create(g_allocHeap, searchPath);
+
+    FileIteratorEntry  entry;
+    FileIteratorResult itrResult;
+    while ((itrResult = file_iterator_next(fileItr, &entry)) == FileIteratorResult_Found) {
+      if (!string_match_glob(entry.name, pattern, StringMatchFlags_IgnoreCase)) {
+        continue; // Not a match.
+      }
+      if (scriptBinderCount == lsp_script_binders_max) {
+        file_iterator_destroy(fileItr);
+        file_write_sync(g_fileStdErr, string_lit("lsp: Binder count exceeds maximum.\n"));
+        exitCode = 1;
+        goto Exit;
+      }
+      const String entryPath           = path_build_scratch(searchPath, entry.name);
+      scriptBinders[scriptBinderCount] = lsp_read_binder_file(entryPath);
+      if (!scriptBinders[scriptBinderCount]) {
+        file_iterator_destroy(fileItr);
+        exitCode = 1;
+        goto Exit;
+      }
+      ++scriptBinderCount;
+    }
+    file_iterator_destroy(fileItr);
   }
 
   if (cli_parse_provided(invoc, g_optStdio)) {

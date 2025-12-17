@@ -93,6 +93,9 @@ void ui_label_with_opts(UiCanvasComp* canvas, String text, const UiLabelOpts* op
     if (opts->allowWordBreak) {
       flags |= UiFlags_AllowWordBreak;
     }
+    if (opts->tightTextRect) {
+      flags |= UiFlags_TightTextRect;
+    }
     id = ui_canvas_draw_text(canvas, text, opts->fontSize, opts->align, flags);
   }
   if (!string_is_empty(opts->tooltip)) {
@@ -832,7 +835,7 @@ ui_tooltip_background(UiCanvasComp* canvas, const UiAlign align, const UiRect la
 
   ui_layout_inner(canvas, UiBase_Input, align, size, UiBase_Absolute);
   if (align != UiAlign_MiddleCenter) {
-    ui_layout_move_dir(canvas, ui_tooltip_hor_dir(align), 15, UiBase_Absolute);
+    ui_layout_move_dir(canvas, ui_tooltip_hor_dir(align), 20, UiBase_Absolute);
   }
 
   ui_style_color(canvas, ui_color_white);
@@ -854,7 +857,7 @@ static void ui_tooltip_text(
 
   ui_layout_inner(canvas, UiBase_Input, align, opts->maxSize, UiBase_Absolute);
   if (align != UiAlign_MiddleCenter) {
-    ui_layout_move_dir(canvas, ui_tooltip_hor_dir(align), 25, UiBase_Absolute);
+    ui_layout_move_dir(canvas, ui_tooltip_hor_dir(align), 30, UiBase_Absolute);
     ui_layout_move_dir(canvas, Ui_Down, 5, UiBase_Absolute);
 
     if (ui_tooltip_hor_dir(align) == Ui_Left) {

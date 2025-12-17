@@ -25,6 +25,7 @@ typedef struct {
   UiAlign       align;
   bool          selectable;     // NOTE: Only supports single-line text.
   bool          allowWordBreak; // Allow breaking up text in the middle of words.
+  bool          tightTextRect;  // Clamp the rectangle to the text size.
   String        tooltip;
   UiVector      tooltipMaxSize;
 } UiLabelOpts;

@@ -342,6 +342,12 @@ static ScriptCompileError compile_value(Context* ctx, const Target tgt, const Sc
     }
   } // Fallthrough.
   default:
+    for (u8 literalId = 0; literalId != ctx->outLiterals.size; ++literalId) {
+      if (script_val_equal(*dynarray_at_t(&ctx->outLiterals, literalId, ScriptVal), val)) {
+        emit_value(ctx, tgt.reg, literalId);
+        return ScriptCompileError_None;
+      }
+    }
     if (UNLIKELY(ctx->outLiterals.size >= u8_max)) {
       return ScriptCompileError_TooManyValues;
     }
@@ -369,15 +375,23 @@ static ScriptCompileError compile_var_store(Context* ctx, const Target tgt, cons
   if (sentinel_check(ctx->varRegisters[data->var])) {
     const RegId newReg = reg_alloc(ctx);
     if (UNLIKELY(sentinel_check(newReg))) {
-      err = ScriptCompileError_TooManyRegisters;
-      return err;
+      return ScriptCompileError_TooManyRegisters;
     }
     ctx->varRegisters[data->var] = newReg;
   }
-  if ((err = compile_expr(ctx, target_reg(ctx->varRegisters[data->var]), data->val))) {
+  const bool preserveVarReg = script_expr_uses_var(ctx->doc, data->val, data->var);
+  RegId      exprReg;
+  if (preserveVarReg) {
+    exprReg = tgt.reg;
+  } else {
+    exprReg = ctx->varRegisters[data->var];
+  }
+  if ((err = compile_expr(ctx, target_reg(exprReg), data->val))) {
     return err;
   }
-  if (!tgt.optional) {
+  if (preserveVarReg) {
+    emit_move(ctx, ctx->varRegisters[data->var], exprReg);
+  } else if (!tgt.optional) {
     emit_move(ctx, tgt.reg, ctx->varRegisters[data->var]); // Return the stored variable.
   }
   return ScriptCompileError_None;
@@ -940,6 +954,7 @@ static ScriptCompileError compile_extern(Context* ctx, const Target tgt, const S
     const ScriptExprVarLoad* varLoadData = &expr_data(ctx->doc, argExprs[0])->var_load;
     diag_assert(!sentinel_check(ctx->varRegisters[varLoadData->var]));
     const RegSet argRegs = {.begin = ctx->varRegisters[varLoadData->var], .count = 1};
+    emit_location(ctx, e);
     emit_extern(ctx, tgt.reg, data->func, argRegs);
     return ScriptCompileError_None;
   }

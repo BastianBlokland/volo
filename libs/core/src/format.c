@@ -9,6 +9,7 @@
 #include "core/forward.h"
 #include "core/math.h"
 #include "core/path.h"
+#include "core/stringtable.h"
 #include "core/time.h"
 
 #define fmt_txt_len_max (4 * usize_kibibyte)
@@ -219,6 +220,9 @@ void format_write_arg(DynString* str, const FormatArg* arg) {
     }
     break;
   }
+  case FormatArgType_StringHash:
+    format_write_stringhash(str, arg->value_stringhash, &arg->opts_text);
+    break;
   case FormatArgType_Char:
     format_write_char(str, arg->value_char, &arg->opts_text);
     break;
@@ -595,6 +599,16 @@ void format_write_text_wrapped(
   }
 }
 
+void format_write_stringhash(DynString* str, const StringHash val, const FormatOptsText* opts) {
+  const String valStr = val ? stringtable_lookup(g_stringtable, val) : string_empty;
+  if (string_is_empty(valStr)) {
+    dynstring_append_char(str, '#');
+    format_write_u64(str, val, &format_opts_int(.minDigits = 8, .base = 16));
+    return;
+  }
+  format_write_text(str, valStr, opts);
+}
+
 void format_write_char(DynString* str, u8 val, const FormatOptsText* opts) {
   static const struct {
     u8     byte;
@@ -612,6 +626,8 @@ void format_write_char(DynString* str, u8 val, const FormatOptsText* opts) {
 
   if (opts->flags & FormatTextFlags_ToLower) {
     val = ascii_to_lower(val);
+  } else if (opts->flags & FormatTextFlags_ToUpper) {
+    val = ascii_to_upper(val);
   }
   if (opts->flags & FormatTextFlags_SingleLine && ascii_is_newline(val)) {
     dynstring_append_char(str, ' ');

@@ -3,6 +3,7 @@
 
 #define UI_SHAPES                                                                                  \
   X(0x0020, Empty)                                                                                 \
+  X(0xE01F, FastForward)                                                                           \
   X(0xE034, Pause)                                                                                 \
   X(0xE037, Play)                                                                                  \
   X(0xE04F, VolumeOff)                                                                             \
@@ -12,13 +13,17 @@
   X(0xE14D, ContentCopy)                                                                           \
   X(0xE161, Save)                                                                                  \
   X(0xE162, SelectAll)                                                                             \
+  X(0xE1D5, Health)                                                                                \
   X(0xE1DB, Storage)                                                                               \
   X(0xE25E, FormatShapes)                                                                          \
+  X(0xE312, Keyboard)                                                                              \
   X(0xE322, Memory)                                                                                \
+  X(0xE32A, Security)                                                                              \
   X(0xE3AE, Brush)                                                                                 \
   X(0xE3C9, Edit)                                                                                  \
   X(0xE3EA, Grain)                                                                                 \
   X(0xE3F4, Image)                                                                                 \
+  X(0xE3F7, Landscape)                                                                             \
   X(0xE405, MusicNote)                                                                             \
   X(0xE412, PhotoCamera)                                                                           \
   X(0xE425, Timer)                                                                                 \
@@ -40,6 +45,7 @@
   X(0xE769, Halt)                                                                                  \
   X(0xE798, Droplet)                                                                               \
   X(0xE7EF, Group)                                                                                 \
+  X(0xE7F2, Mood)                                                                                  \
   X(0xE80B, Globe)                                                                                 \
   X(0xE80E, Whatshot)                                                                              \
   X(0xE838, Star)                                                                                  \
@@ -47,6 +53,7 @@
   X(0xE871, Dashboard)                                                                             \
   X(0xE873, Description)                                                                           \
   X(0xE87B, Extension)                                                                             \
+  X(0xE87D, Heart)                                                                                 \
   X(0xE890, Input)                                                                                 \
   X(0xE897, Lock)                                                                                  \
   X(0xE89E, OpenInNew)                                                                             \
@@ -55,17 +62,21 @@
   X(0xE92B, Delete)                                                                                \
   X(0xE92C, Body)                                                                                  \
   X(0xE97A, Tree)                                                                                  \
+  X(0xE99A, Danger)                                                                                \
   X(0xE9BA, Logout)                                                                                \
-  X(0xE312, Keyboard)                                                                              \
   X(0xE9D9, ResetTv)                                                                               \
   X(0xE9FE, ViewInAr)                                                                              \
   X(0xEA3C, Construction)                                                                          \
+  X(0xEA79, Agriculture)                                                                           \
   X(0xEAD5, Diamond)                                                                               \
+  X(0xEB8B, Question)                                                                              \
   X(0xEF42, Article)                                                                               \
+  X(0xEF56, Police)                                                                                \
   X(0xF000, Square)                                                                                \
   X(0xF001, Circle)                                                                                \
   X(0xF002, CursorVerticalBar)                                                                     \
   X(0xF003, Triangle)                                                                              \
+  X(0xF004, Hexagon)                                                                               \
   X(0xF016, Grid4x4)                                                                               \
   X(0xF053, Restart)                                                                               \
   X(0xF102, Wire)                                                                                  \

@@ -31,7 +31,8 @@ struct sRvkSwapchain {
   VkSemaphore        semaphores[swapchain_images_max]; // Semaphore to signal presentation.
 
   TimeDuration lastAcquireDur, lastPresentEnqueueDur, lastPresentWaitDur;
-  u64          curPresentId; // NOTE: Present-id zero is unused.
+  u64          originPresentId; // Identifier of the last present before recreating the swapchain.
+  u64          curPresentId;
 };
 
 static VkSemaphore rvk_semaphore_create(RvkDevice* dev) {
@@ -245,8 +246,9 @@ static bool rvk_swapchain_init(RvkSwapchain* swap, const RendSettingsComp* setti
   }
 
   swap->flags &= ~RvkSwapchainFlags_OutOfDate;
-  swap->syncMode = settings->syncMode;
-  swap->size     = size;
+  swap->syncMode        = settings->syncMode;
+  swap->size            = size;
+  swap->originPresentId = swap->curPresentId;
 
   log_i(
       "Vulkan swapchain created",
@@ -286,9 +288,13 @@ RvkSwapchain* rvk_swapchain_create(RvkLib* lib, RvkDevice* dev, const GapWindowC
 }
 
 void rvk_swapchain_destroy(RvkSwapchain* swap) {
-  for (u32 i = 0; i != swap->imgCount; ++i) {
-    rvk_image_destroy(&swap->imgs[i], swap->dev);
-    rvk_semaphore_destroy(swap->dev, swap->semaphores[i]);
+  for (u32 i = 0; i != swapchain_images_max; ++i) {
+    if (swap->imgs[i].vkImageView) {
+      rvk_image_destroy(&swap->imgs[i], swap->dev);
+    }
+    if (swap->semaphores[i]) {
+      rvk_semaphore_destroy(swap->dev, swap->semaphores[i]);
+    }
   }
   if (swap->vkSwap) {
     rvk_call(swap->dev, destroySwapchainKHR, swap->dev->vkDev, swap->vkSwap, &swap->dev->vkAlloc);
@@ -429,14 +435,14 @@ bool rvk_swapchain_enqueue_present(RvkSwapchain* swap, const RvkSwapchainIdx idx
 }
 
 void rvk_swapchain_wait_for_present(const RvkSwapchain* swap, const u32 numBehind) {
-  if (numBehind >= swap->curPresentId) {
+  if (numBehind >= (swap->curPresentId - swap->originPresentId)) {
     /**
      * Out of bound presentation-ids are considered to be already presented.
      * This is convenient for the calling code as it doesn't need the special case the first frame.
      */
     return;
   }
-  if (swap->dev->api.waitForPresentKHR) {
+  if ((swap->dev->flags & RvkDeviceFlags_SupportPresentWait) && swap->dev->api.waitForPresentKHR) {
     RvkSwapchain*    mutableSwapchain = (RvkSwapchain*)swap;
     const TimeSteady startTime        = time_steady_clock();
 

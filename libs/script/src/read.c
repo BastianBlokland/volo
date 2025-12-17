@@ -1606,8 +1606,14 @@ RetIfExpr:
   diag_assert(&scope == read_scope_tail(ctx));
   read_scope_pop(ctx);
 
-  const ScriptRange range      = read_range_to_current(ctx, start);
-  const ScriptExpr  intrArgs[] = {conditions[0], b1, b2};
+  const ScriptExpr intrArgs[] = {conditions[0], b1, b2};
+
+  ScriptRange range = read_range_to_current(ctx, start);
+  for (u32 i = 0; i != array_elems(intrArgs); ++i) {
+    // TODO: Cleanup this hacky range handling.
+    const ScriptRange argRange = script_expr_range(ctx->doc, intrArgs[i]);
+    range.end                  = math_max(range.end, argRange.end);
+  }
   return script_add_intrinsic(ctx->doc, range, ScriptIntrinsic_Select, intrArgs);
 }
 
@@ -1927,7 +1933,7 @@ static ScriptExpr read_expr_primary(ScriptReadContext* ctx) {
     if (UNLIKELY(sentinel_check(val))) {
       return read_fail_structural(ctx);
     }
-    const ScriptRange     rangeInclExpr = read_range_to_current(ctx, start);
+    const ScriptRange     rangeInclExpr = read_range_until_next(ctx, start);
     const ScriptIntrinsic intr          = token_op_unary(token.kind);
     const ScriptExpr      intrArgs[]    = {val};
     return script_add_intrinsic(ctx->doc, rangeInclExpr, intr, intrArgs);

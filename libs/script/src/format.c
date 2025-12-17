@@ -244,14 +244,20 @@ static u32 format_align_target(FormatContext* ctx, const FormatSpan span, const 
       return i;
     }
     switch (atom->kind) {
-    case FormatAtomKind_BlockStart:
-    case FormatAtomKind_BlockEnd:
     case FormatAtomKind_SetStart:
     case FormatAtomKind_SetEnd:
+      // Set are considered boundaries for assignments but not for other atom kinds.
+      if (t != FormatAtomKind_Assignment) {
+        goto Next;
+      }
+      // Fallthrough.
+    case FormatAtomKind_BlockStart:
+    case FormatAtomKind_BlockEnd:
     case FormatAtomKind_CommentBlockMultiLine:
       return sentinel_u32; // Alignment boundary encountered.
     default:
-      break;
+    Next:
+      continue;
     }
   }
   return sentinel_u32; // Target not found.

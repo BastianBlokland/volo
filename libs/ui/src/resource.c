@@ -37,7 +37,7 @@ ecs_comp_define(UiGlobalResourcesComp) {
 
 ecs_view_define(GlobalInitView) {
   ecs_access_write(AssetManagerComp);
-  ecs_access_write(SndMixerComp);
+  ecs_access_maybe_write(SndMixerComp);
 }
 
 ecs_view_define(GlobalResourcesView) { ecs_access_write(UiGlobalResourcesComp); }
@@ -66,9 +66,11 @@ ecs_system_define(UiResourceUpdateSys) {
     for (UiGraphicRes res = 0; res != UiGraphicRes_Count; ++res) {
       globalResources->graphics[res] = asset_lookup(world, assets, g_uiGraphicIds[res]);
     }
-    for (UiSoundRes res = 0; res != UiSoundRes_Count; ++res) {
-      globalResources->sounds[res] = asset_lookup(world, assets, g_uiSoundIds[res]);
-      snd_mixer_persistent_asset(soundMixer, globalResources->sounds[res]);
+    if (soundMixer) {
+      for (UiSoundRes res = 0; res != UiSoundRes_Count; ++res) {
+        globalResources->sounds[res] = asset_lookup(world, assets, g_uiSoundIds[res]);
+        snd_mixer_persistent_asset(soundMixer, globalResources->sounds[res]);
+      }
     }
   }
 

@@ -15,10 +15,11 @@ static CrashHandler g_crashHandler;
 static void*        g_crashHandlerContext;
 
 INLINE_HINT NORETURN static void diag_crash_internal(const String msg) {
+  diag_pal_break();
+
   const SymbolStack stack = symbol_stack_walk();
   diag_crash_report(&stack, msg);
 
-  diag_pal_break();
   diag_pal_crash();
 }
 

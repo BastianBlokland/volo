@@ -330,7 +330,7 @@ ecs_view_define(RenderGlobalView) {
 }
 ecs_view_define(SoundGlobalView) {
   ecs_access_read(UiGlobalResourcesComp);
-  ecs_access_write(SndMixerComp);
+  ecs_access_maybe_write(SndMixerComp);
 }
 ecs_view_define(AtlasFontView) { ecs_access_read(AssetFontTexComp); }
 ecs_view_define(AtlasView) { ecs_access_read(AssetAtlasComp); }
@@ -649,6 +649,10 @@ ecs_system_define(UiSoundSys) {
     UiCanvasComp* canvas = ecs_view_write_t(itr, UiCanvasComp);
     soundRequests |= canvas->soundRequests;
     canvas->soundRequests = 0;
+  }
+
+  if (!mixer) {
+    return; // Sound not enabled.
   }
 
   // Play the requested sounds.
