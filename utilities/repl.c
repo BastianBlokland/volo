@@ -58,6 +58,17 @@ static void repl_script_collect_stats(void* ctx, const ScriptDoc* doc, const Scr
 
 static void repl_output(const String text) { file_write_sync(g_fileStdOut, text); }
 
+static void repl_output_with_newline(const String text) {
+  const Mem scratchMem = alloc_alloc(g_allocScratch, usize_kibibyte * 128, 1);
+  DynString str        = dynstring_create_over(scratchMem);
+
+  dynstring_append(&str, text);
+  dynstring_append_char(&str, '\n');
+
+  file_write_sync(g_fileStdOut, dynstring_view(&str));
+  dynstring_destroy(&str);
+}
+
 static void repl_output_val(const ScriptVal val) {
   repl_output(fmt_write_scratch("{}\n", script_val_fmt(val)));
 }
@@ -163,7 +174,7 @@ static void repl_output_tokens(String text) {
 }
 
 static void repl_output_ast(const ScriptDoc* script, const ScriptExpr expr) {
-  repl_output(fmt_write_scratch("{}\n", script_expr_fmt(script, expr)));
+  repl_output_with_newline(script_expr_scratch(script, expr));
 }
 
 static void repl_output_stats(const ScriptDoc* script, const ScriptExpr expr) {
@@ -688,8 +699,9 @@ static CliId g_optNoEval, g_optCompile, g_optOptimize, g_optWatch;
 static CliId g_optTokens, g_optAst, g_optStats, g_optProgram, g_optSyms;
 
 AppType app_cli_configure(CliApp* app) {
-  static const String g_desc = string_static("Execute a script from a file or stdin "
-                                             "(interactive when stdin is a tty).");
+  static const String g_desc = string_static(
+      "Execute a script from a file or stdin "
+      "(interactive when stdin is a tty).");
   cli_app_register_desc(app, g_desc);
 
   g_optFile = cli_register_arg(app, string_lit("file"), CliOptionFlags_Value);
