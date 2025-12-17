@@ -142,6 +142,20 @@ static void rvk_pass_attach_assert_depth(const RvkPass* pass, const RvkImage* im
       fmt_text(vkFormatStr(img->vkFormat)));
 }
 
+static bool rvk_pass_image_is_input(const RvkPassSetup* setup, const RvkImage* img) {
+  for (u32 i = 0; i != rvk_pass_global_image_max; ++i) {
+    if (setup->globalImages[i] == img) {
+      return true;
+    }
+  }
+  for (u32 i = 0; i != rvk_pass_draw_image_max; ++i) {
+    if (setup->drawImages[i] == img) {
+      return true;
+    }
+  }
+  return false;
+}
+
 static void rvk_pass_assert_image_contents(const RvkPass* pass, const RvkPassSetup* setup) {
   // Validate preserved color attachment contents.
   for (u32 i = 0; i != rvk_pass_attach_color_max; ++i) {
@@ -169,6 +183,32 @@ static void rvk_pass_assert_image_contents(const RvkPass* pass, const RvkPassSet
           fmt_text(pass->config->name),
           fmt_int(i));
     }
+  }
+  // Validate draw image contents.
+  for (u32 i = 0; i != rvk_pass_draw_image_max; ++i) {
+    if (setup->drawImages[i]) {
+      diag_assert_msg(
+          setup->drawImages[i]->phase,
+          "Pass {} draw image {} has undefined contents",
+          fmt_text(pass->config->name),
+          fmt_int(i));
+    }
+  }
+  // Validate that attachments are not also inputs.
+  for (u32 i = 0; i != rvk_pass_attach_color_max; ++i) {
+    if (setup->attachColors[i]) {
+      diag_assert_msg(
+          !rvk_pass_image_is_input(setup, setup->attachColors[i]),
+          "Pass {} color attachment {} is also used as an input",
+          fmt_text(pass->config->name),
+          fmt_int(i));
+    }
+  }
+  if (pass->config->attachDepth) {
+    diag_assert_msg(
+        !rvk_pass_image_is_input(setup, setup->attachDepth),
+        "Pass {} depth attachment is also used as an input",
+        fmt_text(pass->config->name));
   }
 }
 #endif // !VOLO_RELEASE

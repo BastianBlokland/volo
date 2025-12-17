@@ -858,9 +858,9 @@ static XkbKeycode pal_xcb_unmap_key(const GapKey key) {
 static XcbAtom pal_xcb_atom(Xcb* xcb, const String name) {
   XcbGenericError* err  = null;
   XcbAtomData*     data = xcb_call(xcb->con, xcb->intern_atom, &err, 0, name.size, name.ptr);
-  if (UNLIKELY(err)) {
-    diag_crash_msg(
-        "Failed to retrieve Xcb atom: {}, err: {}", fmt_text(name), fmt_int(err->errorCode));
+  if (UNLIKELY(err || !data)) {
+    const i32 errCode = err ? err->errorCode : -1;
+    diag_crash_msg("Failed to retrieve Xcb atom: {}, err: {}", fmt_text(name), fmt_int(errCode));
   }
   const XcbAtom result = data->atom;
   xcb->free(data);
@@ -1120,6 +1120,15 @@ static bool pal_init_xcb(Allocator* alloc, Xcb* out, const PalXcbInitFlags flags
   out->con           = out->connect(null, &screen);
   out->screenNum     = (u32)screen;
   out->maxRequestLen = out->get_maximum_request_length(out->con) * 4;
+
+  if (UNLIKELY(out->flush(out->con) <= 0)) {
+    if (!(flags & PalXcbInitFlags_Silent)) {
+      log_e("Xcb no xserver found");
+    }
+    out->disconnect(out->con);
+    dynlib_destroy(out->lib);
+    return false;
+  }
 
   // Find the screen for our connection.
   const XcbSetup* setup     = out->get_setup(out->con);
