@@ -27,7 +27,7 @@ static const RvkPassConfig g_passConfig[AssetGraphicPass_Count] = {
 
     // Attachment color 0: [r] color     [g] color     [b] color    [a] tags
     .attachColorFormat[0] = RvkPassFormat_Color4Srgb,
-    .attachColorLoad[0]   = RvkPassLoad_DontCare,
+    .attachColorLoad[0]   = RvkPassLoad_Clear,
 
     // Attachment color 1: [r] normal    [g] normal
     .attachColorFormat[1] = RvkPassFormat_Color2Linear,
