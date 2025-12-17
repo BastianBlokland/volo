@@ -1,13 +1,13 @@
-import * as path from 'path';
-import * as fs from 'fs';
-import { ExtensionContext, workspace, WorkspaceFolder } from 'vscode';
+import * as path from "path";
+import * as fs from "fs";
+import { ExtensionContext, workspace, WorkspaceFolder } from "vscode";
 
 import {
   LanguageClient,
   LanguageClientOptions,
   ServerOptions,
-  TransportKind
-} from 'vscode-languageclient/node';
+  TransportKind,
+} from "vscode-languageclient/node";
 
 let client: LanguageClient;
 
@@ -24,16 +24,10 @@ function getValidServerPath(): string | undefined {
   return getServerPaths().filter(fs.existsSync)[0];
 }
 
-function getWorkspaceBinderPaths(workspaceFolder: WorkspaceFolder): string[] {
-  const schemaDirPath: string = path.join(workspaceFolder.uri.fsPath, "assets", "schemas");
-  return fs
-    .readdirSync(schemaDirPath)
-    .filter((fileName: string) => fileName.match(/^script_\w+_binder\.json$/) !== null)
-    .map((fileName: string) => path.join(schemaDirPath, fileName));
-}
-
-function getBinderPaths(): string[] {
-  return workspace.workspaceFolders.flatMap(getWorkspaceBinderPaths);
+function getBinderDirectoryPath(): string | undefined {
+  return workspace.workspaceFolders
+    .map((workspaceFolder) => path.join(workspaceFolder.uri.fsPath, "assets", "schemas"))
+    .filter(fs.existsSync)[0];
 }
 
 export function activate(context: ExtensionContext) {
@@ -44,25 +38,25 @@ export function activate(context: ExtensionContext) {
 
   let serverArgs: string[] = [];
 
-  const binderPaths: string[] = getBinderPaths();
-  if (binderPaths.length > 0) {
-    serverArgs.push("--binders", ...binderPaths);
+  const binderPath: string | undefined = getBinderDirectoryPath();
+  if (binderPath !== undefined) {
+    serverArgs.push("--binders", `${binderPath}/script_*_binder.json`);
   }
 
   const serverOptions: ServerOptions = {
     command: serverPath,
     transport: TransportKind.stdio,
     args: serverArgs,
-    options: {}
+    options: {},
   };
 
   const clientOptions: LanguageClientOptions = {
-    documentSelector: [{ scheme: 'file', language: 'volo-script' }],
+    documentSelector: [{ scheme: "file", language: "volo-script" }],
     stdioEncoding: "utf8",
     initializationOptions: {
       profile: workspace.getConfiguration("volo-lsp").get("profile"),
     },
-    synchronize: {}
+    synchronize: {},
   };
 
   client = new LanguageClient('volo-lsp', 'Volo Script', serverOptions, clientOptions);
