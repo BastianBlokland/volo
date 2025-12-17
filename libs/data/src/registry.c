@@ -387,10 +387,24 @@ DataType data_reg_opaque(DataReg* reg, const String name, const usize size, cons
 
   const DataType type = data_type_declare(reg, name);
   DataDecl*      decl = data_decl_mutable(reg, type);
-  diag_assert_msg(!decl->kind, "Type '{}' already defined", fmt_text(decl->id.name));
-  decl->kind  = DataKind_Opaque;
-  decl->size  = size;
-  decl->align = align;
+  if (decl->kind) {
+    diag_assert_msg(
+        decl->kind == DataKind_Opaque,
+        "Type '{}' is already defined as a different kind",
+        fmt_text(decl->id.name));
+    diag_assert_msg(
+        decl->size == size,
+        "Type '{}' is already defined with a different size",
+        fmt_text(decl->id.name));
+    diag_assert_msg(
+        decl->align == align,
+        "Type '{}' is already defined with a different alignment",
+        fmt_text(decl->id.name));
+  } else {
+    decl->kind  = DataKind_Opaque;
+    decl->size  = size;
+    decl->align = align;
+  }
   return type;
 }
 
