@@ -364,6 +364,36 @@ bool script_expr_is_intrinsic(
   return data->intrinsic == intr;
 }
 
+typedef struct {
+  bool        result;
+  ScriptVarId var;
+} ScriptUsesVarContext;
+
+static void script_visitor_uses_var(void* ctx, const ScriptDoc* doc, const ScriptExpr expr) {
+  ScriptUsesVarContext* usesVarCtx = ctx;
+  const ScriptExprData* data       = expr_data(doc, expr);
+  switch (expr_kind(doc, expr)) {
+  case ScriptExprKind_VarStore:
+    if (data->var_store.var == usesVarCtx->var) {
+      usesVarCtx->result = true;
+    }
+    return;
+  case ScriptExprKind_VarLoad:
+    if (data->var_load.var == usesVarCtx->var) {
+      usesVarCtx->result = true;
+    }
+    return;
+  default:
+    return;
+  }
+}
+
+bool script_expr_uses_var(const ScriptDoc* doc, const ScriptExpr expr, const ScriptVarId var) {
+  ScriptUsesVarContext ctx = {.var = var};
+  script_expr_visit(doc, expr, &ctx, script_visitor_uses_var);
+  return ctx.result;
+}
+
 void script_expr_visit(
     const ScriptDoc* doc, const ScriptExpr expr, void* ctx, ScriptVisitor visitor) {
   /**
@@ -811,7 +841,7 @@ void script_expr_write(
 }
 
 String script_expr_scratch(const ScriptDoc* doc, const ScriptExpr expr) {
-  const Mem scratchMem = alloc_alloc(g_allocScratch, usize_kibibyte * 8, 1);
+  const Mem scratchMem = alloc_alloc(g_allocScratch, usize_kibibyte * 64, 1);
   DynString str        = dynstring_create_over(scratchMem);
 
   const u32 indent = 0;

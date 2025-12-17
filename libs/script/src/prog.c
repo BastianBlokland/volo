@@ -592,7 +592,7 @@ void script_prog_write(const ScriptProgram* prog, DynString* out) {
 }
 
 String script_prog_write_scratch(const ScriptProgram* prog) {
-  Mem       bufferMem = alloc_alloc(g_allocScratch, usize_kibibyte * 16, 1);
+  Mem       bufferMem = alloc_alloc(g_allocScratch, usize_kibibyte * 64, 1);
   DynString buffer    = dynstring_create_over(bufferMem);
 
   script_prog_write(prog, &buffer);
