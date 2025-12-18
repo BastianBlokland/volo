@@ -80,8 +80,12 @@ static void vkgen_init_hashes(void) {
 }
 
 static const String g_vkgenFeatures[] = {
-    string_static("VK_VERSION_1_0"),
-    string_static("VK_VERSION_1_1"),
+    string_static("VK_BASE_VERSION_1_0"),
+    string_static("VK_BASE_VERSION_1_1"),
+    string_static("VK_COMPUTE_VERSION_1_0"),
+    string_static("VK_COMPUTE_VERSION_1_1"),
+    string_static("VK_GRAPHICS_VERSION_1_0"),
+    string_static("VK_GRAPHICS_VERSION_1_1"),
 };
 
 static const String g_vkgenLayers[] = {
@@ -1572,7 +1576,7 @@ static bool vkgen_write_impl(VkGenContext* ctx) {
 // clang-format off
 static const String g_appDesc = string_static("VulkanGen - Utility to generate a Vulkan api header and utility c file.");
 static const String g_schemaDefaultHost = string_static("raw.githubusercontent.com");
-static const String g_schemaDefaultUri  = string_static("/KhronosGroup/Vulkan-Docs/refs/tags/v1.4.329/xml/vk.xml");
+static const String g_schemaDefaultUri  = string_static("/KhronosGroup/Vulkan-Docs/refs/tags/v1.4.330/xml/vk.xml");
 // clang-format on
 
 static CliId g_optVerbose, g_optOutputPath, g_optSchemaHost, g_optSchemaUri;
