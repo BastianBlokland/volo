@@ -14,9 +14,14 @@
 #define swapchain_presentmode_desired_max 8
 
 typedef enum {
-  RvkSwapchainFlags_SupportPresentTiming = 1 << 0,
+  RvkSwapchainFlags_PresentTimingEnabled = 1 << 0,
   RvkSwapchainFlags_OutOfDate            = 1 << 1,
 } RvkSwapchainFlags;
+
+typedef struct {
+  VkSurfaceCapabilitiesKHR capabilities;
+  bool                     presentTiming;
+} RvkSurfaceCaps;
 
 struct sRvkSwapchain {
   RvkLib*            lib;
@@ -47,18 +52,18 @@ static void rvk_semaphore_destroy(RvkDevice* dev, const VkSemaphore sema) {
   rvk_call(dev, destroySemaphore, dev->vkDev, sema, &dev->vkAlloc);
 }
 
-static RvkSize rvk_surface_clamp_size(RvkSize size, const VkSurfaceCapabilitiesKHR* vkCaps) {
-  if (size.width < vkCaps->minImageExtent.width) {
-    size.width = (u16)vkCaps->minImageExtent.width;
+static RvkSize rvk_surface_clamp_size(RvkSize size, const RvkSurfaceCaps* caps) {
+  if (size.width < caps->capabilities.minImageExtent.width) {
+    size.width = (u16)caps->capabilities.minImageExtent.width;
   }
-  if (size.height < vkCaps->minImageExtent.height) {
-    size.height = (u16)vkCaps->minImageExtent.height;
+  if (size.height < caps->capabilities.minImageExtent.height) {
+    size.height = (u16)caps->capabilities.minImageExtent.height;
   }
-  if (size.width > vkCaps->maxImageExtent.width) {
-    size.width = (u16)vkCaps->maxImageExtent.width;
+  if (size.width > caps->capabilities.maxImageExtent.width) {
+    size.width = (u16)caps->capabilities.maxImageExtent.width;
   }
-  if (size.height > vkCaps->maxImageExtent.height) {
-    size.height = (u16)vkCaps->maxImageExtent.height;
+  if (size.height > caps->capabilities.maxImageExtent.height) {
+    size.height = (u16)caps->capabilities.maxImageExtent.height;
   }
   return size;
 }
@@ -109,8 +114,7 @@ static VkSurfaceFormatKHR rvk_pick_surface_format(RvkLib* lib, RvkDevice* dev, V
   return formats[0];
 }
 
-static u32
-rvk_pick_imagecount(const VkSurfaceCapabilitiesKHR* caps, const VkPresentModeKHR presentMode) {
+static u32 rvk_pick_imagecount(const RvkSurfaceCaps* caps, const VkPresentModeKHR presentMode) {
   u32 imgCount;
   switch (presentMode) {
   case VK_PRESENT_MODE_IMMEDIATE_KHR:
@@ -123,11 +127,11 @@ rvk_pick_imagecount(const VkSurfaceCapabilitiesKHR* caps, const VkPresentModeKHR
     imgCount = 3; // one on-screen, one ready, and one being rendered to.
     break;
   }
-  if (imgCount < caps->minImageCount) {
-    imgCount = caps->minImageCount;
+  if (imgCount < caps->capabilities.minImageCount) {
+    imgCount = caps->capabilities.minImageCount;
   }
-  if (caps->maxImageCount && imgCount > caps->maxImageCount) {
-    imgCount = caps->maxImageCount;
+  if (caps->capabilities.maxImageCount && imgCount > caps->capabilities.maxImageCount) {
+    imgCount = caps->capabilities.maxImageCount;
   }
   return imgCount;
 }
@@ -178,16 +182,37 @@ static VkPresentModeKHR rvk_pick_presentmode(
   return VK_PRESENT_MODE_FIFO_KHR; // FIFO is required by the spec to be always available.
 }
 
-static VkSurfaceCapabilitiesKHR rvk_surface_caps(RvkLib* lib, RvkDevice* dev, VkSurfaceKHR surf) {
+static RvkSurfaceCaps rvk_surface_caps(RvkLib* lib, RvkDevice* dev, VkSurfaceKHR surf) {
   const VkPhysicalDeviceSurfaceInfo2KHR info = {
       .sType   = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SURFACE_INFO_2_KHR,
       .surface = surf,
   };
+
+  void* nextCapabilities = null;
+
+  VkPresentTimingSurfaceCapabilitiesEXT timingCapabilities = {
+      .sType = VK_STRUCTURE_TYPE_PRESENT_TIMING_SURFACE_CAPABILITIES_EXT,
+      .pNext = nextCapabilities,
+  };
+  if (dev->flags & RvkDeviceFlags_SupportPresentTiming) {
+    nextCapabilities = &timingCapabilities;
+  }
+
   VkSurfaceCapabilities2KHR result = {
       .sType = VK_STRUCTURE_TYPE_SURFACE_CAPABILITIES_2_KHR,
+      .pNext = nextCapabilities,
   };
   rvk_call_checked(lib, getPhysicalDeviceSurfaceCapabilities2KHR, dev->vkPhysDev, &info, &result);
-  return result.surfaceCapabilities;
+
+  const VkPresentStageFlagBitsEXT requiredTimingStages =
+      VK_PRESENT_STAGE_IMAGE_FIRST_PIXEL_OUT_BIT_EXT;
+
+  return (RvkSurfaceCaps){
+      .capabilities = result.surfaceCapabilities,
+      .presentTiming =
+          timingCapabilities.presentTimingSupported &&
+          ((timingCapabilities.presentStageQueries & requiredTimingStages) == requiredTimingStages),
+  };
 }
 
 static bool rvk_swapchain_init(RvkSwapchain* swap, const RendSettingsComp* settings, RvkSize size) {
@@ -200,20 +225,26 @@ static bool rvk_swapchain_init(RvkSwapchain* swap, const RendSettingsComp* setti
     rvk_image_destroy(&swap->imgs[i], swap->dev);
   }
 
-  const VkDevice           vkDev   = swap->dev->vkDev;
-  VkAllocationCallbacks*   vkAlloc = &swap->dev->vkAlloc;
-  VkSurfaceCapabilitiesKHR vkCaps  = rvk_surface_caps(swap->lib, swap->dev, swap->vkSurf);
-  size                             = rvk_surface_clamp_size(size, &vkCaps);
+  const VkDevice         vkDev    = swap->dev->vkDev;
+  VkAllocationCallbacks* vkAlloc  = &swap->dev->vkAlloc;
+  const RvkSurfaceCaps   surfCaps = rvk_surface_caps(swap->lib, swap->dev, swap->vkSurf);
+  size                            = rvk_surface_clamp_size(size, &surfCaps);
 
   const VkPresentModeKHR presentMode =
       rvk_pick_presentmode(swap->lib, swap->dev, settings, swap->vkSurf);
 
   const VkSwapchainKHR oldSwapchain = swap->vkSwap;
 
+  VkSwapchainCreateFlagBitsKHR swapchainFlags = 0;
+  if (surfCaps.presentTiming) {
+    swapchainFlags |= VK_SWAPCHAIN_CREATE_PRESENT_TIMING_BIT_EXT;
+  }
+
   const VkSwapchainCreateInfoKHR createInfo = {
       .sType              = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
       .surface            = swap->vkSurf,
-      .minImageCount      = rvk_pick_imagecount(&vkCaps, presentMode),
+      .flags              = swapchainFlags,
+      .minImageCount      = rvk_pick_imagecount(&surfCaps, presentMode),
       .imageFormat        = swap->vkSurfFormat.format,
       .imageColorSpace    = swap->vkSurfFormat.colorSpace,
       .imageExtent.width  = size.width,
@@ -221,7 +252,7 @@ static bool rvk_swapchain_init(RvkSwapchain* swap, const RendSettingsComp* setti
       .imageArrayLayers   = 1,
       .imageUsage         = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
       .imageSharingMode   = VK_SHARING_MODE_EXCLUSIVE,
-      .preTransform       = vkCaps.currentTransform,
+      .preTransform       = surfCaps.capabilities.currentTransform,
       .compositeAlpha     = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
       .presentMode        = presentMode,
       .clipped            = true,
@@ -257,12 +288,19 @@ static bool rvk_swapchain_init(RvkSwapchain* swap, const RendSettingsComp* setti
   swap->size            = size;
   swap->originPresentId = swap->curPresentId;
 
+  if (surfCaps.presentTiming) {
+    swap->flags |= RvkSwapchainFlags_PresentTimingEnabled;
+  } else {
+    swap->flags &= ~RvkSwapchainFlags_PresentTimingEnabled;
+  }
+
   log_i(
       "Vulkan swapchain created",
       log_param("size", rvk_size_fmt(size)),
       log_param("format", fmt_text(vkFormatStr(format))),
       log_param("color", fmt_text(vkColorSpaceKHRStr(swap->vkSurfFormat.colorSpace))),
       log_param("present-mode", fmt_text(vkPresentModeKHRStr(presentMode))),
+      log_param("present-timing", fmt_bool(surfCaps.presentTiming)),
       log_param("image-count", fmt_int(swap->imgCount)));
 
   return true;
