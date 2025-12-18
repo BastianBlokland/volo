@@ -125,6 +125,12 @@ static void rvk_config_present_wait(RvkDevice* d, VkPhysicalDevicePresentWaitFea
   }
 }
 
+static void rvk_config_present_timing(RvkDevice* d, VkPhysicalDevicePresentTimingFeaturesEXT* f) {
+  if (f->presentTiming) {
+    d->flags |= RvkDeviceFlags_SupportPresentTiming;
+  }
+}
+
 static void rvk_config_executable_properties(
     RvkDevice* d, VkPhysicalDevicePipelineExecutablePropertiesFeaturesKHR* f) {
 
@@ -380,6 +386,15 @@ static VkDevice rvk_device_create_internal(RvkLib* lib, RvkDevice* dev) {
     extsToEnable[extsToEnableCount++] = VK_KHR_present_wait;
   }
 
+  VkPhysicalDevicePresentTimingFeaturesEXT featurePresentTiming = {
+      .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRESENT_TIMING_FEATURES_EXT,
+      .pNext = nextFeature,
+  };
+  if (rvk_has_ext(supportedExts, string_from_null_term(VK_EXT_present_timing))) {
+    nextFeature                       = &featurePresentTiming;
+    extsToEnable[extsToEnableCount++] = VK_EXT_present_timing;
+  }
+
   VkPhysicalDevicePipelineExecutablePropertiesFeaturesKHR featureExecutableProperties = {
       .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PIPELINE_EXECUTABLE_PROPERTIES_FEATURES_KHR,
       .pNext = nextFeature,
@@ -404,6 +419,7 @@ static VkDevice rvk_device_create_internal(RvkLib* lib, RvkDevice* dev) {
   rvk_config_robustness2(dev, &featureRobustness);
   rvk_config_present_id(dev, &featurePresentId);
   rvk_config_present_wait(dev, &featurePresentWait);
+  rvk_config_present_timing(dev, &featurePresentTiming);
   rvk_config_executable_properties(dev, &featureExecutableProperties);
   rvk_config_16bit_storage(dev, &feature16BitStorage);
   rvk_config_features(dev, &featureBase.features);
