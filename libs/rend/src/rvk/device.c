@@ -105,7 +105,7 @@ static bool rvk_validate_features(const VkPhysicalDeviceFeatures* f) {
   return true;
 }
 
-static void rvk_config_robustness2(RvkDevice* d, VkPhysicalDeviceRobustness2FeaturesEXT* f) {
+static void rvk_config_robustness2(RvkDevice* d, VkPhysicalDeviceRobustness2FeaturesKHR* f) {
   f->robustImageAccess2  = false; // Unused.
   f->robustBufferAccess2 = false; // Unused.
   if (f->nullDescriptor) {
@@ -353,8 +353,8 @@ static VkDevice rvk_device_create_internal(RvkLib* lib, RvkDevice* dev) {
   // Add optional extensions and features.
   void* nextFeature = null;
 
-  VkPhysicalDeviceRobustness2FeaturesEXT featureRobustness = {
-      .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_FEATURES_EXT,
+  VkPhysicalDeviceRobustness2FeaturesKHR featureRobustness = {
+      .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_FEATURES_KHR,
       .pNext = nextFeature,
   };
   if (rvk_has_ext(supportedExts, string_from_null_term(VK_EXT_robustness2))) {
