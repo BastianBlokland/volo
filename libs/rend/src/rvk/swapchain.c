@@ -14,7 +14,8 @@
 #define swapchain_presentmode_desired_max 8
 
 typedef enum {
-  RvkSwapchainFlags_OutOfDate = 1 << 0,
+  RvkSwapchainFlags_SupportPresentTiming = 1 << 0,
+  RvkSwapchainFlags_OutOfDate            = 1 << 1,
 } RvkSwapchainFlags;
 
 struct sRvkSwapchain {
