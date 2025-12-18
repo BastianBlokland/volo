@@ -847,6 +847,8 @@ VkResult vkLoadInstance(VkInstance inst, const VkInterfaceLoader* src, VkInterfa
   out->createDebugUtilsMessengerEXT = (Symbol)src->getInstanceProcAddr(inst, "vkCreateDebugUtilsMessengerEXT");
   out->destroyDebugUtilsMessengerEXT = (Symbol)src->getInstanceProcAddr(inst, "vkDestroyDebugUtilsMessengerEXT");
   out->submitDebugUtilsMessageEXT = (Symbol)src->getInstanceProcAddr(inst, "vkSubmitDebugUtilsMessageEXT");
+  out->getPhysicalDeviceSurfaceCapabilities2KHR = (Symbol)src->getInstanceProcAddr(inst, "vkGetPhysicalDeviceSurfaceCapabilities2KHR");
+  out->getPhysicalDeviceSurfaceFormats2KHR = (Symbol)src->getInstanceProcAddr(inst, "vkGetPhysicalDeviceSurfaceFormats2KHR");
   out->destroySurfaceKHR = (Symbol)src->getInstanceProcAddr(inst, "vkDestroySurfaceKHR");
   out->getPhysicalDeviceSurfaceSupportKHR = (Symbol)src->getInstanceProcAddr(inst, "vkGetPhysicalDeviceSurfaceSupportKHR");
   out->getPhysicalDeviceSurfaceCapabilitiesKHR = (Symbol)src->getInstanceProcAddr(inst, "vkGetPhysicalDeviceSurfaceCapabilitiesKHR");

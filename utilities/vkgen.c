@@ -100,6 +100,7 @@ static const String g_vkgenExtensions[] = {
     string_static("VK_EXT_robustness2"),
     string_static("VK_EXT_validation_features"),
     string_static("VK_KHR_driver_properties"),
+    string_static("VK_KHR_get_surface_capabilities2"),
     string_static("VK_KHR_maintenance4"),
     string_static("VK_KHR_pipeline_executable_properties"),
     string_static("VK_KHR_present_id"),
