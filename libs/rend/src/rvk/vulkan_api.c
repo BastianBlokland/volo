@@ -10,6 +10,7 @@
 
 String vkResultStr(const VkResult v) {
   switch (v) {
+    case VK_ERROR_PRESENT_TIMING_QUEUE_FULL_EXT: return string_lit("error_present_timing_queue_full_ext");
     case VK_ERROR_INVALID_EXTERNAL_HANDLE: return string_lit("error_invalid_external_handle");
     case VK_ERROR_OUT_OF_POOL_MEMORY: return string_lit("error_out_of_pool_memory");
     case VK_ERROR_VALIDATION_FAILED: return string_lit("error_validation_failed");
@@ -997,6 +998,10 @@ VkResult vkLoadDevice(VkDevice dev, const VkInterfaceInstance* src, VkInterfaceD
   out->cmdNextSubpass = (Symbol)src->getDeviceProcAddr(dev, "vkCmdNextSubpass");
   out->cmdEndRenderPass = (Symbol)src->getDeviceProcAddr(dev, "vkCmdEndRenderPass");
   out->getCalibratedTimestampsEXT = (Symbol)src->getDeviceProcAddr(dev, "vkGetCalibratedTimestampsEXT");
+  out->setSwapchainPresentTimingQueueSizeEXT = (Symbol)src->getDeviceProcAddr(dev, "vkSetSwapchainPresentTimingQueueSizeEXT");
+  out->getSwapchainTimingPropertiesEXT = (Symbol)src->getDeviceProcAddr(dev, "vkGetSwapchainTimingPropertiesEXT");
+  out->getSwapchainTimeDomainPropertiesEXT = (Symbol)src->getDeviceProcAddr(dev, "vkGetSwapchainTimeDomainPropertiesEXT");
+  out->getPastPresentationTimingEXT = (Symbol)src->getDeviceProcAddr(dev, "vkGetPastPresentationTimingEXT");
   out->getDeviceBufferMemoryRequirementsKHR = (Symbol)src->getDeviceProcAddr(dev, "vkGetDeviceBufferMemoryRequirementsKHR");
   out->getDeviceImageMemoryRequirementsKHR = (Symbol)src->getDeviceProcAddr(dev, "vkGetDeviceImageMemoryRequirementsKHR");
   out->getDeviceImageSparseMemoryRequirementsKHR = (Symbol)src->getDeviceProcAddr(dev, "vkGetDeviceImageSparseMemoryRequirementsKHR");

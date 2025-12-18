@@ -96,6 +96,7 @@ static const String g_vkgenExtensions[] = {
     string_static("VK_EXT_calibrated_timestamps"),
     string_static("VK_EXT_debug_utils"),
     string_static("VK_EXT_memory_budget"),
+    string_static("VK_EXT_present_timing"),
     string_static("VK_EXT_robustness2"),
     string_static("VK_EXT_validation_features"),
     string_static("VK_KHR_driver_properties"),

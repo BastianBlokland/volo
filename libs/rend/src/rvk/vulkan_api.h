@@ -48,6 +48,7 @@
 #define VK_EXT_calibrated_timestamps "VK_EXT_calibrated_timestamps"
 #define VK_EXT_debug_utils "VK_EXT_debug_utils"
 #define VK_EXT_memory_budget "VK_EXT_memory_budget"
+#define VK_EXT_present_timing "VK_EXT_present_timing"
 #define VK_EXT_robustness2 "VK_EXT_robustness2"
 #define VK_EXT_validation_features "VK_EXT_validation_features"
 #define VK_KHR_driver_properties "VK_KHR_driver_properties"
@@ -96,6 +97,7 @@ typedef struct VkRect2D {
 } VkRect2D;
 
 typedef enum {
+  VK_ERROR_PRESENT_TIMING_QUEUE_FULL_EXT = -1000208000,
   VK_ERROR_INVALID_EXTERNAL_HANDLE = -1000072003,
   VK_ERROR_OUT_OF_POOL_MEMORY = -1000069000,
   VK_ERROR_VALIDATION_FAILED = -1000011001,
@@ -256,6 +258,16 @@ typedef enum {
   VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_SUPPORT = 1000168001,
   VK_STRUCTURE_TYPE_CALIBRATED_TIMESTAMP_INFO_KHR = 1000184000,
   VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DRIVER_PROPERTIES = 1000196000,
+  VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRESENT_TIMING_FEATURES_EXT = 1000208000,
+  VK_STRUCTURE_TYPE_SWAPCHAIN_TIMING_PROPERTIES_EXT = 1000208001,
+  VK_STRUCTURE_TYPE_SWAPCHAIN_TIME_DOMAIN_PROPERTIES_EXT = 1000208002,
+  VK_STRUCTURE_TYPE_PRESENT_TIMINGS_INFO_EXT = 1000208003,
+  VK_STRUCTURE_TYPE_PRESENT_TIMING_INFO_EXT = 1000208004,
+  VK_STRUCTURE_TYPE_PAST_PRESENTATION_TIMING_INFO_EXT = 1000208005,
+  VK_STRUCTURE_TYPE_PAST_PRESENTATION_TIMING_PROPERTIES_EXT = 1000208006,
+  VK_STRUCTURE_TYPE_PAST_PRESENTATION_TIMING_EXT = 1000208007,
+  VK_STRUCTURE_TYPE_PRESENT_TIMING_SURFACE_CAPABILITIES_EXT = 1000208008,
+  VK_STRUCTURE_TYPE_SWAPCHAIN_CALIBRATED_TIMESTAMP_INFO_EXT = 1000208009,
   VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_BUDGET_PROPERTIES_EXT = 1000237000,
   VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT = 1000247000,
   VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRESENT_WAIT_FEATURES_KHR = 1000248000,
@@ -2952,6 +2964,8 @@ typedef enum {
   VK_TIME_DOMAIN_CLOCK_MONOTONIC_KHR = 1,
   VK_TIME_DOMAIN_CLOCK_MONOTONIC_RAW_KHR = 2,
   VK_TIME_DOMAIN_QUERY_PERFORMANCE_COUNTER_KHR = 3,
+  VK_TIME_DOMAIN_PRESENT_STAGE_LOCAL_EXT = 1000208000,
+  VK_TIME_DOMAIN_SWAPCHAIN_LOCAL_EXT = 1000208001,
 } VkTimeDomainKHR;
 
 typedef struct VkCalibratedTimestampInfoKHR {
@@ -3041,6 +3055,121 @@ typedef struct VkPhysicalDeviceMemoryBudgetPropertiesEXT {
   VkDeviceSize heapBudget[VK_MAX_MEMORY_HEAPS];
   VkDeviceSize heapUsage[VK_MAX_MEMORY_HEAPS];
 } VkPhysicalDeviceMemoryBudgetPropertiesEXT;
+
+typedef struct VkPhysicalDevicePresentTimingFeaturesEXT {
+  VkStructureType sType;
+  void* pNext;
+  VkBool32 presentTiming;
+  VkBool32 presentAtAbsoluteTime;
+  VkBool32 presentAtRelativeTime;
+} VkPhysicalDevicePresentTimingFeaturesEXT;
+
+typedef VkFlags VkPresentStageFlagsEXT;
+
+typedef struct VkPresentTimingSurfaceCapabilitiesEXT {
+  VkStructureType sType;
+  void* pNext;
+  VkBool32 presentTimingSupported;
+  VkBool32 presentAtAbsoluteTimeSupported;
+  VkBool32 presentAtRelativeTimeSupported;
+  VkPresentStageFlagsEXT presentStageQueries;
+} VkPresentTimingSurfaceCapabilitiesEXT;
+
+typedef struct VkSwapchainKHR_T* VkSwapchainKHR;
+
+typedef struct VkSwapchainCalibratedTimestampInfoEXT {
+  VkStructureType sType;
+  const void* pNext;
+  VkSwapchainKHR swapchain;
+  VkPresentStageFlagsEXT presentStage;
+  u64 timeDomainId;
+} VkSwapchainCalibratedTimestampInfoEXT;
+
+typedef struct VkSwapchainTimingPropertiesEXT {
+  VkStructureType sType;
+  void* pNext;
+  u64 refreshDuration;
+  u64 refreshInterval;
+} VkSwapchainTimingPropertiesEXT;
+
+typedef struct VkSwapchainTimeDomainPropertiesEXT {
+  VkStructureType sType;
+  void* pNext;
+  u32 timeDomainCount;
+  VkTimeDomainKHR* pTimeDomains;
+  u64* pTimeDomainIds;
+} VkSwapchainTimeDomainPropertiesEXT;
+
+typedef VkFlags VkPastPresentationTimingFlagsEXT;
+
+typedef struct VkPastPresentationTimingInfoEXT {
+  VkStructureType sType;
+  const void* pNext;
+  VkPastPresentationTimingFlagsEXT flags;
+  VkSwapchainKHR swapchain;
+} VkPastPresentationTimingInfoEXT;
+
+typedef struct VkPresentStageTimeEXT {
+  VkPresentStageFlagsEXT stage;
+  u64 time;
+} VkPresentStageTimeEXT;
+
+typedef struct VkPastPresentationTimingEXT {
+  VkStructureType sType;
+  void* pNext;
+  u64 presentId;
+  u64 targetTime;
+  u32 presentStageCount;
+  VkPresentStageTimeEXT* pPresentStages;
+  VkTimeDomainKHR timeDomain;
+  u64 timeDomainId;
+  VkBool32 reportComplete;
+} VkPastPresentationTimingEXT;
+
+typedef struct VkPastPresentationTimingPropertiesEXT {
+  VkStructureType sType;
+  void* pNext;
+  u64 timingPropertiesCounter;
+  u64 timeDomainsCounter;
+  u32 presentationTimingCount;
+  VkPastPresentationTimingEXT* pPresentationTimings;
+} VkPastPresentationTimingPropertiesEXT;
+
+typedef VkFlags VkPresentTimingInfoFlagsEXT;
+
+typedef struct VkPresentTimingInfoEXT {
+  VkStructureType sType;
+  const void* pNext;
+  VkPresentTimingInfoFlagsEXT flags;
+  u64 targetTime;
+  u64 timeDomainId;
+  VkPresentStageFlagsEXT presentStageQueries;
+  VkPresentStageFlagsEXT targetTimeDomainPresentStage;
+} VkPresentTimingInfoEXT;
+
+typedef struct VkPresentTimingsInfoEXT {
+  VkStructureType sType;
+  const void* pNext;
+  u32 swapchainCount;
+  const VkPresentTimingInfoEXT* pTimingInfos;
+} VkPresentTimingsInfoEXT;
+
+typedef enum {
+  VK_PRESENT_STAGE_QUEUE_OPERATIONS_END_BIT_EXT = 1,
+  VK_PRESENT_STAGE_REQUEST_DEQUEUED_BIT_EXT = 2,
+  VK_PRESENT_STAGE_IMAGE_FIRST_PIXEL_OUT_BIT_EXT = 4,
+  VK_PRESENT_STAGE_IMAGE_FIRST_PIXEL_VISIBLE_BIT_EXT = 8,
+} VkPresentStageFlagBitsEXT;
+
+typedef enum {
+  VK_PRESENT_TIMING_INFO_PRESENT_AT_RELATIVE_TIME_BIT_EXT = 1,
+  VK_PRESENT_TIMING_INFO_PRESENT_AT_NEAREST_REFRESH_CYCLE_BIT_EXT = 2,
+} VkPresentTimingInfoFlagBitsEXT;
+
+typedef enum {
+  VK_PAST_PRESENTATION_TIMING_ALLOW_PARTIAL_RESULTS_BIT_EXT = 1,
+  VK_PAST_PRESENTATION_TIMING_ALLOW_OUT_OF_ORDER_RESULTS_BIT_EXT = 2,
+} VkPastPresentationTimingFlagBitsEXT;
 
 typedef struct VkPhysicalDeviceRobustness2FeaturesKHR {
   VkStructureType sType;
@@ -3231,8 +3360,6 @@ typedef struct VkPhysicalDevicePresentIdFeaturesKHR {
   VkBool32 presentId;
 } VkPhysicalDevicePresentIdFeaturesKHR;
 
-typedef struct VkSwapchainKHR_T* VkSwapchainKHR;
-
 typedef struct VkPhysicalDevicePresentWaitFeaturesKHR {
   VkStructureType sType;
   void* pNext;
@@ -3296,6 +3423,7 @@ typedef struct VkSurfaceFormatKHR {
 typedef enum {
   VK_SWAPCHAIN_CREATE_SPLIT_INSTANCE_BIND_REGIONS_BIT_KHR = 1,
   VK_SWAPCHAIN_CREATE_PROTECTED_BIT_KHR = 2,
+  VK_SWAPCHAIN_CREATE_PRESENT_TIMING_BIT_EXT = 512,
 } VkSwapchainCreateFlagBitsKHR;
 
 typedef VkFlags VkSwapchainCreateFlagsKHR;
@@ -3614,6 +3742,10 @@ typedef struct VkInterfaceDevice {
   void (SYS_DECL* cmdNextSubpass)(VkCommandBuffer commandBuffer, VkSubpassContents contents);
   void (SYS_DECL* cmdEndRenderPass)(VkCommandBuffer commandBuffer);
   VkResult (SYS_DECL* getCalibratedTimestampsEXT)(VkDevice device, u32 timestampCount, const VkCalibratedTimestampInfoKHR* pTimestampInfos, u64* pTimestamps, u64* pMaxDeviation);
+  VkResult (SYS_DECL* setSwapchainPresentTimingQueueSizeEXT)(VkDevice device, VkSwapchainKHR swapchain, u32 size);
+  VkResult (SYS_DECL* getSwapchainTimingPropertiesEXT)(VkDevice device, VkSwapchainKHR swapchain, VkSwapchainTimingPropertiesEXT* pSwapchainTimingProperties, u64* pSwapchainTimingPropertiesCounter);
+  VkResult (SYS_DECL* getSwapchainTimeDomainPropertiesEXT)(VkDevice device, VkSwapchainKHR swapchain, VkSwapchainTimeDomainPropertiesEXT* pSwapchainTimeDomainProperties, u64* pTimeDomainsCounter);
+  VkResult (SYS_DECL* getPastPresentationTimingEXT)(VkDevice device, const VkPastPresentationTimingInfoEXT* pPastPresentationTimingInfo, VkPastPresentationTimingPropertiesEXT* pPastPresentationTimingProperties);
   void (SYS_DECL* getDeviceBufferMemoryRequirementsKHR)(VkDevice device, const VkDeviceBufferMemoryRequirements* pInfo, VkMemoryRequirements2* pMemoryRequirements);
   void (SYS_DECL* getDeviceImageMemoryRequirementsKHR)(VkDevice device, const VkDeviceImageMemoryRequirements* pInfo, VkMemoryRequirements2* pMemoryRequirements);
   void (SYS_DECL* getDeviceImageSparseMemoryRequirementsKHR)(VkDevice device, const VkDeviceImageMemoryRequirements* pInfo, u32* pSparseMemoryRequirementCount, VkSparseImageMemoryRequirements2* pSparseMemoryRequirements);
