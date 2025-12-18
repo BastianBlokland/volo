@@ -178,9 +178,15 @@ static VkPresentModeKHR rvk_pick_presentmode(
 }
 
 static VkSurfaceCapabilitiesKHR rvk_surface_caps(RvkLib* lib, RvkDevice* dev, VkSurfaceKHR surf) {
-  VkSurfaceCapabilitiesKHR result;
-  rvk_call_checked(lib, getPhysicalDeviceSurfaceCapabilitiesKHR, dev->vkPhysDev, surf, &result);
-  return result;
+  const VkPhysicalDeviceSurfaceInfo2KHR info = {
+      .sType   = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SURFACE_INFO_2_KHR,
+      .surface = surf,
+  };
+  VkSurfaceCapabilities2KHR result = {
+      .sType = VK_STRUCTURE_TYPE_SURFACE_CAPABILITIES_2_KHR,
+  };
+  rvk_call_checked(lib, getPhysicalDeviceSurfaceCapabilities2KHR, dev->vkPhysDev, &info, &result);
+  return result.surfaceCapabilities;
 }
 
 static bool rvk_swapchain_init(RvkSwapchain* swap, const RendSettingsComp* settings, RvkSize size) {
