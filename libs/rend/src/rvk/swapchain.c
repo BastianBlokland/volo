@@ -13,6 +13,16 @@
 #define swapchain_images_max 5
 #define swapchain_presentmode_desired_max 8
 
+/**
+ * What present stage to measure when using present timings.
+ *
+ * Ideally we would measure 'VK_PRESENT_STAGE_IMAGE_FIRST_PIXEL_OUT_BIT_EXT' but XWayland does not
+ * support this and with native X11 compositors becoming rare that is likely what we will run on
+ * linux. Its slowly time for us to implement Wayland support.
+ * TODO: Test what the situation is like on windows.
+ */
+#define swapchain_measured_present_stage VK_PRESENT_STAGE_REQUEST_DEQUEUED_BIT_EXT
+
 typedef enum {
   RvkSwapchainFlags_PresentTimingEnabled = 1 << 0,
   RvkSwapchainFlags_OutOfDate            = 1 << 1,
@@ -204,14 +214,11 @@ static RvkSurfaceCaps rvk_surface_caps(RvkLib* lib, RvkDevice* dev, VkSurfaceKHR
   };
   rvk_call_checked(lib, getPhysicalDeviceSurfaceCapabilities2KHR, dev->vkPhysDev, &info, &result);
 
-  const VkPresentStageFlagBitsEXT requiredTimingStages =
-      VK_PRESENT_STAGE_IMAGE_FIRST_PIXEL_OUT_BIT_EXT;
-
   return (RvkSurfaceCaps){
-      .capabilities = result.surfaceCapabilities,
-      .presentTiming =
-          timingCapabilities.presentTimingSupported &&
-          ((timingCapabilities.presentStageQueries & requiredTimingStages) == requiredTimingStages),
+      .capabilities  = result.surfaceCapabilities,
+      .presentTiming = timingCapabilities.presentTimingSupported &&
+                       ((timingCapabilities.presentStageQueries &
+                         swapchain_measured_present_stage) == swapchain_measured_present_stage),
   };
 }
 
