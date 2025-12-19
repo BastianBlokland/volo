@@ -21,7 +21,12 @@
  * linux. Its slowly time for us to implement Wayland support.
  * TODO: Test what the situation is like on windows.
  */
-#define swapchain_measured_present_stage VK_PRESENT_STAGE_REQUEST_DEQUEUED_BIT_EXT
+#define swapchain_timing_present_stage VK_PRESENT_STAGE_REQUEST_DEQUEUED_BIT_EXT
+
+/**
+ * How many timing results to queue per swapchain-image.
+ */
+#define swapchain_timing_queue_size 2
 
 typedef enum {
   RvkSwapchainFlags_PresentTimingEnabled = 1 << 0,
@@ -217,8 +222,8 @@ static RvkSurfaceCaps rvk_surface_caps(RvkLib* lib, RvkDevice* dev, VkSurfaceKHR
   return (RvkSurfaceCaps){
       .capabilities  = result.surfaceCapabilities,
       .presentTiming = timingCapabilities.presentTimingSupported &&
-                       ((timingCapabilities.presentStageQueries &
-                         swapchain_measured_present_stage) == swapchain_measured_present_stage),
+                       ((timingCapabilities.presentStageQueries & swapchain_timing_present_stage) ==
+                        swapchain_timing_present_stage),
   };
 }
 
@@ -297,6 +302,12 @@ static bool rvk_swapchain_init(RvkSwapchain* swap, const RendSettingsComp* setti
 
   if (surfCaps.presentTiming) {
     swap->flags |= RvkSwapchainFlags_PresentTimingEnabled;
+    rvk_call_checked(
+        swap->dev,
+        setSwapchainPresentTimingQueueSizeEXT,
+        vkDev,
+        swap->vkSwap,
+        swap->imgCount * swapchain_timing_queue_size);
   } else {
     swap->flags &= ~RvkSwapchainFlags_PresentTimingEnabled;
   }
