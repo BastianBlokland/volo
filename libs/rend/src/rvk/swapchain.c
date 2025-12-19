@@ -54,6 +54,9 @@ struct sRvkSwapchain {
   TimeDuration lastAcquireDur, lastPresentEnqueueDur, lastPresentWaitDur;
   u64          originPresentId; // Identifier of the last present before recreating the swapchain.
   u64          curPresentId;
+
+  u64          timingPropertiesCounter; // Incremented when timing properties have changed.
+  TimeDuration timingRefreshDuration;   // 0 if unavailable.
 };
 
 static VkSemaphore rvk_semaphore_create(RvkDevice* dev) {
@@ -227,6 +230,45 @@ static RvkSurfaceCaps rvk_surface_caps(RvkLib* lib, RvkDevice* dev, VkSurfaceKHR
   };
 }
 
+static void rvk_swapchain_query_timing_properties(RvkSwapchain* swap) {
+  if (!swap->vkSwap || !(swap->flags & RvkSwapchainFlags_PresentTimingEnabled)) {
+    goto Unavailable;
+  }
+  VkSwapchainTimingPropertiesEXT timingProperties = {
+      .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_TIMING_PROPERTIES_EXT,
+  };
+  u64            timingPropertiesCounter;
+  const VkResult result = rvk_call(
+      swap->dev,
+      getSwapchainTimingPropertiesEXT,
+      swap->dev->vkDev,
+      swap->vkSwap,
+      &timingProperties,
+      &timingPropertiesCounter);
+
+  switch (result) {
+  case VK_SUCCESS:
+    if (timingPropertiesCounter == swap->timingPropertiesCounter) {
+      return; // Properties have not changed.
+    }
+    swap->timingPropertiesCounter = timingPropertiesCounter;
+    swap->timingRefreshDuration   = timingProperties.refreshDuration; // Min dur for VRR.
+    log_i(
+        "Vulkan swapchain timing properties updated",
+        log_param("refresh-duration", fmt_duration(swap->timingRefreshDuration)));
+    return;
+  case VK_NOT_READY:
+    goto Unavailable;
+  default:
+    rvk_api_check(string_lit("getSwapchainTimingPropertiesEXT"), result);
+  }
+
+Unavailable:
+  swap->timingPropertiesCounter = sentinel_u64;
+  swap->timingRefreshDuration   = 0;
+  return;
+}
+
 static bool rvk_swapchain_init(RvkSwapchain* swap, const RendSettingsComp* settings, RvkSize size) {
   if (!size.width || !size.height) {
     swap->size = size;
@@ -321,6 +363,8 @@ static bool rvk_swapchain_init(RvkSwapchain* swap, const RendSettingsComp* setti
       log_param("present-timing", fmt_bool(surfCaps.presentTiming)),
       log_param("image-count", fmt_int(swap->imgCount)));
 
+  rvk_swapchain_query_timing_properties(swap);
+
   return true;
 }
 
@@ -329,10 +373,11 @@ RvkSwapchain* rvk_swapchain_create(RvkLib* lib, RvkDevice* dev, const GapWindowC
   RvkSwapchain* swap   = alloc_alloc_t(g_allocHeap, RvkSwapchain);
 
   *swap = (RvkSwapchain){
-      .lib          = lib,
-      .dev          = dev,
-      .vkSurf       = vkSurf,
-      .vkSurfFormat = rvk_pick_surface_format(lib, dev, vkSurf),
+      .lib                     = lib,
+      .dev                     = dev,
+      .vkSurf                  = vkSurf,
+      .vkSurfFormat            = rvk_pick_surface_format(lib, dev, vkSurf),
+      .timingPropertiesCounter = sentinel_u64,
   };
 
   VkBool32 supported;
