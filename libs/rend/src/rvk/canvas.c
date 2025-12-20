@@ -15,7 +15,7 @@
 #include "swapchain.h"
 
 /**
- * Use two frames for double bufferring:
+ * Use two frames for double buffering:
  * - One being recorded on the cpu.
  * - One being rendered on the gpu.
  */
