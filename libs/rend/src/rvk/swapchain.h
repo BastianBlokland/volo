@@ -47,7 +47,7 @@ RvkSwapchainIdx rvk_swapchain_acquire(RvkSwapchain*, VkSemaphore);
  * Enqueue an image to be presented to the surface.
  * Image is presented when the 'rvk_swapchain_semaphore(idx)' is signaled.
  */
-bool rvk_swapchain_enqueue_present(RvkSwapchain*, RvkSwapchainIdx, u64 frameIdx);
+bool rvk_swapchain_enqueue_present(RvkSwapchain*, RvkSwapchainIdx, u64 frameIdx, bool track);
 
 /**
  * Query past presentations which have been completed.

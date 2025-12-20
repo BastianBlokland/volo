@@ -592,7 +592,7 @@ RvkSwapchainIdx rvk_swapchain_acquire(RvkSwapchain* swap, VkSemaphore available)
 }
 
 bool rvk_swapchain_enqueue_present(
-    RvkSwapchain* swap, const RvkSwapchainIdx idx, const u64 frameIdx) {
+    RvkSwapchain* swap, const RvkSwapchainIdx idx, const u64 frameIdx, const bool track) {
   RvkImage* image = rvk_swapchain_image(swap, idx);
   rvk_image_assert_phase(image, RvkImagePhase_Present);
 
@@ -623,7 +623,7 @@ bool rvk_swapchain_enqueue_present(
       .pTimingInfos   = &presentTimingInfoEntry,
   };
   const bool timingQueueFull = (swap->flags & RvkSwapchainFlags_PresentTimingQueueFull) != 0;
-  if (!sentinel_check(swap->timingDomainId) && !timingQueueFull) {
+  if (track && !sentinel_check(swap->timingDomainId) && !timingQueueFull) {
     nextPresentData = &presentTimingInfo;
   }
 

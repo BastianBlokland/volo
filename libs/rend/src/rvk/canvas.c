@@ -393,7 +393,12 @@ void rvk_canvas_end(RvkCanvas* canvas) {
 
   if (hasSwapchain) {
     trace_begin("rend_present_enqueue", TraceColor_Blue);
-    rvk_swapchain_enqueue_present(canvas->swapchain, frame->swapchainIdx, frame->frameIdx);
+#ifdef VOLO_TRACE
+    const bool track = (canvas->dev->flags & RvkDeviceFlags_RecordStats) != 0;
+#else
+    const bool track = false;
+#endif
+    rvk_swapchain_enqueue_present(canvas->swapchain, frame->swapchainIdx, frame->frameIdx, track);
     trace_end();
   }
 
