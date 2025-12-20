@@ -126,6 +126,7 @@ static VkInstance rvk_inst_create(
 
   const char* extensionNames[16];
   u32         extensionCount       = 0;
+  extensionNames[extensionCount++] = VK_KHR_get_surface_capabilities2;
   extensionNames[extensionCount++] = VK_KHR_surface;
   switch (gap_native_wm()) {
   case GapNativeWm_Xcb:

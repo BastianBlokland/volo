@@ -80,8 +80,12 @@ static void vkgen_init_hashes(void) {
 }
 
 static const String g_vkgenFeatures[] = {
-    string_static("VK_VERSION_1_0"),
-    string_static("VK_VERSION_1_1"),
+    string_static("VK_BASE_VERSION_1_0"),
+    string_static("VK_BASE_VERSION_1_1"),
+    string_static("VK_COMPUTE_VERSION_1_0"),
+    string_static("VK_COMPUTE_VERSION_1_1"),
+    string_static("VK_GRAPHICS_VERSION_1_0"),
+    string_static("VK_GRAPHICS_VERSION_1_1"),
 };
 
 static const String g_vkgenLayers[] = {
@@ -92,13 +96,15 @@ static const String g_vkgenExtensions[] = {
     string_static("VK_EXT_calibrated_timestamps"),
     string_static("VK_EXT_debug_utils"),
     string_static("VK_EXT_memory_budget"),
+    string_static("VK_EXT_present_timing"),
     string_static("VK_EXT_robustness2"),
     string_static("VK_EXT_validation_features"),
     string_static("VK_KHR_driver_properties"),
+    string_static("VK_KHR_get_surface_capabilities2"),
     string_static("VK_KHR_maintenance4"),
     string_static("VK_KHR_pipeline_executable_properties"),
-    string_static("VK_KHR_present_id"),
-    string_static("VK_KHR_present_wait"),
+    string_static("VK_KHR_present_id2"),
+    string_static("VK_KHR_present_wait2"),
     string_static("VK_KHR_surface"),
     string_static("VK_KHR_swapchain"),
     string_static("VK_KHR_win32_surface"),
@@ -1572,7 +1578,7 @@ static bool vkgen_write_impl(VkGenContext* ctx) {
 // clang-format off
 static const String g_appDesc = string_static("VulkanGen - Utility to generate a Vulkan api header and utility c file.");
 static const String g_schemaDefaultHost = string_static("raw.githubusercontent.com");
-static const String g_schemaDefaultUri  = string_static("/KhronosGroup/Vulkan-Docs/refs/tags/v1.4.308/xml/vk.xml");
+static const String g_schemaDefaultUri  = string_static("/KhronosGroup/Vulkan-Docs/refs/tags/v1.4.336/xml/vk.xml");
 // clang-format on
 
 static CliId g_optVerbose, g_optOutputPath, g_optSchemaHost, g_optSchemaUri;

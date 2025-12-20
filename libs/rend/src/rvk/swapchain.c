@@ -1,5 +1,6 @@
 #include "core/alloc.h"
 #include "core/array.h"
+#include "core/bits.h"
 #include "core/diag.h"
 #include "core/time.h"
 #include "gap/native.h"
@@ -10,12 +11,46 @@
 #include "lib.h"
 #include "swapchain.h"
 
+#if defined(VOLO_LINUX)
+#define rvk_timedomain_host VK_TIME_DOMAIN_CLOCK_MONOTONIC_KHR
+#elif defined(VOLO_WIN32)
+#define rvk_timedomain_host VK_TIME_DOMAIN_QUERY_PERFORMANCE_COUNTER_KHR
+#else
+#error Unsupported platform
+#endif
+
 #define swapchain_images_max 5
 #define swapchain_presentmode_desired_max 8
 
+/**
+ * What present stage to measure when using present timings.
+ *
+ * Ideally we would measure 'VK_PRESENT_STAGE_IMAGE_FIRST_PIXEL_OUT_BIT_EXT' but XWayland does not
+ * support this and with native X11 compositors becoming rare that is likely what we will run on
+ * linux. Its slowly time for us to implement Wayland support.
+ * TODO: Test what the situation is like on windows.
+ */
+#define swapchain_timing_present_stage VK_PRESENT_STAGE_REQUEST_DEQUEUED_BIT_EXT
+
+/**
+ * How many timing results to queue per swapchain-image.
+ */
+#define swapchain_timing_queue_size 2
+
 typedef enum {
-  RvkSwapchainFlags_OutOfDate = 1 << 0,
+  RvkSwapchainFlags_PresentIdEnabled       = 1 << 0,
+  RvkSwapchainFlags_PresentWaitEnabled     = 1 << 1,
+  RvkSwapchainFlags_PresentTimingEnabled   = 1 << 2,
+  RvkSwapchainFlags_PresentTimingQueueFull = 1 << 3,
+  RvkSwapchainFlags_OutOfDate              = 1 << 4,
 } RvkSwapchainFlags;
+
+typedef struct {
+  VkSurfaceCapabilitiesKHR capabilities;
+  bool                     presentId;
+  bool                     presentWait;
+  bool                     presentTiming;
+} RvkSurfaceCaps;
 
 struct sRvkSwapchain {
   RvkLib*            lib;
@@ -31,8 +66,13 @@ struct sRvkSwapchain {
   VkSemaphore        semaphores[swapchain_images_max]; // Semaphore to signal presentation.
 
   TimeDuration lastAcquireDur, lastPresentEnqueueDur, lastPresentWaitDur;
-  u64          originPresentId; // Identifier of the last present before recreating the swapchain.
-  u64          curPresentId;
+  u64          originFrameIdx; // Identifier of the last frame before recreating the swapchain.
+  u64          lastFrameIdx;
+
+  u64          timingPropertiesCounter; // Incremented when timing properties have changed.
+  u64          timingDomainCounter;     // Incremented when timing domains have changed.
+  TimeDuration timingRefreshDuration;   // 0 if unavailable.
+  u64          timingDomainId;
 };
 
 static VkSemaphore rvk_semaphore_create(RvkDevice* dev) {
@@ -46,18 +86,18 @@ static void rvk_semaphore_destroy(RvkDevice* dev, const VkSemaphore sema) {
   rvk_call(dev, destroySemaphore, dev->vkDev, sema, &dev->vkAlloc);
 }
 
-static RvkSize rvk_surface_clamp_size(RvkSize size, const VkSurfaceCapabilitiesKHR* vkCaps) {
-  if (size.width < vkCaps->minImageExtent.width) {
-    size.width = (u16)vkCaps->minImageExtent.width;
+static RvkSize rvk_surface_clamp_size(RvkSize size, const RvkSurfaceCaps* caps) {
+  if (size.width < caps->capabilities.minImageExtent.width) {
+    size.width = (u16)caps->capabilities.minImageExtent.width;
   }
-  if (size.height < vkCaps->minImageExtent.height) {
-    size.height = (u16)vkCaps->minImageExtent.height;
+  if (size.height < caps->capabilities.minImageExtent.height) {
+    size.height = (u16)caps->capabilities.minImageExtent.height;
   }
-  if (size.width > vkCaps->maxImageExtent.width) {
-    size.width = (u16)vkCaps->maxImageExtent.width;
+  if (size.width > caps->capabilities.maxImageExtent.width) {
+    size.width = (u16)caps->capabilities.maxImageExtent.width;
   }
-  if (size.height > vkCaps->maxImageExtent.height) {
-    size.height = (u16)vkCaps->maxImageExtent.height;
+  if (size.height > caps->capabilities.maxImageExtent.height) {
+    size.height = (u16)caps->capabilities.maxImageExtent.height;
   }
   return size;
 }
@@ -108,8 +148,7 @@ static VkSurfaceFormatKHR rvk_pick_surface_format(RvkLib* lib, RvkDevice* dev, V
   return formats[0];
 }
 
-static u32
-rvk_pick_imagecount(const VkSurfaceCapabilitiesKHR* caps, const VkPresentModeKHR presentMode) {
+static u32 rvk_pick_imagecount(const RvkSurfaceCaps* caps, const VkPresentModeKHR presentMode) {
   u32 imgCount;
   switch (presentMode) {
   case VK_PRESENT_MODE_IMMEDIATE_KHR:
@@ -117,16 +156,31 @@ rvk_pick_imagecount(const VkSurfaceCapabilitiesKHR* caps, const VkPresentModeKHR
     break;
   case VK_PRESENT_MODE_FIFO_KHR:
   case VK_PRESENT_MODE_FIFO_RELAXED_KHR:
-  case VK_PRESENT_MODE_MAILBOX_KHR:
   default:
-    imgCount = 3; // one on-screen, one ready, and one being rendered to.
+    /**
+     * Minimum image count is 3: one on-screen, one ready, and one being rendered to.
+     *
+     * However when both the CPU and GPU work finish in the same frame we end up being so far ahead
+     * that there is no image to acquire and we block in the middle of the next frame. Having an
+     * additional image means we can already start work on that frame.
+     */
+    imgCount = 4;
+    break;
+  case VK_PRESENT_MODE_MAILBOX_KHR:
+    /**
+     * Minimum image count is 3: one on-screen, one ready, and one being rendered to.
+     *
+     * However to fully avoid blocking even if both the CPU and GPU work finish early we need two
+     * additional images.
+     */
+    imgCount = 5;
     break;
   }
-  if (imgCount < caps->minImageCount) {
-    imgCount = caps->minImageCount;
+  if (imgCount < caps->capabilities.minImageCount) {
+    imgCount = caps->capabilities.minImageCount;
   }
-  if (caps->maxImageCount && imgCount > caps->maxImageCount) {
-    imgCount = caps->maxImageCount;
+  if (caps->capabilities.maxImageCount && imgCount > caps->capabilities.maxImageCount) {
+    imgCount = caps->capabilities.maxImageCount;
   }
   return imgCount;
 }
@@ -177,10 +231,145 @@ static VkPresentModeKHR rvk_pick_presentmode(
   return VK_PRESENT_MODE_FIFO_KHR; // FIFO is required by the spec to be always available.
 }
 
-static VkSurfaceCapabilitiesKHR rvk_surface_caps(RvkLib* lib, RvkDevice* dev, VkSurfaceKHR surf) {
-  VkSurfaceCapabilitiesKHR result;
-  rvk_call_checked(lib, getPhysicalDeviceSurfaceCapabilitiesKHR, dev->vkPhysDev, surf, &result);
-  return result;
+static RvkSurfaceCaps rvk_surface_caps(RvkLib* lib, RvkDevice* dev, VkSurfaceKHR surf) {
+  const VkPhysicalDeviceSurfaceInfo2KHR info = {
+      .sType   = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SURFACE_INFO_2_KHR,
+      .surface = surf,
+  };
+
+  void* nextCapabilities = null;
+
+  VkSurfaceCapabilitiesPresentId2KHR presentIdCapabilities = {
+      .sType = VK_STRUCTURE_TYPE_SURFACE_CAPABILITIES_PRESENT_ID_2_KHR,
+      .pNext = nextCapabilities,
+  };
+  if (dev->flags & RvkDeviceFlags_SupportPresentId) {
+    nextCapabilities = &presentIdCapabilities;
+  }
+
+  VkSurfaceCapabilitiesPresentWait2KHR presentWaitCapabilities = {
+      .sType = VK_STRUCTURE_TYPE_SURFACE_CAPABILITIES_PRESENT_WAIT_2_KHR,
+      .pNext = nextCapabilities,
+  };
+  if (dev->flags & RvkDeviceFlags_SupportPresentWait) {
+    nextCapabilities = &presentWaitCapabilities;
+  }
+
+  VkPresentTimingSurfaceCapabilitiesEXT timingCapabilities = {
+      .sType = VK_STRUCTURE_TYPE_PRESENT_TIMING_SURFACE_CAPABILITIES_EXT,
+      .pNext = nextCapabilities,
+  };
+  if (dev->flags & RvkDeviceFlags_SupportPresentTiming) {
+    nextCapabilities = &timingCapabilities;
+  }
+
+  VkSurfaceCapabilities2KHR result = {
+      .sType = VK_STRUCTURE_TYPE_SURFACE_CAPABILITIES_2_KHR,
+      .pNext = nextCapabilities,
+  };
+  rvk_call_checked(lib, getPhysicalDeviceSurfaceCapabilities2KHR, dev->vkPhysDev, &info, &result);
+
+  return (RvkSurfaceCaps){
+      .capabilities  = result.surfaceCapabilities,
+      .presentId     = presentIdCapabilities.presentId2Supported,
+      .presentWait   = presentWaitCapabilities.presentWait2Supported,
+      .presentTiming = timingCapabilities.presentTimingSupported &&
+                       ((timingCapabilities.presentStageQueries & swapchain_timing_present_stage) ==
+                        swapchain_timing_present_stage),
+  };
+}
+
+static void rvk_swapchain_query_timing_properties(RvkSwapchain* swap) {
+  if (!swap->vkSwap || !(swap->flags & RvkSwapchainFlags_PresentTimingEnabled)) {
+    goto Unavailable;
+  }
+  VkSwapchainTimingPropertiesEXT timingProperties = {
+      .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_TIMING_PROPERTIES_EXT,
+  };
+  u64            timingPropertiesCounter;
+  const VkResult result = rvk_call(
+      swap->dev,
+      getSwapchainTimingPropertiesEXT,
+      swap->dev->vkDev,
+      swap->vkSwap,
+      &timingProperties,
+      &timingPropertiesCounter);
+
+  switch (result) {
+  case VK_SUCCESS:
+    if (timingPropertiesCounter == swap->timingPropertiesCounter) {
+      return; // Properties have not changed.
+    }
+    swap->timingPropertiesCounter = timingPropertiesCounter;
+    swap->timingRefreshDuration   = timingProperties.refreshDuration; // Min dur for VRR.
+    log_d(
+        "Vulkan swapchain timing properties updated",
+        log_param("refresh-duration", fmt_duration(swap->timingRefreshDuration)));
+    return;
+  case VK_NOT_READY:
+    goto Unavailable;
+  default:
+    rvk_api_check(string_lit("getSwapchainTimingPropertiesEXT"), result);
+  }
+
+Unavailable:
+  swap->timingPropertiesCounter = sentinel_u64;
+  swap->timingRefreshDuration   = 0;
+  return;
+}
+
+static void rvk_swapchain_query_timing_domains(RvkSwapchain* swap) {
+  if (!swap->vkSwap || !(swap->flags & RvkSwapchainFlags_PresentTimingEnabled)) {
+    goto Unavailable;
+  }
+  VkTimeDomainKHR domains[32];
+  u64             domainIds[array_elems(domains)];
+
+  VkSwapchainTimeDomainPropertiesEXT domainProperties = {
+      .sType           = VK_STRUCTURE_TYPE_SWAPCHAIN_TIME_DOMAIN_PROPERTIES_EXT,
+      .timeDomainCount = array_elems(domains),
+      .pTimeDomains    = domains,
+      .pTimeDomainIds  = domainIds,
+  };
+  u64            timingDomainCounter;
+  const VkResult result = rvk_call(
+      swap->dev,
+      getSwapchainTimeDomainPropertiesEXT,
+      swap->dev->vkDev,
+      swap->vkSwap,
+      &domainProperties,
+      &timingDomainCounter);
+
+  switch (result) {
+  case VK_SUCCESS:
+  case VK_INCOMPLETE:
+    if (timingDomainCounter == swap->timingDomainCounter) {
+      return; // Domains have not changed.
+    }
+    swap->timingDomainId = sentinel_u64;
+    for (u32 i = 0; i != domainProperties.timeDomainCount; ++i) {
+      if (domains[i] == rvk_timedomain_host) {
+        swap->timingDomainId = domainIds[i];
+        break;
+      }
+    }
+    swap->timingDomainCounter = timingDomainCounter;
+    if (sentinel_check(swap->timingDomainId)) {
+      log_w("Vulkan swapchain no host timing domain available");
+    } else {
+      log_d(
+          "Vulkan swapchain host timing domain found",
+          log_param("domain-id", fmt_int(swap->timingDomainId)));
+    }
+    return;
+  default:
+    rvk_api_check(string_lit("getSwapchainTimeDomainPropertiesEXT"), result);
+  }
+
+Unavailable:
+  swap->timingDomainCounter = sentinel_u64;
+  swap->timingDomainId      = sentinel_u64;
+  return;
 }
 
 static bool rvk_swapchain_init(RvkSwapchain* swap, const RendSettingsComp* settings, RvkSize size) {
@@ -193,20 +382,26 @@ static bool rvk_swapchain_init(RvkSwapchain* swap, const RendSettingsComp* setti
     rvk_image_destroy(&swap->imgs[i], swap->dev);
   }
 
-  const VkDevice           vkDev   = swap->dev->vkDev;
-  VkAllocationCallbacks*   vkAlloc = &swap->dev->vkAlloc;
-  VkSurfaceCapabilitiesKHR vkCaps  = rvk_surface_caps(swap->lib, swap->dev, swap->vkSurf);
-  size                             = rvk_surface_clamp_size(size, &vkCaps);
+  const VkDevice         vkDev    = swap->dev->vkDev;
+  VkAllocationCallbacks* vkAlloc  = &swap->dev->vkAlloc;
+  const RvkSurfaceCaps   surfCaps = rvk_surface_caps(swap->lib, swap->dev, swap->vkSurf);
+  size                            = rvk_surface_clamp_size(size, &surfCaps);
 
   const VkPresentModeKHR presentMode =
       rvk_pick_presentmode(swap->lib, swap->dev, settings, swap->vkSurf);
 
   const VkSwapchainKHR oldSwapchain = swap->vkSwap;
 
+  VkSwapchainCreateFlagBitsKHR swapchainFlags = 0;
+  if (surfCaps.presentTiming) {
+    swapchainFlags |= VK_SWAPCHAIN_CREATE_PRESENT_TIMING_BIT_EXT;
+  }
+
   const VkSwapchainCreateInfoKHR createInfo = {
       .sType              = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
       .surface            = swap->vkSurf,
-      .minImageCount      = rvk_pick_imagecount(&vkCaps, presentMode),
+      .flags              = swapchainFlags,
+      .minImageCount      = rvk_pick_imagecount(&surfCaps, presentMode),
       .imageFormat        = swap->vkSurfFormat.format,
       .imageColorSpace    = swap->vkSurfFormat.colorSpace,
       .imageExtent.width  = size.width,
@@ -214,7 +409,7 @@ static bool rvk_swapchain_init(RvkSwapchain* swap, const RendSettingsComp* setti
       .imageArrayLayers   = 1,
       .imageUsage         = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
       .imageSharingMode   = VK_SHARING_MODE_EXCLUSIVE,
-      .preTransform       = vkCaps.currentTransform,
+      .preTransform       = surfCaps.capabilities.currentTransform,
       .compositeAlpha     = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
       .presentMode        = presentMode,
       .clipped            = true,
@@ -246,9 +441,27 @@ static bool rvk_swapchain_init(RvkSwapchain* swap, const RendSettingsComp* setti
   }
 
   swap->flags &= ~RvkSwapchainFlags_OutOfDate;
-  swap->syncMode        = settings->syncMode;
-  swap->size            = size;
-  swap->originPresentId = swap->curPresentId;
+  swap->syncMode       = settings->syncMode;
+  swap->size           = size;
+  swap->originFrameIdx = swap->lastFrameIdx;
+
+  if (surfCaps.presentId) {
+    swap->flags |= RvkSwapchainFlags_PresentIdEnabled;
+  }
+  if (surfCaps.presentWait) {
+    swap->flags |= RvkSwapchainFlags_PresentWaitEnabled;
+  }
+  if (surfCaps.presentTiming) {
+    swap->flags |= RvkSwapchainFlags_PresentTimingEnabled;
+    rvk_call_checked(
+        swap->dev,
+        setSwapchainPresentTimingQueueSizeEXT,
+        vkDev,
+        swap->vkSwap,
+        swap->imgCount * swapchain_timing_queue_size);
+  } else {
+    swap->flags &= ~RvkSwapchainFlags_PresentTimingEnabled;
+  }
 
   log_i(
       "Vulkan swapchain created",
@@ -256,7 +469,11 @@ static bool rvk_swapchain_init(RvkSwapchain* swap, const RendSettingsComp* setti
       log_param("format", fmt_text(vkFormatStr(format))),
       log_param("color", fmt_text(vkColorSpaceKHRStr(swap->vkSurfFormat.colorSpace))),
       log_param("present-mode", fmt_text(vkPresentModeKHRStr(presentMode))),
+      log_param("present-timing", fmt_bool(surfCaps.presentTiming)),
       log_param("image-count", fmt_int(swap->imgCount)));
+
+  rvk_swapchain_query_timing_properties(swap);
+  rvk_swapchain_query_timing_domains(swap);
 
   return true;
 }
@@ -266,10 +483,13 @@ RvkSwapchain* rvk_swapchain_create(RvkLib* lib, RvkDevice* dev, const GapWindowC
   RvkSwapchain* swap   = alloc_alloc_t(g_allocHeap, RvkSwapchain);
 
   *swap = (RvkSwapchain){
-      .lib          = lib,
-      .dev          = dev,
-      .vkSurf       = vkSurf,
-      .vkSurfFormat = rvk_pick_surface_format(lib, dev, vkSurf),
+      .lib                     = lib,
+      .dev                     = dev,
+      .vkSurf                  = vkSurf,
+      .vkSurfFormat            = rvk_pick_surface_format(lib, dev, vkSurf),
+      .timingPropertiesCounter = sentinel_u64,
+      .timingDomainCounter     = sentinel_u64,
+      .timingDomainId          = sentinel_u64,
   };
 
   VkBool32 supported;
@@ -312,7 +532,7 @@ void rvk_swapchain_stats(const RvkSwapchain* swap, RvkSwapchainStats* out) {
   out->acquireDur        = swap->lastAcquireDur;
   out->presentEnqueueDur = swap->lastPresentEnqueueDur;
   out->presentWaitDur    = swap->lastPresentWaitDur;
-  out->presentId         = swap->curPresentId;
+  out->refreshDuration   = swap->timingRefreshDuration;
   out->imageCount        = (u16)swap->imgCount;
 }
 
@@ -386,22 +606,40 @@ RvkSwapchainIdx rvk_swapchain_acquire(RvkSwapchain* swap, VkSemaphore available)
   }
 }
 
-bool rvk_swapchain_enqueue_present(RvkSwapchain* swap, const RvkSwapchainIdx idx) {
+bool rvk_swapchain_enqueue_present(
+    RvkSwapchain* swap, const RvkSwapchainIdx idx, const u64 frameIdx, const bool track) {
   RvkImage* image = rvk_swapchain_image(swap, idx);
   rvk_image_assert_phase(image, RvkImagePhase_Present);
 
+  diag_assert(frameIdx > swap->lastFrameIdx);
+  swap->lastFrameIdx = frameIdx;
+
   const void* nextPresentData = null;
 
-  ++swap->curPresentId;
-
-  const VkPresentIdKHR presentIdData = {
-      .sType          = VK_STRUCTURE_TYPE_PRESENT_ID_KHR,
+  const VkPresentId2KHR presentIdData = {
+      .sType          = VK_STRUCTURE_TYPE_PRESENT_ID_2_KHR,
       .pNext          = nextPresentData,
       .swapchainCount = 1,
-      .pPresentIds    = &swap->curPresentId,
+      .pPresentIds    = &swap->lastFrameIdx,
   };
-  if (swap->dev->flags & RvkDeviceFlags_SupportPresentId) {
+  if (swap->flags & RvkSwapchainFlags_PresentIdEnabled) {
     nextPresentData = &presentIdData;
+  }
+
+  const VkPresentTimingInfoEXT presentTimingInfoEntry = {
+      .sType               = VK_STRUCTURE_TYPE_PRESENT_TIMING_INFO_EXT,
+      .timeDomainId        = swap->timingDomainId,
+      .presentStageQueries = swapchain_timing_present_stage,
+  };
+  const VkPresentTimingsInfoEXT presentTimingInfo = {
+      .sType          = VK_STRUCTURE_TYPE_PRESENT_TIMINGS_INFO_EXT,
+      .pNext          = nextPresentData,
+      .swapchainCount = 1,
+      .pTimingInfos   = &presentTimingInfoEntry,
+  };
+  const bool timingQueueFull = (swap->flags & RvkSwapchainFlags_PresentTimingQueueFull) != 0;
+  if (track && !sentinel_check(swap->timingDomainId) && !timingQueueFull) {
+    nextPresentData = &presentTimingInfo;
   }
 
   const VkPresentInfoKHR presentInfo = {
@@ -424,36 +662,116 @@ bool rvk_swapchain_enqueue_present(RvkSwapchain* swap, const RvkSwapchainIdx idx
     return true; // Presenting will still succeed.
   case VK_ERROR_OUT_OF_DATE_KHR:
     swap->flags |= RvkSwapchainFlags_OutOfDate;
-    log_d(
-        "Out-of-date swapchain detected during present",
-        log_param("id", fmt_int(swap->curPresentId)));
+    log_d("Out-of-date swapchain detected during present", log_param("frame", fmt_int(frameIdx)));
     return false; // Presenting will fail.
+  case VK_ERROR_PRESENT_TIMING_QUEUE_FULL_EXT:
+    swap->flags |= RvkSwapchainFlags_PresentTimingQueueFull;
+    log_w("Vulkan swapchain timing queue full", log_param("frame", fmt_int(frameIdx)));
+    return false; // Presenting will block.
   default:
     rvk_api_check(string_lit("queuePresentKHR"), result);
     return true;
   }
 }
 
+u32 rvk_swapchain_query_presents(
+    const RvkSwapchain* swap, RvkSwapchainPresent out[], const u32 outMax) {
+
+  if (!swap->vkSwap || !(swap->flags & RvkSwapchainFlags_PresentTimingEnabled)) {
+    return 0;
+  }
+  // TODO: This has some questionable thread-safety.
+  RvkSwapchain* mutableSwapchain = (RvkSwapchain*)swap;
+
+  enum { MaxTimingStages = 1 };
+  diag_assert(bits_popcnt_32(swapchain_timing_present_stage) <= MaxTimingStages);
+
+  VkPastPresentationTimingEXT timings[swapchain_images_max * swapchain_timing_queue_size];
+  VkPresentStageTimeEXT       stageTimes[array_elems(timings) * MaxTimingStages];
+
+  for (u32 i = 0; i != array_elems(timings); ++i) {
+    timings[i] = (VkPastPresentationTimingEXT){
+        .sType             = VK_STRUCTURE_TYPE_PAST_PRESENTATION_TIMING_EXT,
+        .presentStageCount = MaxTimingStages,
+        .pPresentStages    = stageTimes + i * MaxTimingStages,
+    };
+  }
+
+  const VkPastPresentationTimingInfoEXT pastTimingInfo = {
+      .sType     = VK_STRUCTURE_TYPE_PAST_PRESENTATION_TIMING_INFO_EXT,
+      .flags     = VK_PAST_PRESENTATION_TIMING_ALLOW_OUT_OF_ORDER_RESULTS_BIT_EXT,
+      .swapchain = swap->vkSwap,
+  };
+
+  VkPastPresentationTimingPropertiesEXT pastTimingProperties = {
+      .sType                   = VK_STRUCTURE_TYPE_PAST_PRESENTATION_TIMING_PROPERTIES_EXT,
+      .presentationTimingCount = array_elems(timings),
+      .pPresentationTimings    = timings,
+  };
+
+  rvk_call_checked(
+      swap->dev,
+      getPastPresentationTimingEXT,
+      swap->dev->vkDev,
+      &pastTimingInfo,
+      &pastTimingProperties);
+
+  if (pastTimingProperties.timingPropertiesCounter != swap->timingPropertiesCounter) {
+    rvk_swapchain_query_timing_properties(mutableSwapchain);
+  }
+  if (pastTimingProperties.timeDomainsCounter != swap->timingDomainCounter) {
+    rvk_swapchain_query_timing_domains(mutableSwapchain);
+  }
+
+  if (pastTimingProperties.presentationTimingCount) {
+    mutableSwapchain->flags &= ~RvkSwapchainFlags_PresentTimingQueueFull;
+  }
+
+  u32 result = 0;
+  for (u32 i = 0; i != pastTimingProperties.presentationTimingCount; ++i) {
+    diag_assert(timings[i].reportComplete);
+    if (timings[i].timeDomain != rvk_timedomain_host) {
+      continue; // TODO: Support calibrating to other time-domains.
+    }
+    diag_assert(timings[i].presentStageCount >= 1);
+    diag_assert(timings[i].pPresentStages[0].stage == swapchain_timing_present_stage);
+    if (!timings[i].pPresentStages[0].time) {
+      continue; // Was never presented.
+    }
+    if (result == outMax) {
+      break; // TODO: Should we warn that results could be dropped in this case?
+    }
+    out[result++] = (RvkSwapchainPresent){
+        .frameIdx = timings[i].presentId,
+        // TODO: For windows support we likely need to query the performance counter frequency.
+        .dequeueTime = (TimeSteady)timings[i].pPresentStages[0].time,
+        .duration    = swap->timingRefreshDuration,
+    };
+  }
+  return result;
+}
+
 void rvk_swapchain_wait_for_present(const RvkSwapchain* swap, const u32 numBehind) {
-  if (numBehind >= (swap->curPresentId - swap->originPresentId)) {
+  if (numBehind >= (swap->lastFrameIdx - swap->originFrameIdx)) {
     /**
-     * Out of bound presentation-ids are considered to be already presented.
+     * Out of bound presentation frames are considered to be already presented.
      * This is convenient for the calling code as it doesn't need the special case the first frame.
      */
     return;
   }
-  if ((swap->dev->flags & RvkDeviceFlags_SupportPresentWait) && swap->dev->api.waitForPresentKHR) {
+  if ((swap->flags & RvkSwapchainFlags_PresentWaitEnabled) && swap->dev->api.waitForPresent2KHR) {
+    // TODO: This has some questionable thread-safety.
     RvkSwapchain*    mutableSwapchain = (RvkSwapchain*)swap;
     const TimeSteady startTime        = time_steady_clock();
 
-    const TimeDuration timeout = time_second / 30;
-    VkResult           result  = rvk_call(
-        swap->dev,
-        waitForPresentKHR,
-        swap->dev->vkDev,
-        swap->vkSwap,
-        swap->curPresentId - numBehind,
-        timeout);
+    const VkPresentWait2InfoKHR waitInfo = {
+        .sType     = VK_STRUCTURE_TYPE_PRESENT_WAIT_2_INFO_KHR,
+        .presentId = swap->lastFrameIdx - numBehind,
+        .timeout   = time_second / 30,
+    };
+
+    const VkResult result =
+        rvk_call(swap->dev, waitForPresent2KHR, swap->dev->vkDev, swap->vkSwap, &waitInfo);
 
     mutableSwapchain->lastPresentWaitDur = time_steady_duration(startTime, time_steady_clock());
 
@@ -472,10 +790,10 @@ void rvk_swapchain_wait_for_present(const RvkSwapchain* swap, const u32 numBehin
       mutableSwapchain->flags |= RvkSwapchainFlags_OutOfDate;
       log_d(
           "Out-of-date swapchain detected during wait",
-          log_param("id", fmt_int(swap->curPresentId)));
+          log_param("frame", fmt_int(swap->lastFrameIdx)));
       break;
     case VK_ERROR_DEVICE_LOST:
-      log_w("Device lost during swapchain wait", log_param("id", fmt_int(swap->curPresentId)));
+      log_w("Device lost during swapchain wait", log_param("frame", fmt_int(swap->lastFrameIdx)));
       break;
     default:
       rvk_api_check(string_lit("waitForPresentKHR"), result);

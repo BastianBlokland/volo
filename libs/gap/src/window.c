@@ -238,8 +238,8 @@ static void window_update(
     gap_keyset_clear(&win->keysDown);
     win->events |= GapWindowEvents_FocusLost;
   }
-  if (palFlags & GapPalWindowFlags_Focussed) {
-    win->events |= GapWindowEvents_Focussed;
+  if (palFlags & GapPalWindowFlags_Focused) {
+    win->events |= GapWindowEvents_Focused;
   }
   if (win->flags & GapWindowFlags_CursorLock) {
     const GapVector tgtPos = gap_vector_div(win->params[GapParam_WindowSize], 2);

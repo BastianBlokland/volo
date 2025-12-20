@@ -16,7 +16,7 @@ typedef enum eGapWindowEvents {
   GapWindowEvents_CloseRequested     = 1 << 5,
   GapWindowEvents_FocusGained        = 1 << 6, // Did the window gain focus this tick.
   GapWindowEvents_FocusLost          = 1 << 7, // Did the window lose focus this tick.
-  GapWindowEvents_Focussed           = 1 << 8, // Does the window have focus this tick.
+  GapWindowEvents_Focused            = 1 << 8, // Does the window have focus this tick.
   GapWindowEvents_ClipPaste          = 1 << 9, // Was a value pasted from the clipboard this tick.
   GapWindowEvents_RefreshRateChanged = 1 << 10,
   GapWindowEvents_DpiChanged         = 1 << 11,

@@ -15,7 +15,7 @@
 #include "swapchain.h"
 
 /**
- * Use two frames for double bufferring:
+ * Use two frames for double buffering:
  * - One being recorded on the cpu.
  * - One being rendered on the gpu.
  */
@@ -166,21 +166,14 @@ void rvk_canvas_stats(const RvkCanvas* canvas, RvkCanvasStats* out) {
 }
 
 #ifdef VOLO_TRACE
-void rvk_canvas_push_traces(const RvkCanvas* canvas) {
-  const RvkCanvasFrame* frame = &canvas->frames[canvas->jobIdx];
-  diag_assert(rvk_job_is_done(frame->job));
-
-  if (!(canvas->flags & RvkCanvasFlags_Submitted)) {
-    return;
-  }
-  if (!rvk_job_calibrated_timestamps(frame->job)) {
-    return; // GPU traces require calibrated timestamps.
-  }
-
-  RvkJobStats jobStats;
-  rvk_job_stats(frame->job, &jobStats);
-
-  trace_custom_begin_msg("gpu", "frame", TraceColor_Blue, "frame-{}", fmt_int(frame->frameIdx));
+static void rvk_canvas_push_traces_gpu(const RvkCanvasFrame* frame, const RvkJobStats* jobStats) {
+  trace_custom_begin_msg(
+      "gpu",
+      "frame",
+      TraceColor_Blue,
+      "frame-{} [{}]",
+      fmt_int(frame->frameIdx),
+      fmt_int(frame->swapchainIdx));
   {
     for (u32 passIdx = 0; passIdx != rvk_canvas_max_passes; ++passIdx) {
       const RvkPass* pass = frame->passes[passIdx];
@@ -205,21 +198,50 @@ void rvk_canvas_push_traces(const RvkCanvas* canvas) {
       }
     }
 
-    const u32 copyStatsCount = math_min(jobStats.copyCount, rvk_job_copy_stats_max);
+    const u32 copyStatsCount = math_min(jobStats->copyCount, rvk_job_copy_stats_max);
     for (u32 copyIdx = 0; copyIdx != copyStatsCount; ++copyIdx) {
       trace_custom_begin("gpu", "copy", TraceColor_Red);
-      const TimeDuration copyBegin = jobStats.copyStats[copyIdx].gpuTimeBegin;
-      const TimeDuration copyEnd   = jobStats.copyStats[copyIdx].gpuTimeEnd;
+      const TimeDuration copyBegin = jobStats->copyStats[copyIdx].gpuTimeBegin;
+      const TimeDuration copyEnd   = jobStats->copyStats[copyIdx].gpuTimeEnd;
       const TimeDuration copyDur   = time_steady_duration(copyBegin, copyEnd);
       trace_custom_end("gpu", copyBegin, copyDur);
     }
 
     trace_custom_begin("gpu", "wait", TraceColor_White);
-    const TimeDuration waitDur = time_steady_duration(jobStats.gpuWaitBegin, jobStats.gpuWaitEnd);
-    trace_custom_end("gpu", jobStats.gpuWaitBegin, waitDur);
+    const TimeDuration waitDur = time_steady_duration(jobStats->gpuWaitBegin, jobStats->gpuWaitEnd);
+    trace_custom_end("gpu", jobStats->gpuWaitBegin, waitDur);
   }
-  const TimeDuration jobDur = time_steady_duration(jobStats.gpuTimeBegin, jobStats.gpuTimeEnd);
-  trace_custom_end("gpu", jobStats.gpuTimeBegin, jobDur);
+  const TimeDuration jobDur = time_steady_duration(jobStats->gpuTimeBegin, jobStats->gpuTimeEnd);
+  trace_custom_end("gpu", jobStats->gpuTimeBegin, jobDur);
+}
+
+static void rvk_canvas_push_traces_display(const RvkSwapchain* swapchain) {
+  RvkSwapchainPresent presents[16];
+  const u32 presentCount = rvk_swapchain_query_presents(swapchain, presents, array_elems(presents));
+
+  for (u32 i = 0; i != presentCount; ++i) {
+    trace_custom_begin_msg(
+        "display", "frame", TraceColor_Blue, "frame-{}", fmt_int(presents[i].frameIdx));
+    trace_custom_end("display", presents[i].dequeueTime, presents[i].duration);
+  }
+}
+
+void rvk_canvas_push_traces(const RvkCanvas* canvas) {
+  const RvkCanvasFrame* frame = &canvas->frames[canvas->jobIdx];
+  diag_assert(rvk_job_is_done(frame->job));
+
+  if (!(canvas->flags & RvkCanvasFlags_Submitted)) {
+    return;
+  }
+  if (!rvk_job_calibrated_timestamps(frame->job)) {
+    return; // GPU traces require calibrated timestamps.
+  }
+
+  RvkJobStats jobStats;
+  rvk_job_stats(frame->job, &jobStats);
+
+  rvk_canvas_push_traces_gpu(frame, &jobStats);
+  rvk_canvas_push_traces_display(canvas->swapchain);
 }
 #endif // VOLO_TRACE
 
@@ -229,6 +251,7 @@ bool rvk_canvas_begin(
 
   RvkCanvasFrame* frame = &canvas->frames[canvas->jobIdx];
   diag_assert(rvk_job_is_done(frame->job));
+  diag_assert(frameIdx == 0 || frameIdx > frame->frameIdx);
 
   frame->frameIdx     = frameIdx;
   frame->swapchainIdx = sentinel_u32;
@@ -376,7 +399,12 @@ void rvk_canvas_end(RvkCanvas* canvas) {
 
   if (hasSwapchain) {
     trace_begin("rend_present_enqueue", TraceColor_Blue);
-    rvk_swapchain_enqueue_present(canvas->swapchain, frame->swapchainIdx);
+#ifdef VOLO_TRACE
+    const bool track = (canvas->dev->flags & RvkDeviceFlags_RecordStats) != 0;
+#else
+    const bool track = false;
+#endif
+    rvk_swapchain_enqueue_present(canvas->swapchain, frame->swapchainIdx, frame->frameIdx, track);
     trace_end();
   }
 

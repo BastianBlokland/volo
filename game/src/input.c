@@ -133,22 +133,20 @@ static EcsEntityId input_query_ray(
 static void input_indicator_move(EcsWorld* world, const GeoVector pos) {
   scene_prefab_spawn(
       world,
-      &(ScenePrefabSpec){
-          .flags    = ScenePrefabFlags_Volatile,
-          .prefabId = GameId_EffectIndicatorMove,
-          .faction  = SceneFaction_None,
-          .position = pos,
-          .rotation = geo_quat_ident});
+      &(ScenePrefabSpec){.flags    = ScenePrefabFlags_Volatile,
+                         .prefabId = GameId_EffectIndicatorMove,
+                         .faction  = SceneFaction_None,
+                         .position = pos,
+                         .rotation = geo_quat_ident});
 }
 
 static void input_indicator_attack(EcsWorld* world, const EcsEntityId target) {
   const EcsEntityId effectEntity = scene_prefab_spawn(
       world,
-      &(ScenePrefabSpec){
-          .flags    = ScenePrefabFlags_Volatile,
-          .prefabId = GameId_EffectIndicatorAttack,
-          .faction  = SceneFaction_None,
-          .rotation = geo_quat_ident});
+      &(ScenePrefabSpec){.flags    = ScenePrefabFlags_Volatile,
+                         .prefabId = GameId_EffectIndicatorAttack,
+                         .faction  = SceneFaction_None,
+                         .rotation = geo_quat_ident});
 
   scene_attach_to_entity(world, effectEntity, target);
 }
@@ -256,7 +254,7 @@ static void update_camera_movement(
   }
 
   // Update zoom.
-  if (windowActive) { /* Disallow zooming when the window is not focussed. */
+  if (windowActive) { /* Disallow zooming when the window is not Focused. */
     const bool isHoveringUi = (input_blockers(input) & InputBlocker_HoveringUi) != 0;
     if (!isHoveringUi || state->flags & InputFlags_AllowZoomOverUi) {
       const f32 zoomDelta = input_scroll_y(input) * g_inputCamZoomMult;

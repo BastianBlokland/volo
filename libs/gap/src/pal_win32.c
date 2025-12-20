@@ -482,10 +482,10 @@ static void pal_event_close(GapPalWindow* window) {
 }
 
 static void pal_event_focus_gained(GapPal* pal, GapPalWindow* window) {
-  if (window->flags & GapPalWindowFlags_Focussed) {
+  if (window->flags & GapPalWindowFlags_Focused) {
     return;
   }
-  window->flags |= GapPalWindowFlags_Focussed;
+  window->flags |= GapPalWindowFlags_Focused;
   window->flags |= GapPalWindowFlags_FocusGained;
 
   if (pal->flags & GapPalFlags_CursorConfined) {
@@ -496,11 +496,11 @@ static void pal_event_focus_gained(GapPal* pal, GapPalWindow* window) {
 }
 
 static void pal_event_focus_lost(GapPal* pal, GapPalWindow* window) {
-  if (!(window->flags & GapPalWindowFlags_Focussed)) {
+  if (!(window->flags & GapPalWindowFlags_Focused)) {
     return;
   }
 
-  window->flags &= ~GapPalWindowFlags_Focussed;
+  window->flags &= ~GapPalWindowFlags_Focused;
   window->flags |= GapPalWindowFlags_FocusLost;
 
   if (pal->flags & GapPalFlags_CursorConfined) {
@@ -671,7 +671,7 @@ pal_event(GapPal* pal, const HWND wnd, const UINT msg, const WPARAM wParam, cons
   case WM_SETFOCUS: {
     pal_event_focus_gained(pal, window);
 
-    // Update the cursor as it was probably moved since we where focussed last.
+    // Update the cursor as it was probably moved since we where Focused last.
     pal_event_cursor(window, pal_query_cursor_pos(window->id));
     return true;
   }
@@ -1135,7 +1135,7 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
       .id                          = id,
       .className                   = className,
       .params[GapParam_WindowSize] = realClientSize,
-      .flags                       = GapPalWindowFlags_Focussed | GapPalWindowFlags_FocusGained,
+      .flags                       = GapPalWindowFlags_Focused | GapPalWindowFlags_FocusGained,
       .lastWindowedPosition        = position,
       .inputText                   = dynstring_create(g_allocHeap, 64),
       .displayName                 = string_maybe_dup(g_allocHeap, displayName),
@@ -1321,14 +1321,14 @@ void gap_pal_window_cursor_confine(GapPal* pal, const GapWindowId windowId, cons
   GapPalWindow* window = pal_maybe_window(pal, windowId);
   diag_assert(window);
   if (confined && !(pal->flags & GapPalFlags_CursorConfined)) {
-    if (window->flags & GapPalWindowFlags_Focussed) {
+    if (window->flags & GapPalWindowFlags_Focused) {
       pal_cursor_clip(windowId);
     }
     pal->flags |= GapPalFlags_CursorConfined;
     return;
   }
   if (!confined && (pal->flags & GapPalFlags_CursorConfined)) {
-    if (window->flags & GapPalWindowFlags_Focussed) {
+    if (window->flags & GapPalWindowFlags_Focused) {
       pal_cursor_clip_release();
     }
     pal->flags &= ~GapPalFlags_CursorConfined;
@@ -1352,9 +1352,9 @@ void gap_pal_window_cursor_set(GapPal* pal, const GapWindowId windowId, const Ga
 
   window->cursor = cursor;
 
-  if (window->flags & GapPalWindowFlags_Focussed) {
+  if (window->flags & GapPalWindowFlags_Focused) {
     /**
-     * When the window is focussed then immediatly update the cursor, this avoids the issue that
+     * When the window is Focused then immediatly update the cursor, this avoids the issue that
      * the cursor change is only visible after moving the cursor.
      */
     SetCursor(pal->cursors[cursor] ? pal->cursors[cursor] : pal->cursors[GapCursor_Normal]);

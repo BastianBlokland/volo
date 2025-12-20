@@ -1737,10 +1737,10 @@ static void pal_event_close(GapPal* pal, const GapWindowId windowId) {
 
 static void pal_event_focus_gained(GapPal* pal, const GapWindowId windowId) {
   GapPalWindow* window = pal_maybe_window(pal, windowId);
-  if (!window || window->flags & GapPalWindowFlags_Focussed) {
+  if (!window || window->flags & GapPalWindowFlags_Focused) {
     return;
   }
-  window->flags |= GapPalWindowFlags_Focussed;
+  window->flags |= GapPalWindowFlags_Focused;
   window->flags |= GapPalWindowFlags_FocusGained;
 
   if (pal->flags & GapPalFlags_CursorConfined) {
@@ -1752,11 +1752,11 @@ static void pal_event_focus_gained(GapPal* pal, const GapWindowId windowId) {
 
 static void pal_event_focus_lost(GapPal* pal, const GapWindowId windowId) {
   GapPalWindow* window = pal_maybe_window(pal, windowId);
-  if (!window || !(window->flags & GapPalWindowFlags_Focussed)) {
+  if (!window || !(window->flags & GapPalWindowFlags_Focused)) {
     return;
   }
 
-  window->flags &= ~GapPalWindowFlags_Focussed;
+  window->flags &= ~GapPalWindowFlags_Focused;
   window->flags |= GapPalWindowFlags_FocusLost;
 
   if (pal->flags & GapPalFlags_CursorConfined) {
@@ -2112,7 +2112,7 @@ void gap_pal_update(GapPal* pal) {
       pal_event_focus_gained(pal, focusInMsg->event);
 
       if (pal_maybe_window(pal, focusInMsg->event)) {
-        // Update the cursor as it was probably moved since we where focussed last.
+        // Update the cursor as it was probably moved since we where Focused last.
         pal_event_cursor(pal, focusInMsg->event, pal_query_cursor_pos(pal, focusInMsg->event));
       }
     } break;
@@ -2543,7 +2543,7 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
   *dynarray_push_t(&pal->windows, GapPalWindow) = (GapPalWindow){
       .id                          = id,
       .params[GapParam_WindowSize] = size,
-      .flags                       = GapPalWindowFlags_Focussed | GapPalWindowFlags_FocusGained,
+      .flags                       = GapPalWindowFlags_Focused | GapPalWindowFlags_FocusGained,
       .inputText                   = dynstring_create(g_allocHeap, 64),
       .refreshRate                 = pal_window_default_refresh_rate,
       .dpi                         = pal_window_default_dpi,
@@ -2693,14 +2693,14 @@ void gap_pal_window_cursor_confine(GapPal* pal, const GapWindowId windowId, cons
   GapPalWindow* window = pal_maybe_window(pal, windowId);
   diag_assert(window);
   if (confined && !(pal->flags & GapPalFlags_CursorConfined)) {
-    if (window->flags & GapPalWindowFlags_Focussed) {
+    if (window->flags & GapPalWindowFlags_Focused) {
       pal_xcb_cursor_grab(&pal->xcb, windowId);
     }
     pal->flags |= GapPalFlags_CursorConfined;
     return;
   }
   if (!confined && (pal->flags & GapPalFlags_CursorConfined)) {
-    if (window->flags & GapPalWindowFlags_Focussed) {
+    if (window->flags & GapPalWindowFlags_Focused) {
       pal_xcb_cursor_grab_release(&pal->xcb);
     }
     pal->flags &= ~GapPalFlags_CursorConfined;

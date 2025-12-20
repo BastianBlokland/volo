@@ -111,16 +111,16 @@ ecs_system_define(RendUpdateCamStatsSys) {
     rend_stats_update_str(&stats->gpuName, rvk_device_name(plat->device));
     rend_stats_update_str(&stats->gpuDriverName, rvk_device_driver_name(plat->device));
 
-    stats->swapchainPresentId  = swapchainStats.presentId;
-    stats->swapchainImageCount = swapchainStats.imageCount;
-    stats->waitForGpuDur       = canvasStats.waitForGpuDur;
-    stats->gpuWaitDur          = canvasStats.gpuWaitDur;
-    stats->gpuExecDur          = canvasStats.gpuExecDur;
-    stats->gpuCopyDur          = canvasStats.gpuCopyDur;
-    stats->presentAcquireDur   = swapchainStats.acquireDur;
-    stats->presentEnqueueDur   = swapchainStats.presentEnqueueDur;
-    stats->presentWaitDur      = swapchainStats.presentWaitDur;
-    stats->limiterDur          = limiter->sleepDur;
+    stats->swapchainRefreshDuration = swapchainStats.refreshDuration;
+    stats->swapchainImageCount      = swapchainStats.imageCount;
+    stats->waitForGpuDur            = canvasStats.waitForGpuDur;
+    stats->gpuWaitDur               = canvasStats.gpuWaitDur;
+    stats->gpuExecDur               = canvasStats.gpuExecDur;
+    stats->gpuCopyDur               = canvasStats.gpuCopyDur;
+    stats->presentAcquireDur        = swapchainStats.acquireDur;
+    stats->presentEnqueueDur        = swapchainStats.presentEnqueueDur;
+    stats->presentWaitDur           = swapchainStats.presentWaitDur;
+    stats->limiterDur               = limiter->sleepDur;
 
     stats->passCount = canvasStats.passCount;
     mem_cpy(

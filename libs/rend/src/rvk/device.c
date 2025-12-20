@@ -105,7 +105,7 @@ static bool rvk_validate_features(const VkPhysicalDeviceFeatures* f) {
   return true;
 }
 
-static void rvk_config_robustness2(RvkDevice* d, VkPhysicalDeviceRobustness2FeaturesEXT* f) {
+static void rvk_config_robustness2(RvkDevice* d, VkPhysicalDeviceRobustness2FeaturesKHR* f) {
   f->robustImageAccess2  = false; // Unused.
   f->robustBufferAccess2 = false; // Unused.
   if (f->nullDescriptor) {
@@ -113,15 +113,21 @@ static void rvk_config_robustness2(RvkDevice* d, VkPhysicalDeviceRobustness2Feat
   }
 }
 
-static void rvk_config_present_id(RvkDevice* d, VkPhysicalDevicePresentIdFeaturesKHR* f) {
-  if (f->presentId) {
+static void rvk_config_present_id(RvkDevice* d, VkPhysicalDevicePresentId2FeaturesKHR* f) {
+  if (f->presentId2) {
     d->flags |= RvkDeviceFlags_SupportPresentId;
   }
 }
 
-static void rvk_config_present_wait(RvkDevice* d, VkPhysicalDevicePresentWaitFeaturesKHR* f) {
-  if (f->presentWait) {
+static void rvk_config_present_wait(RvkDevice* d, VkPhysicalDevicePresentWait2FeaturesKHR* f) {
+  if (f->presentWait2) {
     d->flags |= RvkDeviceFlags_SupportPresentWait;
+  }
+}
+
+static void rvk_config_present_timing(RvkDevice* d, VkPhysicalDevicePresentTimingFeaturesEXT* f) {
+  if (f->presentTiming) {
+    d->flags |= RvkDeviceFlags_SupportPresentTiming;
   }
 }
 
@@ -353,8 +359,8 @@ static VkDevice rvk_device_create_internal(RvkLib* lib, RvkDevice* dev) {
   // Add optional extensions and features.
   void* nextFeature = null;
 
-  VkPhysicalDeviceRobustness2FeaturesEXT featureRobustness = {
-      .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_FEATURES_EXT,
+  VkPhysicalDeviceRobustness2FeaturesKHR featureRobustness = {
+      .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_FEATURES_KHR,
       .pNext = nextFeature,
   };
   if (rvk_has_ext(supportedExts, string_from_null_term(VK_EXT_robustness2))) {
@@ -362,22 +368,31 @@ static VkDevice rvk_device_create_internal(RvkLib* lib, RvkDevice* dev) {
     extsToEnable[extsToEnableCount++] = VK_EXT_robustness2;
   }
 
-  VkPhysicalDevicePresentIdFeaturesKHR featurePresentId = {
-      .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRESENT_ID_FEATURES_KHR,
+  VkPhysicalDevicePresentId2FeaturesKHR featurePresentId = {
+      .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRESENT_ID_2_FEATURES_KHR,
       .pNext = nextFeature,
   };
-  if (rvk_has_ext(supportedExts, string_from_null_term(VK_KHR_present_id))) {
+  if (rvk_has_ext(supportedExts, string_from_null_term(VK_KHR_present_id2))) {
     nextFeature                       = &featurePresentId;
-    extsToEnable[extsToEnableCount++] = VK_KHR_present_id;
+    extsToEnable[extsToEnableCount++] = VK_KHR_present_id2;
   }
 
-  VkPhysicalDevicePresentWaitFeaturesKHR featurePresentWait = {
-      .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRESENT_WAIT_FEATURES_KHR,
+  VkPhysicalDevicePresentWait2FeaturesKHR featurePresentWait = {
+      .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRESENT_WAIT_2_FEATURES_KHR,
       .pNext = nextFeature,
   };
-  if (rvk_has_ext(supportedExts, string_from_null_term(VK_KHR_present_wait))) {
+  if (rvk_has_ext(supportedExts, string_from_null_term(VK_KHR_present_wait2))) {
     nextFeature                       = &featurePresentWait;
-    extsToEnable[extsToEnableCount++] = VK_KHR_present_wait;
+    extsToEnable[extsToEnableCount++] = VK_KHR_present_wait2;
+  }
+
+  VkPhysicalDevicePresentTimingFeaturesEXT featurePresentTiming = {
+      .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRESENT_TIMING_FEATURES_EXT,
+      .pNext = nextFeature,
+  };
+  if (rvk_has_ext(supportedExts, string_from_null_term(VK_EXT_present_timing))) {
+    nextFeature                       = &featurePresentTiming;
+    extsToEnable[extsToEnableCount++] = VK_EXT_present_timing;
   }
 
   VkPhysicalDevicePipelineExecutablePropertiesFeaturesKHR featureExecutableProperties = {
@@ -404,6 +419,7 @@ static VkDevice rvk_device_create_internal(RvkLib* lib, RvkDevice* dev) {
   rvk_config_robustness2(dev, &featureRobustness);
   rvk_config_present_id(dev, &featurePresentId);
   rvk_config_present_wait(dev, &featurePresentWait);
+  rvk_config_present_timing(dev, &featurePresentTiming);
   rvk_config_executable_properties(dev, &featureExecutableProperties);
   rvk_config_16bit_storage(dev, &feature16BitStorage);
   rvk_config_features(dev, &featureBase.features);

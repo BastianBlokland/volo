@@ -26,6 +26,7 @@ bool rvk_stopwatch_calibrated(const RvkStopwatch*);
  * NOTE: Call this before marking new timestamps.
  */
 void rvk_stopwatch_reset(RvkStopwatch*, VkCommandBuffer);
+
 /**
  * Retrieve the result of a previously marked timestamp (in nanoseconds).
  * NOTE: Make sure the gpu work has finished before calling this.

@@ -22,7 +22,7 @@ typedef enum {
   GapPalWindowFlags_KeyPressed         = 1 << 4,
   GapPalWindowFlags_KeyReleased        = 1 << 5,
   GapPalWindowFlags_Fullscreen         = 1 << 6,
-  GapPalWindowFlags_Focussed           = 1 << 7,
+  GapPalWindowFlags_Focused            = 1 << 7,
   GapPalWindowFlags_FocusLost          = 1 << 8,
   GapPalWindowFlags_FocusGained        = 1 << 9,
   GapPalWindowFlags_ClipPaste          = 1 << 10,

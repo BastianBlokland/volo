@@ -12,9 +12,15 @@ typedef struct sRvkSwapchain RvkSwapchain;
 typedef struct sRvkSwapchainStats {
   TimeDuration acquireDur;
   TimeDuration presentEnqueueDur, presentWaitDur;
-  u64          presentId;
+  TimeDuration refreshDuration; // 0 if unavailable.
   u16          imageCount;
 } RvkSwapchainStats;
+
+typedef struct sRvkSwapchainPresent {
+  u64          frameIdx;
+  TimeSteady   dequeueTime; // Time at which the presentation engine dequeue it from the swapchain.
+  TimeDuration duration;
+} RvkSwapchainPresent;
 
 RvkSwapchain* rvk_swapchain_create(RvkLib*, RvkDevice*, const GapWindowComp*);
 void          rvk_swapchain_destroy(RvkSwapchain*);
@@ -41,13 +47,20 @@ RvkSwapchainIdx rvk_swapchain_acquire(RvkSwapchain*, VkSemaphore);
  * Enqueue an image to be presented to the surface.
  * Image is presented when the 'rvk_swapchain_semaphore(idx)' is signaled.
  */
-bool rvk_swapchain_enqueue_present(RvkSwapchain*, RvkSwapchainIdx);
+bool rvk_swapchain_enqueue_present(RvkSwapchain*, RvkSwapchainIdx, u64 frameIdx, bool track);
+
+/**
+ * Query past presentations which have been completed.
+ * Returns the amount of completed presentations since the last call.
+ * NOTE: Not supported on all platforms, always return 0 when unsupported.
+ */
+u32 rvk_swapchain_query_presents(const RvkSwapchain*, RvkSwapchainPresent out[], u32 outMax);
 
 /**
  * Wait for a previously enqueued presentation to be shown to the user.
  * The 'numBehind' argument controls which presentation to wait for:
- * - '0' means the last enqueued presentation.
- * - '1' means the previous enqueued presentation.
+ * - '0' means the last frame's presentation.
+ * - '1' means the previous frame's presentation.
  * etc.
  *
  * NOTE: Is a no-op if the device and/or driver does not support tracking presentations.

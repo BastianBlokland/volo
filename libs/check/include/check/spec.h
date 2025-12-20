@@ -41,7 +41,7 @@ typedef struct sCheckTest {
 #define skip_it(_DESCRIPTION_, ...) it(_DESCRIPTION_, .flags = CheckTestFlags_Skip, __VA_ARGS__)
 
 /**
- * Define a focussed test (will not execute any non-focussed tests.
+ * Define a Focused test (will not execute any non-Focused tests.
  */
 #define focus_it(_DESCRIPTION_, ...) it(_DESCRIPTION_, .flags = CheckTestFlags_Focus, __VA_ARGS__)
 
