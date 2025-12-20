@@ -1010,7 +1010,7 @@ VkResult vkLoadDevice(VkDevice dev, const VkInterfaceInstance* src, VkInterfaceD
   out->getPipelineExecutablePropertiesKHR = (Symbol)src->getDeviceProcAddr(dev, "vkGetPipelineExecutablePropertiesKHR");
   out->getPipelineExecutableStatisticsKHR = (Symbol)src->getDeviceProcAddr(dev, "vkGetPipelineExecutableStatisticsKHR");
   out->getPipelineExecutableInternalRepresentationsKHR = (Symbol)src->getDeviceProcAddr(dev, "vkGetPipelineExecutableInternalRepresentationsKHR");
-  out->waitForPresentKHR = (Symbol)src->getDeviceProcAddr(dev, "vkWaitForPresentKHR");
+  out->waitForPresent2KHR = (Symbol)src->getDeviceProcAddr(dev, "vkWaitForPresent2KHR");
   out->createSwapchainKHR = (Symbol)src->getDeviceProcAddr(dev, "vkCreateSwapchainKHR");
   out->destroySwapchainKHR = (Symbol)src->getDeviceProcAddr(dev, "vkDestroySwapchainKHR");
   out->getSwapchainImagesKHR = (Symbol)src->getDeviceProcAddr(dev, "vkGetSwapchainImagesKHR");

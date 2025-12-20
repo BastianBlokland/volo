@@ -39,14 +39,16 @@
 
 typedef enum {
   RvkSwapchainFlags_PresentIdEnabled       = 1 << 0,
-  RvkSwapchainFlags_PresentTimingEnabled   = 1 << 1,
-  RvkSwapchainFlags_PresentTimingQueueFull = 1 << 2,
-  RvkSwapchainFlags_OutOfDate              = 1 << 3,
+  RvkSwapchainFlags_PresentWaitEnabled     = 1 << 1,
+  RvkSwapchainFlags_PresentTimingEnabled   = 1 << 2,
+  RvkSwapchainFlags_PresentTimingQueueFull = 1 << 3,
+  RvkSwapchainFlags_OutOfDate              = 1 << 4,
 } RvkSwapchainFlags;
 
 typedef struct {
   VkSurfaceCapabilitiesKHR capabilities;
   bool                     presentId;
+  bool                     presentWait;
   bool                     presentTiming;
 } RvkSurfaceCaps;
 
@@ -230,6 +232,14 @@ static RvkSurfaceCaps rvk_surface_caps(RvkLib* lib, RvkDevice* dev, VkSurfaceKHR
     nextCapabilities = &presentIdCapabilities;
   }
 
+  VkSurfaceCapabilitiesPresentWait2KHR presentWaitCapabilities = {
+      .sType = VK_STRUCTURE_TYPE_SURFACE_CAPABILITIES_PRESENT_WAIT_2_KHR,
+      .pNext = nextCapabilities,
+  };
+  if (dev->flags & RvkDeviceFlags_SupportPresentWait) {
+    nextCapabilities = &presentWaitCapabilities;
+  }
+
   VkPresentTimingSurfaceCapabilitiesEXT timingCapabilities = {
       .sType = VK_STRUCTURE_TYPE_PRESENT_TIMING_SURFACE_CAPABILITIES_EXT,
       .pNext = nextCapabilities,
@@ -247,6 +257,7 @@ static RvkSurfaceCaps rvk_surface_caps(RvkLib* lib, RvkDevice* dev, VkSurfaceKHR
   return (RvkSurfaceCaps){
       .capabilities  = result.surfaceCapabilities,
       .presentId     = presentIdCapabilities.presentId2Supported,
+      .presentWait   = presentWaitCapabilities.presentWait2Supported,
       .presentTiming = timingCapabilities.presentTimingSupported &&
                        ((timingCapabilities.presentStageQueries & swapchain_timing_present_stage) ==
                         swapchain_timing_present_stage),
@@ -421,6 +432,9 @@ static bool rvk_swapchain_init(RvkSwapchain* swap, const RendSettingsComp* setti
 
   if (surfCaps.presentId) {
     swap->flags |= RvkSwapchainFlags_PresentIdEnabled;
+  }
+  if (surfCaps.presentWait) {
+    swap->flags |= RvkSwapchainFlags_PresentWaitEnabled;
   }
   if (surfCaps.presentTiming) {
     swap->flags |= RvkSwapchainFlags_PresentTimingEnabled;
@@ -730,19 +744,19 @@ void rvk_swapchain_wait_for_present(const RvkSwapchain* swap, const u32 numBehin
      */
     return;
   }
-  if ((swap->dev->flags & RvkDeviceFlags_SupportPresentWait) && swap->dev->api.waitForPresentKHR) {
+  if ((swap->flags & RvkSwapchainFlags_PresentWaitEnabled) && swap->dev->api.waitForPresent2KHR) {
     // TODO: This has some questionable thread-safety.
     RvkSwapchain*    mutableSwapchain = (RvkSwapchain*)swap;
     const TimeSteady startTime        = time_steady_clock();
 
-    const TimeDuration timeout = time_second / 30;
-    VkResult           result  = rvk_call(
-        swap->dev,
-        waitForPresentKHR,
-        swap->dev->vkDev,
-        swap->vkSwap,
-        swap->lastFrameIdx - numBehind,
-        timeout);
+    const VkPresentWait2InfoKHR waitInfo = {
+        .sType     = VK_STRUCTURE_TYPE_PRESENT_WAIT_2_INFO_KHR,
+        .presentId = swap->lastFrameIdx - numBehind,
+        .timeout   = time_second / 30,
+    };
+
+    const VkResult result =
+        rvk_call(swap->dev, waitForPresent2KHR, swap->dev->vkDev, swap->vkSwap, &waitInfo);
 
     mutableSwapchain->lastPresentWaitDur = time_steady_duration(startTime, time_steady_clock());
 

@@ -104,7 +104,7 @@ static const String g_vkgenExtensions[] = {
     string_static("VK_KHR_maintenance4"),
     string_static("VK_KHR_pipeline_executable_properties"),
     string_static("VK_KHR_present_id2"),
-    string_static("VK_KHR_present_wait"),
+    string_static("VK_KHR_present_wait2"),
     string_static("VK_KHR_surface"),
     string_static("VK_KHR_swapchain"),
     string_static("VK_KHR_win32_surface"),

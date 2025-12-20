@@ -56,7 +56,7 @@
 #define VK_KHR_maintenance4 "VK_KHR_maintenance4"
 #define VK_KHR_pipeline_executable_properties "VK_KHR_pipeline_executable_properties"
 #define VK_KHR_present_id2 "VK_KHR_present_id2"
-#define VK_KHR_present_wait "VK_KHR_present_wait"
+#define VK_KHR_present_wait2 "VK_KHR_present_wait2"
 #define VK_KHR_surface "VK_KHR_surface"
 #define VK_KHR_swapchain "VK_KHR_swapchain"
 #define VK_KHR_win32_surface "VK_KHR_win32_surface"
@@ -274,7 +274,6 @@ typedef enum {
   VK_STRUCTURE_TYPE_SWAPCHAIN_CALIBRATED_TIMESTAMP_INFO_EXT = 1000208009,
   VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_BUDGET_PROPERTIES_EXT = 1000237000,
   VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT = 1000247000,
-  VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRESENT_WAIT_FEATURES_KHR = 1000248000,
   VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PIPELINE_EXECUTABLE_PROPERTIES_FEATURES_KHR = 1000269000,
   VK_STRUCTURE_TYPE_PIPELINE_INFO_KHR = 1000269001,
   VK_STRUCTURE_TYPE_PIPELINE_EXECUTABLE_PROPERTIES_KHR = 1000269002,
@@ -290,6 +289,9 @@ typedef enum {
   VK_STRUCTURE_TYPE_SURFACE_CAPABILITIES_PRESENT_ID_2_KHR = 1000479000,
   VK_STRUCTURE_TYPE_PRESENT_ID_2_KHR = 1000479001,
   VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRESENT_ID_2_FEATURES_KHR = 1000479002,
+  VK_STRUCTURE_TYPE_SURFACE_CAPABILITIES_PRESENT_WAIT_2_KHR = 1000480000,
+  VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRESENT_WAIT_2_FEATURES_KHR = 1000480001,
+  VK_STRUCTURE_TYPE_PRESENT_WAIT_2_INFO_KHR = 1000480002,
 } VkStructureType;
 
 typedef struct VkBaseInStructure {
@@ -3429,11 +3431,24 @@ typedef struct VkPhysicalDevicePresentId2FeaturesKHR {
   VkBool32 presentId2;
 } VkPhysicalDevicePresentId2FeaturesKHR;
 
-typedef struct VkPhysicalDevicePresentWaitFeaturesKHR {
+typedef struct VkSurfaceCapabilitiesPresentWait2KHR {
   VkStructureType sType;
   void* pNext;
-  VkBool32 presentWait;
-} VkPhysicalDevicePresentWaitFeaturesKHR;
+  VkBool32 presentWait2Supported;
+} VkSurfaceCapabilitiesPresentWait2KHR;
+
+typedef struct VkPhysicalDevicePresentWait2FeaturesKHR {
+  VkStructureType sType;
+  void* pNext;
+  VkBool32 presentWait2;
+} VkPhysicalDevicePresentWait2FeaturesKHR;
+
+typedef struct VkPresentWait2InfoKHR {
+  VkStructureType sType;
+  const void* pNext;
+  u64 presentId;
+  u64 timeout;
+} VkPresentWait2InfoKHR;
 
 typedef enum {
   VK_PRESENT_MODE_IMMEDIATE_KHR = 0,
@@ -3453,6 +3468,7 @@ typedef enum {
   VK_SWAPCHAIN_CREATE_SPLIT_INSTANCE_BIND_REGIONS_BIT_KHR = 1,
   VK_SWAPCHAIN_CREATE_PROTECTED_BIT_KHR = 2,
   VK_SWAPCHAIN_CREATE_PRESENT_ID_2_BIT_KHR = 64,
+  VK_SWAPCHAIN_CREATE_PRESENT_WAIT_2_BIT_KHR = 128,
   VK_SWAPCHAIN_CREATE_PRESENT_TIMING_BIT_EXT = 512,
 } VkSwapchainCreateFlagBitsKHR;
 
@@ -3784,7 +3800,7 @@ typedef struct VkInterfaceDevice {
   VkResult (SYS_DECL* getPipelineExecutablePropertiesKHR)(VkDevice device, const VkPipelineInfoKHR* pPipelineInfo, u32* pExecutableCount, VkPipelineExecutablePropertiesKHR* pProperties);
   VkResult (SYS_DECL* getPipelineExecutableStatisticsKHR)(VkDevice device, const VkPipelineExecutableInfoKHR* pExecutableInfo, u32* pStatisticCount, VkPipelineExecutableStatisticKHR* pStatistics);
   VkResult (SYS_DECL* getPipelineExecutableInternalRepresentationsKHR)(VkDevice device, const VkPipelineExecutableInfoKHR* pExecutableInfo, u32* pInternalRepresentationCount, VkPipelineExecutableInternalRepresentationKHR* pInternalRepresentations);
-  VkResult (SYS_DECL* waitForPresentKHR)(VkDevice device, VkSwapchainKHR swapchain, u64 presentId, u64 timeout);
+  VkResult (SYS_DECL* waitForPresent2KHR)(VkDevice device, VkSwapchainKHR swapchain, const VkPresentWait2InfoKHR* pPresentWait2Info);
   VkResult (SYS_DECL* createSwapchainKHR)(VkDevice device, const VkSwapchainCreateInfoKHR* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkSwapchainKHR* pSwapchain);
   void (SYS_DECL* destroySwapchainKHR)(VkDevice device, VkSwapchainKHR swapchain, const VkAllocationCallbacks* pAllocator);
   VkResult (SYS_DECL* getSwapchainImagesKHR)(VkDevice device, VkSwapchainKHR swapchain, u32* pSwapchainImageCount, VkImage* pSwapchainImages);

@@ -119,8 +119,8 @@ static void rvk_config_present_id(RvkDevice* d, VkPhysicalDevicePresentId2Featur
   }
 }
 
-static void rvk_config_present_wait(RvkDevice* d, VkPhysicalDevicePresentWaitFeaturesKHR* f) {
-  if (f->presentWait) {
+static void rvk_config_present_wait(RvkDevice* d, VkPhysicalDevicePresentWait2FeaturesKHR* f) {
+  if (f->presentWait2) {
     d->flags |= RvkDeviceFlags_SupportPresentWait;
   }
 }
@@ -377,13 +377,13 @@ static VkDevice rvk_device_create_internal(RvkLib* lib, RvkDevice* dev) {
     extsToEnable[extsToEnableCount++] = VK_KHR_present_id2;
   }
 
-  VkPhysicalDevicePresentWaitFeaturesKHR featurePresentWait = {
-      .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRESENT_WAIT_FEATURES_KHR,
+  VkPhysicalDevicePresentWait2FeaturesKHR featurePresentWait = {
+      .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRESENT_WAIT_2_FEATURES_KHR,
       .pNext = nextFeature,
   };
-  if (rvk_has_ext(supportedExts, string_from_null_term(VK_KHR_present_wait))) {
+  if (rvk_has_ext(supportedExts, string_from_null_term(VK_KHR_present_wait2))) {
     nextFeature                       = &featurePresentWait;
-    extsToEnable[extsToEnableCount++] = VK_KHR_present_wait;
+    extsToEnable[extsToEnableCount++] = VK_KHR_present_wait2;
   }
 
   VkPhysicalDevicePresentTimingFeaturesEXT featurePresentTiming = {
