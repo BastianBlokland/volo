@@ -210,9 +210,8 @@ static void rvk_canvas_push_traces_gpu(const RvkCanvasFrame* frame, const RvkJob
 }
 
 static void rvk_canvas_push_traces_display(const RvkSwapchain* swapchain) {
-  RvkSwapchainPresentation presents[16];
-  const u32                presentCount =
-      rvk_swapchain_query_presentations(swapchain, presents, array_elems(presents));
+  RvkSwapchainPresent presents[16];
+  const u32 presentCount = rvk_swapchain_query_presents(swapchain, presents, array_elems(presents));
 
   for (u32 i = 0; i != presentCount; ++i) {
     trace_custom_begin_msg(

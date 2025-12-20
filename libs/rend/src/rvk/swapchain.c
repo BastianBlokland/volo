@@ -631,8 +631,8 @@ bool rvk_swapchain_enqueue_present(
   }
 }
 
-u32 rvk_swapchain_query_presentations(
-    const RvkSwapchain* swap, RvkSwapchainPresentation out[], const u32 outMax) {
+u32 rvk_swapchain_query_presents(
+    const RvkSwapchain* swap, RvkSwapchainPresent out[], const u32 outMax) {
 
   if (!swap->vkSwap || !(swap->flags & RvkSwapchainFlags_PresentTimingEnabled)) {
     return 0;
@@ -698,7 +698,7 @@ u32 rvk_swapchain_query_presentations(
     if (result == outMax) {
       break; // TODO: Should we warn that results could be dropped in this case?
     }
-    out[result++] = (RvkSwapchainPresentation){
+    out[result++] = (RvkSwapchainPresent){
         .frameIdx = timings[i].presentId,
         // TODO: For windows support we likely need to query the performance counter frequency.
         .dequeueTime = (TimeSteady)timings[i].pPresentStages[0].time,
