@@ -10,6 +10,14 @@
 #include "lib.h"
 #include "swapchain.h"
 
+#if defined(VOLO_LINUX)
+#define rvk_timedomain_host VK_TIME_DOMAIN_CLOCK_MONOTONIC_KHR
+#elif defined(VOLO_WIN32)
+#define rvk_timedomain_host VK_TIME_DOMAIN_QUERY_PERFORMANCE_COUNTER_KHR
+#else
+#error Unsupported platform
+#endif
+
 #define swapchain_images_max 5
 #define swapchain_presentmode_desired_max 8
 
@@ -56,7 +64,9 @@ struct sRvkSwapchain {
   u64          curPresentId;
 
   u64          timingPropertiesCounter; // Incremented when timing properties have changed.
+  u64          timingDomainCounter;     // Incremented when timing domains have changed.
   TimeDuration timingRefreshDuration;   // 0 if unavailable.
+  u64          timingDomainId;
 };
 
 static VkSemaphore rvk_semaphore_create(RvkDevice* dev) {
@@ -253,7 +263,7 @@ static void rvk_swapchain_query_timing_properties(RvkSwapchain* swap) {
     }
     swap->timingPropertiesCounter = timingPropertiesCounter;
     swap->timingRefreshDuration   = timingProperties.refreshDuration; // Min dur for VRR.
-    log_i(
+    log_d(
         "Vulkan swapchain timing properties updated",
         log_param("refresh-duration", fmt_duration(swap->timingRefreshDuration)));
     return;
@@ -266,6 +276,60 @@ static void rvk_swapchain_query_timing_properties(RvkSwapchain* swap) {
 Unavailable:
   swap->timingPropertiesCounter = sentinel_u64;
   swap->timingRefreshDuration   = 0;
+  return;
+}
+
+static void rvk_swapchain_query_timing_domains(RvkSwapchain* swap) {
+  if (!swap->vkSwap || !(swap->flags & RvkSwapchainFlags_PresentTimingEnabled)) {
+    goto Unavailable;
+  }
+  VkTimeDomainKHR domains[32];
+  u64             domainIds[array_elems(domains)];
+
+  VkSwapchainTimeDomainPropertiesEXT domainProperties = {
+      .sType           = VK_STRUCTURE_TYPE_SWAPCHAIN_TIME_DOMAIN_PROPERTIES_EXT,
+      .timeDomainCount = array_elems(domains),
+      .pTimeDomains    = domains,
+      .pTimeDomainIds  = domainIds,
+  };
+  u64            timingDomainCounter;
+  const VkResult result = rvk_call(
+      swap->dev,
+      getSwapchainTimeDomainPropertiesEXT,
+      swap->dev->vkDev,
+      swap->vkSwap,
+      &domainProperties,
+      &timingDomainCounter);
+
+  switch (result) {
+  case VK_SUCCESS:
+  case VK_INCOMPLETE:
+    if (timingDomainCounter == swap->timingDomainCounter) {
+      return; // Domains have not changed.
+    }
+    swap->timingDomainId = sentinel_u64;
+    for (u32 i = 0; i != domainProperties.timeDomainCount; ++i) {
+      if (domains[i] == rvk_timedomain_host) {
+        swap->timingDomainId = domainIds[i];
+        break;
+      }
+    }
+    swap->timingDomainCounter = timingDomainCounter;
+    if (sentinel_check(swap->timingDomainId)) {
+      log_w("Vulkan swapchain no host timing domain available");
+    } else {
+      log_d(
+          "Vulkan swapchain host timing domain found",
+          log_param("domain-id", fmt_int(swap->timingDomainId)));
+    }
+    return;
+  default:
+    rvk_api_check(string_lit("getSwapchainTimeDomainPropertiesEXT"), result);
+  }
+
+Unavailable:
+  swap->timingDomainCounter = sentinel_u64;
+  swap->timingDomainId      = sentinel_u64;
   return;
 }
 
@@ -364,6 +428,7 @@ static bool rvk_swapchain_init(RvkSwapchain* swap, const RendSettingsComp* setti
       log_param("image-count", fmt_int(swap->imgCount)));
 
   rvk_swapchain_query_timing_properties(swap);
+  rvk_swapchain_query_timing_domains(swap);
 
   return true;
 }
@@ -378,6 +443,7 @@ RvkSwapchain* rvk_swapchain_create(RvkLib* lib, RvkDevice* dev, const GapWindowC
       .vkSurf                  = vkSurf,
       .vkSurfFormat            = rvk_pick_surface_format(lib, dev, vkSurf),
       .timingPropertiesCounter = sentinel_u64,
+      .timingDomainCounter     = sentinel_u64,
   };
 
   VkBool32 supported;
