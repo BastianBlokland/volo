@@ -54,7 +54,8 @@ bool rvk_swapchain_enqueue_present(RvkSwapchain*, RvkSwapchainIdx, u64 frameIdx)
  * Returns the amount of completed presentations since the last call.
  * NOTE: Not supported on all platforms, always return 0 when unsupported.
  */
-u32 rvk_swapchain_query_presentations(RvkSwapchain*, RvkSwapchainPresentation out[], u32 outMax);
+u32 rvk_swapchain_query_presentations(
+    const RvkSwapchain*, RvkSwapchainPresentation out[], u32 outMax);
 
 /**
  * Wait for a previously enqueued presentation to be shown to the user.

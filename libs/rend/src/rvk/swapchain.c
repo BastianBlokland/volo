@@ -632,11 +632,13 @@ bool rvk_swapchain_enqueue_present(
 }
 
 u32 rvk_swapchain_query_presentations(
-    RvkSwapchain* swap, RvkSwapchainPresentation out[], const u32 outMax) {
+    const RvkSwapchain* swap, RvkSwapchainPresentation out[], const u32 outMax) {
 
   if (!swap->vkSwap || !(swap->flags & RvkSwapchainFlags_PresentTimingEnabled)) {
     return 0;
   }
+  // TODO: This has some questionable thread-safety.
+  RvkSwapchain* mutableSwapchain = (RvkSwapchain*)swap;
 
   enum { MaxTimingStages = 1 };
   diag_assert(bits_popcnt_32(swapchain_timing_present_stage) <= MaxTimingStages);
@@ -672,14 +674,14 @@ u32 rvk_swapchain_query_presentations(
       &pastTimingProperties);
 
   if (pastTimingProperties.timingPropertiesCounter != swap->timingPropertiesCounter) {
-    rvk_swapchain_query_timing_properties(swap);
+    rvk_swapchain_query_timing_properties(mutableSwapchain);
   }
   if (pastTimingProperties.timeDomainsCounter != swap->timingDomainCounter) {
-    rvk_swapchain_query_timing_domains(swap);
+    rvk_swapchain_query_timing_domains(mutableSwapchain);
   }
 
   if (pastTimingProperties.presentationTimingCount) {
-    swap->flags &= ~RvkSwapchainFlags_PresentTimingQueueFull;
+    mutableSwapchain->flags &= ~RvkSwapchainFlags_PresentTimingQueueFull;
   }
 
   u32 result = 0;
@@ -715,6 +717,7 @@ void rvk_swapchain_wait_for_present(const RvkSwapchain* swap, const u32 numBehin
     return;
   }
   if ((swap->dev->flags & RvkDeviceFlags_SupportPresentWait) && swap->dev->api.waitForPresentKHR) {
+    // TODO: This has some questionable thread-safety.
     RvkSwapchain*    mutableSwapchain = (RvkSwapchain*)swap;
     const TimeSteady startTime        = time_steady_clock();
 
