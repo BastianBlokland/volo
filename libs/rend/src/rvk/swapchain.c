@@ -156,6 +156,15 @@ static u32 rvk_pick_imagecount(const RvkSurfaceCaps* caps, const VkPresentModeKH
     break;
   case VK_PRESENT_MODE_FIFO_KHR:
   case VK_PRESENT_MODE_FIFO_RELAXED_KHR:
+    /**
+     * Minimum image count is 3: one on-screen, one ready, and one being rendered to.
+     *
+     * However when both the CPU and GPU work finish in the same frame we end up being so far ahead
+     * that there is no image to acquire and we block in the middle of the next frame. Having an
+     * additional image means we can already start work on that frame.
+     */
+    imgCount = 4;
+    break;
   case VK_PRESENT_MODE_MAILBOX_KHR:
   default:
     imgCount = 3; // one on-screen, one ready, and one being rendered to.
