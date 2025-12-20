@@ -377,7 +377,7 @@ void rvk_canvas_end(RvkCanvas* canvas) {
 
   if (hasSwapchain) {
     trace_begin("rend_present_enqueue", TraceColor_Blue);
-    rvk_swapchain_enqueue_present(canvas->swapchain, frame->swapchainIdx);
+    rvk_swapchain_enqueue_present(canvas->swapchain, frame->swapchainIdx, frame->frameIdx);
     trace_end();
   }
 

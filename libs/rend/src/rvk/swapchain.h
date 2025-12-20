@@ -12,7 +12,6 @@ typedef struct sRvkSwapchain RvkSwapchain;
 typedef struct sRvkSwapchainStats {
   TimeDuration acquireDur;
   TimeDuration presentEnqueueDur, presentWaitDur;
-  u64          presentId;
   u16          imageCount;
 } RvkSwapchainStats;
 
@@ -41,13 +40,13 @@ RvkSwapchainIdx rvk_swapchain_acquire(RvkSwapchain*, VkSemaphore);
  * Enqueue an image to be presented to the surface.
  * Image is presented when the 'rvk_swapchain_semaphore(idx)' is signaled.
  */
-bool rvk_swapchain_enqueue_present(RvkSwapchain*, RvkSwapchainIdx);
+bool rvk_swapchain_enqueue_present(RvkSwapchain*, RvkSwapchainIdx, u64 frameIdx);
 
 /**
  * Wait for a previously enqueued presentation to be shown to the user.
  * The 'numBehind' argument controls which presentation to wait for:
- * - '0' means the last enqueued presentation.
- * - '1' means the previous enqueued presentation.
+ * - '0' means the last frame's presentation.
+ * - '1' means the previous frame's presentation.
  * etc.
  *
  * NOTE: Is a no-op if the device and/or driver does not support tracking presentations.

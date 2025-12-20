@@ -61,8 +61,8 @@ struct sRvkSwapchain {
   VkSemaphore        semaphores[swapchain_images_max]; // Semaphore to signal presentation.
 
   TimeDuration lastAcquireDur, lastPresentEnqueueDur, lastPresentWaitDur;
-  u64          originPresentId; // Identifier of the last present before recreating the swapchain.
-  u64          curPresentId;
+  u64          originFrameIdx; // Identifier of the last frame before recreating the swapchain.
+  u64          lastFrameIdx;
 
   u64          timingPropertiesCounter; // Incremented when timing properties have changed.
   u64          timingDomainCounter;     // Incremented when timing domains have changed.
@@ -403,9 +403,9 @@ static bool rvk_swapchain_init(RvkSwapchain* swap, const RendSettingsComp* setti
   }
 
   swap->flags &= ~RvkSwapchainFlags_OutOfDate;
-  swap->syncMode        = settings->syncMode;
-  swap->size            = size;
-  swap->originPresentId = swap->curPresentId;
+  swap->syncMode       = settings->syncMode;
+  swap->size           = size;
+  swap->originFrameIdx = swap->lastFrameIdx;
 
   if (surfCaps.presentTiming) {
     swap->flags |= RvkSwapchainFlags_PresentTimingEnabled;
@@ -488,7 +488,6 @@ void rvk_swapchain_stats(const RvkSwapchain* swap, RvkSwapchainStats* out) {
   out->acquireDur        = swap->lastAcquireDur;
   out->presentEnqueueDur = swap->lastPresentEnqueueDur;
   out->presentWaitDur    = swap->lastPresentWaitDur;
-  out->presentId         = swap->curPresentId;
   out->imageCount        = (u16)swap->imgCount;
 }
 
@@ -562,11 +561,13 @@ RvkSwapchainIdx rvk_swapchain_acquire(RvkSwapchain* swap, VkSemaphore available)
   }
 }
 
-bool rvk_swapchain_enqueue_present(RvkSwapchain* swap, const RvkSwapchainIdx idx) {
+bool rvk_swapchain_enqueue_present(
+    RvkSwapchain* swap, const RvkSwapchainIdx idx, const u64 frameIdx) {
   RvkImage* image = rvk_swapchain_image(swap, idx);
   rvk_image_assert_phase(image, RvkImagePhase_Present);
 
-  ++swap->curPresentId;
+  diag_assert(frameIdx > swap->lastFrameIdx);
+  swap->lastFrameIdx = frameIdx;
 
   const void* nextPresentData = null;
 
@@ -574,7 +575,7 @@ bool rvk_swapchain_enqueue_present(RvkSwapchain* swap, const RvkSwapchainIdx idx
       .sType          = VK_STRUCTURE_TYPE_PRESENT_ID_KHR,
       .pNext          = nextPresentData,
       .swapchainCount = 1,
-      .pPresentIds    = &swap->curPresentId,
+      .pPresentIds    = &swap->lastFrameIdx,
   };
   if (swap->dev->flags & RvkDeviceFlags_SupportPresentId) {
     nextPresentData = &presentIdData;
@@ -616,13 +617,11 @@ bool rvk_swapchain_enqueue_present(RvkSwapchain* swap, const RvkSwapchainIdx idx
     return true; // Presenting will still succeed.
   case VK_ERROR_OUT_OF_DATE_KHR:
     swap->flags |= RvkSwapchainFlags_OutOfDate;
-    log_d(
-        "Out-of-date swapchain detected during present",
-        log_param("id", fmt_int(swap->curPresentId)));
+    log_d("Out-of-date swapchain detected during present", log_param("frame", fmt_int(frameIdx)));
     return false; // Presenting will fail.
   case VK_ERROR_PRESENT_TIMING_QUEUE_FULL_EXT:
     swap->flags |= RvkSwapchainFlags_PresentTimingQueueFull;
-    log_w("Vulkan swapchain timing queue full", log_param("id", fmt_int(swap->curPresentId)));
+    log_w("Vulkan swapchain timing queue full", log_param("frame", fmt_int(frameIdx)));
     return false; // Presenting will block.
   default:
     rvk_api_check(string_lit("queuePresentKHR"), result);
@@ -631,9 +630,9 @@ bool rvk_swapchain_enqueue_present(RvkSwapchain* swap, const RvkSwapchainIdx idx
 }
 
 void rvk_swapchain_wait_for_present(const RvkSwapchain* swap, const u32 numBehind) {
-  if (numBehind >= (swap->curPresentId - swap->originPresentId)) {
+  if (numBehind >= (swap->lastFrameIdx - swap->originFrameIdx)) {
     /**
-     * Out of bound presentation-ids are considered to be already presented.
+     * Out of bound presentation frames are considered to be already presented.
      * This is convenient for the calling code as it doesn't need the special case the first frame.
      */
     return;
@@ -648,7 +647,7 @@ void rvk_swapchain_wait_for_present(const RvkSwapchain* swap, const u32 numBehin
         waitForPresentKHR,
         swap->dev->vkDev,
         swap->vkSwap,
-        swap->curPresentId - numBehind,
+        swap->lastFrameIdx - numBehind,
         timeout);
 
     mutableSwapchain->lastPresentWaitDur = time_steady_duration(startTime, time_steady_clock());
@@ -668,10 +667,10 @@ void rvk_swapchain_wait_for_present(const RvkSwapchain* swap, const u32 numBehin
       mutableSwapchain->flags |= RvkSwapchainFlags_OutOfDate;
       log_d(
           "Out-of-date swapchain detected during wait",
-          log_param("id", fmt_int(swap->curPresentId)));
+          log_param("frame", fmt_int(swap->lastFrameIdx)));
       break;
     case VK_ERROR_DEVICE_LOST:
-      log_w("Device lost during swapchain wait", log_param("id", fmt_int(swap->curPresentId)));
+      log_w("Device lost during swapchain wait", log_param("frame", fmt_int(swap->lastFrameIdx)));
       break;
     default:
       rvk_api_check(string_lit("waitForPresentKHR"), result);
