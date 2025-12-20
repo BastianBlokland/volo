@@ -646,8 +646,9 @@ u32 rvk_swapchain_query_presentations(
 
   for (u32 i = 0; i != array_elems(timings); ++i) {
     timings[i] = (VkPastPresentationTimingEXT){
-        .sType          = VK_STRUCTURE_TYPE_PAST_PRESENTATION_TIMING_EXT,
-        .pPresentStages = stageTimes + i * MaxTimingStages,
+        .sType             = VK_STRUCTURE_TYPE_PAST_PRESENTATION_TIMING_EXT,
+        .presentStageCount = MaxTimingStages,
+        .pPresentStages    = stageTimes + i * MaxTimingStages,
     };
   }
 
