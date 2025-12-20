@@ -167,7 +167,13 @@ void rvk_canvas_stats(const RvkCanvas* canvas, RvkCanvasStats* out) {
 
 #ifdef VOLO_TRACE
 static void rvk_canvas_push_traces_gpu(const RvkCanvasFrame* frame, const RvkJobStats* jobStats) {
-  trace_custom_begin_msg("gpu", "frame", TraceColor_Blue, "frame-{}", fmt_int(frame->frameIdx));
+  trace_custom_begin_msg(
+      "gpu",
+      "frame",
+      TraceColor_Blue,
+      "frame-{} [{}]",
+      fmt_int(frame->frameIdx),
+      fmt_int(frame->swapchainIdx));
   {
     for (u32 passIdx = 0; passIdx != rvk_canvas_max_passes; ++passIdx) {
       const RvkPass* pass = frame->passes[passIdx];
