@@ -488,6 +488,7 @@ void rvk_swapchain_stats(const RvkSwapchain* swap, RvkSwapchainStats* out) {
   out->acquireDur        = swap->lastAcquireDur;
   out->presentEnqueueDur = swap->lastPresentEnqueueDur;
   out->presentWaitDur    = swap->lastPresentWaitDur;
+  out->refreshDuration   = swap->timingRefreshDuration;
   out->imageCount        = (u16)swap->imgCount;
 }
 

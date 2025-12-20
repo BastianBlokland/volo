@@ -37,14 +37,15 @@ ecs_comp_extern_public(RendStatsComp) {
   u32            passCount;
   RendStatsPass* passes; // RendStatsPass[rend_stats_max_passes];
 
-  u16 swapchainImageCount;
-  u16 memChunks;
-  u64 ramOccupied, ramReserved;
-  u64 vramOccupied, vramReserved;
-  u64 vramBudgetTotal, vramBudgetUsed; // Optionally available if supported by the driver.
-  u16 descSetsOccupied, descSetsReserved, descLayouts;
-  u16 attachCount;
-  u64 attachMemory;
-  u16 samplerCount;
-  u16 resources[RendStatsRes_Count];
+  TimeDuration swapchainRefreshDuration;
+  u16          swapchainImageCount;
+  u16          memChunks;
+  u64          ramOccupied, ramReserved;
+  u64          vramOccupied, vramReserved;
+  u64          vramBudgetTotal, vramBudgetUsed; // Optionally available if supported by the driver.
+  u16          descSetsOccupied, descSetsReserved, descLayouts;
+  u16          attachCount;
+  u64          attachMemory;
+  u16          samplerCount;
+  u16          resources[RendStatsRes_Count];
 };

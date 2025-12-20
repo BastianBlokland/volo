@@ -772,7 +772,7 @@ static void dev_stats_draw_interface(
     if (rendStats->profileSupported && stats_draw_button_entry(c, string_lit("Profile capture"), string_lit("Trigger"))) {
       rendStats->profileTrigger = true;
     }
-    stats_draw_val_entry(c, string_lit("Swapchain"), fmt_write_scratch("images: {}", fmt_int(rendStats->swapchainImageCount)));
+    stats_draw_val_entry(c, string_lit("Swapchain"), fmt_write_scratch("images: {} refresh: {}", fmt_int(rendStats->swapchainImageCount), fmt_duration(rendStats->swapchainRefreshDuration)));
     stats_draw_val_entry(c, string_lit("Attachments"), fmt_write_scratch("{<3} ({})", fmt_int(rendStats->attachCount), fmt_size(rendStats->attachMemory)));
     stats_draw_val_entry(c, string_lit("Samplers"), fmt_write_scratch("{}", fmt_int(rendStats->samplerCount)));
     stats_draw_val_entry(c, string_lit("Descriptor sets"), fmt_write_scratch("{<3} reserved: {}", fmt_int(rendStats->descSetsOccupied), fmt_int(rendStats->descSetsReserved)));
