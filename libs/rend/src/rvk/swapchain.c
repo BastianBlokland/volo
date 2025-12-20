@@ -444,6 +444,7 @@ RvkSwapchain* rvk_swapchain_create(RvkLib* lib, RvkDevice* dev, const GapWindowC
       .vkSurfFormat            = rvk_pick_surface_format(lib, dev, vkSurf),
       .timingPropertiesCounter = sentinel_u64,
       .timingDomainCounter     = sentinel_u64,
+      .timingDomainId          = sentinel_u64,
   };
 
   VkBool32 supported;
@@ -576,6 +577,21 @@ bool rvk_swapchain_enqueue_present(RvkSwapchain* swap, const RvkSwapchainIdx idx
   };
   if (swap->dev->flags & RvkDeviceFlags_SupportPresentId) {
     nextPresentData = &presentIdData;
+  }
+
+  const VkPresentTimingInfoEXT presentTimingInfoEntry = {
+      .sType               = VK_STRUCTURE_TYPE_PRESENT_TIMING_INFO_EXT,
+      .timeDomainId        = swap->timingDomainId,
+      .presentStageQueries = swapchain_timing_present_stage,
+  };
+  const VkPresentTimingsInfoEXT presentTimingInfo = {
+      .sType          = VK_STRUCTURE_TYPE_PRESENT_TIMINGS_INFO_EXT,
+      .pNext          = nextPresentData,
+      .swapchainCount = 1,
+      .pTimingInfos   = &presentTimingInfoEntry,
+  };
+  if (!sentinel_check(swap->timingDomainId)) {
+    nextPresentData = &presentTimingInfo;
   }
 
   const VkPresentInfoKHR presentInfo = {
