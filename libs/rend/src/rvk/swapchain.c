@@ -38,13 +38,15 @@
 #define swapchain_timing_queue_size 2
 
 typedef enum {
-  RvkSwapchainFlags_PresentTimingEnabled   = 1 << 0,
-  RvkSwapchainFlags_PresentTimingQueueFull = 1 << 1,
-  RvkSwapchainFlags_OutOfDate              = 1 << 2,
+  RvkSwapchainFlags_PresentIdEnabled       = 1 << 0,
+  RvkSwapchainFlags_PresentTimingEnabled   = 1 << 1,
+  RvkSwapchainFlags_PresentTimingQueueFull = 1 << 2,
+  RvkSwapchainFlags_OutOfDate              = 1 << 3,
 } RvkSwapchainFlags;
 
 typedef struct {
   VkSurfaceCapabilitiesKHR capabilities;
+  bool                     presentId;
   bool                     presentTiming;
 } RvkSurfaceCaps;
 
@@ -220,6 +222,14 @@ static RvkSurfaceCaps rvk_surface_caps(RvkLib* lib, RvkDevice* dev, VkSurfaceKHR
 
   void* nextCapabilities = null;
 
+  VkSurfaceCapabilitiesPresentId2KHR presentIdCapabilities = {
+      .sType = VK_STRUCTURE_TYPE_SURFACE_CAPABILITIES_PRESENT_ID_2_KHR,
+      .pNext = nextCapabilities,
+  };
+  if (dev->flags & RvkDeviceFlags_SupportPresentId) {
+    nextCapabilities = &presentIdCapabilities;
+  }
+
   VkPresentTimingSurfaceCapabilitiesEXT timingCapabilities = {
       .sType = VK_STRUCTURE_TYPE_PRESENT_TIMING_SURFACE_CAPABILITIES_EXT,
       .pNext = nextCapabilities,
@@ -236,6 +246,7 @@ static RvkSurfaceCaps rvk_surface_caps(RvkLib* lib, RvkDevice* dev, VkSurfaceKHR
 
   return (RvkSurfaceCaps){
       .capabilities  = result.surfaceCapabilities,
+      .presentId     = presentIdCapabilities.presentId2Supported,
       .presentTiming = timingCapabilities.presentTimingSupported &&
                        ((timingCapabilities.presentStageQueries & swapchain_timing_present_stage) ==
                         swapchain_timing_present_stage),
@@ -408,6 +419,9 @@ static bool rvk_swapchain_init(RvkSwapchain* swap, const RendSettingsComp* setti
   swap->size           = size;
   swap->originFrameIdx = swap->lastFrameIdx;
 
+  if (surfCaps.presentId) {
+    swap->flags |= RvkSwapchainFlags_PresentIdEnabled;
+  }
   if (surfCaps.presentTiming) {
     swap->flags |= RvkSwapchainFlags_PresentTimingEnabled;
     rvk_call_checked(
@@ -573,13 +587,13 @@ bool rvk_swapchain_enqueue_present(
 
   const void* nextPresentData = null;
 
-  const VkPresentIdKHR presentIdData = {
-      .sType          = VK_STRUCTURE_TYPE_PRESENT_ID_KHR,
+  const VkPresentId2KHR presentIdData = {
+      .sType          = VK_STRUCTURE_TYPE_PRESENT_ID_2_KHR,
       .pNext          = nextPresentData,
       .swapchainCount = 1,
       .pPresentIds    = &swap->lastFrameIdx,
   };
-  if (swap->dev->flags & RvkDeviceFlags_SupportPresentId) {
+  if (swap->flags & RvkSwapchainFlags_PresentIdEnabled) {
     nextPresentData = &presentIdData;
   }
 

@@ -113,8 +113,8 @@ static void rvk_config_robustness2(RvkDevice* d, VkPhysicalDeviceRobustness2Feat
   }
 }
 
-static void rvk_config_present_id(RvkDevice* d, VkPhysicalDevicePresentIdFeaturesKHR* f) {
-  if (f->presentId) {
+static void rvk_config_present_id(RvkDevice* d, VkPhysicalDevicePresentId2FeaturesKHR* f) {
+  if (f->presentId2) {
     d->flags |= RvkDeviceFlags_SupportPresentId;
   }
 }
@@ -368,13 +368,13 @@ static VkDevice rvk_device_create_internal(RvkLib* lib, RvkDevice* dev) {
     extsToEnable[extsToEnableCount++] = VK_EXT_robustness2;
   }
 
-  VkPhysicalDevicePresentIdFeaturesKHR featurePresentId = {
-      .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRESENT_ID_FEATURES_KHR,
+  VkPhysicalDevicePresentId2FeaturesKHR featurePresentId = {
+      .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRESENT_ID_2_FEATURES_KHR,
       .pNext = nextFeature,
   };
-  if (rvk_has_ext(supportedExts, string_from_null_term(VK_KHR_present_id))) {
+  if (rvk_has_ext(supportedExts, string_from_null_term(VK_KHR_present_id2))) {
     nextFeature                       = &featurePresentId;
-    extsToEnable[extsToEnableCount++] = VK_KHR_present_id;
+    extsToEnable[extsToEnableCount++] = VK_KHR_present_id2;
   }
 
   VkPhysicalDevicePresentWaitFeaturesKHR featurePresentWait = {
