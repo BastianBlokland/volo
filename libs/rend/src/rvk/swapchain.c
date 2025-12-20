@@ -37,8 +37,9 @@
 #define swapchain_timing_queue_size 2
 
 typedef enum {
-  RvkSwapchainFlags_PresentTimingEnabled = 1 << 0,
-  RvkSwapchainFlags_OutOfDate            = 1 << 1,
+  RvkSwapchainFlags_PresentTimingEnabled   = 1 << 0,
+  RvkSwapchainFlags_PresentTimingQueueFull = 1 << 1,
+  RvkSwapchainFlags_OutOfDate              = 1 << 2,
 } RvkSwapchainFlags;
 
 typedef struct {
@@ -565,9 +566,9 @@ bool rvk_swapchain_enqueue_present(RvkSwapchain* swap, const RvkSwapchainIdx idx
   RvkImage* image = rvk_swapchain_image(swap, idx);
   rvk_image_assert_phase(image, RvkImagePhase_Present);
 
-  const void* nextPresentData = null;
-
   ++swap->curPresentId;
+
+  const void* nextPresentData = null;
 
   const VkPresentIdKHR presentIdData = {
       .sType          = VK_STRUCTURE_TYPE_PRESENT_ID_KHR,
@@ -590,7 +591,8 @@ bool rvk_swapchain_enqueue_present(RvkSwapchain* swap, const RvkSwapchainIdx idx
       .swapchainCount = 1,
       .pTimingInfos   = &presentTimingInfoEntry,
   };
-  if (!sentinel_check(swap->timingDomainId)) {
+  const bool timingQueueFull = (swap->flags & RvkSwapchainFlags_PresentTimingQueueFull) != 0;
+  if (!sentinel_check(swap->timingDomainId) && !timingQueueFull) {
     nextPresentData = &presentTimingInfo;
   }
 
@@ -618,6 +620,10 @@ bool rvk_swapchain_enqueue_present(RvkSwapchain* swap, const RvkSwapchainIdx idx
         "Out-of-date swapchain detected during present",
         log_param("id", fmt_int(swap->curPresentId)));
     return false; // Presenting will fail.
+  case VK_ERROR_PRESENT_TIMING_QUEUE_FULL_EXT:
+    swap->flags |= RvkSwapchainFlags_PresentTimingQueueFull;
+    log_w("Vulkan swapchain timing queue full", log_param("id", fmt_int(swap->curPresentId)));
+    return false; // Presenting will block.
   default:
     rvk_api_check(string_lit("queuePresentKHR"), result);
     return true;
