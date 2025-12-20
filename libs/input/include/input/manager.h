@@ -17,7 +17,7 @@ typedef enum eInputCursorMode {
 ecs_comp_extern(InputManagerComp);
 
 /**
- * Retrieve the entity of the active (focussed) window.
+ * Retrieve the entity of the active (Focused) window.
  * NOTE: Returns 0 when there is no active window.
  */
 EcsEntityId input_active_window(const InputManagerComp*);

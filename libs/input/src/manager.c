@@ -120,7 +120,7 @@ static void input_refresh_active_window(EcsWorld* world, InputManagerComp* manag
   for (EcsIterator* itr = ecs_view_itr(ecs_world_view_t(world, WindowView)); ecs_view_walk(itr);) {
     GapWindowComp* win            = ecs_view_write_t(itr, GapWindowComp);
     const bool     isActiveWindow = manager->activeWindow == ecs_view_entity(itr);
-    if (!manager->activeWindow && gap_window_events(win) & GapWindowEvents_Focussed) {
+    if (!manager->activeWindow && gap_window_events(win) & GapWindowEvents_Focused) {
       manager->activeWindow = ecs_view_entity(itr);
     } else if (gap_window_events(win) & GapWindowEvents_FocusGained) {
       manager->activeWindow = ecs_view_entity(itr);
