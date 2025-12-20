@@ -229,6 +229,7 @@ bool rvk_canvas_begin(
 
   RvkCanvasFrame* frame = &canvas->frames[canvas->jobIdx];
   diag_assert(rvk_job_is_done(frame->job));
+  diag_assert(frameIdx == 0 || frameIdx > frame->frameIdx);
 
   frame->frameIdx     = frameIdx;
   frame->swapchainIdx = sentinel_u32;
