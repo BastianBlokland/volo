@@ -156,6 +156,7 @@ static u32 rvk_pick_imagecount(const RvkSurfaceCaps* caps, const VkPresentModeKH
     break;
   case VK_PRESENT_MODE_FIFO_KHR:
   case VK_PRESENT_MODE_FIFO_RELAXED_KHR:
+  default:
     /**
      * Minimum image count is 3: one on-screen, one ready, and one being rendered to.
      *
@@ -166,8 +167,13 @@ static u32 rvk_pick_imagecount(const RvkSurfaceCaps* caps, const VkPresentModeKH
     imgCount = 4;
     break;
   case VK_PRESENT_MODE_MAILBOX_KHR:
-  default:
-    imgCount = 3; // one on-screen, one ready, and one being rendered to.
+    /**
+     * Minimum image count is 3: one on-screen, one ready, and one being rendered to.
+     *
+     * However to fully avoid blocking even if both the CPU and GPU work finish early we need two
+     * additional images.
+     */
+    imgCount = 5;
     break;
   }
   if (imgCount < caps->capabilities.minImageCount) {
