@@ -572,7 +572,11 @@ trace_panel_draw(UiCanvasComp* c, DevTracePanelComp* panel, const TraceSink* sin
       panel->panAny = false;
     }
 
-    const f32 height = ui_table_height(&table, g_jobsWorkerCount);
+    u32 streamCount = 0;
+    for (u32 streamIdx = 0; streamIdx != dev_trace_max_streams; ++streamIdx) {
+      streamCount += panel->streams[streamIdx].id >= 0;
+    }
+    const f32 height = ui_table_height(&table, streamCount);
     ui_scrollview_begin(c, &panel->scrollview, UiLayer_Normal, height);
 
     const UiId streamsBeginId = ui_canvas_id_peek(c);
