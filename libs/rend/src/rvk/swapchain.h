@@ -16,6 +16,12 @@ typedef struct sRvkSwapchainStats {
   u16          imageCount;
 } RvkSwapchainStats;
 
+typedef struct sRvkSwapchainPresentation {
+  u64          frameIdx;
+  TimeSteady   dequeueTime; // Time at which the presentation engine dequeue it from the swapchain.
+  TimeDuration duration;
+} RvkSwapchainPresentation;
+
 RvkSwapchain* rvk_swapchain_create(RvkLib*, RvkDevice*, const GapWindowComp*);
 void          rvk_swapchain_destroy(RvkSwapchain*);
 VkFormat      rvk_swapchain_format(const RvkSwapchain*);
@@ -42,6 +48,13 @@ RvkSwapchainIdx rvk_swapchain_acquire(RvkSwapchain*, VkSemaphore);
  * Image is presented when the 'rvk_swapchain_semaphore(idx)' is signaled.
  */
 bool rvk_swapchain_enqueue_present(RvkSwapchain*, RvkSwapchainIdx, u64 frameIdx);
+
+/**
+ * Query past presentations which have been completed.
+ * Returns the amount of completed presentations since the last call.
+ * NOTE: Not supported on all platforms, always return 0 when unsupported.
+ */
+u32 rvk_swapchain_query_presentations(RvkSwapchain*, RvkSwapchainPresentation out[], u32 outMax);
 
 /**
  * Wait for a previously enqueued presentation to be shown to the user.
