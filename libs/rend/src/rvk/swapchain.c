@@ -489,6 +489,12 @@ static bool rvk_swapchain_init(RvkSwapchain* swap, const RendSettingsComp* setti
   const VkSwapchainKHR oldSwapchain = swap->vkSwap;
 
   VkSwapchainCreateFlagBitsKHR swapchainFlags = 0;
+  if (surfCaps.presentId) {
+    swapchainFlags |= VK_SWAPCHAIN_CREATE_PRESENT_ID_2_BIT_KHR;
+  }
+  if (surfCaps.presentWait) {
+    swapchainFlags |= VK_SWAPCHAIN_CREATE_PRESENT_WAIT_2_BIT_KHR;
+  }
   if (surfCaps.presentTiming) {
     swapchainFlags |= VK_SWAPCHAIN_CREATE_PRESENT_TIMING_BIT_EXT;
   }
