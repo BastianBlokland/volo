@@ -600,6 +600,9 @@ RvkSwapchainIdx rvk_swapchain_acquire(RvkSwapchain* swap, VkSemaphore available)
     log_d("Out-of-date swapchain detected during acquire");
     swap->flags |= RvkSwapchainFlags_OutOfDate;
     return sentinel_u32;
+  case VK_TIMEOUT:
+    log_d("Failed to acquire swapchain image");
+    return sentinel_u32;
   default:
     rvk_api_check(string_lit("acquireNextImageKHR"), result);
     return index;
