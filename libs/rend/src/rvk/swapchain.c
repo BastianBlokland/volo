@@ -779,7 +779,7 @@ void rvk_swapchain_wait_for_present(const RvkSwapchain* swap, const u32 numBehin
     const VkPresentWait2InfoKHR waitInfo = {
         .sType     = VK_STRUCTURE_TYPE_PRESENT_WAIT_2_INFO_KHR,
         .presentId = swap->lastFrameIdx - numBehind,
-        .timeout   = time_second / 30,
+        .timeout   = time_second / 10,
     };
 
     const VkResult result =
