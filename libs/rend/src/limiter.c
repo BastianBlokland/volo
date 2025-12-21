@@ -32,6 +32,17 @@ static bool rend_wait_for_present(EcsWorld* world) {
   return anyWaited;
 }
 
+static bool rend_can_throttle(EcsWorld* world) {
+  EcsView* painterView = ecs_world_view_t(world, PainterView);
+
+  bool canThrottle = false;
+  for (EcsIterator* itr = ecs_view_itr(painterView); ecs_view_walk(itr);) {
+    const RendPainterComp* painter = ecs_view_read_t(itr, RendPainterComp);
+    canThrottle |= rvk_canvas_swapchain_can_throttle(painter->canvas);
+  }
+  return canThrottle;
+}
+
 ecs_system_define(RendFrameLimiterSys) {
   EcsView*     view      = ecs_world_view_t(world, GlobalView);
   EcsIterator* globalItr = ecs_view_maybe_at(view, ecs_world_global(world));
@@ -61,9 +72,14 @@ ecs_system_define(RendFrameLimiterSys) {
     limiter->sleepDur = 0;
     return; // Limiter not active.
   }
-  const TimeDuration targetDuration = time_second / limiterFreq;
-  const TimeSteady   start          = time_steady_clock();
-  const TimeDuration elapsed        = time_steady_duration(limiter->previousTime, start);
+
+  TimeDuration targetDuration = time_second / limiterFreq;
+  if (rend_can_throttle(world)) {
+    // Apply a small bias to favor waiting on vsync instead of the cpu limiter.
+    targetDuration -= time_microseconds(500);
+  }
+  const TimeSteady   start   = time_steady_clock();
+  const TimeDuration elapsed = time_steady_duration(limiter->previousTime, start);
 
   limiter->sleepDur = targetDuration - elapsed;
   if (limiter->sleepDur > limiter->sleepOverhead) {
@@ -74,8 +90,7 @@ ecs_system_define(RendFrameLimiterSys) {
     trace_end();
 
     /**
-     * Keep a moving average of the additional time a 'thread_sleep()' takes to avoid always waking
-     * up late.
+     * Moving average of the additional time a 'thread_sleep()' takes to avoid waking up late.
      * NOTE: Skip very large delta's as the game's process was most likely paused.
      */
     const TimeDuration sinceStart = time_steady_duration(start, time_steady_clock());

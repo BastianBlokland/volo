@@ -106,11 +106,11 @@ bool rend_builder_canvas_push(
   return true;
 }
 
-void rend_builder_canvas_flush(RendBuilder* b) {
+void rend_builder_canvas_flush(RendBuilder* b, const u16 presentFrequency) {
   diag_assert_msg(b->canvas, "RendBuilder: Canvas not active");
   diag_assert_msg(!b->pass, "RendBuilder: Pass still active");
 
-  rvk_canvas_end(b->canvas);
+  rvk_canvas_end(b->canvas, presentFrequency);
   b->canvas   = null;
   b->passMask = 0;
 

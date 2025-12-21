@@ -22,11 +22,17 @@ typedef struct sRvkSwapchainPresent {
   TimeDuration duration;
 } RvkSwapchainPresent;
 
+typedef struct {
+  const RvkSwapchainPresent* data;
+  u32                        count;
+} RvkSwapchainPresentHistory;
+
 RvkSwapchain* rvk_swapchain_create(RvkLib*, RvkDevice*, const GapWindowComp*);
 void          rvk_swapchain_destroy(RvkSwapchain*);
 VkFormat      rvk_swapchain_format(const RvkSwapchain*);
 void          rvk_swapchain_stats(const RvkSwapchain*, RvkSwapchainStats*);
 RvkSize       rvk_swapchain_size(const RvkSwapchain*);
+bool          rvk_swapchain_can_throttle(const RvkSwapchain*);
 void          rvk_swapchain_invalidate(RvkSwapchain*);
 RvkImage*     rvk_swapchain_image(RvkSwapchain*, RvkSwapchainIdx);
 VkSemaphore   rvk_swapchain_semaphore(RvkSwapchain*, RvkSwapchainIdx);
@@ -46,15 +52,16 @@ RvkSwapchainIdx rvk_swapchain_acquire(RvkSwapchain*, VkSemaphore);
 /**
  * Enqueue an image to be presented to the surface.
  * Image is presented when the 'rvk_swapchain_semaphore(idx)' is signaled.
+ * NOTE: 'frequency' signifies the desired present frequency.
  */
-bool rvk_swapchain_enqueue_present(RvkSwapchain*, RvkSwapchainIdx, u64 frameIdx, bool track);
+bool rvk_swapchain_enqueue_present(RvkSwapchain*, RvkSwapchainIdx, u64 frameIdx, u16 frequency);
 
 /**
- * Query past presentations which have been completed.
- * Returns the amount of completed presentations since the last call.
- * NOTE: Not supported on all platforms, always return 0 when unsupported.
+ * Gather presentations which have been completed.
+ * Presentations will arrive async, potentially out of order or not arrive at all.
+ * NOTE: Returned data is valid until calling a mutable swapchain api.
  */
-u32 rvk_swapchain_query_presents(const RvkSwapchain*, RvkSwapchainPresent out[], u32 outMax);
+RvkSwapchainPresentHistory rvk_swapchain_past_presents(const RvkSwapchain*);
 
 /**
  * Wait for a previously enqueued presentation to be shown to the user.

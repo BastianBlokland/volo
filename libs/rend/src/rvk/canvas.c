@@ -216,13 +216,12 @@ static void rvk_canvas_push_traces_gpu(const RvkCanvasFrame* frame, const RvkJob
 }
 
 static void rvk_canvas_push_traces_display(const RvkSwapchain* swapchain) {
-  RvkSwapchainPresent presents[16];
-  const u32 presentCount = rvk_swapchain_query_presents(swapchain, presents, array_elems(presents));
+  const RvkSwapchainPresentHistory history = rvk_swapchain_past_presents(swapchain);
 
-  for (u32 i = 0; i != presentCount; ++i) {
+  for (u32 i = 0; i != history.count; ++i) {
     trace_custom_begin_msg(
-        "display", "frame", TraceColor_Blue, "frame-{}", fmt_int(presents[i].frameIdx));
-    trace_custom_end("display", presents[i].dequeueTime, presents[i].duration);
+        "display", "frame", TraceColor_Blue, "frame-{}", fmt_int(history.data[i].frameIdx));
+    trace_custom_end("display", history.data[i].dequeueTime, history.data[i].duration);
   }
 }
 
@@ -334,6 +333,10 @@ RvkSize rvk_canvas_swapchain_size(const RvkCanvas* canvas) {
   return rvk_swapchain_size(canvas->swapchain);
 }
 
+bool rvk_canvas_swapchain_can_throttle(const RvkCanvas* canvas) {
+  return rvk_swapchain_can_throttle(canvas->swapchain);
+}
+
 RvkImage* rvk_canvas_swapchain_image(RvkCanvas* canvas) {
   diag_assert_msg(canvas->flags & RvkCanvasFlags_Active, "Canvas not active");
 
@@ -361,7 +364,7 @@ RvkImage* rvk_canvas_swapchain_image(RvkCanvas* canvas) {
   return frame->swapchainFallback = rvk_attach_acquire_color(canvas->attachPool, spec, size);
 }
 
-void rvk_canvas_end(RvkCanvas* canvas) {
+void rvk_canvas_end(RvkCanvas* canvas, const u16 presentFrequency) {
   diag_assert_msg(canvas->flags & RvkCanvasFlags_Active, "Canvas not active");
   RvkCanvasFrame* frame = &canvas->frames[canvas->jobIdx];
 
@@ -399,12 +402,8 @@ void rvk_canvas_end(RvkCanvas* canvas) {
 
   if (hasSwapchain) {
     trace_begin("rend_present_enqueue", TraceColor_Blue);
-#ifdef VOLO_TRACE
-    const bool track = (canvas->dev->flags & RvkDeviceFlags_RecordStats) != 0;
-#else
-    const bool track = false;
-#endif
-    rvk_swapchain_enqueue_present(canvas->swapchain, frame->swapchainIdx, frame->frameIdx, track);
+    rvk_swapchain_enqueue_present(
+        canvas->swapchain, frame->swapchainIdx, frame->frameIdx, presentFrequency);
     trace_end();
   }
 

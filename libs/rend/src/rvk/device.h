@@ -16,11 +16,12 @@ typedef enum {
   RvkDeviceFlags_SupportPresentId            = 1 << 7,
   RvkDeviceFlags_SupportPresentWait          = 1 << 8,
   RvkDeviceFlags_SupportPresentTiming        = 1 << 9,
-  RvkDeviceFlags_SupportDepthClamp           = 1 << 10,
-  RvkDeviceFlags_SupportMemoryBudget         = 1 << 11,
-  RvkDeviceFlags_SupportExecutableInfo       = 1 << 12,
-  RvkDeviceFlags_SupportDriverProperties     = 1 << 13,
-  RvkDeviceFlags_SupportCalibratedTimestamps = 1 << 14,
+  RvkDeviceFlags_SupportPresentAtRelative    = 1 << 10,
+  RvkDeviceFlags_SupportDepthClamp           = 1 << 11,
+  RvkDeviceFlags_SupportMemoryBudget         = 1 << 12,
+  RvkDeviceFlags_SupportExecutableInfo       = 1 << 13,
+  RvkDeviceFlags_SupportDriverProperties     = 1 << 14,
+  RvkDeviceFlags_SupportCalibratedTimestamps = 1 << 15,
 } RvkDeviceFlags;
 
 typedef struct sRvkDevice {

@@ -38,11 +38,13 @@
 #define swapchain_timing_queue_size 2
 
 typedef enum {
-  RvkSwapchainFlags_PresentIdEnabled       = 1 << 0,
-  RvkSwapchainFlags_PresentWaitEnabled     = 1 << 1,
-  RvkSwapchainFlags_PresentTimingEnabled   = 1 << 2,
-  RvkSwapchainFlags_PresentTimingQueueFull = 1 << 3,
-  RvkSwapchainFlags_OutOfDate              = 1 << 4,
+  RvkSwapchainFlags_BlockingPresentEnabled   = 1 << 0,
+  RvkSwapchainFlags_PresentIdEnabled         = 1 << 1,
+  RvkSwapchainFlags_PresentWaitEnabled       = 1 << 2,
+  RvkSwapchainFlags_PresentTimingEnabled     = 1 << 3,
+  RvkSwapchainFlags_PresentAtRelativeEnabled = 1 << 4,
+  RvkSwapchainFlags_PresentTimingQueueFull   = 1 << 5,
+  RvkSwapchainFlags_OutOfDate                = 1 << 6,
 } RvkSwapchainFlags;
 
 typedef struct {
@@ -50,6 +52,7 @@ typedef struct {
   bool                     presentId;
   bool                     presentWait;
   bool                     presentTiming;
+  bool                     presentAtRelative;
 } RvkSurfaceCaps;
 
 struct sRvkSwapchain {
@@ -73,6 +76,11 @@ struct sRvkSwapchain {
   u64          timingDomainCounter;     // Incremented when timing domains have changed.
   TimeDuration timingRefreshDuration;   // 0 if unavailable.
   u64          timingDomainId;
+
+  // Information about the last presents (if supported by the presentation engine).
+  // NOTE: Data is kept until the next 'rvk_swapchain_enqueue_present()'.
+  RvkSwapchainPresent pastPresents[8];
+  u32                 pastPresentCount;
 };
 
 static VkSemaphore rvk_semaphore_create(RvkDevice* dev) {
@@ -276,7 +284,24 @@ static RvkSurfaceCaps rvk_surface_caps(RvkLib* lib, RvkDevice* dev, VkSurfaceKHR
       .presentTiming = timingCapabilities.presentTimingSupported &&
                        ((timingCapabilities.presentStageQueries & swapchain_timing_present_stage) ==
                         swapchain_timing_present_stage),
+      .presentAtRelative = timingCapabilities.presentAtRelativeTimeSupported,
   };
+}
+
+static TimeDuration rvk_desired_present_dur(const RvkSwapchain* swap, const u16 frequency) {
+  if (!swap->timingRefreshDuration) {
+    return 0; // Refresh duration unknown.
+  }
+  if (!frequency) {
+    return swap->timingRefreshDuration;
+  }
+  const TimeDuration bias            = time_microseconds(500);
+  const TimeDuration desiredDuration = time_second / frequency + bias;
+  if (desiredDuration <= swap->timingRefreshDuration) {
+    return swap->timingRefreshDuration;
+  }
+  const u64 swaps = desiredDuration / swap->timingRefreshDuration;
+  return swaps * swap->timingRefreshDuration;
 }
 
 static void rvk_swapchain_query_timing_properties(RvkSwapchain* swap) {
@@ -372,6 +397,76 @@ Unavailable:
   return;
 }
 
+static void rvk_swapchain_query_past_presents(RvkSwapchain* swap) {
+  if (!swap->vkSwap || !(swap->flags & RvkSwapchainFlags_PresentTimingEnabled)) {
+    swap->pastPresentCount = 0;
+    return; // Not supported.
+  }
+
+  enum { MaxTimingStages = 1 };
+  diag_assert(bits_popcnt_32(swapchain_timing_present_stage) <= MaxTimingStages);
+
+  VkPastPresentationTimingEXT timings[array_elems(swap->pastPresents)];
+  VkPresentStageTimeEXT       timingStages[array_elems(timings) * MaxTimingStages];
+
+  for (u32 i = 0; i != array_elems(timings); ++i) {
+    timings[i] = (VkPastPresentationTimingEXT){
+        .sType             = VK_STRUCTURE_TYPE_PAST_PRESENTATION_TIMING_EXT,
+        .presentStageCount = MaxTimingStages,
+        .pPresentStages    = timingStages + i * MaxTimingStages,
+    };
+  }
+
+  const VkPastPresentationTimingInfoEXT pastTimingInfo = {
+      .sType     = VK_STRUCTURE_TYPE_PAST_PRESENTATION_TIMING_INFO_EXT,
+      .flags     = VK_PAST_PRESENTATION_TIMING_ALLOW_OUT_OF_ORDER_RESULTS_BIT_EXT,
+      .swapchain = swap->vkSwap,
+  };
+
+  VkPastPresentationTimingPropertiesEXT pastTimingProperties = {
+      .sType                   = VK_STRUCTURE_TYPE_PAST_PRESENTATION_TIMING_PROPERTIES_EXT,
+      .presentationTimingCount = array_elems(timings),
+      .pPresentationTimings    = timings,
+  };
+
+  rvk_call_checked(
+      swap->dev,
+      getPastPresentationTimingEXT,
+      swap->dev->vkDev,
+      &pastTimingInfo,
+      &pastTimingProperties);
+
+  if (pastTimingProperties.timingPropertiesCounter != swap->timingPropertiesCounter) {
+    rvk_swapchain_query_timing_properties(swap);
+  }
+  if (pastTimingProperties.timeDomainsCounter != swap->timingDomainCounter) {
+    rvk_swapchain_query_timing_domains(swap);
+  }
+
+  if (pastTimingProperties.presentationTimingCount) {
+    swap->flags &= ~RvkSwapchainFlags_PresentTimingQueueFull;
+  }
+
+  swap->pastPresentCount = 0;
+  for (u32 i = 0; i != pastTimingProperties.presentationTimingCount; ++i) {
+    diag_assert(timings[i].reportComplete);
+    if (timings[i].timeDomain != rvk_timedomain_host) {
+      continue; // TODO: Support calibrating to other time-domains.
+    }
+    diag_assert(timings[i].presentStageCount >= 1);
+    diag_assert(timings[i].pPresentStages[0].stage == swapchain_timing_present_stage);
+    if (!timings[i].pPresentStages[0].time) {
+      continue; // Was never presented.
+    }
+    swap->pastPresents[swap->pastPresentCount++] = (RvkSwapchainPresent){
+        .frameIdx = timings[i].presentId,
+        // TODO: For windows support we likely need to query the performance counter frequency.
+        .dequeueTime = (TimeSteady)timings[i].pPresentStages[0].time,
+        .duration    = swap->timingRefreshDuration,
+    };
+  }
+}
+
 static bool rvk_swapchain_init(RvkSwapchain* swap, const RendSettingsComp* settings, RvkSize size) {
   if (!size.width || !size.height) {
     swap->size = size;
@@ -380,6 +475,7 @@ static bool rvk_swapchain_init(RvkSwapchain* swap, const RendSettingsComp* setti
 
   for (u32 i = 0; i != swap->imgCount; ++i) {
     rvk_image_destroy(&swap->imgs[i], swap->dev);
+    swap->imgs[i] = (RvkImage){0};
   }
 
   const VkDevice         vkDev    = swap->dev->vkDev;
@@ -393,6 +489,12 @@ static bool rvk_swapchain_init(RvkSwapchain* swap, const RendSettingsComp* setti
   const VkSwapchainKHR oldSwapchain = swap->vkSwap;
 
   VkSwapchainCreateFlagBitsKHR swapchainFlags = 0;
+  if (surfCaps.presentId) {
+    swapchainFlags |= VK_SWAPCHAIN_CREATE_PRESENT_ID_2_BIT_KHR;
+  }
+  if (surfCaps.presentWait) {
+    swapchainFlags |= VK_SWAPCHAIN_CREATE_PRESENT_WAIT_2_BIT_KHR;
+  }
   if (surfCaps.presentTiming) {
     swapchainFlags |= VK_SWAPCHAIN_CREATE_PRESENT_TIMING_BIT_EXT;
   }
@@ -447,9 +549,13 @@ static bool rvk_swapchain_init(RvkSwapchain* swap, const RendSettingsComp* setti
 
   if (surfCaps.presentId) {
     swap->flags |= RvkSwapchainFlags_PresentIdEnabled;
+  } else {
+    swap->flags &= ~RvkSwapchainFlags_PresentIdEnabled;
   }
   if (surfCaps.presentWait) {
     swap->flags |= RvkSwapchainFlags_PresentWaitEnabled;
+  } else {
+    swap->flags &= ~RvkSwapchainFlags_PresentWaitEnabled;
   }
   if (surfCaps.presentTiming) {
     swap->flags |= RvkSwapchainFlags_PresentTimingEnabled;
@@ -462,6 +568,21 @@ static bool rvk_swapchain_init(RvkSwapchain* swap, const RendSettingsComp* setti
   } else {
     swap->flags &= ~RvkSwapchainFlags_PresentTimingEnabled;
   }
+  if (surfCaps.presentAtRelative) {
+    swap->flags |= RvkSwapchainFlags_PresentAtRelativeEnabled;
+  } else {
+    swap->flags &= ~RvkSwapchainFlags_PresentAtRelativeEnabled;
+  }
+
+  switch (presentMode) {
+  case VK_PRESENT_MODE_FIFO_KHR:
+  case VK_PRESENT_MODE_FIFO_RELAXED_KHR:
+    swap->flags |= RvkSwapchainFlags_BlockingPresentEnabled;
+    break;
+  default:
+    swap->flags &= ~RvkSwapchainFlags_BlockingPresentEnabled;
+    break;
+  }
 
   log_i(
       "Vulkan swapchain created",
@@ -470,6 +591,7 @@ static bool rvk_swapchain_init(RvkSwapchain* swap, const RendSettingsComp* setti
       log_param("color", fmt_text(vkColorSpaceKHRStr(swap->vkSurfFormat.colorSpace))),
       log_param("present-mode", fmt_text(vkPresentModeKHRStr(presentMode))),
       log_param("present-timing", fmt_bool(surfCaps.presentTiming)),
+      log_param("present-at-relative", fmt_bool(surfCaps.presentAtRelative)),
       log_param("image-count", fmt_int(swap->imgCount)));
 
   rvk_swapchain_query_timing_properties(swap);
@@ -527,6 +649,22 @@ void rvk_swapchain_destroy(RvkSwapchain* swap) {
 VkFormat rvk_swapchain_format(const RvkSwapchain* swap) { return swap->vkSurfFormat.format; }
 
 RvkSize rvk_swapchain_size(const RvkSwapchain* swap) { return swap->size; }
+
+bool rvk_swapchain_can_throttle(const RvkSwapchain* swap) {
+  if (swap->flags & RvkSwapchainFlags_BlockingPresentEnabled) {
+    return true; // Blocking vsync enabled.
+  }
+  if (!(swap->flags & RvkSwapchainFlags_PresentAtRelativeEnabled)) {
+    return false; // Support not enabled.
+  }
+  if (!swap->timingRefreshDuration) {
+    return false; // Refresh duration unknown.
+  }
+  if (sentinel_check(swap->timingDomainId)) {
+    return false; // No supported timing domain.
+  }
+  return true;
+}
 
 void rvk_swapchain_stats(const RvkSwapchain* swap, RvkSwapchainStats* out) {
   out->acquireDur        = swap->lastAcquireDur;
@@ -600,6 +738,9 @@ RvkSwapchainIdx rvk_swapchain_acquire(RvkSwapchain* swap, VkSemaphore available)
     log_d("Out-of-date swapchain detected during acquire");
     swap->flags |= RvkSwapchainFlags_OutOfDate;
     return sentinel_u32;
+  case VK_TIMEOUT:
+    log_d("Failed to acquire swapchain image");
+    return sentinel_u32;
   default:
     rvk_api_check(string_lit("acquireNextImageKHR"), result);
     return index;
@@ -607,7 +748,11 @@ RvkSwapchainIdx rvk_swapchain_acquire(RvkSwapchain* swap, VkSemaphore available)
 }
 
 bool rvk_swapchain_enqueue_present(
-    RvkSwapchain* swap, const RvkSwapchainIdx idx, const u64 frameIdx, const bool track) {
+    RvkSwapchain* swap, const RvkSwapchainIdx idx, const u64 frameIdx, const u16 frequency) {
+
+  // If supported fetch information about past presentations.
+  rvk_swapchain_query_past_presents(swap);
+
   RvkImage* image = rvk_swapchain_image(swap, idx);
   rvk_image_assert_phase(image, RvkImagePhase_Present);
 
@@ -626,11 +771,16 @@ bool rvk_swapchain_enqueue_present(
     nextPresentData = &presentIdData;
   }
 
-  const VkPresentTimingInfoEXT presentTimingInfoEntry = {
+  VkPresentTimingInfoEXT presentTimingInfoEntry = {
       .sType               = VK_STRUCTURE_TYPE_PRESENT_TIMING_INFO_EXT,
       .timeDomainId        = swap->timingDomainId,
       .presentStageQueries = swapchain_timing_present_stage,
   };
+  if (swap->flags & RvkSwapchainFlags_PresentAtRelativeEnabled) {
+    presentTimingInfoEntry.flags      = VK_PRESENT_TIMING_INFO_PRESENT_AT_RELATIVE_TIME_BIT_EXT;
+    presentTimingInfoEntry.targetTime = rvk_desired_present_dur(swap, frequency);
+  }
+
   const VkPresentTimingsInfoEXT presentTimingInfo = {
       .sType          = VK_STRUCTURE_TYPE_PRESENT_TIMINGS_INFO_EXT,
       .pNext          = nextPresentData,
@@ -638,7 +788,7 @@ bool rvk_swapchain_enqueue_present(
       .pTimingInfos   = &presentTimingInfoEntry,
   };
   const bool timingQueueFull = (swap->flags & RvkSwapchainFlags_PresentTimingQueueFull) != 0;
-  if (track && !sentinel_check(swap->timingDomainId) && !timingQueueFull) {
+  if (!sentinel_check(swap->timingDomainId) && !timingQueueFull) {
     nextPresentData = &presentTimingInfo;
   }
 
@@ -674,81 +824,11 @@ bool rvk_swapchain_enqueue_present(
   }
 }
 
-u32 rvk_swapchain_query_presents(
-    const RvkSwapchain* swap, RvkSwapchainPresent out[], const u32 outMax) {
-
-  if (!swap->vkSwap || !(swap->flags & RvkSwapchainFlags_PresentTimingEnabled)) {
-    return 0;
-  }
-  // TODO: This has some questionable thread-safety.
-  RvkSwapchain* mutableSwapchain = (RvkSwapchain*)swap;
-
-  enum { MaxTimingStages = 1 };
-  diag_assert(bits_popcnt_32(swapchain_timing_present_stage) <= MaxTimingStages);
-
-  VkPastPresentationTimingEXT timings[swapchain_images_max * swapchain_timing_queue_size];
-  VkPresentStageTimeEXT       stageTimes[array_elems(timings) * MaxTimingStages];
-
-  for (u32 i = 0; i != array_elems(timings); ++i) {
-    timings[i] = (VkPastPresentationTimingEXT){
-        .sType             = VK_STRUCTURE_TYPE_PAST_PRESENTATION_TIMING_EXT,
-        .presentStageCount = MaxTimingStages,
-        .pPresentStages    = stageTimes + i * MaxTimingStages,
-    };
-  }
-
-  const VkPastPresentationTimingInfoEXT pastTimingInfo = {
-      .sType     = VK_STRUCTURE_TYPE_PAST_PRESENTATION_TIMING_INFO_EXT,
-      .flags     = VK_PAST_PRESENTATION_TIMING_ALLOW_OUT_OF_ORDER_RESULTS_BIT_EXT,
-      .swapchain = swap->vkSwap,
+RvkSwapchainPresentHistory rvk_swapchain_past_presents(const RvkSwapchain* swap) {
+  return (RvkSwapchainPresentHistory){
+      .data  = swap->pastPresents,
+      .count = swap->pastPresentCount,
   };
-
-  VkPastPresentationTimingPropertiesEXT pastTimingProperties = {
-      .sType                   = VK_STRUCTURE_TYPE_PAST_PRESENTATION_TIMING_PROPERTIES_EXT,
-      .presentationTimingCount = array_elems(timings),
-      .pPresentationTimings    = timings,
-  };
-
-  rvk_call_checked(
-      swap->dev,
-      getPastPresentationTimingEXT,
-      swap->dev->vkDev,
-      &pastTimingInfo,
-      &pastTimingProperties);
-
-  if (pastTimingProperties.timingPropertiesCounter != swap->timingPropertiesCounter) {
-    rvk_swapchain_query_timing_properties(mutableSwapchain);
-  }
-  if (pastTimingProperties.timeDomainsCounter != swap->timingDomainCounter) {
-    rvk_swapchain_query_timing_domains(mutableSwapchain);
-  }
-
-  if (pastTimingProperties.presentationTimingCount) {
-    mutableSwapchain->flags &= ~RvkSwapchainFlags_PresentTimingQueueFull;
-  }
-
-  u32 result = 0;
-  for (u32 i = 0; i != pastTimingProperties.presentationTimingCount; ++i) {
-    diag_assert(timings[i].reportComplete);
-    if (timings[i].timeDomain != rvk_timedomain_host) {
-      continue; // TODO: Support calibrating to other time-domains.
-    }
-    diag_assert(timings[i].presentStageCount >= 1);
-    diag_assert(timings[i].pPresentStages[0].stage == swapchain_timing_present_stage);
-    if (!timings[i].pPresentStages[0].time) {
-      continue; // Was never presented.
-    }
-    if (result == outMax) {
-      break; // TODO: Should we warn that results could be dropped in this case?
-    }
-    out[result++] = (RvkSwapchainPresent){
-        .frameIdx = timings[i].presentId,
-        // TODO: For windows support we likely need to query the performance counter frequency.
-        .dequeueTime = (TimeSteady)timings[i].pPresentStages[0].time,
-        .duration    = swap->timingRefreshDuration,
-    };
-  }
-  return result;
 }
 
 void rvk_swapchain_wait_for_present(const RvkSwapchain* swap, const u32 numBehind) {
@@ -767,7 +847,7 @@ void rvk_swapchain_wait_for_present(const RvkSwapchain* swap, const u32 numBehin
     const VkPresentWait2InfoKHR waitInfo = {
         .sType     = VK_STRUCTURE_TYPE_PRESENT_WAIT_2_INFO_KHR,
         .presentId = swap->lastFrameIdx - numBehind,
-        .timeout   = time_second / 30,
+        .timeout   = time_second / 10,
     };
 
     const VkResult result =
@@ -794,6 +874,9 @@ void rvk_swapchain_wait_for_present(const RvkSwapchain* swap, const u32 numBehin
       break;
     case VK_ERROR_DEVICE_LOST:
       log_w("Device lost during swapchain wait", log_param("frame", fmt_int(swap->lastFrameIdx)));
+      break;
+    case VK_ERROR_SURFACE_LOST_KHR:
+      log_w("Surface lost during swapchain wait", log_param("frame", fmt_int(swap->lastFrameIdx)));
       break;
     default:
       rvk_api_check(string_lit("waitForPresentKHR"), result);
