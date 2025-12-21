@@ -333,6 +333,10 @@ RvkSize rvk_canvas_swapchain_size(const RvkCanvas* canvas) {
   return rvk_swapchain_size(canvas->swapchain);
 }
 
+bool rvk_canvas_swapchain_can_throttle(const RvkCanvas* canvas) {
+  return rvk_swapchain_can_throttle(canvas->swapchain);
+}
+
 RvkImage* rvk_canvas_swapchain_image(RvkCanvas* canvas) {
   diag_assert_msg(canvas->flags & RvkCanvasFlags_Active, "Canvas not active");
 
