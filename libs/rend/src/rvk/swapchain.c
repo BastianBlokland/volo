@@ -543,9 +543,13 @@ static bool rvk_swapchain_init(RvkSwapchain* swap, const RendSettingsComp* setti
 
   if (surfCaps.presentId) {
     swap->flags |= RvkSwapchainFlags_PresentIdEnabled;
+  } else {
+    swap->flags &= ~RvkSwapchainFlags_PresentIdEnabled;
   }
   if (surfCaps.presentWait) {
     swap->flags |= RvkSwapchainFlags_PresentWaitEnabled;
+  } else {
+    swap->flags &= ~RvkSwapchainFlags_PresentWaitEnabled;
   }
   if (surfCaps.presentTiming) {
     swap->flags |= RvkSwapchainFlags_PresentTimingEnabled;
@@ -560,6 +564,8 @@ static bool rvk_swapchain_init(RvkSwapchain* swap, const RendSettingsComp* setti
   }
   if (surfCaps.presentAtRelative) {
     swap->flags |= RvkSwapchainFlags_PresentAtRelativeEnabled;
+  } else {
+    swap->flags &= ~RvkSwapchainFlags_PresentAtRelativeEnabled;
   }
 
   switch (presentMode) {
