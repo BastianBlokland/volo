@@ -875,6 +875,9 @@ void rvk_swapchain_wait_for_present(const RvkSwapchain* swap, const u32 numBehin
     case VK_ERROR_DEVICE_LOST:
       log_w("Device lost during swapchain wait", log_param("frame", fmt_int(swap->lastFrameIdx)));
       break;
+    case VK_ERROR_SURFACE_LOST_KHR:
+      log_w("Surface lost during swapchain wait", log_param("frame", fmt_int(swap->lastFrameIdx)));
+      break;
     default:
       rvk_api_check(string_lit("waitForPresentKHR"), result);
     }
