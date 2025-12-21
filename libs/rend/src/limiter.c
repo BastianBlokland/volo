@@ -74,8 +74,7 @@ ecs_system_define(RendFrameLimiterSys) {
     trace_end();
 
     /**
-     * Keep a moving average of the additional time a 'thread_sleep()' takes to avoid always waking
-     * up late.
+     * Moving average of the additional time a 'thread_sleep()' takes to avoid waking up late.
      * NOTE: Skip very large delta's as the game's process was most likely paused.
      */
     const TimeDuration sinceStart = time_steady_duration(start, time_steady_clock());
