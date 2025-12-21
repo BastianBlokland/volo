@@ -895,9 +895,9 @@ static void pal_xcb_title_set(Xcb* xcb, const XcbWindow window, const String tit
 
 static void pal_xcb_create_window(
     Xcb* xcb, const XcbWindow window, const GapVector size, const XcbEventMask eventMask) {
-  const u32 valuesMask = 2 /* XCB_CW_BACK_PIXEL */ | 2048 /* XCB_CW_EVENT_MASK */;
+  const u32 valuesMask = 1 /* XCB_CW_BACK_PIXMAP */ | 2048 /* XCB_CW_EVENT_MASK */;
   const u32 values[2]  = {
-      xcb->screen->blackPixel,
+      0, /* XCB_BACK_PIXMAP_NONE */
       eventMask,
   };
   xcb->create_window(
