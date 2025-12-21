@@ -300,7 +300,7 @@ static TimeDuration rvk_desired_present_dur(const RvkSwapchain* swap, const u16 
   if (desiredDuration <= swap->timingRefreshDuration) {
     return swap->timingRefreshDuration;
   }
-  const u32 swaps = desiredDuration / swap->timingRefreshDuration;
+  const u64 swaps = desiredDuration / swap->timingRefreshDuration;
   return swaps * swap->timingRefreshDuration;
 }
 
