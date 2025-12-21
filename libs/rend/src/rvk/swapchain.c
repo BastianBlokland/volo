@@ -475,6 +475,7 @@ static bool rvk_swapchain_init(RvkSwapchain* swap, const RendSettingsComp* setti
 
   for (u32 i = 0; i != swap->imgCount; ++i) {
     rvk_image_destroy(&swap->imgs[i], swap->dev);
+    swap->imgs[i] = (RvkImage){0};
   }
 
   const VkDevice         vkDev    = swap->dev->vkDev;
