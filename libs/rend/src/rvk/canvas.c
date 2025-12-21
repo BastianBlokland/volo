@@ -360,7 +360,7 @@ RvkImage* rvk_canvas_swapchain_image(RvkCanvas* canvas) {
   return frame->swapchainFallback = rvk_attach_acquire_color(canvas->attachPool, spec, size);
 }
 
-void rvk_canvas_end(RvkCanvas* canvas) {
+void rvk_canvas_end(RvkCanvas* canvas, const u16 presentFrequency) {
   diag_assert_msg(canvas->flags & RvkCanvasFlags_Active, "Canvas not active");
   RvkCanvasFrame* frame = &canvas->frames[canvas->jobIdx];
 
@@ -398,7 +398,8 @@ void rvk_canvas_end(RvkCanvas* canvas) {
 
   if (hasSwapchain) {
     trace_begin("rend_present_enqueue", TraceColor_Blue);
-    rvk_swapchain_enqueue_present(canvas->swapchain, frame->swapchainIdx, frame->frameIdx);
+    rvk_swapchain_enqueue_present(
+        canvas->swapchain, frame->swapchainIdx, frame->frameIdx, presentFrequency);
     trace_end();
   }
 

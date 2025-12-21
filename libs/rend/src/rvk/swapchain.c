@@ -284,6 +284,22 @@ static RvkSurfaceCaps rvk_surface_caps(RvkLib* lib, RvkDevice* dev, VkSurfaceKHR
   };
 }
 
+static TimeDuration rvk_desired_present_dur(const RvkSwapchain* swap, const u16 frequency) {
+  if (!swap->timingRefreshDuration) {
+    return 0; // Refresh duration unknown.
+  }
+  if (!frequency) {
+    return swap->timingRefreshDuration;
+  }
+  const TimeDuration bias            = time_microseconds(500);
+  const TimeDuration desiredDuration = time_second / frequency + bias;
+  if (desiredDuration <= swap->timingRefreshDuration) {
+    return swap->timingRefreshDuration;
+  }
+  const u32 swaps = desiredDuration / swap->timingRefreshDuration;
+  return swaps * swap->timingRefreshDuration;
+}
+
 static void rvk_swapchain_query_timing_properties(RvkSwapchain* swap) {
   if (!swap->vkSwap || !(swap->flags & RvkSwapchainFlags_PresentTimingEnabled)) {
     goto Unavailable;
@@ -685,7 +701,7 @@ RvkSwapchainIdx rvk_swapchain_acquire(RvkSwapchain* swap, VkSemaphore available)
 }
 
 bool rvk_swapchain_enqueue_present(
-    RvkSwapchain* swap, const RvkSwapchainIdx idx, const u64 frameIdx) {
+    RvkSwapchain* swap, const RvkSwapchainIdx idx, const u64 frameIdx, const u16 frequency) {
 
   // If supported fetch information about past presentations.
   rvk_swapchain_query_past_presents(swap);
@@ -708,8 +724,10 @@ bool rvk_swapchain_enqueue_present(
     nextPresentData = &presentIdData;
   }
 
-  const VkPresentTimingInfoEXT presentTimingInfoEntry = {
+  VkPresentTimingInfoEXT presentTimingInfoEntry = {
       .sType               = VK_STRUCTURE_TYPE_PRESENT_TIMING_INFO_EXT,
+      .flags               = VK_PRESENT_TIMING_INFO_PRESENT_AT_RELATIVE_TIME_BIT_EXT,
+      .targetTime          = rvk_desired_present_dur(swap, frequency),
       .timeDomainId        = swap->timingDomainId,
       .presentStageQueries = swapchain_timing_present_stage,
   };

@@ -37,6 +37,7 @@ ecs_view_define(GlobalView) {
   ecs_access_read(RendFogComp);
   ecs_access_read(RendLightRendererComp);
   ecs_access_read(SceneTimeComp);
+  ecs_access_maybe_read(RendSettingsGlobalComp);
   ecs_access_without(RendResetComp);
   ecs_access_write(RendPlatformComp);
 }
@@ -623,7 +624,8 @@ static bool rend_canvas_paint_2d(
     const GapWindowComp*    win,
     const EcsEntityId       camEntity,
     EcsView*                objView,
-    EcsView*                resView) {
+    EcsView*                resView,
+    const u16               presentFrequency) {
 
   const RvkSize winSize   = painter_win_size(win);
   const f32     winAspect = winSize.height ? ((f32)winSize.width / (f32)winSize.height) : 1.0f;
@@ -654,7 +656,7 @@ static bool rend_canvas_paint_2d(
     rend_builder_pass_flush(b);
   }
 
-  rend_builder_canvas_flush(b);
+  rend_builder_canvas_flush(b, presentFrequency);
   return true;
 }
 
@@ -671,7 +673,8 @@ static bool rend_canvas_paint_3d(
     const SceneCameraComp*       cam,
     const SceneTransformComp*    camTrans,
     EcsView*                     objView,
-    EcsView*                     resView) {
+    EcsView*                     resView,
+    const u16                    presentFrequency) {
 
   const RvkSize winSize   = painter_win_size(win);
   const f32     winAspect = winSize.height ? ((f32)winSize.width / (f32)winSize.height) : 1.0f;
@@ -1010,7 +1013,7 @@ static bool rend_canvas_paint_3d(
   rend_builder_attach_release(b, bloomOutput);
   rend_builder_attach_release(b, distBuffer);
 
-  rend_builder_canvas_flush(b);
+  rend_builder_canvas_flush(b, presentFrequency);
   return true;
 }
 
@@ -1045,14 +1048,17 @@ ecs_system_define(RendPainterDrawSys) {
   if (!globalItr) {
     return;
   }
-  RendPlatformComp*            platform = ecs_view_write_t(globalItr, RendPlatformComp);
-  const SceneTimeComp*         time     = ecs_view_read_t(globalItr, SceneTimeComp);
-  const RendLightRendererComp* light    = ecs_view_read_t(globalItr, RendLightRendererComp);
-  const RendFogComp*           fog      = ecs_view_read_t(globalItr, RendFogComp);
+  RendPlatformComp*             platform       = ecs_view_write_t(globalItr, RendPlatformComp);
+  const SceneTimeComp*          time           = ecs_view_read_t(globalItr, SceneTimeComp);
+  const RendLightRendererComp*  light          = ecs_view_read_t(globalItr, RendLightRendererComp);
+  const RendFogComp*            fog            = ecs_view_read_t(globalItr, RendFogComp);
+  const RendSettingsGlobalComp* settingsGlobal = ecs_view_read_t(globalItr, RendSettingsGlobalComp);
 
   EcsView* painterView = ecs_world_view_t(world, PainterUpdateView);
   EcsView* objView     = ecs_world_view_t(world, ObjView);
   EcsView* resView     = ecs_world_view_t(world, ResourceView);
+
+  const u16 presentFrequency = settingsGlobal ? settingsGlobal->limiterFreq : 0;
 
   for (EcsIterator* itr = ecs_view_itr(painterView); ecs_view_walk(itr);) {
     const EcsEntityId         entity   = ecs_view_entity(itr);
@@ -1077,9 +1083,20 @@ ecs_system_define(RendPainterDrawSys) {
           cam,
           camTrans,
           objView,
-          resView);
+          resView,
+          presentFrequency);
     } else {
-      rend_canvas_paint_2d(world, painter, platform, settings, time, win, entity, objView, resView);
+      rend_canvas_paint_2d(
+          world,
+          painter,
+          platform,
+          settings,
+          time,
+          win,
+          entity,
+          objView,
+          resView,
+          presentFrequency);
     }
   }
 }

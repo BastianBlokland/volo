@@ -48,7 +48,7 @@ void      rvk_canvas_swapchain_stats(const RvkCanvas*, RvkSwapchainStats* out);
 RvkSize   rvk_canvas_swapchain_size(const RvkCanvas*);
 RvkImage* rvk_canvas_swapchain_image(RvkCanvas*); // NOTE: Can return null if acquire failed.
 
-void rvk_canvas_end(RvkCanvas*);
+void rvk_canvas_end(RvkCanvas*, u16 presentFrequency);
 
 /**
  * Wait for the previous frame to be rendered.
