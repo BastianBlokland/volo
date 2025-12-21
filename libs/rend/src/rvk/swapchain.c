@@ -38,11 +38,12 @@
 #define swapchain_timing_queue_size 2
 
 typedef enum {
-  RvkSwapchainFlags_PresentIdEnabled       = 1 << 0,
-  RvkSwapchainFlags_PresentWaitEnabled     = 1 << 1,
-  RvkSwapchainFlags_PresentTimingEnabled   = 1 << 2,
-  RvkSwapchainFlags_PresentTimingQueueFull = 1 << 3,
-  RvkSwapchainFlags_OutOfDate              = 1 << 4,
+  RvkSwapchainFlags_PresentIdEnabled         = 1 << 0,
+  RvkSwapchainFlags_PresentWaitEnabled       = 1 << 1,
+  RvkSwapchainFlags_PresentTimingEnabled     = 1 << 2,
+  RvkSwapchainFlags_PresentAtRelativeEnabled = 1 << 3,
+  RvkSwapchainFlags_PresentTimingQueueFull   = 1 << 4,
+  RvkSwapchainFlags_OutOfDate                = 1 << 5,
 } RvkSwapchainFlags;
 
 typedef struct {
@@ -50,6 +51,7 @@ typedef struct {
   bool                     presentId;
   bool                     presentWait;
   bool                     presentTiming;
+  bool                     presentAtRelative;
 } RvkSurfaceCaps;
 
 struct sRvkSwapchain {
@@ -281,6 +283,7 @@ static RvkSurfaceCaps rvk_surface_caps(RvkLib* lib, RvkDevice* dev, VkSurfaceKHR
       .presentTiming = timingCapabilities.presentTimingSupported &&
                        ((timingCapabilities.presentStageQueries & swapchain_timing_present_stage) ==
                         swapchain_timing_present_stage),
+      .presentAtRelative = timingCapabilities.presentAtRelativeTimeSupported,
   };
 }
 
@@ -553,6 +556,9 @@ static bool rvk_swapchain_init(RvkSwapchain* swap, const RendSettingsComp* setti
   } else {
     swap->flags &= ~RvkSwapchainFlags_PresentTimingEnabled;
   }
+  if (surfCaps.presentAtRelative) {
+    swap->flags &= RvkSwapchainFlags_PresentAtRelativeEnabled;
+  }
 
   log_i(
       "Vulkan swapchain created",
@@ -561,6 +567,7 @@ static bool rvk_swapchain_init(RvkSwapchain* swap, const RendSettingsComp* setti
       log_param("color", fmt_text(vkColorSpaceKHRStr(swap->vkSurfFormat.colorSpace))),
       log_param("present-mode", fmt_text(vkPresentModeKHRStr(presentMode))),
       log_param("present-timing", fmt_bool(surfCaps.presentTiming)),
+      log_param("present-at-relative", fmt_bool(surfCaps.presentAtRelative)),
       log_param("image-count", fmt_int(swap->imgCount)));
 
   rvk_swapchain_query_timing_properties(swap);
@@ -726,11 +733,14 @@ bool rvk_swapchain_enqueue_present(
 
   VkPresentTimingInfoEXT presentTimingInfoEntry = {
       .sType               = VK_STRUCTURE_TYPE_PRESENT_TIMING_INFO_EXT,
-      .flags               = VK_PRESENT_TIMING_INFO_PRESENT_AT_RELATIVE_TIME_BIT_EXT,
-      .targetTime          = rvk_desired_present_dur(swap, frequency),
       .timeDomainId        = swap->timingDomainId,
       .presentStageQueries = swapchain_timing_present_stage,
   };
+  if (swap->flags & RvkSwapchainFlags_PresentAtRelativeEnabled) {
+    presentTimingInfoEntry.flags      = VK_PRESENT_TIMING_INFO_PRESENT_AT_RELATIVE_TIME_BIT_EXT;
+    presentTimingInfoEntry.targetTime = rvk_desired_present_dur(swap, frequency);
+  }
+
   const VkPresentTimingsInfoEXT presentTimingInfo = {
       .sType          = VK_STRUCTURE_TYPE_PRESENT_TIMINGS_INFO_EXT,
       .pNext          = nextPresentData,
