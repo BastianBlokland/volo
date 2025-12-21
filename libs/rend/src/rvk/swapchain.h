@@ -32,6 +32,7 @@ void          rvk_swapchain_destroy(RvkSwapchain*);
 VkFormat      rvk_swapchain_format(const RvkSwapchain*);
 void          rvk_swapchain_stats(const RvkSwapchain*, RvkSwapchainStats*);
 RvkSize       rvk_swapchain_size(const RvkSwapchain*);
+bool          rvk_swapchain_can_throttle(const RvkSwapchain*);
 void          rvk_swapchain_invalidate(RvkSwapchain*);
 RvkImage*     rvk_swapchain_image(RvkSwapchain*, RvkSwapchainIdx);
 VkSemaphore   rvk_swapchain_semaphore(RvkSwapchain*, RvkSwapchainIdx);

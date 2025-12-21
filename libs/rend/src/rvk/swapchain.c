@@ -626,6 +626,19 @@ VkFormat rvk_swapchain_format(const RvkSwapchain* swap) { return swap->vkSurfFor
 
 RvkSize rvk_swapchain_size(const RvkSwapchain* swap) { return swap->size; }
 
+bool rvk_swapchain_can_throttle(const RvkSwapchain* swap) {
+  if (!(swap->flags & RvkSwapchainFlags_PresentAtRelativeEnabled)) {
+    return false; // Support not enabled.
+  }
+  if (!swap->timingRefreshDuration) {
+    return false; // Refresh duration unknown.
+  }
+  if (sentinel_check(swap->timingDomainId)) {
+    return false; // No supported timing domain.
+  }
+  return true;
+}
+
 void rvk_swapchain_stats(const RvkSwapchain* swap, RvkSwapchainStats* out) {
   out->acquireDur        = swap->lastAcquireDur;
   out->presentEnqueueDur = swap->lastPresentEnqueueDur;
