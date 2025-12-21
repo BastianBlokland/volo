@@ -129,6 +129,9 @@ static void rvk_config_present_timing(RvkDevice* d, VkPhysicalDevicePresentTimin
   if (f->presentTiming) {
     d->flags |= RvkDeviceFlags_SupportPresentTiming;
   }
+  if (f->presentAtRelativeTime) {
+    d->flags |= RvkDeviceFlags_SupportPresentAtRelative;
+  }
 }
 
 static void rvk_config_executable_properties(
