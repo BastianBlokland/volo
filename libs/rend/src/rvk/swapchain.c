@@ -38,12 +38,13 @@
 #define swapchain_timing_queue_size 2
 
 typedef enum {
-  RvkSwapchainFlags_PresentIdEnabled         = 1 << 0,
-  RvkSwapchainFlags_PresentWaitEnabled       = 1 << 1,
-  RvkSwapchainFlags_PresentTimingEnabled     = 1 << 2,
-  RvkSwapchainFlags_PresentAtRelativeEnabled = 1 << 3,
-  RvkSwapchainFlags_PresentTimingQueueFull   = 1 << 4,
-  RvkSwapchainFlags_OutOfDate                = 1 << 5,
+  RvkSwapchainFlags_BlockingPresentEnabled   = 1 << 0,
+  RvkSwapchainFlags_PresentIdEnabled         = 1 << 1,
+  RvkSwapchainFlags_PresentWaitEnabled       = 1 << 2,
+  RvkSwapchainFlags_PresentTimingEnabled     = 1 << 3,
+  RvkSwapchainFlags_PresentAtRelativeEnabled = 1 << 4,
+  RvkSwapchainFlags_PresentTimingQueueFull   = 1 << 5,
+  RvkSwapchainFlags_OutOfDate                = 1 << 6,
 } RvkSwapchainFlags;
 
 typedef struct {
@@ -557,7 +558,17 @@ static bool rvk_swapchain_init(RvkSwapchain* swap, const RendSettingsComp* setti
     swap->flags &= ~RvkSwapchainFlags_PresentTimingEnabled;
   }
   if (surfCaps.presentAtRelative) {
-    swap->flags &= RvkSwapchainFlags_PresentAtRelativeEnabled;
+    swap->flags |= RvkSwapchainFlags_PresentAtRelativeEnabled;
+  }
+
+  switch (presentMode) {
+  case VK_PRESENT_MODE_FIFO_KHR:
+  case VK_PRESENT_MODE_FIFO_RELAXED_KHR:
+    swap->flags |= RvkSwapchainFlags_BlockingPresentEnabled;
+    break;
+  default:
+    swap->flags &= ~RvkSwapchainFlags_BlockingPresentEnabled;
+    break;
   }
 
   log_i(
@@ -627,6 +638,9 @@ VkFormat rvk_swapchain_format(const RvkSwapchain* swap) { return swap->vkSurfFor
 RvkSize rvk_swapchain_size(const RvkSwapchain* swap) { return swap->size; }
 
 bool rvk_swapchain_can_throttle(const RvkSwapchain* swap) {
+  if (swap->flags & RvkSwapchainFlags_BlockingPresentEnabled) {
+    return true; // Blocking vsync enabled.
+  }
   if (!(swap->flags & RvkSwapchainFlags_PresentAtRelativeEnabled)) {
     return false; // Support not enabled.
   }
