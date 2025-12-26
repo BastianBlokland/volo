@@ -1,0 +1,16 @@
+id = "zed-volo"
+name = "Volo"
+title = "Volo Support"
+version = "0.1.0"
+schema_version = 1
+authors = ["Bastian Blokland <mail@bastian.tech>"]
+description = "Ide support for the Volo engine"
+repository = "https://github.com/bastianblokland/volo"
+
+[language_servers.volo-lsp]
+name = "volo-lsp"
+language = "Script"
+
+[grammars.voloscript]
+repository = "https://github.com/BastianBlokland/tree-sitter-voloscript"
+commit = "master"
