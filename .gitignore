@@ -14,6 +14,8 @@
 /.vscode/*
 !/.vscode/settings.json
 !/.vscode/extensions.json
+/.zed/*
+!/.zed/settings.json
 
 # Temporary files.
 /.cache/
@@ -23,11 +25,15 @@
 /assets/external/
 
 # Ide plugin build paths.
-/ide/vscode/volo/node_modules/
-/ide/vscode/volo/out/
-/ide/vscode/volo/*.vsix
+/ide/vscode/generals/node_modules/
+/ide/vscode/generals/out/
+/ide/vscode/generals/*.vsix
+/ide/zed/target/
+/ide/zed/extension.wasm
+/ide/zed/grammars/
+/target/rust-analyzer/
 
-# Development environment.
+# Dev environment.
 /.direnv/
 
 # Llvm pgo data.
