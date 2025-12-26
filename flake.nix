@@ -3,13 +3,20 @@
 
   inputs = {
     nixpkgs.url = "nixpkgs/nixos-25.11";
+    rust-overlay = {
+      url = "github:oxalica/rust-overlay";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
-    { nixpkgs, ... }:
+    { nixpkgs, rust-overlay, ... }:
     let
       system = "x86_64-linux";
-      pkgs = import nixpkgs { inherit system; };
+      pkgs = import nixpkgs {
+        inherit system;
+        overlays = [ rust-overlay.overlays.default ];
+      };
       llvmPkg = pkgs.llvmPackages_21;
     in
     {
@@ -37,6 +44,12 @@
             pkgs.xorg.xcbutilkeysyms
             pkgs.libxkbcommon
             pkgs.alsa-lib
+
+            # Ide extension dependencies:
+            pkgs.nodejs_24
+            (pkgs.rust-bin.stable.latest.default.override {
+              targets = [ "wasm32-wasip2" ];
+            })
           ];
 
           # Configure runtime dependencies.
