@@ -17,7 +17,7 @@ if vim.fn.executable(lsp_path) == 1 then
   }
   vim.lsp.enable("volo_lsp")
 else
-  vim.notify("volo-lsp: No lsp binary found", vim.log.levels.ERROR)
+  vim.notify("volo_lsp: No lsp binary found", vim.log.levels.ERROR)
 end
 
 -- Auto format on save.
