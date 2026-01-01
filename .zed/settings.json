@@ -4,5 +4,73 @@
   "ensure_final_newline_on_save": true,
   "remove_trailing_whitespace_on_save": true,
   "preferred_line_length": 100,
-  "tab_size": 2
+  "tab_size": 2,
+  "file_types": {
+    "Plain Text": ["attr", "crash", "log"],
+    "JSON": [
+      "eventtrace",
+      "mocha",
+      "arraytex",
+      "atlas",
+      "fonttex",
+      "graphic",
+      "icon",
+      "inputs",
+      "level",
+      "locale",
+      "prefs",
+      "procmesh",
+      "proctex",
+    ],
+  },
+  "lsp": {
+    "json-language-server": {
+      "settings": {
+        "json": {
+          "schemas": [
+            {
+              "fileMatch": ["*.arraytex"],
+              "url": "/home/bastian/projects/volo/assets/schemas/arraytex.schema.json",
+            },
+            {
+              "fileMatch": ["*.atlas"],
+              "url": "/home/bastian/projects/volo/assets/schemas/atlas.schema.json",
+            },
+            {
+              "fileMatch": ["*.fonttex"],
+              "url": "/home/bastian/projects/volo/assets/schemas/fonttex.schema.json",
+            },
+            {
+              "fileMatch": ["*.graphic"],
+              "url": "/home/bastian/projects/volo/assets/schemas/graphic.schema.json",
+            },
+            {
+              "fileMatch": ["*.icon"],
+              "url": "/home/bastian/projects/volo/assets/schemas/icon.schema.json",
+            },
+            {
+              "fileMatch": ["*.inputs"],
+              "url": "/home/bastian/projects/volo/assets/schemas/inputs.schema.json",
+            },
+            {
+              "fileMatch": ["*.level"],
+              "url": "/home/bastian/projects/volo/assets/schemas/level.schema.json",
+            },
+            {
+              "fileMatch": ["*.locale"],
+              "url": "/home/bastian/projects/volo/assets/schemas/locale.schema.json",
+            },
+            {
+              "fileMatch": ["*.procmesh"],
+              "url": "/home/bastian/projects/volo/assets/schemas/procmesh.schema.json",
+            },
+            {
+              "fileMatch": ["*.proctex"],
+              "url": "/home/bastian/projects/volo/assets/schemas/proctex.schema.json",
+            },
+          ],
+        },
+      },
+    },
+  },
 }
