@@ -25,9 +25,9 @@
 /assets/external/
 
 # Ide plugin build paths.
-/ide/vscode/generals/node_modules/
-/ide/vscode/generals/out/
-/ide/vscode/generals/*.vsix
+/ide/vscode/volo/node_modules/
+/ide/vscode/volo/out/
+/ide/vscode/volo/*.vsix
 /ide/zed/target/
 /ide/zed/extension.wasm
 /ide/zed/grammars/

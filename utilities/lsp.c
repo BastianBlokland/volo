@@ -2060,7 +2060,7 @@ Ret:
 static CliId g_optStdio, g_optBinderPath;
 
 AppType app_cli_configure(CliApp* app) {
-  cli_app_register_desc(app, string_lit("Generals Script Language Server"));
+  cli_app_register_desc(app, string_lit("Volo Script Language Server"));
 
   g_optStdio = cli_register_flag(app, 0, string_lit("stdio"), CliOptionFlags_None);
   cli_register_desc(app, g_optStdio, string_lit("Use stdin and stdout for communication."));
