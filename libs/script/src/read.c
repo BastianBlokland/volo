@@ -1665,11 +1665,17 @@ RetWhileExpr:
   diag_assert(&scope == read_scope_tail(ctx));
   read_scope_pop(ctx);
 
-  const ScriptRange range = read_range_to_current(ctx, start);
   // NOTE: Setup and Increment loop parts are not used in while loops.
   const ScriptExpr setupExpr  = script_add_value(ctx->doc, read_range_dummy(ctx), script_null());
   const ScriptExpr incrExpr   = script_add_value(ctx->doc, read_range_dummy(ctx), script_null());
   const ScriptExpr intrArgs[] = {setupExpr, conditions[0], incrExpr, body};
+
+  ScriptRange range = read_range_to_current(ctx, start);
+  for (u32 i = 0; i != array_elems(intrArgs); ++i) {
+    // TODO: Cleanup this hacky range handling.
+    const ScriptRange argRange = script_expr_range(ctx->doc, intrArgs[i]);
+    range.end                  = math_max(range.end, argRange.end);
+  }
   return script_add_intrinsic(ctx->doc, range, ScriptIntrinsic_Loop, intrArgs);
 }
 
