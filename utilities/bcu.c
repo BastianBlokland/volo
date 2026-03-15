@@ -153,7 +153,7 @@ static BcuResult bcu_image_load(const String path, BcuImage* out) {
     result = BcuResult_ImageSizeNotAligned;
     goto End;
   }
-  if (data.size < (size.width * size.height * bits_to_bytes(bitsPerPixel))) {
+  if (data.size < (usize)(size.width * size.height * bits_to_bytes(bitsPerPixel))) {
     result = BcuResult_TgaFileTruncated;
     goto End;
   }

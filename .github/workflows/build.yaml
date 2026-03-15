@@ -2,10 +2,10 @@ name: build
 
 on:
   push:
-    branches:     [ master ]
-    paths-ignore: [ '*.md' ]
+    branches: [master]
+    paths-ignore: ["*.md"]
   pull_request:
-    branches:     [ master ]
+    branches: [master]
   workflow_dispatch:
 
 jobs:
@@ -16,102 +16,102 @@ jobs:
       fail-fast: false
       matrix:
         config:
-        - {
-            name: linux-dbg-gcc-x64,
-            image: ubuntu-24.04,
-            os: linux,
-            toolchain: unix,
-            cc: gcc-14,
-            type: Debug,
-            simd: On,
-            trace: On,
-            lto: Off,
-            sanitize: On,
-          }
-        - {
-            name: linux-dbg-gcc-no-simd-x64,
-            image: ubuntu-24.04,
-            os: linux,
-            toolchain: unix,
-            cc: gcc-14,
-            type: Debug,
-            simd: Off,
-            trace: On,
-            lto: Off,
-            sanitize: On,
-          }
-        - {
-            name: linux-dbg-clang-x64,
-            image: ubuntu-24.04,
-            os: linux,
-            toolchain: unix,
-            cc: clang-18,
-            type: Debug,
-            simd: On,
-            trace: On,
-            lto: Off,
-            sanitize: On,
-          }
-        - {
-            name: windows-dbg-msvc-x64,
-            image: windows-2025,
-            os: windows,
-            toolchain: msvc,
-            cc: cl,
-            type: Debug,
-            simd: On,
-            trace: On,
-            lto: Off,
-            sanitize: Off,
-          }
-        - {
-            name: windows-dbg-clang-x64,
-            image: windows-2025,
-            os: windows,
-            toolchain: msvc,
-            cc: clang,
-            type: Debug,
-            simd: On,
-            trace: On,
-            lto: Off,
-            sanitize: Off,
-          }
-        - {
-            name: windows-dbg-mingw-x64,
-            image: windows-2025,
-            os: windows,
-            toolchain: mingw,
-            cc: gcc,
-            type: Debug,
-            simd: On,
-            trace: On,
-            lto: Off,
-            sanitize: Off,
-          }
-        - {
-            name: linux-rel-x64,
-            image: ubuntu-24.04,
-            os: linux,
-            toolchain: unix,
-            cc: clang-18,
-            type: Release,
-            simd: On,
-            trace: Off,
-            lto: On,
-            sanitize: Off,
-          }
-        - {
-            name: windows-rel-x64,
-            image: windows-2025,
-            os: windows,
-            toolchain: msvc,
-            cc: clang,
-            type: Release,
-            simd: On,
-            trace: Off,
-            lto: On,
-            sanitize: Off,
-          }
+          - {
+              name: linux-dbg-gcc-x64,
+              image: ubuntu-24.04,
+              os: linux,
+              toolchain: unix,
+              cc: gcc-14,
+              type: Debug,
+              simd: On,
+              trace: On,
+              lto: Off,
+              sanitize: On,
+            }
+          - {
+              name: linux-dbg-gcc-no-simd-x64,
+              image: ubuntu-24.04,
+              os: linux,
+              toolchain: unix,
+              cc: gcc-14,
+              type: Debug,
+              simd: Off,
+              trace: On,
+              lto: Off,
+              sanitize: On,
+            }
+          - {
+              name: linux-dbg-clang-x64,
+              image: ubuntu-24.04,
+              os: linux,
+              toolchain: unix,
+              cc: clang-18,
+              type: Debug,
+              simd: On,
+              trace: On,
+              lto: Off,
+              sanitize: On,
+            }
+          - {
+              name: windows-dbg-msvc-x64,
+              image: windows-2025,
+              os: windows,
+              toolchain: msvc,
+              cc: cl,
+              type: Debug,
+              simd: On,
+              trace: On,
+              lto: Off,
+              sanitize: Off,
+            }
+          - {
+              name: windows-dbg-clang-x64,
+              image: windows-2025,
+              os: windows,
+              toolchain: msvc,
+              cc: clang,
+              type: Debug,
+              simd: On,
+              trace: On,
+              lto: Off,
+              sanitize: Off,
+            }
+          - {
+              name: windows-dbg-mingw-x64,
+              image: windows-2025,
+              os: windows,
+              toolchain: mingw,
+              cc: gcc,
+              type: Debug,
+              simd: On,
+              trace: On,
+              lto: Off,
+              sanitize: Off,
+            }
+          - {
+              name: linux-rel-x64,
+              image: ubuntu-24.04,
+              os: linux,
+              toolchain: unix,
+              cc: clang-18,
+              type: Release,
+              simd: On,
+              trace: Off,
+              lto: On,
+              sanitize: Off,
+            }
+          - {
+              name: windows-rel-x64,
+              image: windows-2025,
+              os: windows,
+              toolchain: msvc,
+              cc: clang,
+              type: Release,
+              simd: On,
+              trace: Off,
+              lto: On,
+              sanitize: Off,
+            }
     env:
       CC: ${{matrix.config.cc}}
       CMAKE_OPTS: >-
@@ -123,63 +123,63 @@ jobs:
         -DVOLO_SANITIZE=${{matrix.config.sanitize}}
         -DVOLO_WERROR=On
     steps:
-    - name: checkout
-      uses: actions/checkout@v5
-      with:
-        sparse-checkout: |
-          cmake
-          game
-          libs
-          shell
-          utilities
+      - name: checkout
+        uses: actions/checkout@v6
+        with:
+          sparse-checkout: |
+            cmake
+            game
+            libs
+            shell
+            utilities
 
-    - name: build-linux
-      if: matrix.config.os == 'linux'
-      shell: bash
-      run: |
-        cmake -B build -G Ninja $CMAKE_OPTS
-        ninja -k 0 -C build all test install
+      - name: build-linux
+        if: matrix.config.os == 'linux'
+        shell: bash
+        run: |
+          cmake -B build -G Ninja $CMAKE_OPTS
+          ninja -k 0 -C build all test install
 
-        for file in $(find bin -type f ! -name "*.*"); do
-            patchelf --add-needed libdl.so.2 "$file" # Needed for older GLIBC versions.
-            patchelf --add-needed libpthread.so.0 "$file" # Needed for older GLIBC versions.
+          for file in $(find bin -type f ! -name "*.*"); do
+              patchelf --add-needed libdl.so.2 "$file" # Needed for older GLIBC versions.
+              patchelf --add-needed libpthread.so.0 "$file" # Needed for older GLIBC versions.
 
-            objcopy --only-keep-debug "$file" "$file.dbg"
-            strip --strip-all "$file"
-            objcopy --add-gnu-debuglink="$file.dbg" "$file"
-        done
+              objcopy --only-keep-debug "$file" "$file.dbg"
+              strip --strip-all "$file"
+              objcopy --add-gnu-debuglink="$file.dbg" "$file"
+          done
 
-    - name: build-windows
-      if: matrix.config.os == 'windows'
-      shell: pwsh
-      run: |
-        ./shell/env-win32.ps1
-        cmake -B build -G Ninja $($env:CMAKE_OPTS -split ' ')
-        ninja -k 0 -C build all test install
+      - name: build-windows
+        if: matrix.config.os == 'windows'
+        shell: pwsh
+        run: |
+          ./shell/env-win32.ps1
+          cmake -B build -G Ninja $($env:CMAKE_OPTS -split ' ')
+          ninja -k 0 -C build all test install
 
-    - name: build-symbols
-      if: matrix.config.toolchain != 'mingw'
-      shell: bash
-      run: ./bin/volo --debug-symbols > ./bin/volo.syms
+      - name: build-symbols
+        if: matrix.config.toolchain != 'mingw'
+        shell: bash
+        run: ./bin/volo --debug-symbols > ./bin/volo.syms
 
-    - name: archive
-      uses: actions/upload-artifact@v4
-      if: ${{ !cancelled() }}
-      with:
-        name: code-${{matrix.config.name}}
-        path: |
-          bin/
-          build/**/logs/*
+      - name: archive
+        uses: actions/upload-artifact@v6
+        if: ${{ !cancelled() }}
+        with:
+          name: code-${{matrix.config.name}}
+          path: |
+            bin/
+            build/**/logs/*
 
-    - name: report
-      uses: dorny/test-reporter@v2
-      if: ${{ !cancelled() }}
-      with:
-        name: report-${{matrix.config.name}}
-        fail-on-error: false
-        path: build/**/logs/*.mocha
-        reporter: mocha-json
-        only-summary: 'true'
+      - name: report
+        uses: dorny/test-reporter@v2
+        if: ${{ !cancelled() }}
+        with:
+          name: report-${{matrix.config.name}}
+          fail-on-error: false
+          path: build/**/logs/*.mocha
+          reporter: mocha-json
+          only-summary: "true"
 
   build-assets:
     needs: build-code
@@ -188,75 +188,75 @@ jobs:
       REDIST_URL: https://bastian.tech/redist/linux-x64
       LD_LIBRARY_PATH: ${{github.workspace}}/deps
     steps:
-    - name: checkout
-      uses: actions/checkout@v5
-      with:
-        sparse-checkout: assets
+      - name: checkout
+        uses: actions/checkout@v6
+        with:
+          sparse-checkout: assets
 
-    - name: code-init
-      uses: actions/download-artifact@v4
-      with:
-        name: code-linux-rel-x64
+      - name: code-init
+        uses: actions/download-artifact@v8
+        with:
+          name: code-linux-rel-x64
 
-    - name: deps-cache
-      id: deps-cache
-      uses: actions/cache@v4
-      with:
-        key: deps-linux-001
-        path: deps
+      - name: deps-cache
+        id: deps-cache
+        uses: actions/cache@v5
+        with:
+          key: deps-linux-001
+          path: deps
 
-    - name: deps-init
-      if: ${{steps.deps-cache.outputs.cache-hit != 'true'}}
-      shell: bash
-      run: |
-        mkdir "$GITHUB_WORKSPACE/deps"
-        curl -o "$GITHUB_WORKSPACE/deps/libshaderc_shared.so.1" $REDIST_URL/libshaderc_shared.so.1
+      - name: deps-init
+        if: ${{steps.deps-cache.outputs.cache-hit != 'true'}}
+        shell: bash
+        run: |
+          mkdir "$GITHUB_WORKSPACE/deps"
+          curl -o "$GITHUB_WORKSPACE/deps/libshaderc_shared.so.1" $REDIST_URL/libshaderc_shared.so.1
 
-    - name: assets-cache
-      id: assets-cache
-      uses: actions/cache@v4
-      with:
-        key: assets-${{github.sha}}
-        restore-keys: assets-
-        enableCrossOsArchive: true
-        path: |
-          assets/.cache
-          assets/external
+      - name: assets-cache
+        id: assets-cache
+        uses: actions/cache@v5
+        with:
+          key: assets-${{github.sha}}
+          restore-keys: assets-
+          enableCrossOsArchive: true
+          path: |
+            assets/.cache
+            assets/external
 
-    - name: pack
-      shell: bash
-      run: |
-        chmod +x bin/*
-        ./bin/fetch assets/fetch.json
-        ./bin/pack assets/pack.json --output assets.blob
+      - name: pack
+        shell: bash
+        run: |
+          chmod +x bin/*
+          ./bin/fetch assets/fetch.json
+          ./bin/pack assets/pack.json --output assets.blob
 
-    - name: archive
-      uses: actions/upload-artifact@v4
-      if: ${{ !cancelled() }}
-      with:
-        name: assets
-        path: |
-          assets.blob
-          bin/**/logs/*
+      - name: archive
+        uses: actions/upload-artifact@v6
+        if: ${{ !cancelled() }}
+        with:
+          name: assets
+          path: |
+            assets.blob
+            bin/**/logs/*
 
   build-ide:
     runs-on: ubuntu-24.04
     steps:
-    - name: checkout
-      uses: actions/checkout@v5
-      with:
-        sparse-checkout: ide
+      - name: checkout
+        uses: actions/checkout@v6
+        with:
+          sparse-checkout: ide
 
-    - name: build-vscode
-      shell: bash
-      working-directory: ide/vscode/volo
-      run: |
-        npm install
-        npm run package
+      - name: build-vscode
+        shell: bash
+        working-directory: ide/vscode/volo
+        run: |
+          npm install
+          npm run package
 
-    - name: archive
-      uses: actions/upload-artifact@v4
-      with:
-        name: ide
-        path: ide/vscode/volo/volo-*.vsix
-        if-no-files-found: error
+      - name: archive
+        uses: actions/upload-artifact@v6
+        with:
+          name: ide
+          path: ide/vscode/volo/volo-*.vsix
+          if-no-files-found: error
