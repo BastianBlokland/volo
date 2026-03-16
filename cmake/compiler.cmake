@@ -27,6 +27,7 @@ add_compile_definitions(
   $<$<CONFIG:Release>:VOLO_RELEASE>
   $<$<BOOL:${VOLO_SIMD}>:VOLO_SIMD>
   $<$<BOOL:${VOLO_TRACE}>:VOLO_TRACE>
+  $<$<BOOL:${VOLO_WAYLAND}>:VOLO_WAYLAND>
   )
 
 # ------------------------------------------------------------------------------

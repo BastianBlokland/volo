@@ -26,6 +26,7 @@ option(VOLO_TRACE                 "Runtime performance tracing"     On)
 option(VOLO_LTO                   "Link time optimization"          Off)
 option(VOLO_SANITIZE              "Sanitizer instrumentation"       Off)
 option(VOLO_WERROR                "Warnings as errors"              Off)
+option(VOLO_WAYLAND               "Enable Wayland support"          On)
 set(   VOLO_LABEL "" CACHE STRING "Label to be associated with the build")
 
 # Diagnostic information.
@@ -44,6 +45,7 @@ message(STATUS "Simd: ${VOLO_SIMD}")
 message(STATUS "Trace: ${VOLO_TRACE}")
 message(STATUS "Lto: ${VOLO_LTO}")
 message(STATUS "Sanitize: ${VOLO_SANITIZE}")
+message(STATUS "Wayland: ${VOLO_WAYLAND}")
 
 # ------------------------------------------------------------------------------
 # Global setup.
