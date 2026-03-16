@@ -1,8 +1,8 @@
-# --------------------------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 # ClangFormat style configuration.
 # Helpful configurator for testing:
 # https://zed0.co.uk/clang-format-configurator/
-# --------------------------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 
 BasedOnStyle: LLVM
 IndentWidth: 2
@@ -27,6 +27,6 @@ IncludeCategories:
     SortPriority: 1
   - Regex: '^".+"$'
     SortPriority: 2
-  - Regex: '^<.+>$'
+  - Regex: "^<.+>$"
     SortPriority: 3
 PointerAlignment: Left
