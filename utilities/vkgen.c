@@ -112,9 +112,9 @@ static const String g_vkgenExtensions[] = {
 };
 
 typedef enum {
-  VkGenRef_Const          = 1 << 0,
-  VkGenRef_Pointer        = 1 << 1,
-  VkGenRef_DoublePointer  = 1 << 2,
+  VkGenRef_Const         = 1 << 0,
+  VkGenRef_Pointer       = 1 << 1,
+  VkGenRef_DoublePointer = 1 << 2,
 } VkGenRefFlags;
 
 typedef struct {
@@ -983,20 +983,26 @@ static void vkgen_ref_resolve_alias(VkGenRef* ref) {
 
 static bool vkgen_ref_read(VkGenContext* ctx, String* itrText, XmlNode* itrNode, VkGenRef* out) {
   VkGenRefFlags flags = 0;
+  String        text  = *itrText;
+  XmlNode       node  = *itrNode;
 
-  const String prefix = string_trim_whitespace(
-      string_is_empty(*itrText) ? xml_value(ctx->schemaDoc, *itrNode) : *itrText);
-
-  if (string_eq(prefix, string_lit("const"))) {
-    flags |= VkGenRef_Const;
-    *itrNode = xml_next(ctx->schemaDoc, *itrNode);
+  bool textFromNode = false;
+  if (string_is_empty(text)) {
+    text         = xml_value(ctx->schemaDoc, node);
+    textFromNode = true;
   }
-  if (xml_name_hash(ctx->schemaDoc, *itrNode) != g_hash_type) {
+  if (string_eq(string_trim_whitespace(text), string_lit("const"))) {
+    flags |= VkGenRef_Const;
+    if (textFromNode) {
+      node = xml_next(ctx->schemaDoc, node); // Advance past the 'const' text node.
+    }
+  }
+  if (xml_name_hash(ctx->schemaDoc, node) != g_hash_type) {
     return false; // Not a type.
   }
-  const String name = string_trim_whitespace(xml_value(ctx->schemaDoc, *itrNode));
+  const String name = string_trim_whitespace(xml_value(ctx->schemaDoc, node));
 
-  const XmlNode nextNode = xml_next(ctx->schemaDoc, *itrNode);
+  const XmlNode nextNode = xml_next(ctx->schemaDoc, node);
   String        suffix   = string_trim_whitespace(xml_value(ctx->schemaDoc, nextNode));
 
   if (string_starts_with(suffix, string_lit("*"))) {
@@ -1007,12 +1013,16 @@ static bool vkgen_ref_read(VkGenContext* ctx, String* itrText, XmlNode* itrNode,
       suffix = string_trim_whitespace(string_consume(suffix, 1));
     }
     if (string_is_empty(suffix)) {
-      *itrNode = xml_next(ctx->schemaDoc, *itrNode);
+      node = xml_next(ctx->schemaDoc, node);
     }
-    *itrText = suffix;
+    text = suffix;
   } else {
-    *itrText = string_empty;
+    text = string_empty;
   }
+
+  *itrText = text;
+  *itrNode = node;
+
   *out = (VkGenRef){
       .flags = flags,
       .name  = name,
