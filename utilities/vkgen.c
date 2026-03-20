@@ -979,23 +979,29 @@ static void vkgen_ref_resolve_alias(VkGenRef* ref) {
 }
 
 static bool vkgen_ref_read(VkGenContext* ctx, XmlNode* node, VkGenRef* out) {
-  const bool    isConst  = vkgen_node_value_match(ctx->schemaDoc, *node, string_lit("const"));
-  const XmlNode typeNode = isConst ? xml_next(ctx->schemaDoc, *node) : *node;
+  XmlNode       itr   = *node;
+  VkGenRefFlags flags = 0;
 
-  if (xml_name_hash(ctx->schemaDoc, typeNode) != g_hash_type) {
+  const bool isConst = vkgen_node_value_match(ctx->schemaDoc, itr, string_lit("const"));
+  if (isConst) {
+    flags |= VkGenRef_Const;
+    itr = xml_next(ctx->schemaDoc, itr);
+  }
+  if (xml_name_hash(ctx->schemaDoc, itr) != g_hash_type) {
     return false; // Not a type.
   }
-  *out = (VkGenRef){
-      .flags = isConst ? VkGenRef_Const : 0,
-      .name  = string_trim_whitespace(xml_value(ctx->schemaDoc, typeNode)),
-  };
-  if (vkgen_node_value_match(ctx->schemaDoc, xml_next(ctx->schemaDoc, typeNode), string_lit("*"))) {
-    out->flags |= VkGenRef_Pointer;
-    *node = xml_next(ctx->schemaDoc, typeNode);
-  } else {
-    *node = typeNode;
+  const String name = string_trim_whitespace(xml_value(ctx->schemaDoc, itr));
+
+  if (vkgen_node_value_match(ctx->schemaDoc, xml_next(ctx->schemaDoc, itr), string_lit("*"))) {
+    flags |= VkGenRef_Pointer;
+    itr = xml_next(ctx->schemaDoc, itr);
   }
+  *out = (VkGenRef){
+      .flags = flags,
+      .name  = name,
+  };
   vkgen_ref_resolve_alias(out);
+  *node = itr;
   return true;
 }
 
