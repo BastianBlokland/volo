@@ -1042,16 +1042,34 @@ static void vkgen_write_node_itr(VkGenContext* ctx, String* textItr, XmlNode* no
     text          = vkgen_ref_scratch(&ref);
     needSeparator = true;
   } else if (xml_name_hash(ctx->schemaDoc, *nodeItr) == g_hash_name) {
-    text          = string_is_empty(*textItr) ? xml_value(ctx->schemaDoc, *nodeItr) : *textItr;
+    text          = xml_value(ctx->schemaDoc, *nodeItr);
     needSeparator = true;
+    *textItr      = string_empty;
   } else {
-    text = string_is_empty(*textItr) ? xml_value(ctx->schemaDoc, *nodeItr) : *textItr;
-    text = vkgen_collapse_whitespace_scratch(text);
+    String remaining = *textItr;
+    if (string_is_empty(remaining)) {
+      remaining = xml_value(ctx->schemaDoc, *nodeItr);
+    } else {
+      needSeparator = true;
+    }
+    const usize commaPos = string_find_first_char(remaining, ',');
+    if (!sentinel_check(commaPos)) {
+      // Output text up to and including the comma.
+      *textItr = string_consume(remaining, commaPos + 1);
+      text     = string_slice(remaining, 0, commaPos + 1);
+    } else {
+      // Output all text.
+      *textItr = string_empty;
+      text     = remaining;
+    }
   }
   if (needSeparator && !vkgen_out_last_is_separator(ctx)) {
     fmt_write(&ctx->out, " ");
   }
-  fmt_write(&ctx->out, "{}", fmt_text(text, .flags = FormatTextFlags_SingleLine));
+  fmt_write(
+      &ctx->out,
+      "{}",
+      fmt_text(vkgen_collapse_whitespace_scratch(text), .flags = FormatTextFlags_SingleLine));
 }
 
 static void vkgen_write_node_children(VkGenContext* ctx, const XmlNode node) {
