@@ -112,8 +112,9 @@ static const String g_vkgenExtensions[] = {
 };
 
 typedef enum {
-  VkGenRef_Const   = 1 << 0,
-  VkGenRef_Pointer = 1 << 1,
+  VkGenRef_Const          = 1 << 0,
+  VkGenRef_Pointer        = 1 << 1,
+  VkGenRef_DoublePointer  = 1 << 2,
 } VkGenRefFlags;
 
 typedef struct {
@@ -959,7 +960,9 @@ static String vkgen_ref_scratch(const VkGenRef* ref) {
     fmt_write(&str, "const ");
   }
   fmt_write(&str, "{}", fmt_text(ref->name));
-  if (ref->flags & VkGenRef_Pointer) {
+  if (ref->flags & VkGenRef_DoublePointer) {
+    fmt_write(&str, "**");
+  } else if (ref->flags & VkGenRef_Pointer) {
     fmt_write(&str, "*");
   }
   return dynstring_view(&str);
@@ -971,7 +974,7 @@ static void vkgen_ref_resolve_alias(VkGenRef* ref) {
     if (string_eq(org, ref->name)) {
       ref->name = g_vkgenRefAliases[i].replacement;
       if (g_vkgenRefAliases[i].stripPointer) {
-        ref->flags &= ~(VkGenRef_Const | VkGenRef_Pointer);
+        ref->flags &= ~(VkGenRef_Const | VkGenRef_Pointer | VkGenRef_DoublePointer);
       }
       break;
     }
@@ -999,6 +1002,10 @@ static bool vkgen_ref_read(VkGenContext* ctx, String* itrText, XmlNode* itrNode,
   if (string_starts_with(suffix, string_lit("*"))) {
     flags |= VkGenRef_Pointer;
     suffix = string_trim_whitespace(string_consume(suffix, 1));
+    if (string_starts_with(suffix, string_lit("*"))) {
+      flags |= VkGenRef_DoublePointer;
+      suffix = string_trim_whitespace(string_consume(suffix, 1));
+    }
     if (string_is_empty(suffix)) {
       *itrNode = xml_next(ctx->schemaDoc, *itrNode);
     }
@@ -1014,22 +1021,22 @@ static bool vkgen_ref_read(VkGenContext* ctx, String* itrText, XmlNode* itrNode,
   return true;
 }
 
-static void vkgen_write_node_itr(VkGenContext* ctx, XmlNode* nodeItr) {
+static void vkgen_write_node_itr(VkGenContext* ctx, String* textItr, XmlNode* nodeItr) {
   if (xml_name_hash(ctx->schemaDoc, *nodeItr) == g_hash_comment) {
     return; // Skip comments.
   }
   VkGenRef ref;
   String   text;
   bool     needSeparator = false;
-  String   textItr       = string_empty;
-  if (vkgen_ref_read(ctx, &textItr, nodeItr, &ref)) {
+  if (vkgen_ref_read(ctx, textItr, nodeItr, &ref)) {
     text          = vkgen_ref_scratch(&ref);
     needSeparator = true;
   } else if (xml_name_hash(ctx->schemaDoc, *nodeItr) == g_hash_name) {
-    text          = xml_value(ctx->schemaDoc, *nodeItr);
+    text          = string_is_empty(*textItr) ? xml_value(ctx->schemaDoc, *nodeItr) : *textItr;
     needSeparator = true;
   } else {
-    text = vkgen_collapse_whitespace_scratch(xml_value(ctx->schemaDoc, *nodeItr));
+    text = string_is_empty(*textItr) ? xml_value(ctx->schemaDoc, *nodeItr) : *textItr;
+    text = vkgen_collapse_whitespace_scratch(text);
   }
   if (needSeparator && !vkgen_out_last_is_separator(ctx)) {
     fmt_write(&ctx->out, " ");
@@ -1038,7 +1045,8 @@ static void vkgen_write_node_itr(VkGenContext* ctx, XmlNode* nodeItr) {
 }
 
 static void vkgen_write_node_children(VkGenContext* ctx, const XmlNode node) {
-  xml_for_children(ctx->schemaDoc, node, child) { vkgen_write_node_itr(ctx, &child); }
+  String text = string_empty;
+  xml_for_children(ctx->schemaDoc, node, child) { vkgen_write_node_itr(ctx, &text, &child); }
 }
 
 static bool vkgen_write_type_func_pointer(VkGenContext* ctx, const VkGenType* type) {
@@ -1070,9 +1078,10 @@ static bool vkgen_write_type_func_pointer(VkGenContext* ctx, const VkGenType* ty
   if (!vkgen_node_value_match(ctx->schemaDoc, child, string_lit(")("))) {
     return false; // Malformed func pointer typedef.
   }
-  child = xml_next(ctx->schemaDoc, child);
+  child            = xml_next(ctx->schemaDoc, child);
+  String childText = string_empty;
   for (; !sentinel_check(child); child = xml_next(ctx->schemaDoc, child)) {
-    vkgen_write_node_itr(ctx, &child);
+    vkgen_write_node_itr(ctx, &childText, &child);
   }
   fmt_write(&ctx->out, "\n\n");
   return true;
