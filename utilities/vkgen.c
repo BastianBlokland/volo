@@ -978,30 +978,39 @@ static void vkgen_ref_resolve_alias(VkGenRef* ref) {
   }
 }
 
-static bool vkgen_ref_read(VkGenContext* ctx, XmlNode* node, VkGenRef* out) {
-  XmlNode       itr   = *node;
+static bool vkgen_ref_read(VkGenContext* ctx, String* itrText, XmlNode* itrNode, VkGenRef* out) {
   VkGenRefFlags flags = 0;
 
-  const bool isConst = vkgen_node_value_match(ctx->schemaDoc, itr, string_lit("const"));
-  if (isConst) {
+  const String prefix = string_trim_whitespace(
+      string_is_empty(*itrText) ? xml_value(ctx->schemaDoc, *itrNode) : *itrText);
+
+  if (string_eq(prefix, string_lit("const"))) {
     flags |= VkGenRef_Const;
-    itr = xml_next(ctx->schemaDoc, itr);
+    *itrNode = xml_next(ctx->schemaDoc, *itrNode);
   }
-  if (xml_name_hash(ctx->schemaDoc, itr) != g_hash_type) {
+  if (xml_name_hash(ctx->schemaDoc, *itrNode) != g_hash_type) {
     return false; // Not a type.
   }
-  const String name = string_trim_whitespace(xml_value(ctx->schemaDoc, itr));
+  const String name = string_trim_whitespace(xml_value(ctx->schemaDoc, *itrNode));
 
-  if (vkgen_node_value_match(ctx->schemaDoc, xml_next(ctx->schemaDoc, itr), string_lit("*"))) {
+  const XmlNode nextNode = xml_next(ctx->schemaDoc, *itrNode);
+  String        suffix   = string_trim_whitespace(xml_value(ctx->schemaDoc, nextNode));
+
+  if (string_starts_with(suffix, string_lit("*"))) {
     flags |= VkGenRef_Pointer;
-    itr = xml_next(ctx->schemaDoc, itr);
+    suffix = string_trim_whitespace(string_consume(suffix, 1));
+    if (string_is_empty(suffix)) {
+      *itrNode = xml_next(ctx->schemaDoc, *itrNode);
+    }
+    *itrText = suffix;
+  } else {
+    *itrText = string_empty;
   }
   *out = (VkGenRef){
       .flags = flags,
       .name  = name,
   };
   vkgen_ref_resolve_alias(out);
-  *node = itr;
   return true;
 }
 
@@ -1012,7 +1021,8 @@ static void vkgen_write_node_itr(VkGenContext* ctx, XmlNode* nodeItr) {
   VkGenRef ref;
   String   text;
   bool     needSeparator = false;
-  if (vkgen_ref_read(ctx, nodeItr, &ref)) {
+  String   textItr       = string_empty;
+  if (vkgen_ref_read(ctx, &textItr, nodeItr, &ref)) {
     text          = vkgen_ref_scratch(&ref);
     needSeparator = true;
   } else if (xml_name_hash(ctx->schemaDoc, *nodeItr) == g_hash_name) {
