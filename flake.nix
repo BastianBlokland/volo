@@ -35,15 +35,17 @@
             pkgs.cmake
             pkgs.ninja
 
+            pkgs.alsa-lib
             pkgs.elfutils
-            pkgs.shaderc
-            pkgs.vulkan-tools
+            pkgs.libxkbcommon
             pkgs.openssl
+            pkgs.shaderc
             pkgs.vulkan-loader
+            pkgs.vulkan-tools
+            pkgs.wayland-protocols
+            pkgs.wayland-scanner
             pkgs.xorg.libxcb
             pkgs.xorg.xcbutilkeysyms
-            pkgs.libxkbcommon
-            pkgs.alsa-lib
 
             # Ide extension dependencies:
             pkgs.nodejs_24
@@ -67,6 +69,10 @@
           }";
 
           VK_LOADER_DEBUG = "error"; # error,warn,info
+
+          # Variables for the shell/wayland-gen.sh script.
+          VOLO_WAYLAND_DATADIR = "${pkgs.wayland-scanner}/share/wayland";
+          VOLO_WAYLAND_PROTOCOLS_DATADIR = "${pkgs.wayland-protocols}/share/wayland-protocols";
         };
 
         default = llvm;
