@@ -212,11 +212,6 @@ static String vkgen_collapse_whitespace_scratch(const String text) {
   return dynstring_view(&buffer);
 }
 
-static bool vkgen_node_value_match(XmlDoc* doc, const XmlNode node, const String text) {
-  const String nodeText = xml_value(doc, node);
-  return string_eq(string_trim_whitespace(nodeText), text);
-}
-
 static bool vkgen_str_list_contains(String str, const String other) {
   while (!string_is_empty(str)) {
     usize len = string_find_first_char(str, ',');
@@ -1101,6 +1096,38 @@ Skip:
   return vkgen_lexer_next(ctx, l);
 }
 
+static VkGenRef vkgen_proto_return(VkGenContext* ctx, const XmlNode node) {
+  VkGenRef ref   = {0};
+  XmlNode  child = xml_first_child(ctx->schemaDoc, node);
+  if (!sentinel_check(child)) {
+    VkGenLexer lexer;
+    vkgen_lexer_init(ctx, &lexer, child);
+    for (VkGenToken token = vkgen_lexer_next(ctx, &lexer);; token = vkgen_lexer_next(ctx, &lexer)) {
+      if (token.type == VkGenTokenType_End || token.type == VkGenTokenType_Name) {
+        break;
+      }
+      switch (token.type) {
+      case VkGenTokenType_Const:
+        ref.flags |= VkGenRef_Const;
+        break;
+      case VkGenTokenType_Struct:
+        ref.flags |= VkGenRef_Struct;
+        break;
+      case VkGenTokenType_Type:
+        ref.name = token.text;
+        break;
+      case VkGenTokenType_Star:
+        ++ref.indirections;
+        break;
+      default:
+        break;
+      }
+    }
+  }
+  vkgen_ref_resolve_alias(&ref);
+  return ref;
+}
+
 static void vkgen_write_node_siblings(VkGenContext* ctx, const XmlNode node) {
   VkGenLexer lexer;
   vkgen_lexer_init(ctx, &lexer, node);
@@ -1183,27 +1210,29 @@ static void vkgen_write_node_children(VkGenContext* ctx, const XmlNode node) {
 }
 
 static bool vkgen_write_type_func_pointer(VkGenContext* ctx, const VkGenType* type) {
-  XmlNode child = xml_first_child(ctx->schemaDoc, type->schemaNode);
-  String  text  = xml_value(ctx->schemaDoc, child);
-  if (!string_starts_with(text, string_lit("typedef "))) {
-    return false; // Malformed func pointer typedef.
+  const XmlNode protoNode = xml_child_get(ctx->schemaDoc, type->schemaNode, g_hash_proto);
+  if (sentinel_check(protoNode)) {
+    return false;
   }
-  text = string_consume(text, string_lit("typedef ").size);
+  const VkGenRef retRef = vkgen_proto_return(ctx, protoNode);
+  const String   retStr = vkgen_ref_scratch(&retRef);
 
-  const usize typeEnd = string_find_first(text, string_lit("("));
-  if (sentinel_check(typeEnd)) {
-    return false; // Malformed func pointer typedef.
+  fmt_write(&ctx->out, "typedef {} (SYS_DECL* {})(", fmt_text(retStr), fmt_text(type->name));
+  bool anyParam = false;
+  xml_for_children(ctx->schemaDoc, type->schemaNode, child) {
+    if (xml_name_hash(ctx->schemaDoc, child) != g_hash_param) {
+      continue;
+    }
+    if (anyParam) {
+      fmt_write(&ctx->out, ", ");
+    }
+    vkgen_write_node_children(ctx, child);
+    anyParam = true;
   }
-  const String retType = string_trim_whitespace(string_slice(text, 0, typeEnd));
-
-  child = xml_next(ctx->schemaDoc, child);
-  if (!vkgen_node_value_match(ctx->schemaDoc, child, type->name)) {
-    return false; // Unexpected type-def name.
+  if (!anyParam) {
+    fmt_write(&ctx->out, "void");
   }
-
-  fmt_write(&ctx->out, "typedef {} (SYS_DECL* {}", fmt_text(retType), fmt_text(type->name));
-  vkgen_write_node_siblings(ctx, xml_next(ctx->schemaDoc, child));
-  fmt_write(&ctx->out, "\n\n");
+  fmt_write(&ctx->out, ");\n\n");
   return true;
 }
 
@@ -1502,9 +1531,9 @@ static bool vkgen_write_interface(VkGenContext* ctx, const VkGenInterfaceCat cat
           fmt_text(string_consume(varName, 3)));
     }
 
-    VkGenRef typeRef = {.name = cmd->type}; // TODO: Support pointers as cmd output types.
-    vkgen_ref_resolve_alias(&typeRef);
-    const String typeStr = vkgen_ref_scratch(&typeRef);
+    const XmlNode  protoNode = xml_child_get(ctx->schemaDoc, cmd->schemaNode, g_hash_proto);
+    const VkGenRef typeRef   = vkgen_proto_return(ctx, protoNode);
+    const String   typeStr   = vkgen_ref_scratch(&typeRef);
 
     fmt_write(&ctx->out, "  {} (SYS_DECL* {})(", fmt_text(typeStr), fmt_text(varName));
     bool anyParam = false;
@@ -1723,7 +1752,7 @@ static bool vkgen_write_impl(VkGenContext* ctx) {
 // clang-format off
 static const String g_appDesc = string_static("VulkanGen - Utility to generate a Vulkan api header and utility c file.");
 static const String g_schemaDefaultHost = string_static("raw.githubusercontent.com");
-static const String g_schemaDefaultUri  = string_static("/KhronosGroup/Vulkan-Docs/refs/tags/v1.4.336/xml/vk.xml");
+static const String g_schemaDefaultUri  = string_static("/KhronosGroup/Vulkan-Docs/refs/tags/v1.4.347/xml/vk.xml");
 // clang-format on
 
 static CliId g_optVerbose, g_optOutputPath, g_optSchemaHost, g_optSchemaUri;
