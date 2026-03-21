@@ -8,6 +8,13 @@
 #include "pal.h"
 #include "wayland/wayland.h"
 
+static const char* to_null_term_scratch(const String str) {
+  const Mem mem = alloc_alloc(g_allocScratch, str.size + 1, 1);
+  mem_cpy(mem, str);
+  *mem_at_u8(mem, str.size) = '\0';
+  return mem.ptr;
+}
+
 /**
  * Wayland client implementation.
  *
@@ -375,9 +382,8 @@ String gap_pal_window_input_text(const GapPal* pal, const GapWindowId windowId) 
 }
 
 void gap_pal_window_title_set(GapPal* pal, const GapWindowId windowId, const String title) {
-  (void)pal;
-  (void)windowId;
-  (void)title;
+  GapPalWindow* window = pal_window(pal, windowId);
+  xdg_toplevel_set_title(&window->wl->api, window->xdgToplevel, to_null_term_scratch(title));
 }
 
 void gap_pal_window_resize(
@@ -437,19 +443,19 @@ void gap_pal_window_clip_paste(GapPal* pal, const GapWindowId windowId) {
 }
 
 String gap_pal_window_clip_paste_result(GapPal* pal, const GapWindowId windowId) {
-  return pal_maybe_window(pal, windowId)->clipPaste;
+  return pal_window(pal, windowId)->clipPaste;
 }
 
 String gap_pal_window_display_name(GapPal* pal, const GapWindowId windowId) {
-  return pal_maybe_window(pal, windowId)->displayName;
+  return pal_window(pal, windowId)->displayName;
 }
 
 f32 gap_pal_window_refresh_rate(GapPal* pal, const GapWindowId windowId) {
-  return pal_maybe_window(pal, windowId)->refreshRate;
+  return pal_window(pal, windowId)->refreshRate;
 }
 
 u16 gap_pal_window_dpi(GapPal* pal, const GapWindowId windowId) {
-  return pal_maybe_window(pal, windowId)->dpi;
+  return pal_window(pal, windowId)->dpi;
 }
 
 TimeDuration gap_pal_doubleclick_interval(void) {

@@ -123,7 +123,6 @@ The following functions currently silently do nothing:
 
 | Function | Notes |
 |---|---|
-| `gap_pal_window_title_set` | Call `xdg_toplevel_set_title(...)` |
 | `gap_pal_window_resize` | Call `xdg_toplevel_set_max_size` / handle configure events |
 | `gap_pal_window_cursor_hide/capture/confine` | Requires `wl_pointer` + `zwp_pointer_constraints_v1` |
 | `gap_pal_window_cursor_set` | Requires `wl_cursor` / `wl_pointer_set_cursor` |
