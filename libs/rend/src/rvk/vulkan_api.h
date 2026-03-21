@@ -59,6 +59,7 @@
 #define VK_KHR_present_wait2 "VK_KHR_present_wait2"
 #define VK_KHR_surface "VK_KHR_surface"
 #define VK_KHR_swapchain "VK_KHR_swapchain"
+#define VK_KHR_wayland_surface "VK_KHR_wayland_surface"
 #define VK_KHR_win32_surface "VK_KHR_win32_surface"
 #define VK_KHR_xcb_surface "VK_KHR_xcb_surface"
 
@@ -180,6 +181,7 @@ typedef enum {
   VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR = 1000001000,
   VK_STRUCTURE_TYPE_PRESENT_INFO_KHR = 1000001001,
   VK_STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR = 1000005000,
+  VK_STRUCTURE_TYPE_WAYLAND_SURFACE_CREATE_INFO_KHR = 1000006000,
   VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR = 1000009000,
   VK_STRUCTURE_TYPE_RENDER_PASS_MULTIVIEW_CREATE_INFO = 1000053000,
   VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MULTIVIEW_FEATURES = 1000053001,
@@ -3559,6 +3561,16 @@ typedef struct VkDeviceGroupSwapchainCreateInfoKHR {
   VkDeviceGroupPresentModeFlagsKHR modes;
 } VkDeviceGroupSwapchainCreateInfoKHR;
 
+typedef VkFlags VkWaylandSurfaceCreateFlagsKHR;
+
+typedef struct VkWaylandSurfaceCreateInfoKHR {
+  VkStructureType sType;
+  const void* pNext;
+  VkWaylandSurfaceCreateFlagsKHR flags;
+  uptr display;
+  uptr surface;
+} VkWaylandSurfaceCreateInfoKHR;
+
 typedef VkFlags VkWin32SurfaceCreateFlagsKHR;
 
 typedef struct VkWin32SurfaceCreateInfoKHR {
@@ -3644,6 +3656,8 @@ typedef struct VkInterfaceInstance {
   VkResult (SYS_DECL* getPhysicalDeviceSurfaceFormatsKHR)(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, u32* pSurfaceFormatCount, VkSurfaceFormatKHR* pSurfaceFormats);
   VkResult (SYS_DECL* getPhysicalDeviceSurfacePresentModesKHR)(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, u32* pPresentModeCount, VkPresentModeKHR* pPresentModes);
   VkResult (SYS_DECL* getPhysicalDevicePresentRectanglesKHR)(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, u32* pRectCount, VkRect2D* pRects);
+  VkResult (SYS_DECL* createWaylandSurfaceKHR)(VkInstance instance, const VkWaylandSurfaceCreateInfoKHR* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkSurfaceKHR* pSurface);
+  VkBool32 (SYS_DECL* getPhysicalDeviceWaylandPresentationSupportKHR)(VkPhysicalDevice physicalDevice, u32 queueFamilyIndex, uptr display);
   VkResult (SYS_DECL* createWin32SurfaceKHR)(VkInstance instance, const VkWin32SurfaceCreateInfoKHR* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkSurfaceKHR* pSurface);
   VkBool32 (SYS_DECL* getPhysicalDeviceWin32PresentationSupportKHR)(VkPhysicalDevice physicalDevice, u32 queueFamilyIndex);
   VkResult (SYS_DECL* createXcbSurfaceKHR)(VkInstance instance, const VkXcbSurfaceCreateInfoKHR* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkSurfaceKHR* pSurface);

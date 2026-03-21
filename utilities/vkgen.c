@@ -107,6 +107,7 @@ static const String g_vkgenExtensions[] = {
     string_static("VK_KHR_present_wait2"),
     string_static("VK_KHR_surface"),
     string_static("VK_KHR_swapchain"),
+    string_static("VK_KHR_wayland_surface"),
     string_static("VK_KHR_win32_surface"),
     string_static("VK_KHR_xcb_surface"),
 };
@@ -129,19 +130,21 @@ typedef struct {
 
 // clang-format off
 static const VkGenRefAlias g_vkgenRefAliases[] = {
-  {string_static("uint8_t"),            string_static("u8")                         },
-  {string_static("int32_t"),            string_static("i32")                        },
-  {string_static("uint32_t"),           string_static("u32")                        },
-  {string_static("int64_t"),            string_static("i64")                        },
-  {string_static("uint64_t"),           string_static("u64")                        },
-  {string_static("size_t"),             string_static("usize")                      },
-  {string_static("float"),              string_static("f32")                        },
-  {string_static("double"),             string_static("f64")                        },
-  {string_static("HWND"),               string_static("uptr")                       },
-  {string_static("HINSTANCE"),          string_static("uptr")                       },
-  {string_static("xcb_visualid_t"),     string_static("u32")                        },
-  {string_static("xcb_window_t"),       string_static("uptr")                       },
-  {string_static("xcb_connection_t"),   string_static("uptr"), .stripPointer = true },
+  {string_static("uint8_t"),            string_static("u8")                                             },
+  {string_static("int32_t"),            string_static("i32")                                            },
+  {string_static("uint32_t"),           string_static("u32")                                            },
+  {string_static("int64_t"),            string_static("i64")                                            },
+  {string_static("uint64_t"),           string_static("u64")                                            },
+  {string_static("size_t"),             string_static("usize")                                          },
+  {string_static("float"),              string_static("f32")                                            },
+  {string_static("double"),             string_static("f64")                                            },
+  {string_static("HWND"),               string_static("uptr")                                           },
+  {string_static("HINSTANCE"),          string_static("uptr")                                           },
+  {string_static("xcb_visualid_t"),     string_static("u32")                                            },
+  {string_static("xcb_window_t"),       string_static("uptr")                                           },
+  {string_static("xcb_connection_t"),   string_static("uptr"), .stripPointer = true                      },
+  {string_static("wl_display"),         string_static("uptr"), .stripPointer = true, .stripStruct = true },
+  {string_static("wl_surface"),         string_static("uptr"), .stripPointer = true, .stripStruct = true },
 };
 // clang-format on
 

@@ -855,6 +855,8 @@ VkResult vkLoadInstance(VkInstance inst, const VkInterfaceLoader* src, VkInterfa
   out->getPhysicalDeviceSurfaceFormatsKHR = (Symbol)src->getInstanceProcAddr(inst, "vkGetPhysicalDeviceSurfaceFormatsKHR");
   out->getPhysicalDeviceSurfacePresentModesKHR = (Symbol)src->getInstanceProcAddr(inst, "vkGetPhysicalDeviceSurfacePresentModesKHR");
   out->getPhysicalDevicePresentRectanglesKHR = (Symbol)src->getInstanceProcAddr(inst, "vkGetPhysicalDevicePresentRectanglesKHR");
+  out->createWaylandSurfaceKHR = (Symbol)src->getInstanceProcAddr(inst, "vkCreateWaylandSurfaceKHR");
+  out->getPhysicalDeviceWaylandPresentationSupportKHR = (Symbol)src->getInstanceProcAddr(inst, "vkGetPhysicalDeviceWaylandPresentationSupportKHR");
   out->createWin32SurfaceKHR = (Symbol)src->getInstanceProcAddr(inst, "vkCreateWin32SurfaceKHR");
   out->getPhysicalDeviceWin32PresentationSupportKHR = (Symbol)src->getInstanceProcAddr(inst, "vkGetPhysicalDeviceWin32PresentationSupportKHR");
   out->createXcbSurfaceKHR = (Symbol)src->getInstanceProcAddr(inst, "vkCreateXcbSurfaceKHR");
