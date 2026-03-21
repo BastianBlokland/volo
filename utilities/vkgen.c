@@ -113,8 +113,9 @@ static const String g_vkgenExtensions[] = {
 
 typedef enum {
   VkGenRef_Const         = 1 << 0,
-  VkGenRef_Pointer       = 1 << 1,
-  VkGenRef_DoublePointer = 1 << 2,
+  VkGenRef_Struct        = 1 << 1,
+  VkGenRef_Pointer       = 1 << 2,
+  VkGenRef_DoublePointer = 1 << 3,
 } VkGenRefFlags;
 
 typedef struct {
@@ -124,7 +125,7 @@ typedef struct {
 
 typedef struct {
   String original, replacement;
-  bool   stripPointer;
+  bool   stripPointer, stripStruct;
 } VkGenRefAlias;
 
 // clang-format off
@@ -959,6 +960,9 @@ static String vkgen_ref_scratch(const VkGenRef* ref) {
   if (ref->flags & VkGenRef_Const) {
     fmt_write(&str, "const ");
   }
+  if (ref->flags & VkGenRef_Struct) {
+    fmt_write(&str, "struct ");
+  }
   fmt_write(&str, "{}", fmt_text(ref->name));
   if (ref->flags & VkGenRef_DoublePointer) {
     fmt_write(&str, "**");
@@ -975,6 +979,9 @@ static void vkgen_ref_resolve_alias(VkGenRef* ref) {
       ref->name = g_vkgenRefAliases[i].replacement;
       if (g_vkgenRefAliases[i].stripPointer) {
         ref->flags &= ~(VkGenRef_Const | VkGenRef_Pointer | VkGenRef_DoublePointer);
+      }
+      if (g_vkgenRefAliases[i].stripStruct) {
+        ref->flags &= ~VkGenRef_Struct;
       }
       break;
     }
