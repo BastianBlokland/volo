@@ -1036,6 +1036,13 @@ static VkGenToken vkgen_lexer_emit_word(VkGenLexer* l) {
   if (!end) {
     return vkgen_lexer_emit(l, VkGenTokenType_Error, 1);
   }
+  const String word = string_slice(l->text, 0, end);
+  if (string_eq(word, string_lit("struct"))) {
+    return vkgen_lexer_emit(l, VkGenTokenType_Struct, end);
+  }
+  if (string_eq(word, string_lit("const"))) {
+    return vkgen_lexer_emit(l, VkGenTokenType_Const, end);
+  }
   return vkgen_lexer_emit(l, VkGenTokenType_Word, end);
 }
 
