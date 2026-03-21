@@ -135,6 +135,9 @@ static VkInstance rvk_inst_create(
   case GapNativeWm_Win32:
     extensionNames[extensionCount++] = VK_KHR_win32_surface;
     break;
+  case GapNativeWm_Wayland:
+    extensionNames[extensionCount++] = VK_KHR_wayland_surface;
+    break;
   }
   if (flags & RvkLibFlags_Debug) {
     extensionNames[extensionCount++] = VK_EXT_debug_utils;

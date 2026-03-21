@@ -11,6 +11,7 @@
 typedef enum {
   GapNativeWm_Xcb,
   GapNativeWm_Win32,
+  GapNativeWm_Wayland,
 } GapNativeWm;
 
 /**

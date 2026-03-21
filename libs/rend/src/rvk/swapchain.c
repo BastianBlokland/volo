@@ -129,6 +129,15 @@ static VkSurfaceKHR rvk_surface_create(RvkLib* lib, const GapWindowComp* window)
     };
     rvk_call_checked(lib, createWin32SurfaceKHR, lib->vkInst, &createInfo, &lib->vkAlloc, &result);
   } break;
+  case GapNativeWm_Wayland: {
+    const VkWaylandSurfaceCreateInfoKHR createInfo = {
+        .sType   = VK_STRUCTURE_TYPE_WAYLAND_SURFACE_CREATE_INFO_KHR,
+        .display = gap_native_app_handle(window),
+        .surface = gap_native_window_handle(window),
+    };
+    rvk_call_checked(
+        lib, createWaylandSurfaceKHR, lib->vkInst, &createInfo, &lib->vkAlloc, &result);
+  } break;
   }
   return result;
 }
