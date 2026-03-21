@@ -713,7 +713,11 @@ static void vkgen_collect_types(VkGenContext* ctx) {
       vkgen_type_push(ctx, kind, name, parent, child);
       continue;
     }
-    const XmlNode nameNode = xml_child_get(ctx->schemaDoc, child, g_hash_name);
+    XmlNode protoNode = xml_child_get(ctx->schemaDoc, child, g_hash_proto);
+    if (sentinel_check(protoNode)) {
+      protoNode = child;
+    }
+    const XmlNode nameNode = xml_child_get(ctx->schemaDoc, protoNode, g_hash_name);
     if (!sentinel_check(nameNode)) {
       vkgen_type_push(ctx, kind, xml_value(ctx->schemaDoc, nameNode), parent, child);
       continue;
