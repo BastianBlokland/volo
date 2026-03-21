@@ -8,6 +8,9 @@
 
 /**
  * Wayland client implementation.
+ *
+ * Standard: https://wayland.freedesktop.org/docs/html/
+ * Protocol: https://wayland.app/protocols/wayland
  */
 
 typedef struct {
