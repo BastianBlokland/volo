@@ -95,6 +95,7 @@ bool       xml_attr_has(const XmlDoc*, XmlNode node, StringHash nameHash);
 String     xml_attr_get(const XmlDoc*, XmlNode node, StringHash nameHash);
 StringHash xml_attr_get_hash(const XmlDoc*, XmlNode node, StringHash nameHash);
 XmlNode    xml_child_get(const XmlDoc*, XmlNode node, StringHash nameHash);
+u32        xml_child_count(const XmlDoc*, XmlNode node);
 XmlNode    xml_first_child(const XmlDoc*, XmlNode);
 XmlNode    xml_first_attr(const XmlDoc*, XmlNode);
 

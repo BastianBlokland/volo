@@ -107,40 +107,44 @@ static const String g_vkgenExtensions[] = {
     string_static("VK_KHR_present_wait2"),
     string_static("VK_KHR_surface"),
     string_static("VK_KHR_swapchain"),
+    string_static("VK_KHR_wayland_surface"),
     string_static("VK_KHR_win32_surface"),
     string_static("VK_KHR_xcb_surface"),
 };
 
 typedef enum {
-  VkGenRef_Const   = 1 << 0,
-  VkGenRef_Pointer = 1 << 1,
+  VkGenRef_Const  = 1 << 0,
+  VkGenRef_Struct = 1 << 1,
 } VkGenRefFlags;
 
 typedef struct {
   String        name;
   VkGenRefFlags flags;
+  u8            indirections;
 } VkGenRef;
 
 typedef struct {
   String original, replacement;
-  bool   stripPointer;
+  bool   stripPointer, stripStruct;
 } VkGenRefAlias;
 
 // clang-format off
 static const VkGenRefAlias g_vkgenRefAliases[] = {
-  {string_static("uint8_t"),            string_static("u8")                         },
-  {string_static("int32_t"),            string_static("i32")                        },
-  {string_static("uint32_t"),           string_static("u32")                        },
-  {string_static("int64_t"),            string_static("i64")                        },
-  {string_static("uint64_t"),           string_static("u64")                        },
-  {string_static("size_t"),             string_static("usize")                      },
-  {string_static("float"),              string_static("f32")                        },
-  {string_static("double"),             string_static("f64")                        },
-  {string_static("HWND"),               string_static("uptr")                       },
-  {string_static("HINSTANCE"),          string_static("uptr")                       },
-  {string_static("xcb_visualid_t"),     string_static("u32")                        },
-  {string_static("xcb_window_t"),       string_static("uptr")                       },
-  {string_static("xcb_connection_t"),   string_static("uptr"), .stripPointer = true },
+  {string_static("uint8_t"),            string_static("u8")                                             },
+  {string_static("int32_t"),            string_static("i32")                                            },
+  {string_static("uint32_t"),           string_static("u32")                                            },
+  {string_static("int64_t"),            string_static("i64")                                            },
+  {string_static("uint64_t"),           string_static("u64")                                            },
+  {string_static("size_t"),             string_static("usize")                                          },
+  {string_static("float"),              string_static("f32")                                            },
+  {string_static("double"),             string_static("f64")                                            },
+  {string_static("HWND"),               string_static("uptr")                                           },
+  {string_static("HINSTANCE"),          string_static("uptr")                                           },
+  {string_static("xcb_visualid_t"),     string_static("u32")                                            },
+  {string_static("xcb_window_t"),       string_static("uptr")                                           },
+  {string_static("xcb_connection_t"),   string_static("uptr"), .stripPointer = true                      },
+  {string_static("wl_display"),         string_static("uptr"), .stripPointer = true, .stripStruct = true },
+  {string_static("wl_surface"),         string_static("uptr"), .stripPointer = true, .stripStruct = true },
 };
 // clang-format on
 
@@ -206,11 +210,6 @@ static String vkgen_collapse_whitespace_scratch(const String text) {
   dynstring_append(&buffer, text);
   vkgen_collapse_whitespace(&buffer);
   return dynstring_view(&buffer);
-}
-
-static bool vkgen_node_value_match(XmlDoc* doc, const XmlNode node, const String text) {
-  const String nodeText = xml_value(doc, node);
-  return string_eq(string_trim_whitespace(nodeText), text);
 }
 
 static bool vkgen_str_list_contains(String str, const String other) {
@@ -709,7 +708,11 @@ static void vkgen_collect_types(VkGenContext* ctx) {
       vkgen_type_push(ctx, kind, name, parent, child);
       continue;
     }
-    const XmlNode nameNode = xml_child_get(ctx->schemaDoc, child, g_hash_name);
+    XmlNode protoNode = xml_child_get(ctx->schemaDoc, child, g_hash_proto);
+    if (sentinel_check(protoNode)) {
+      protoNode = child;
+    }
+    const XmlNode nameNode = xml_child_get(ctx->schemaDoc, protoNode, g_hash_name);
     if (!sentinel_check(nameNode)) {
       vkgen_type_push(ctx, kind, xml_value(ctx->schemaDoc, nameNode), parent, child);
       continue;
@@ -958,10 +961,11 @@ static String vkgen_ref_scratch(const VkGenRef* ref) {
   if (ref->flags & VkGenRef_Const) {
     fmt_write(&str, "const ");
   }
-  fmt_write(&str, "{}", fmt_text(ref->name));
-  if (ref->flags & VkGenRef_Pointer) {
-    fmt_write(&str, "*");
+  if (ref->flags & VkGenRef_Struct) {
+    fmt_write(&str, "struct ");
   }
+  fmt_write(&str, "{}", fmt_text(ref->name));
+  dynstring_append_chars(&str, '*', ref->indirections);
   return dynstring_view(&str);
 }
 
@@ -971,94 +975,264 @@ static void vkgen_ref_resolve_alias(VkGenRef* ref) {
     if (string_eq(org, ref->name)) {
       ref->name = g_vkgenRefAliases[i].replacement;
       if (g_vkgenRefAliases[i].stripPointer) {
-        ref->flags &= ~(VkGenRef_Const | VkGenRef_Pointer);
+        ref->flags &= ~VkGenRef_Const;
+        ref->indirections = 0;
+      }
+      if (g_vkgenRefAliases[i].stripStruct) {
+        ref->flags &= ~VkGenRef_Struct;
       }
       break;
     }
   }
 }
 
-static bool vkgen_ref_read(VkGenContext* ctx, XmlNode* node, VkGenRef* out) {
-  const bool    isConst  = vkgen_node_value_match(ctx->schemaDoc, *node, string_lit("const"));
-  const XmlNode typeNode = isConst ? xml_next(ctx->schemaDoc, *node) : *node;
+typedef enum {
+  VkGenTokenType_End,
+  VkGenTokenType_Error,
+  VkGenTokenType_Const,
+  VkGenTokenType_Struct,
+  VkGenTokenType_Star,
+  VkGenTokenType_Comma,
+  VkGenTokenType_Semi,
+  VkGenTokenType_ParenOpen,
+  VkGenTokenType_ParenClose,
+  VkGenTokenType_BracketOpen,
+  VkGenTokenType_BracketClose,
+  VkGenTokenType_Type,
+  VkGenTokenType_Name,
+  VkGenTokenType_Word,
+} VkGenTokenType;
 
-  if (xml_name_hash(ctx->schemaDoc, typeNode) != g_hash_type) {
-    return false; // Not a type.
-  }
-  *out = (VkGenRef){
-      .flags = isConst ? VkGenRef_Const : 0,
-      .name  = string_trim_whitespace(xml_value(ctx->schemaDoc, typeNode)),
-  };
-  if (vkgen_node_value_match(ctx->schemaDoc, xml_next(ctx->schemaDoc, typeNode), string_lit("*"))) {
-    out->flags |= VkGenRef_Pointer;
-    *node = xml_next(ctx->schemaDoc, typeNode);
-  } else {
-    *node = typeNode;
-  }
-  vkgen_ref_resolve_alias(out);
-  return true;
+typedef struct {
+  VkGenTokenType type;
+  String         text;
+} VkGenToken;
+
+typedef struct {
+  String  text;
+  XmlNode node;
+} VkGenLexer;
+
+static void vkgen_lexer_init(VkGenContext* ctx, VkGenLexer* l, const XmlNode node) {
+  l->text = xml_value(ctx->schemaDoc, node);
+  l->node = node;
 }
 
-static void vkgen_write_node_itr(VkGenContext* ctx, XmlNode* nodeItr) {
-  if (xml_name_hash(ctx->schemaDoc, *nodeItr) == g_hash_comment) {
-    return; // Skip comments.
+static VkGenToken vkgen_lexer_emit(VkGenLexer* l, const VkGenTokenType type, const usize chars) {
+  const String text = string_slice(l->text, 0, chars);
+  l->text           = string_consume(l->text, chars);
+  return (VkGenToken){type, text};
+}
+
+static VkGenToken vkgen_lexer_emit_word(VkGenLexer* l) {
+  u32 end = 0;
+  for (;; ++end) {
+    if (end == l->text.size) {
+      break;
+    }
+    const u8 c = string_begin(l->text)[end];
+    if (ascii_is_whitespace(c) || c == ',' || c == ';' || c == '(' || c == ')') {
+      break;
+    }
   }
-  VkGenRef ref;
-  String   text;
-  bool     needSeparator = false;
-  if (vkgen_ref_read(ctx, nodeItr, &ref)) {
-    text          = vkgen_ref_scratch(&ref);
-    needSeparator = true;
-  } else if (xml_name_hash(ctx->schemaDoc, *nodeItr) == g_hash_name) {
-    text          = xml_value(ctx->schemaDoc, *nodeItr);
-    needSeparator = true;
-  } else {
-    text = vkgen_collapse_whitespace_scratch(xml_value(ctx->schemaDoc, *nodeItr));
+  if (!end) {
+    return vkgen_lexer_emit(l, VkGenTokenType_Error, 1);
   }
-  if (needSeparator && !vkgen_out_last_is_separator(ctx)) {
-    fmt_write(&ctx->out, " ");
+  const String word = string_slice(l->text, 0, end);
+  if (string_eq(word, string_lit("struct"))) {
+    return vkgen_lexer_emit(l, VkGenTokenType_Struct, end);
   }
-  fmt_write(&ctx->out, "{}", fmt_text(text, .flags = FormatTextFlags_SingleLine));
+  if (string_eq(word, string_lit("const"))) {
+    return vkgen_lexer_emit(l, VkGenTokenType_Const, end);
+  }
+  return vkgen_lexer_emit(l, VkGenTokenType_Word, end);
+}
+
+static VkGenToken vkgen_lexer_next(VkGenContext* ctx, VkGenLexer* l) {
+  if (!string_is_empty(l->text) && xml_name_hash(ctx->schemaDoc, l->node) == g_hash_type &&
+      xml_child_count(ctx->schemaDoc, l->node) == 1) {
+    return vkgen_lexer_emit(l, VkGenTokenType_Type, l->text.size);
+  }
+  if (!string_is_empty(l->text) && xml_name_hash(ctx->schemaDoc, l->node) == g_hash_name &&
+      xml_child_count(ctx->schemaDoc, l->node) == 1) {
+    return vkgen_lexer_emit(l, VkGenTokenType_Name, l->text.size);
+  }
+  if (xml_name_hash(ctx->schemaDoc, l->node) == g_hash_comment) {
+    goto Skip;
+  }
+  while (!string_is_empty(l->text)) {
+    const u8 c = string_begin(l->text)[0];
+    switch (c) {
+    case '*':
+      return vkgen_lexer_emit(l, VkGenTokenType_Star, 1);
+    case ',':
+      return vkgen_lexer_emit(l, VkGenTokenType_Comma, 1);
+    case ';':
+      return vkgen_lexer_emit(l, VkGenTokenType_Semi, 1);
+    case '(':
+      return vkgen_lexer_emit(l, VkGenTokenType_ParenOpen, 1);
+    case ')':
+      return vkgen_lexer_emit(l, VkGenTokenType_ParenClose, 1);
+    case '[':
+      return vkgen_lexer_emit(l, VkGenTokenType_BracketOpen, 1);
+    case ']':
+      return vkgen_lexer_emit(l, VkGenTokenType_BracketClose, 1);
+    case ' ':
+    case '\n':
+    case '\r':
+    case '\t':
+      l->text = string_consume(l->text, 1);
+      continue;
+    default:
+      return vkgen_lexer_emit_word(l);
+    }
+  }
+Skip:
+  l->node = xml_next(ctx->schemaDoc, l->node);
+  if (sentinel_check(l->node)) {
+    return (VkGenToken){VkGenTokenType_End};
+  }
+  l->text = xml_value(ctx->schemaDoc, l->node);
+  return vkgen_lexer_next(ctx, l);
+}
+
+static VkGenRef vkgen_proto_return(VkGenContext* ctx, const XmlNode node) {
+  VkGenRef ref   = {0};
+  XmlNode  child = xml_first_child(ctx->schemaDoc, node);
+  if (!sentinel_check(child)) {
+    VkGenLexer lexer;
+    vkgen_lexer_init(ctx, &lexer, child);
+    for (VkGenToken token = vkgen_lexer_next(ctx, &lexer);; token = vkgen_lexer_next(ctx, &lexer)) {
+      if (token.type == VkGenTokenType_End || token.type == VkGenTokenType_Name) {
+        break;
+      }
+      switch (token.type) {
+      case VkGenTokenType_Const:
+        ref.flags |= VkGenRef_Const;
+        break;
+      case VkGenTokenType_Struct:
+        ref.flags |= VkGenRef_Struct;
+        break;
+      case VkGenTokenType_Type:
+        ref.name = token.text;
+        break;
+      case VkGenTokenType_Star:
+        ++ref.indirections;
+        break;
+      default:
+        break;
+      }
+    }
+  }
+  vkgen_ref_resolve_alias(&ref);
+  return ref;
+}
+
+static void vkgen_write_node_siblings(VkGenContext* ctx, const XmlNode node) {
+  VkGenLexer lexer;
+  vkgen_lexer_init(ctx, &lexer, node);
+
+  VkGenRef ref       = {0};
+  bool     refActive = false;
+
+  VkGenToken tokenPrev = {0};
+  VkGenToken token;
+  for (token = vkgen_lexer_next(ctx, &lexer);; token = vkgen_lexer_next(ctx, &lexer)) {
+    switch (token.type) {
+    case VkGenTokenType_End:
+      goto End;
+    case VkGenTokenType_Error:
+      log_e("Invalid node content", log_param("text", fmt_text(token.text)));
+      break;
+    case VkGenTokenType_Const:
+      ref.flags |= VkGenRef_Const;
+      refActive = true;
+      break;
+    case VkGenTokenType_Struct:
+      ref.flags |= VkGenRef_Struct;
+      refActive = true;
+      break;
+    case VkGenTokenType_Type:
+      ref.name  = token.text;
+      refActive = true;
+      break;
+    case VkGenTokenType_Star:
+      if (refActive) {
+        ++ref.indirections;
+      } else {
+        log_e("Unexpected node content", log_param("text", fmt_text(token.text)));
+      }
+      break;
+    case VkGenTokenType_Comma:
+    case VkGenTokenType_Semi:
+    case VkGenTokenType_ParenOpen:
+    case VkGenTokenType_ParenClose:
+    case VkGenTokenType_BracketOpen:
+    case VkGenTokenType_BracketClose:
+    case VkGenTokenType_Word:
+    case VkGenTokenType_Name:
+      if (refActive) {
+        if (!vkgen_out_last_is_separator(ctx)) {
+          dynstring_append_char(&ctx->out, ' ');
+        }
+        vkgen_ref_resolve_alias(&ref);
+        dynstring_append(&ctx->out, vkgen_ref_scratch(&ref));
+        ref       = (VkGenRef){0};
+        refActive = false;
+      }
+      bool needsSep = token.type == VkGenTokenType_Word || token.type == VkGenTokenType_Name;
+      if (vkgen_out_last_is_separator(ctx) || tokenPrev.type == VkGenTokenType_ParenOpen ||
+          tokenPrev.type == VkGenTokenType_BracketOpen) {
+        needsSep = false;
+      }
+      if (needsSep) {
+        dynstring_append_char(&ctx->out, ' ');
+      }
+      dynstring_append(&ctx->out, token.text);
+    }
+    tokenPrev = token;
+  }
+End:
+  if (refActive) {
+    if (!vkgen_out_last_is_separator(ctx)) {
+      dynstring_append_char(&ctx->out, ' ');
+    }
+    vkgen_ref_resolve_alias(&ref);
+    dynstring_append(&ctx->out, vkgen_ref_scratch(&ref));
+  }
 }
 
 static void vkgen_write_node_children(VkGenContext* ctx, const XmlNode node) {
-  xml_for_children(ctx->schemaDoc, node, child) { vkgen_write_node_itr(ctx, &child); }
+  const XmlNode child = xml_first_child(ctx->schemaDoc, node);
+  if (!sentinel_check(child)) {
+    vkgen_write_node_siblings(ctx, child);
+  }
 }
 
 static bool vkgen_write_type_func_pointer(VkGenContext* ctx, const VkGenType* type) {
-  XmlNode child = xml_first_child(ctx->schemaDoc, type->schemaNode);
-  String  text  = xml_value(ctx->schemaDoc, child);
-  if (!string_starts_with(text, string_lit("typedef "))) {
-    return false; // Malformed func pointer typedef.
+  const XmlNode protoNode = xml_child_get(ctx->schemaDoc, type->schemaNode, g_hash_proto);
+  if (sentinel_check(protoNode)) {
+    return false;
   }
-  text = string_consume(text, string_lit("typedef ").size);
+  const VkGenRef retRef = vkgen_proto_return(ctx, protoNode);
+  const String   retStr = vkgen_ref_scratch(&retRef);
 
-  const usize typeEnd = string_find_first(text, string_lit("("));
-  if (sentinel_check(typeEnd)) {
-    return false; // Malformed func pointer typedef.
+  fmt_write(&ctx->out, "typedef {} (SYS_DECL* {})(", fmt_text(retStr), fmt_text(type->name));
+  bool anyParam = false;
+  xml_for_children(ctx->schemaDoc, type->schemaNode, child) {
+    if (xml_name_hash(ctx->schemaDoc, child) != g_hash_param) {
+      continue;
+    }
+    if (anyParam) {
+      fmt_write(&ctx->out, ", ");
+    }
+    vkgen_write_node_children(ctx, child);
+    anyParam = true;
   }
-  const String retType = string_trim_whitespace(string_slice(text, 0, typeEnd));
-
-  child = xml_next(ctx->schemaDoc, child);
-  if (!vkgen_node_value_match(ctx->schemaDoc, child, type->name)) {
-    return false; // Unexpected type-def name.
+  if (!anyParam) {
+    fmt_write(&ctx->out, "void");
   }
-
-  fmt_write(&ctx->out, "typedef {} (SYS_DECL* {})(", fmt_text(retType), fmt_text(type->name));
-
-  child = xml_next(ctx->schemaDoc, child);
-  if (vkgen_node_value_match(ctx->schemaDoc, child, string_lit(")(void);"))) {
-    fmt_write(&ctx->out, "void);\n\n");
-    return true;
-  }
-  if (!vkgen_node_value_match(ctx->schemaDoc, child, string_lit(")("))) {
-    return false; // Malformed func pointer typedef.
-  }
-  child = xml_next(ctx->schemaDoc, child);
-  for (; !sentinel_check(child); child = xml_next(ctx->schemaDoc, child)) {
-    vkgen_write_node_itr(ctx, &child);
-  }
-  fmt_write(&ctx->out, "\n\n");
+  fmt_write(&ctx->out, ");\n\n");
   return true;
 }
 
@@ -1357,9 +1531,9 @@ static bool vkgen_write_interface(VkGenContext* ctx, const VkGenInterfaceCat cat
           fmt_text(string_consume(varName, 3)));
     }
 
-    VkGenRef typeRef = {.name = cmd->type}; // TODO: Support pointers as cmd output types.
-    vkgen_ref_resolve_alias(&typeRef);
-    const String typeStr = vkgen_ref_scratch(&typeRef);
+    const XmlNode  protoNode = xml_child_get(ctx->schemaDoc, cmd->schemaNode, g_hash_proto);
+    const VkGenRef typeRef   = vkgen_proto_return(ctx, protoNode);
+    const String   typeStr   = vkgen_ref_scratch(&typeRef);
 
     fmt_write(&ctx->out, "  {} (SYS_DECL* {})(", fmt_text(typeStr), fmt_text(varName));
     bool anyParam = false;
@@ -1578,7 +1752,7 @@ static bool vkgen_write_impl(VkGenContext* ctx) {
 // clang-format off
 static const String g_appDesc = string_static("VulkanGen - Utility to generate a Vulkan api header and utility c file.");
 static const String g_schemaDefaultHost = string_static("raw.githubusercontent.com");
-static const String g_schemaDefaultUri  = string_static("/KhronosGroup/Vulkan-Docs/refs/tags/v1.4.336/xml/vk.xml");
+static const String g_schemaDefaultUri  = string_static("/KhronosGroup/Vulkan-Docs/refs/tags/v1.4.347/xml/vk.xml");
 // clang-format on
 
 static CliId g_optVerbose, g_optOutputPath, g_optSchemaHost, g_optSchemaUri;

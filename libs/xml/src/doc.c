@@ -352,6 +352,16 @@ XmlNode xml_child_get(const XmlDoc* doc, const XmlNode node, const StringHash na
   return sentinel_u32;
 }
 
+u32 xml_child_count(const XmlDoc* doc, const XmlNode node) {
+  XmlNodeData* nodeData = xml_node_data(doc, node);
+  if (!nodeData || nodeData->type != XmlType_Element) {
+    return 0;
+  }
+  u32 count = 0;
+  xml_for_children(doc, node, child) { ++count; }
+  return count;
+}
+
 XmlNode xml_first_child(const XmlDoc* doc, const XmlNode node) {
   XmlNodeData* nodeData = xml_node_data(doc, node);
   if (!nodeData || nodeData->type != XmlType_Element) {
