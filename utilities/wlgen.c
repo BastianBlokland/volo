@@ -644,9 +644,70 @@ static void wlgen_write_message_signature(WlGenContext* ctx, XmlDoc* doc, const 
   }
 }
 
+// Returns true if this message needs a types[] array (has any object or new_id arg).
+static bool wlgen_msg_needs_types(XmlDoc* doc, const XmlNode msgNode) {
+  xml_for_children(doc, msgNode, argNode) {
+    if (xml_name_hash(doc, argNode) != g_hash_arg) {
+      continue;
+    }
+    const String type = xml_attr_get(doc, argNode, g_hash_type);
+    if (string_eq(type, g_wlArgTypeObject) || string_eq(type, g_wlArgTypeNewId)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+// Write a types[] array for a single message that has object/new_id args.
+// The array length and order matches the expanded signature (untyped new_id → 3 slots).
+static void wlgen_write_msg_types(
+    WlGenContext*  ctx,
+    XmlDoc*        doc,
+    const String   ifaceName,
+    const XmlNode  msgNode) {
+  const String msgName = xml_attr_get(doc, msgNode, g_hash_name);
+  fmt_write(
+      &ctx->out,
+      "static const struct wl_interface* {}_{}_types[] = {",
+      fmt_text(ifaceName),
+      fmt_text(msgName));
+  xml_for_children(doc, msgNode, argNode) {
+    if (xml_name_hash(doc, argNode) != g_hash_arg) {
+      continue;
+    }
+    const String type  = xml_attr_get(doc, argNode, g_hash_type);
+    const String iface = xml_attr_get(doc, argNode, g_hash_interface);
+    if (string_eq(type, g_wlArgTypeObject)) {
+      if (string_is_empty(iface)) {
+        dynstring_append(&ctx->out, string_lit("null, "));
+      } else {
+        fmt_write(&ctx->out, "&{}_interface, ", fmt_text(iface));
+      }
+    } else if (string_eq(type, g_wlArgTypeNewId)) {
+      if (string_is_empty(iface)) {
+        // Untyped new_id expands to s (null) + u (null) + n (null) in the signature.
+        dynstring_append(&ctx->out, string_lit("null, null, null, "));
+      } else {
+        fmt_write(&ctx->out, "&{}_interface, ", fmt_text(iface));
+      }
+    } else {
+      dynstring_append(&ctx->out, string_lit("null, "));
+    }
+  }
+  dynstring_append(&ctx->out, string_lit("};\n"));
+}
+
 // Write static wl_message arrays for a single interface's requests and events.
 static void wlgen_write_impl_iface_messages(WlGenContext* ctx, XmlDoc* doc, const XmlNode ifaceNode) {
   const String ifaceName = xml_attr_get(doc, ifaceNode, g_hash_name);
+
+  // Emit types arrays for any message that has object/new_id args.
+  xml_for_children(doc, ifaceNode, msgNode) {
+    const StringHash h = xml_name_hash(doc, msgNode);
+    if ((h == g_hash_request || h == g_hash_event) && wlgen_msg_needs_types(doc, msgNode)) {
+      wlgen_write_msg_types(ctx, doc, ifaceName, msgNode);
+    }
+  }
 
   // Requests.
   bool hasRequests = false;
@@ -667,7 +728,13 @@ static void wlgen_write_impl_iface_messages(WlGenContext* ctx, XmlDoc* doc, cons
       dynstring_append(&ctx->out, reqName);
       dynstring_append(&ctx->out, string_lit("\", \""));
       wlgen_write_message_signature(ctx, doc, reqNode);
-      dynstring_append(&ctx->out, string_lit("\", null},\n"));
+      dynstring_append(&ctx->out, string_lit("\", "));
+      if (wlgen_msg_needs_types(doc, reqNode)) {
+        fmt_write(&ctx->out, "{}_{}_types", fmt_text(ifaceName), fmt_text(reqName));
+      } else {
+        dynstring_append(&ctx->out, string_lit("null"));
+      }
+      dynstring_append(&ctx->out, string_lit("},\n"));
     }
     dynstring_append(&ctx->out, string_lit("};\n"));
   }
@@ -691,7 +758,13 @@ static void wlgen_write_impl_iface_messages(WlGenContext* ctx, XmlDoc* doc, cons
       dynstring_append(&ctx->out, evtName);
       dynstring_append(&ctx->out, string_lit("\", \""));
       wlgen_write_message_signature(ctx, doc, evtNode);
-      dynstring_append(&ctx->out, string_lit("\", null},\n"));
+      dynstring_append(&ctx->out, string_lit("\", "));
+      if (wlgen_msg_needs_types(doc, evtNode)) {
+        fmt_write(&ctx->out, "{}_{}_types", fmt_text(ifaceName), fmt_text(evtName));
+      } else {
+        dynstring_append(&ctx->out, string_lit("null"));
+      }
+      dynstring_append(&ctx->out, string_lit("},\n"));
     }
     dynstring_append(&ctx->out, string_lit("};\n"));
   }
