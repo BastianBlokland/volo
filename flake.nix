@@ -65,6 +65,7 @@
               pkgs.xorg.xcbutilkeysyms
               pkgs.libxkbcommon
               pkgs.alsa-lib
+              pkgs.wayland
             ]
           }";
 
