@@ -179,7 +179,7 @@ static bool pal_init_wl(Allocator* alloc, Wayland* out) {
     return false;
   }
 
-  out->registry = out->api.display_get_registry(out->display);
+  out->registry = wl_display_get_registry(&out->api, out->display);
 
   out->registryListener = (struct wl_registry_listener){
       .global        = wl_registry_global,

@@ -27,8 +27,10 @@ struct wl_array {
 // Flag to destroy the proxy when marshalling a request (from wayland-client-core.h).
 #define WL_MARSHAL_FLAG_DESTROY (1 << 0)
 
-// wl_proxy is a low-level libwayland type not present in the protocol XML.
+// Low-level libwayland types not present in the protocol XML.
 struct wl_proxy;
+struct wl_display;
+struct wl_registry;
 
 // Function table for libwayland-client symbols, populated by wlLoad().
 typedef struct {
@@ -38,7 +40,6 @@ typedef struct {
   int                 (SYS_DECL* display_dispatch_pending)(struct wl_display*);
   int                 (SYS_DECL* display_roundtrip)(struct wl_display*);
   int                 (SYS_DECL* display_flush)(struct wl_display*);
-  struct wl_registry* (SYS_DECL* display_get_registry)(struct wl_display*);
   int                 (SYS_DECL* proxy_add_listener)(struct wl_proxy*, void(**)(void), void*);
   void*               (SYS_DECL* proxy_marshal_flags)(struct wl_proxy*, u32, const struct wl_interface*, u32, u32, ...);
   u32                 (SYS_DECL* proxy_get_version)(struct wl_proxy*);

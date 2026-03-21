@@ -27,7 +27,7 @@ Both env vars are set by `flake.nix` from the `wayland-scanner` and `wayland-pro
 - Inline struct definitions: `wl_message`, `wl_interface`, `wl_array`
 - `WL_MARSHAL_FLAG_DESTROY` constant
 - `struct wl_proxy` forward declaration
-- `WlFuncs` typedef: function pointer table for all `libwayland-client.so` symbols
+- `WlFuncs` typedef: function pointer table for the 10 raw `libwayland-client.so` symbols (`display_connect/disconnect/dispatch/dispatch_pending/roundtrip/flush`, `proxy_add_listener/marshal_flags/get_version/destroy`). Note: `wl_display_get_registry` is NOT a libwayland export — it is generated as a typed wrapper.
 - `wlLoad(DynLib*, WlFuncs*)` declaration: loads all symbols via dlsym
 - `wlRegistryBind(...)` declaration: typed registry global bind helper
 - Per-interface content (for all interfaces in all input XMLs):
@@ -38,9 +38,10 @@ Both env vars are set by `flake.nix` from the `wayland-scanner` and `wayland-pro
   - Request wrapper declarations: one typed function per request
 
 **`libs/gap/src/wayland/wayland.c`** — implementation:
-- `wlLoad` definition: calls `dynlib_symbol` for each of the 11 libwayland symbols
+- `wlLoad` definition: calls `dynlib_symbol` for each of the 10 libwayland symbols
 - `wlRegistryBind` definition: calls `proxy_marshal_flags(WL_REGISTRY_BIND, ...)` capping at `maxVersion`
-- `const struct wl_interface` definitions for every protocol interface (name + version only)
+- Per-interface `static const struct wl_message <iface>_requests[]` and `<iface>_events[]` arrays with proper argument signatures (required by `proxy_marshal_flags` and `display_dispatch`/`display_roundtrip`)
+- `const struct wl_interface` definitions for every protocol interface, referencing the message arrays
 - All utility and request wrapper function definitions
 
 The generated files are committed to the repository. Re-run `run.wlgen` after changing the XML inputs or the generator itself.
@@ -114,8 +115,7 @@ Re-enter the dev shell (`nix develop`) after any `flake.nix` change.
 
 - Build: **passes** (`cmake --build build`)
 - Unit tests: **all pass** (`cmake --build build --target test`)
-- `ninja run.volo`: opens a window on a Wayland compositor; input, cursor, and display
-  info are not yet implemented (see below).
+- `ninja run.volo`: opens a window on a Wayland compositor with a working Vulkan swapchain; input, cursor, and display info are not yet implemented (see below).
 
 ## What still needs to be done
 

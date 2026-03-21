@@ -12,7 +12,6 @@ bool wlLoad(const DynLib* lib, WlFuncs* out) {
   out->display_dispatch_pending = dynlib_symbol(lib, string_lit("wl_display_dispatch_pending"));
   out->display_roundtrip        = dynlib_symbol(lib, string_lit("wl_display_roundtrip"));
   out->display_flush            = dynlib_symbol(lib, string_lit("wl_display_flush"));
-  out->display_get_registry     = dynlib_symbol(lib, string_lit("wl_display_get_registry"));
   out->proxy_add_listener       = dynlib_symbol(lib, string_lit("wl_proxy_add_listener"));
   out->proxy_marshal_flags      = dynlib_symbol(lib, string_lit("wl_proxy_marshal_flags"));
   out->proxy_get_version        = dynlib_symbol(lib, string_lit("wl_proxy_get_version"));
@@ -20,8 +19,8 @@ bool wlLoad(const DynLib* lib, WlFuncs* out) {
   return out->display_connect && out->display_disconnect &&
          out->display_dispatch && out->display_dispatch_pending &&
          out->display_roundtrip && out->display_flush &&
-         out->display_get_registry && out->proxy_add_listener &&
-         out->proxy_marshal_flags && out->proxy_get_version &&
+         out->proxy_add_listener && out->proxy_marshal_flags &&
+         out->proxy_get_version &&
          out->proxy_destroy;
 }
 
@@ -34,37 +33,301 @@ void* wlRegistryBind(
       name, iface->name, bindVersion, null);
 }
 
-// Minimal wl_interface definitions: only name and version are required
-// at runtime for proxy_marshal_flags calls.
+static const struct wl_message wl_display_requests[] = {
+  {"sync", "n", null},
+  {"get_registry", "n", null},
+};
+static const struct wl_message wl_display_events[] = {
+  {"error", "ous", null},
+  {"delete_id", "u", null},
+};
+static const struct wl_message wl_registry_requests[] = {
+  {"bind", "usun", null},
+};
+static const struct wl_message wl_registry_events[] = {
+  {"global", "usu", null},
+  {"global_remove", "u", null},
+};
+static const struct wl_message wl_callback_events[] = {
+  {"done", "u", null},
+};
+static const struct wl_message wl_compositor_requests[] = {
+  {"create_surface", "n", null},
+  {"create_region", "n", null},
+};
+static const struct wl_message wl_shm_pool_requests[] = {
+  {"create_buffer", "niiiiu", null},
+  {"destroy", "", null},
+  {"resize", "i", null},
+};
+static const struct wl_message wl_shm_requests[] = {
+  {"create_pool", "nhi", null},
+  {"release", "", null},
+};
+static const struct wl_message wl_shm_events[] = {
+  {"format", "u", null},
+};
+static const struct wl_message wl_buffer_requests[] = {
+  {"destroy", "", null},
+};
+static const struct wl_message wl_buffer_events[] = {
+  {"release", "", null},
+};
+static const struct wl_message wl_data_offer_requests[] = {
+  {"accept", "u?s", null},
+  {"receive", "sh", null},
+  {"destroy", "", null},
+  {"finish", "", null},
+  {"set_actions", "uu", null},
+};
+static const struct wl_message wl_data_offer_events[] = {
+  {"offer", "s", null},
+  {"source_actions", "u", null},
+  {"action", "u", null},
+};
+static const struct wl_message wl_data_source_requests[] = {
+  {"offer", "s", null},
+  {"destroy", "", null},
+  {"set_actions", "u", null},
+};
+static const struct wl_message wl_data_source_events[] = {
+  {"target", "?s", null},
+  {"send", "sh", null},
+  {"cancelled", "", null},
+  {"dnd_drop_performed", "", null},
+  {"dnd_finished", "", null},
+  {"action", "u", null},
+};
+static const struct wl_message wl_data_device_requests[] = {
+  {"start_drag", "?oo?ou", null},
+  {"set_selection", "?ou", null},
+  {"release", "", null},
+};
+static const struct wl_message wl_data_device_events[] = {
+  {"data_offer", "n", null},
+  {"enter", "uoff?o", null},
+  {"leave", "", null},
+  {"motion", "uff", null},
+  {"drop", "", null},
+  {"selection", "?o", null},
+};
+static const struct wl_message wl_data_device_manager_requests[] = {
+  {"create_data_source", "n", null},
+  {"get_data_device", "no", null},
+};
+static const struct wl_message wl_shell_requests[] = {
+  {"get_shell_surface", "no", null},
+};
+static const struct wl_message wl_shell_surface_requests[] = {
+  {"pong", "u", null},
+  {"move", "ou", null},
+  {"resize", "ouu", null},
+  {"set_toplevel", "", null},
+  {"set_transient", "oiiu", null},
+  {"set_fullscreen", "uu?o", null},
+  {"set_popup", "ouoiiu", null},
+  {"set_maximized", "?o", null},
+  {"set_title", "s", null},
+  {"set_class", "s", null},
+};
+static const struct wl_message wl_shell_surface_events[] = {
+  {"ping", "u", null},
+  {"configure", "uii", null},
+  {"popup_done", "", null},
+};
+static const struct wl_message wl_surface_requests[] = {
+  {"destroy", "", null},
+  {"attach", "?oii", null},
+  {"damage", "iiii", null},
+  {"frame", "n", null},
+  {"set_opaque_region", "?o", null},
+  {"set_input_region", "?o", null},
+  {"commit", "", null},
+  {"set_buffer_transform", "i", null},
+  {"set_buffer_scale", "i", null},
+  {"damage_buffer", "iiii", null},
+  {"offset", "ii", null},
+};
+static const struct wl_message wl_surface_events[] = {
+  {"enter", "o", null},
+  {"leave", "o", null},
+  {"preferred_buffer_scale", "i", null},
+  {"preferred_buffer_transform", "u", null},
+};
+static const struct wl_message wl_seat_requests[] = {
+  {"get_pointer", "n", null},
+  {"get_keyboard", "n", null},
+  {"get_touch", "n", null},
+  {"release", "", null},
+};
+static const struct wl_message wl_seat_events[] = {
+  {"capabilities", "u", null},
+  {"name", "s", null},
+};
+static const struct wl_message wl_pointer_requests[] = {
+  {"set_cursor", "u?oii", null},
+  {"release", "", null},
+};
+static const struct wl_message wl_pointer_events[] = {
+  {"enter", "uoff", null},
+  {"leave", "uo", null},
+  {"motion", "uff", null},
+  {"button", "uuuu", null},
+  {"axis", "uuf", null},
+  {"frame", "", null},
+  {"axis_source", "u", null},
+  {"axis_stop", "uu", null},
+  {"axis_discrete", "ui", null},
+  {"axis_value120", "ui", null},
+  {"axis_relative_direction", "uu", null},
+};
+static const struct wl_message wl_keyboard_requests[] = {
+  {"release", "", null},
+};
+static const struct wl_message wl_keyboard_events[] = {
+  {"keymap", "uhu", null},
+  {"enter", "uoa", null},
+  {"leave", "uo", null},
+  {"key", "uuuu", null},
+  {"modifiers", "uuuuu", null},
+  {"repeat_info", "ii", null},
+};
+static const struct wl_message wl_touch_requests[] = {
+  {"release", "", null},
+};
+static const struct wl_message wl_touch_events[] = {
+  {"down", "uuoiff", null},
+  {"up", "uui", null},
+  {"motion", "uiff", null},
+  {"frame", "", null},
+  {"cancel", "", null},
+  {"shape", "iff", null},
+  {"orientation", "if", null},
+};
+static const struct wl_message wl_output_requests[] = {
+  {"release", "", null},
+};
+static const struct wl_message wl_output_events[] = {
+  {"geometry", "iiiiissi", null},
+  {"mode", "uiii", null},
+  {"done", "", null},
+  {"scale", "i", null},
+  {"name", "s", null},
+  {"description", "s", null},
+};
+static const struct wl_message wl_region_requests[] = {
+  {"destroy", "", null},
+  {"add", "iiii", null},
+  {"subtract", "iiii", null},
+};
+static const struct wl_message wl_subcompositor_requests[] = {
+  {"destroy", "", null},
+  {"get_subsurface", "noo", null},
+};
+static const struct wl_message wl_subsurface_requests[] = {
+  {"destroy", "", null},
+  {"set_position", "ii", null},
+  {"place_above", "o", null},
+  {"place_below", "o", null},
+  {"set_sync", "", null},
+  {"set_desync", "", null},
+};
+static const struct wl_message wl_fixes_requests[] = {
+  {"destroy", "", null},
+  {"destroy_registry", "o", null},
+};
+static const struct wl_message xdg_wm_base_requests[] = {
+  {"destroy", "", null},
+  {"create_positioner", "n", null},
+  {"get_xdg_surface", "no", null},
+  {"pong", "u", null},
+};
+static const struct wl_message xdg_wm_base_events[] = {
+  {"ping", "u", null},
+};
+static const struct wl_message xdg_positioner_requests[] = {
+  {"destroy", "", null},
+  {"set_size", "ii", null},
+  {"set_anchor_rect", "iiii", null},
+  {"set_anchor", "u", null},
+  {"set_gravity", "u", null},
+  {"set_constraint_adjustment", "u", null},
+  {"set_offset", "ii", null},
+  {"set_reactive", "", null},
+  {"set_parent_size", "ii", null},
+  {"set_parent_configure", "u", null},
+};
+static const struct wl_message xdg_surface_requests[] = {
+  {"destroy", "", null},
+  {"get_toplevel", "n", null},
+  {"get_popup", "n?oo", null},
+  {"set_window_geometry", "iiii", null},
+  {"ack_configure", "u", null},
+};
+static const struct wl_message xdg_surface_events[] = {
+  {"configure", "u", null},
+};
+static const struct wl_message xdg_toplevel_requests[] = {
+  {"destroy", "", null},
+  {"set_parent", "?o", null},
+  {"set_title", "s", null},
+  {"set_app_id", "s", null},
+  {"show_window_menu", "ouii", null},
+  {"move", "ou", null},
+  {"resize", "ouu", null},
+  {"set_max_size", "ii", null},
+  {"set_min_size", "ii", null},
+  {"set_maximized", "", null},
+  {"unset_maximized", "", null},
+  {"set_fullscreen", "?o", null},
+  {"unset_fullscreen", "", null},
+  {"set_minimized", "", null},
+};
+static const struct wl_message xdg_toplevel_events[] = {
+  {"configure", "iia", null},
+  {"close", "", null},
+  {"configure_bounds", "ii", null},
+  {"wm_capabilities", "a", null},
+};
+static const struct wl_message xdg_popup_requests[] = {
+  {"destroy", "", null},
+  {"grab", "ou", null},
+  {"reposition", "ou", null},
+};
+static const struct wl_message xdg_popup_events[] = {
+  {"configure", "iiii", null},
+  {"popup_done", "", null},
+  {"repositioned", "u", null},
+};
 
-const struct wl_interface wl_display_interface = {"wl_display", 1, 0, null, 0, null};
-const struct wl_interface wl_registry_interface = {"wl_registry", 1, 0, null, 0, null};
-const struct wl_interface wl_callback_interface = {"wl_callback", 1, 0, null, 0, null};
-const struct wl_interface wl_compositor_interface = {"wl_compositor", 6, 0, null, 0, null};
-const struct wl_interface wl_shm_pool_interface = {"wl_shm_pool", 2, 0, null, 0, null};
-const struct wl_interface wl_shm_interface = {"wl_shm", 2, 0, null, 0, null};
-const struct wl_interface wl_buffer_interface = {"wl_buffer", 1, 0, null, 0, null};
-const struct wl_interface wl_data_offer_interface = {"wl_data_offer", 3, 0, null, 0, null};
-const struct wl_interface wl_data_source_interface = {"wl_data_source", 3, 0, null, 0, null};
-const struct wl_interface wl_data_device_interface = {"wl_data_device", 3, 0, null, 0, null};
-const struct wl_interface wl_data_device_manager_interface = {"wl_data_device_manager", 3, 0, null, 0, null};
-const struct wl_interface wl_shell_interface = {"wl_shell", 1, 0, null, 0, null};
-const struct wl_interface wl_shell_surface_interface = {"wl_shell_surface", 1, 0, null, 0, null};
-const struct wl_interface wl_surface_interface = {"wl_surface", 6, 0, null, 0, null};
-const struct wl_interface wl_seat_interface = {"wl_seat", 10, 0, null, 0, null};
-const struct wl_interface wl_pointer_interface = {"wl_pointer", 10, 0, null, 0, null};
-const struct wl_interface wl_keyboard_interface = {"wl_keyboard", 10, 0, null, 0, null};
-const struct wl_interface wl_touch_interface = {"wl_touch", 10, 0, null, 0, null};
-const struct wl_interface wl_output_interface = {"wl_output", 4, 0, null, 0, null};
-const struct wl_interface wl_region_interface = {"wl_region", 1, 0, null, 0, null};
-const struct wl_interface wl_subcompositor_interface = {"wl_subcompositor", 1, 0, null, 0, null};
-const struct wl_interface wl_subsurface_interface = {"wl_subsurface", 1, 0, null, 0, null};
-const struct wl_interface wl_fixes_interface = {"wl_fixes", 1, 0, null, 0, null};
-const struct wl_interface xdg_wm_base_interface = {"xdg_wm_base", 7, 0, null, 0, null};
-const struct wl_interface xdg_positioner_interface = {"xdg_positioner", 7, 0, null, 0, null};
-const struct wl_interface xdg_surface_interface = {"xdg_surface", 7, 0, null, 0, null};
-const struct wl_interface xdg_toplevel_interface = {"xdg_toplevel", 7, 0, null, 0, null};
-const struct wl_interface xdg_popup_interface = {"xdg_popup", 7, 0, null, 0, null};
+const struct wl_interface wl_display_interface = {"wl_display", 1, 2, wl_display_requests, 2, wl_display_events};
+const struct wl_interface wl_registry_interface = {"wl_registry", 1, 1, wl_registry_requests, 2, wl_registry_events};
+const struct wl_interface wl_callback_interface = {"wl_callback", 1, 0, null, 1, wl_callback_events};
+const struct wl_interface wl_compositor_interface = {"wl_compositor", 6, 2, wl_compositor_requests, 0, null};
+const struct wl_interface wl_shm_pool_interface = {"wl_shm_pool", 2, 3, wl_shm_pool_requests, 0, null};
+const struct wl_interface wl_shm_interface = {"wl_shm", 2, 2, wl_shm_requests, 1, wl_shm_events};
+const struct wl_interface wl_buffer_interface = {"wl_buffer", 1, 1, wl_buffer_requests, 1, wl_buffer_events};
+const struct wl_interface wl_data_offer_interface = {"wl_data_offer", 3, 5, wl_data_offer_requests, 3, wl_data_offer_events};
+const struct wl_interface wl_data_source_interface = {"wl_data_source", 3, 3, wl_data_source_requests, 6, wl_data_source_events};
+const struct wl_interface wl_data_device_interface = {"wl_data_device", 3, 3, wl_data_device_requests, 6, wl_data_device_events};
+const struct wl_interface wl_data_device_manager_interface = {"wl_data_device_manager", 3, 2, wl_data_device_manager_requests, 0, null};
+const struct wl_interface wl_shell_interface = {"wl_shell", 1, 1, wl_shell_requests, 0, null};
+const struct wl_interface wl_shell_surface_interface = {"wl_shell_surface", 1, 10, wl_shell_surface_requests, 3, wl_shell_surface_events};
+const struct wl_interface wl_surface_interface = {"wl_surface", 6, 11, wl_surface_requests, 4, wl_surface_events};
+const struct wl_interface wl_seat_interface = {"wl_seat", 10, 4, wl_seat_requests, 2, wl_seat_events};
+const struct wl_interface wl_pointer_interface = {"wl_pointer", 10, 2, wl_pointer_requests, 11, wl_pointer_events};
+const struct wl_interface wl_keyboard_interface = {"wl_keyboard", 10, 1, wl_keyboard_requests, 6, wl_keyboard_events};
+const struct wl_interface wl_touch_interface = {"wl_touch", 10, 1, wl_touch_requests, 7, wl_touch_events};
+const struct wl_interface wl_output_interface = {"wl_output", 4, 1, wl_output_requests, 6, wl_output_events};
+const struct wl_interface wl_region_interface = {"wl_region", 1, 3, wl_region_requests, 0, null};
+const struct wl_interface wl_subcompositor_interface = {"wl_subcompositor", 1, 2, wl_subcompositor_requests, 0, null};
+const struct wl_interface wl_subsurface_interface = {"wl_subsurface", 1, 6, wl_subsurface_requests, 0, null};
+const struct wl_interface wl_fixes_interface = {"wl_fixes", 1, 2, wl_fixes_requests, 0, null};
+const struct wl_interface xdg_wm_base_interface = {"xdg_wm_base", 7, 4, xdg_wm_base_requests, 1, xdg_wm_base_events};
+const struct wl_interface xdg_positioner_interface = {"xdg_positioner", 7, 10, xdg_positioner_requests, 0, null};
+const struct wl_interface xdg_surface_interface = {"xdg_surface", 7, 5, xdg_surface_requests, 1, xdg_surface_events};
+const struct wl_interface xdg_toplevel_interface = {"xdg_toplevel", 7, 14, xdg_toplevel_requests, 4, xdg_toplevel_events};
+const struct wl_interface xdg_popup_interface = {"xdg_popup", 7, 3, xdg_popup_requests, 3, xdg_popup_events};
 
 // wl_display - utility wrappers.
 u32 wl_display_get_version(WlFuncs* api, struct wl_display* obj) {

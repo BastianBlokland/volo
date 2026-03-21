@@ -46,6 +46,8 @@
   WLGEN_HASH(value)                                                                                \
   WLGEN_HASH(version)
 
+static StringHash g_hash_allow_null;
+
 #define WLGEN_HASH(_N_) static StringHash g_hash_##_N_;
 WLGEN_VISIT_HASHES
 #undef WLGEN_HASH
@@ -54,6 +56,7 @@ static void wlgen_init_hashes(void) {
 #define WLGEN_HASH(_N_) g_hash_##_N_ = string_hash_lit(#_N_);
   WLGEN_VISIT_HASHES
 #undef WLGEN_HASH
+  g_hash_allow_null = string_hash_lit("allow-null");
 }
 
 // Arg types as found in the XML.
@@ -508,8 +511,10 @@ WriteWrappers:;
 static void wlgen_write_header_funcs(WlGenContext* ctx) {
   fmt_write(&ctx->out, "// Flag to destroy the proxy when marshalling a request (from wayland-client-core.h).\n");
   fmt_write(&ctx->out, "#define WL_MARSHAL_FLAG_DESTROY (1 << 0)\n\n");
-  fmt_write(&ctx->out, "// wl_proxy is a low-level libwayland type not present in the protocol XML.\n");
-  fmt_write(&ctx->out, "struct wl_proxy;\n\n");
+  fmt_write(&ctx->out, "// Low-level libwayland types not present in the protocol XML.\n");
+  fmt_write(&ctx->out, "struct wl_proxy;\n");
+  fmt_write(&ctx->out, "struct wl_display;\n");
+  fmt_write(&ctx->out, "struct wl_registry;\n\n");
   fmt_write(&ctx->out, "// Function table for libwayland-client symbols, populated by wlLoad().\n");
   fmt_write(&ctx->out, "typedef struct {\n");
   fmt_write(&ctx->out, "  struct wl_display*  (SYS_DECL* display_connect)(const char* name);\n");
@@ -518,7 +523,6 @@ static void wlgen_write_header_funcs(WlGenContext* ctx) {
   fmt_write(&ctx->out, "  int                 (SYS_DECL* display_dispatch_pending)(struct wl_display*);\n");
   fmt_write(&ctx->out, "  int                 (SYS_DECL* display_roundtrip)(struct wl_display*);\n");
   fmt_write(&ctx->out, "  int                 (SYS_DECL* display_flush)(struct wl_display*);\n");
-  fmt_write(&ctx->out, "  struct wl_registry* (SYS_DECL* display_get_registry)(struct wl_display*);\n");
   fmt_write(&ctx->out, "  int                 (SYS_DECL* proxy_add_listener)(struct wl_proxy*, void(**)(void), void*);\n");
   fmt_write(&ctx->out, "  void*               (SYS_DECL* proxy_marshal_flags)(struct wl_proxy*, u32, const struct wl_interface*, u32, u32, ...);\n");
   fmt_write(&ctx->out, "  u32                 (SYS_DECL* proxy_get_version)(struct wl_proxy*);\n");
@@ -578,7 +582,6 @@ static void wlgen_write_impl_load(WlGenContext* ctx) {
   fmt_write(&ctx->out, "  out->display_dispatch_pending = dynlib_symbol(lib, string_lit(\"wl_display_dispatch_pending\"));\n");
   fmt_write(&ctx->out, "  out->display_roundtrip        = dynlib_symbol(lib, string_lit(\"wl_display_roundtrip\"));\n");
   fmt_write(&ctx->out, "  out->display_flush            = dynlib_symbol(lib, string_lit(\"wl_display_flush\"));\n");
-  fmt_write(&ctx->out, "  out->display_get_registry     = dynlib_symbol(lib, string_lit(\"wl_display_get_registry\"));\n");
   fmt_write(&ctx->out, "  out->proxy_add_listener       = dynlib_symbol(lib, string_lit(\"wl_proxy_add_listener\"));\n");
   fmt_write(&ctx->out, "  out->proxy_marshal_flags      = dynlib_symbol(lib, string_lit(\"wl_proxy_marshal_flags\"));\n");
   fmt_write(&ctx->out, "  out->proxy_get_version        = dynlib_symbol(lib, string_lit(\"wl_proxy_get_version\"));\n");
@@ -586,8 +589,8 @@ static void wlgen_write_impl_load(WlGenContext* ctx) {
   fmt_write(&ctx->out, "  return out->display_connect && out->display_disconnect &&\n");
   fmt_write(&ctx->out, "         out->display_dispatch && out->display_dispatch_pending &&\n");
   fmt_write(&ctx->out, "         out->display_roundtrip && out->display_flush &&\n");
-  fmt_write(&ctx->out, "         out->display_get_registry && out->proxy_add_listener &&\n");
-  fmt_write(&ctx->out, "         out->proxy_marshal_flags && out->proxy_get_version &&\n");
+  fmt_write(&ctx->out, "         out->proxy_add_listener && out->proxy_marshal_flags &&\n");
+  fmt_write(&ctx->out, "         out->proxy_get_version &&\n");
   fmt_write(&ctx->out, "         out->proxy_destroy;\n");
   fmt_write(&ctx->out, "}\n\n");
   fmt_write(&ctx->out, "void* wlRegistryBind(\n");
@@ -600,6 +603,100 @@ static void wlgen_write_impl_load(WlGenContext* ctx) {
   fmt_write(&ctx->out, "}\n\n");
 }
 
+// Write the signature string characters for a request or event XML node.
+static void wlgen_write_message_signature(WlGenContext* ctx, XmlDoc* doc, const XmlNode msgNode) {
+  xml_for_children(doc, msgNode, argNode) {
+    if (xml_name_hash(doc, argNode) != g_hash_arg) {
+      continue;
+    }
+    const String type      = xml_attr_get(doc, argNode, g_hash_type);
+    const String iface     = xml_attr_get(doc, argNode, g_hash_interface);
+    const String allowNull = xml_attr_get(doc, argNode, g_hash_allow_null);
+    const bool   nullable  = string_eq(allowNull, string_lit("true"));
+    if (string_eq(type, g_wlArgTypeInt)) {
+      dynstring_append_char(&ctx->out, 'i');
+    } else if (string_eq(type, g_wlArgTypeUint)) {
+      dynstring_append_char(&ctx->out, 'u');
+    } else if (string_eq(type, g_wlArgTypeFixed)) {
+      dynstring_append_char(&ctx->out, 'f');
+    } else if (string_eq(type, g_wlArgTypeString)) {
+      if (nullable) {
+        dynstring_append_char(&ctx->out, '?');
+      }
+      dynstring_append_char(&ctx->out, 's');
+    } else if (string_eq(type, g_wlArgTypeObject)) {
+      if (nullable) {
+        dynstring_append_char(&ctx->out, '?');
+      }
+      dynstring_append_char(&ctx->out, 'o');
+    } else if (string_eq(type, g_wlArgTypeNewId)) {
+      if (string_is_empty(iface)) {
+        // Untyped new_id: inject string (interface name) + uint (version) before new_id.
+        dynstring_append_char(&ctx->out, 's');
+        dynstring_append_char(&ctx->out, 'u');
+      }
+      dynstring_append_char(&ctx->out, 'n');
+    } else if (string_eq(type, g_wlArgTypeArray)) {
+      dynstring_append_char(&ctx->out, 'a');
+    } else if (string_eq(type, g_wlArgTypeFd)) {
+      dynstring_append_char(&ctx->out, 'h');
+    }
+  }
+}
+
+// Write static wl_message arrays for a single interface's requests and events.
+static void wlgen_write_impl_iface_messages(WlGenContext* ctx, XmlDoc* doc, const XmlNode ifaceNode) {
+  const String ifaceName = xml_attr_get(doc, ifaceNode, g_hash_name);
+
+  // Requests.
+  bool hasRequests = false;
+  xml_for_children(doc, ifaceNode, child) {
+    if (xml_name_hash(doc, child) == g_hash_request) {
+      hasRequests = true;
+      break;
+    }
+  }
+  if (hasRequests) {
+    fmt_write(&ctx->out, "static const struct wl_message {}_requests[] = {\n", fmt_text(ifaceName));
+    xml_for_children(doc, ifaceNode, reqNode) {
+      if (xml_name_hash(doc, reqNode) != g_hash_request) {
+        continue;
+      }
+      const String reqName = xml_attr_get(doc, reqNode, g_hash_name);
+      dynstring_append(&ctx->out, string_lit("  {\""));
+      dynstring_append(&ctx->out, reqName);
+      dynstring_append(&ctx->out, string_lit("\", \""));
+      wlgen_write_message_signature(ctx, doc, reqNode);
+      dynstring_append(&ctx->out, string_lit("\", null},\n"));
+    }
+    dynstring_append(&ctx->out, string_lit("};\n"));
+  }
+
+  // Events.
+  bool hasEvents = false;
+  xml_for_children(doc, ifaceNode, child) {
+    if (xml_name_hash(doc, child) == g_hash_event) {
+      hasEvents = true;
+      break;
+    }
+  }
+  if (hasEvents) {
+    fmt_write(&ctx->out, "static const struct wl_message {}_events[] = {\n", fmt_text(ifaceName));
+    xml_for_children(doc, ifaceNode, evtNode) {
+      if (xml_name_hash(doc, evtNode) != g_hash_event) {
+        continue;
+      }
+      const String evtName = xml_attr_get(doc, evtNode, g_hash_name);
+      dynstring_append(&ctx->out, string_lit("  {\""));
+      dynstring_append(&ctx->out, evtName);
+      dynstring_append(&ctx->out, string_lit("\", \""));
+      wlgen_write_message_signature(ctx, doc, evtNode);
+      dynstring_append(&ctx->out, string_lit("\", null},\n"));
+    }
+    dynstring_append(&ctx->out, string_lit("};\n"));
+  }
+}
+
 static void wlgen_write_impl(WlGenContext* ctx) {
   fmt_write(&ctx->out, "// clang-format off\n");
   wlgen_write_prolog(ctx);
@@ -610,9 +707,18 @@ static void wlgen_write_impl(WlGenContext* ctx) {
 
   wlgen_write_impl_load(ctx);
 
-  fmt_write(&ctx->out, "// Minimal wl_interface definitions: only name and version are required\n");
-  fmt_write(&ctx->out, "// at runtime for proxy_marshal_flags calls.\n\n");
+  // Per-interface message arrays (requests + events with signatures).
+  dynarray_for_t(&ctx->protocols, WlGenProtocol, proto) {
+    xml_for_children(proto->doc, proto->root, ifaceNode) {
+      if (xml_name_hash(proto->doc, ifaceNode) != g_hash_interface) {
+        continue;
+      }
+      wlgen_write_impl_iface_messages(ctx, proto->doc, ifaceNode);
+    }
+  }
+  fmt_write(&ctx->out, "\n");
 
+  // wl_interface definitions.
   dynarray_for_t(&ctx->protocols, WlGenProtocol, proto) {
     xml_for_children(proto->doc, proto->root, ifaceNode) {
       if (xml_name_hash(proto->doc, ifaceNode) != g_hash_interface) {
@@ -621,10 +727,32 @@ static void wlgen_write_impl(WlGenContext* ctx) {
       const String name    = xml_attr_get(proto->doc, ifaceNode, g_hash_name);
       const String verStr  = xml_attr_get(proto->doc, ifaceNode, g_hash_version);
       const i64    version = string_is_empty(verStr) ? 1 : wlgen_parse_int(verStr);
+
+      u32 methodCount = 0, eventCount = 0;
+      xml_for_children(proto->doc, ifaceNode, child) {
+        const StringHash h = xml_name_hash(proto->doc, child);
+        if (h == g_hash_request) {
+          ++methodCount;
+        } else if (h == g_hash_event) {
+          ++eventCount;
+        }
+      }
+
       fmt_write(&ctx->out, "const struct wl_interface {}_interface = ", fmt_text(name));
-      fmt_write(&ctx->out, "{\"");
+      dynstring_append(&ctx->out, string_lit("{\""));
       dynstring_append(&ctx->out, name);
-      fmt_write(&ctx->out, "\", {}, 0, null, 0, null};\n", fmt_int(version));
+      fmt_write(&ctx->out, "\", {}, {}, ", fmt_int(version), fmt_int(methodCount));
+      if (methodCount) {
+        fmt_write(&ctx->out, "{}_requests, ", fmt_text(name));
+      } else {
+        fmt_write(&ctx->out, "null, ");
+      }
+      fmt_write(&ctx->out, "{}, ", fmt_int(eventCount));
+      if (eventCount) {
+        fmt_write(&ctx->out, "{}_events};\n", fmt_text(name));
+      } else {
+        fmt_write(&ctx->out, "null};\n");
+      }
     }
   }
   fmt_write(&ctx->out, "\n");
