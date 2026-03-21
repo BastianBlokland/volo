@@ -37,3 +37,6 @@ target_link_libraries(idgen PRIVATE app_cli data log)
 
 add_executable(vkgen vkgen.c)
 target_link_libraries(vkgen PRIVATE app_cli net xml log)
+
+add_executable(wlgen wlgen.c)
+target_link_libraries(wlgen PRIVATE app_cli xml log)

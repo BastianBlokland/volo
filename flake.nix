@@ -71,7 +71,7 @@
 
           VK_LOADER_DEBUG = "error"; # error,warn,info
 
-          # Variables for the shell/wayland-gen.sh script.
+          # Variables for the run.wlgen CMake target.
           VOLO_WAYLAND_DATADIR = "${pkgs.wayland-scanner}/share/wayland";
           VOLO_WAYLAND_PROTOCOLS_DATADIR = "${pkgs.wayland-protocols}/share/wayland-protocols";
         };
