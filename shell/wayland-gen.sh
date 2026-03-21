@@ -2,8 +2,8 @@
 set -e -o pipefail
 
 # ------------------------------------------------------------------------------
-# Utility script to generate Wayland protocol client headers using
-# wayland-scanner. Output headers are written to libs/gap/src/wayland/.
+# Utility script to generate Wayland protocol headers and code using
+# wayland-scanner. Output is written to libs/gap/src/wayland/.
 # ------------------------------------------------------------------------------
 
 info() {
@@ -35,7 +35,7 @@ test -d "${VOLO_WAYLAND_PROTOCOLS_DATADIR}" || fail "'VOLO_WAYLAND_PROTOCOLS_DAT
 OUT_DIR="$(getSourceDirectory)/../libs/gap/src/wayland"
 mkdir -p "${OUT_DIR}"
 
-scan() {
+scan_header() {
   local xml="${1}"
   local out="${OUT_DIR}/$(basename "${xml%.xml}").h"
   test -f "${xml}" || fail "Protocol xml not found: '${xml}'"
@@ -43,6 +43,15 @@ scan() {
   wayland-scanner client-header "${xml}" "${out}"
 }
 
-scan "${VOLO_WAYLAND_DATADIR}/wayland.xml"
-scan "${VOLO_WAYLAND_PROTOCOLS_DATADIR}/stable/xdg-shell/xdg-shell.xml"
+scan_code() {
+  local xml="${1}"
+  local out="${OUT_DIR}/$(basename "${xml%.xml}").c"
+  test -f "${xml}" || fail "Protocol xml not found: '${xml}'"
+  info "Generating $(basename "${out}")"
+  wayland-scanner private-code "${xml}" "${out}"
+}
+
+scan_header "${VOLO_WAYLAND_DATADIR}/wayland.xml"
+scan_header "${VOLO_WAYLAND_PROTOCOLS_DATADIR}/stable/xdg-shell/xdg-shell.xml"
+scan_code   "${VOLO_WAYLAND_PROTOCOLS_DATADIR}/stable/xdg-shell/xdg-shell.xml"
 info "Done"
