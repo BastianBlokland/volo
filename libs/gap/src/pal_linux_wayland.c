@@ -284,6 +284,7 @@ GapWindowId gap_pal_window_create(GapPal* pal, const GapVector size) {
   struct wl_surface*   wlSurface   = wl_compositor_create_surface(&wl->api, wl->compositor);
   struct xdg_surface*  xdgSurface  = xdg_wm_base_get_xdg_surface(&wl->api, wl->xdgWmBase, wlSurface);
   struct xdg_toplevel* xdgToplevel = xdg_surface_get_toplevel(&wl->api, xdgSurface);
+  xdg_toplevel_set_app_id(&wl->api, xdgToplevel, "volo");
 
   GapPalWindow* window  = dynarray_push_t(&pal->windows, GapPalWindow);
   *window               = (GapPalWindow){
