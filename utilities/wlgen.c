@@ -414,7 +414,7 @@ WriteWrappers:;
     if (xml_name_hash(doc, child) != g_hash_request) {
       continue;
     }
-    const u32    opcode       = wrapOpcode++;
+    wrapOpcode++;
     const String reqName      = xml_attr_get(doc, child, g_hash_name);
     const String reqType      = xml_attr_get(doc, child, g_hash_type);
     const bool   isDestructor = string_eq(reqType, string_lit("destructor"));
