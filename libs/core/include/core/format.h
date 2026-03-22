@@ -254,7 +254,7 @@ struct sFormatArg {
 /**
  * Create an boolean formatting argument.
  */
-#define fmt_bool(_VAL_) ((FormatArg){ .type = FormatArgType_bool, .value_bool = (_VAL_) })
+#define fmt_bool(_VAL_) ((FormatArg){ .type = FormatArgType_bool, .value_bool = (!!(_VAL_)) })
 
 /**
  * Create an bitset formatting argument.
