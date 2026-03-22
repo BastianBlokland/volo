@@ -3,6 +3,7 @@
 #include "core/dynarray.h"
 #include "core/dynlib.h"
 #include "core/dynstring.h"
+#include "core/math.h"
 #include "log/logger.h"
 #include "wayland/wayland.h"
 
@@ -25,6 +26,8 @@ static const char* to_null_term_scratch(const String str) {
 static const i32 pal_window_min_width  = 128;
 static const i32 pal_window_min_height = 128;
 
+#define pal_window_default_refresh_rate 60.0f
+#define pal_window_default_dpi 96
 
 // Linux input event button codes (from linux/input-event-codes.h).
 #define BTN_LEFT 0x110
@@ -32,6 +35,14 @@ static const i32 pal_window_min_height = 128;
 #define BTN_MIDDLE 0x112
 #define BTN_SIDE 0x113
 #define BTN_EXTRA 0x114
+
+typedef struct {
+  struct wl_output* wlOutput;
+  String            name; // heap-allocated via g_allocHeap
+  i32               physWidthMm, physHeightMm;
+  i32               modeWidthPx, modeHeightPx;
+  i32               refreshMHz;
+} WlOutput;
 
 typedef struct {
   DynLib*             lib;
@@ -47,12 +58,14 @@ typedef struct {
   struct wl_seat*    seat;
   struct wl_pointer* pointer;
 
-
+  DynArray outputs; // WlOutput[]
 
   struct wl_registry_listener registryListener;
   struct xdg_wm_base_listener xdgWmBaseListener;
   struct wl_seat_listener     seatListener;
   struct wl_pointer_listener  pointerListener;
+  struct wl_output_listener   outputListener;
+  struct wl_surface_listener  surfaceListener;
 } Wayland;
 
 typedef struct {
@@ -148,6 +161,53 @@ static void pal_event_scroll(GapPalWindow* window, const GapVector delta) {
   window->flags |= GapPalWindowFlags_Scrolled;
 }
 
+static WlOutput* wl_find_output(Wayland* wl, struct wl_output* wlOutput) {
+  dynarray_for_t(&wl->outputs, WlOutput, o) {
+    if (o->wlOutput == wlOutput) {
+      return o;
+    }
+  }
+  return null;
+}
+
+static void
+pal_event_display_name_changed(GapPal* pal, GapPalWindow* window, const String newName) {
+  if (string_eq(window->displayName, newName)) {
+    return;
+  }
+  string_maybe_free(pal->alloc, window->displayName);
+  window->displayName = string_maybe_dup(pal->alloc, newName);
+  window->flags |= GapPalWindowFlags_DisplayNameChanged;
+  log_d(
+      "Window display-name changed",
+      log_param("id", fmt_int((uptr)window->wlSurface)),
+      log_param("display-name", fmt_text(newName)));
+}
+
+static void pal_event_refresh_rate_changed(GapPalWindow* window, const f32 newRefreshRate) {
+  if (window->refreshRate == newRefreshRate) {
+    return;
+  }
+  window->refreshRate = newRefreshRate;
+  window->flags |= GapPalWindowFlags_RefreshRateChanged;
+  log_d(
+      "Window refresh-rate changed",
+      log_param("id", fmt_int((uptr)window->wlSurface)),
+      log_param("refresh-rate", fmt_float(newRefreshRate)));
+}
+
+static void pal_event_dpi_changed(GapPalWindow* window, const u16 newDpi) {
+  if (window->dpi == newDpi) {
+    return;
+  }
+  window->dpi = newDpi;
+  window->flags |= GapPalWindowFlags_DpiChanged;
+  log_d(
+      "Window dpi changed",
+      log_param("id", fmt_int((uptr)window->wlSurface)),
+      log_param("dpi", fmt_int(newDpi)));
+}
+
 static void pal_event_focus_gained(GapPalWindow* window) {
   if (window->flags & GapPalWindowFlags_Focused) {
     return;
@@ -185,6 +245,126 @@ static GapKey pal_map_pointer_button(const u32 linuxButton) {
 
 // -- Wayland listener callbacks --
 
+// -- wl_output callbacks --
+
+static void wl_output_geometry(
+    void*             data,
+    struct wl_output* obj,
+    i32               x,
+    i32               y,
+    i32               physWidth,
+    i32               physHeight,
+    i32               subpixel,
+    const char*       make,
+    const char*       model,
+    i32               transform) {
+  Wayland* wl = data;
+  (void)x;
+  (void)y;
+  (void)subpixel;
+  (void)make;
+  (void)model;
+  (void)transform;
+  WlOutput* out = wl_find_output(wl, obj);
+  if (out) {
+    out->physWidthMm  = physWidth;
+    out->physHeightMm = physHeight;
+  }
+}
+
+static void
+wl_output_mode(void* data, struct wl_output* obj, u32 flags, i32 width, i32 height, i32 refresh) {
+  if (!(flags & WL_OUTPUT_MODE_CURRENT)) {
+    return;
+  }
+  Wayland*  wl  = data;
+  WlOutput* out = wl_find_output(wl, obj);
+  if (out) {
+    out->modeWidthPx  = width;
+    out->modeHeightPx = height;
+    out->refreshMHz   = refresh;
+  }
+}
+
+static void wl_output_done(void* data, struct wl_output* obj) {
+  Wayland*  wl  = data;
+  WlOutput* out = wl_find_output(wl, obj);
+  if (!out) {
+    return;
+  }
+  const f32 refreshRate = out->refreshMHz / 1000.0f;
+  u16       dpi         = pal_window_default_dpi;
+  if (out->physWidthMm > 0) {
+    dpi = (u16)math_round_nearest_f32(out->modeWidthPx * 25.4f / out->physWidthMm);
+  }
+  log_i(
+      "Wayland output",
+      log_param("name", fmt_text(out->name)),
+      log_param("refresh-rate", fmt_float(refreshRate)),
+      log_param("dpi", fmt_int(dpi)));
+}
+
+static void wl_output_scale(void* data, struct wl_output* obj, i32 factor) {
+  (void)data;
+  (void)obj;
+  (void)factor;
+}
+
+static void wl_output_name(void* data, struct wl_output* obj, const char* name) {
+  Wayland*  wl  = data;
+  WlOutput* out = wl_find_output(wl, obj);
+  if (out) {
+    string_maybe_free(g_allocHeap, out->name);
+    out->name = string_maybe_dup(g_allocHeap, string_from_null_term(name));
+  }
+}
+
+static void wl_output_description(void* data, struct wl_output* obj, const char* desc) {
+  (void)data;
+  (void)obj;
+  (void)desc;
+}
+
+// -- wl_surface callbacks --
+
+static void wl_surface_enter(void* data, struct wl_surface* surface, struct wl_output* output) {
+  GapPal*       pal    = data;
+  GapPalWindow* window = pal_maybe_window(pal, (GapWindowId)surface);
+  WlOutput*     out    = wl_find_output(&pal->wl, output);
+  if (!window || !out) {
+    return;
+  }
+  pal_event_display_name_changed(pal, window, out->name);
+  pal_event_refresh_rate_changed(window, out->refreshMHz / 1000.0f);
+  u16 dpi = pal_window_default_dpi;
+  if (out->physWidthMm > 0) {
+    dpi = (u16)math_round_nearest_f32(out->modeWidthPx * 25.4f / out->physWidthMm);
+  }
+  pal_event_dpi_changed(window, dpi);
+}
+
+static void wl_surface_leave(void* data, struct wl_surface* surface, struct wl_output* output) {
+  (void)data;
+  (void)surface;
+  (void)output;
+}
+
+static void
+wl_surface_noop_preferred_buffer_scale(void* data, struct wl_surface* surface, i32 factor) {
+  (void)data;
+  (void)surface;
+  (void)factor;
+}
+
+static void
+wl_surface_noop_preferred_buffer_transform(void* data, struct wl_surface* surface, u32 transform) {
+  (void)data;
+  (void)surface;
+  (void)transform;
+}
+
+// -- Registry --
+
 static void wl_registry_global(
     void* data, struct wl_registry* registry, u32 name, const char* interface, u32 version) {
   Wayland* wl = data;
@@ -196,6 +376,12 @@ static void wl_registry_global(
     wl->xdgWmBaseVersion = xdg_wm_base_get_version(&wl->api, wl->xdgWmBase);
   } else if (string_eq(string_from_null_term(interface), string_lit("wl_seat"))) {
     wl->seat = wlRegistryBind(&wl->api, registry, name, version, &wl_seat_interface, 9);
+  } else if (string_eq(string_from_null_term(interface), string_lit("wl_output"))) {
+    WlOutput* out = dynarray_push_t(&wl->outputs, WlOutput);
+    *out          = (WlOutput){
+                 .wlOutput = wlRegistryBind(&wl->api, registry, name, version, &wl_output_interface, 4),
+    };
+    wl_output_add_listener(&wl->api, out->wlOutput, &wl->outputListener, wl);
   }
 }
 
@@ -223,7 +409,7 @@ static void xdg_toplevel_configure(
 
   // Parse the states array to detect fullscreen and activation.
   bool             fullscreen = false, activated = false;
-  const u32* const stateEnd   = (const u32*)((u8*)states->data + states->size);
+  const u32* const stateEnd = (const u32*)((u8*)states->data + states->size);
   for (const u32* s = states->data; s != stateEnd; ++s) {
     if (*s == XDG_TOPLEVEL_STATE_FULLSCREEN) {
       fullscreen = true;
@@ -344,9 +530,8 @@ static void wl_pointer_axis(void* data, struct wl_pointer* ptr, u32 time, u32 ax
   // wl_fixed_t is 24.8 fixed-point; shift right 8 to get integer pixels.
   // Positive axis = scroll down/right; negate y to match our bottom-left convention.
   const i32       pixels = value >> 8;
-  const GapVector delta  = axis == WL_POINTER_AXIS_VERTICAL_SCROLL
-      ? gap_vector(0, -pixels)
-      : gap_vector(pixels, 0);
+  const GapVector delta =
+      axis == WL_POINTER_AXIS_VERTICAL_SCROLL ? gap_vector(0, -pixels) : gap_vector(pixels, 0);
   pal_event_scroll(pal->pointerFocus, delta);
 }
 
@@ -422,7 +607,26 @@ static void wl_seat_name(void* data, struct wl_seat* seat, const char* name) {
 
 // -- Initialization --
 
+static void pal_init_wl_outputs(GapPal* pal) {
+  pal->wl.surfaceListener = (struct wl_surface_listener){
+      .enter                      = wl_surface_enter,
+      .leave                      = wl_surface_leave,
+      .preferred_buffer_scale     = wl_surface_noop_preferred_buffer_scale,
+      .preferred_buffer_transform = wl_surface_noop_preferred_buffer_transform,
+  };
+}
+
 static bool pal_init_wl(Allocator* alloc, Wayland* out) {
+  out->outputs        = dynarray_create_t(alloc, WlOutput, 4);
+  out->outputListener = (struct wl_output_listener){
+      .geometry    = wl_output_geometry,
+      .mode        = wl_output_mode,
+      .done        = wl_output_done,
+      .scale       = wl_output_scale,
+      .name        = wl_output_name,
+      .description = wl_output_description,
+  };
+
   DynLibResult res = dynlib_load(alloc, string_lit("libwayland-client.so"), &out->lib);
   if (res != DynLibResult_Success) {
     log_e(
@@ -498,6 +702,11 @@ static void pal_destroy_wl(Wayland* wl) {
   if (wl->seat) {
     wl_seat_release(&wl->api, wl->seat);
   }
+  dynarray_for_t(&wl->outputs, WlOutput, out) {
+    string_maybe_free(g_allocHeap, out->name);
+    wl_output_release(&wl->api, out->wlOutput);
+  }
+  dynarray_destroy(&wl->outputs);
   xdg_wm_base_destroy(&wl->api, wl->xdgWmBase);
   wl_compositor_destroy(&wl->api, wl->compositor);
   wl_registry_destroy(&wl->api, wl->registry);
@@ -526,6 +735,7 @@ GapPal* gap_pal_create(Allocator* alloc) {
   };
 
   pal_init_wl_seat(pal);
+  pal_init_wl_outputs(pal);
 
   return pal;
 }
@@ -577,12 +787,16 @@ GapWindowId gap_pal_window_create(GapPal* pal, const GapVector size) {
   GapPalWindow* window = dynarray_push_t(&pal->windows, GapPalWindow);
   *window              = (GapPalWindow){
                    .inputText   = dynstring_create(pal->alloc, 64),
+                   .refreshRate = pal_window_default_refresh_rate,
+                   .dpi         = pal_window_default_dpi,
                    .wl          = wl,
                    .wlSurface   = wlSurface,
                    .xdgSurface  = xdgSurface,
                    .xdgToplevel = xdgToplevel,
   };
   window->params[GapParam_WindowSize] = size;
+
+  wl_surface_add_listener(&wl->api, wlSurface, &wl->surfaceListener, pal);
 
   window->xdgSurfaceListener = (struct xdg_surface_listener){
       .configure = xdg_surface_configure,
