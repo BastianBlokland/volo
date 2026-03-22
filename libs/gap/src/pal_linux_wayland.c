@@ -22,6 +22,9 @@ static const char* to_null_term_scratch(const String str) {
  * Protocol: https://wayland.app/protocols/wayland
  */
 
+static const i32 pal_window_min_width  = 128;
+static const i32 pal_window_min_height = 128;
+
 // Linux input event button codes (from linux/input-event-codes.h).
 #define BTN_LEFT   0x110
 #define BTN_RIGHT  0x111
@@ -190,11 +193,32 @@ static void xdg_toplevel_configure(
     void* data, struct xdg_toplevel* top, i32 width, i32 height, struct wl_array* states) {
   GapPalWindow* window = data;
   (void)top;
-  (void)states;
+
+  // Parse the states array to detect fullscreen.
+  bool                fullscreen = false;
+  const u32* const    stateEnd   = (const u32*)((u8*)states->data + states->size);
+  for (const u32* s = states->data; s != stateEnd; ++s) {
+    if (*s == XDG_TOPLEVEL_STATE_FULLSCREEN) {
+      fullscreen = true;
+    }
+  }
+  if (fullscreen) {
+    window->flags |= GapPalWindowFlags_Fullscreen;
+  } else {
+    window->flags &= ~GapPalWindowFlags_Fullscreen;
+  }
+
   if (width > 0 && height > 0) {
-    window->params[GapParam_WindowSize]          = gap_vector(width, height);
-    window->params[GapParam_WindowSizeRequested] = gap_vector(width, height);
-    window->flags |= GapPalWindowFlags_Resized;
+    const GapVector newSize = gap_vector(width, height);
+    if (!gap_vector_equal(window->params[GapParam_WindowSize], newSize)) {
+      window->params[GapParam_WindowSize] = newSize;
+      window->flags |= GapPalWindowFlags_Resized;
+
+      log_d(
+          "Window resized",
+          log_param("id", fmt_int((uptr)window->wlSurface)),
+          log_param("size", gap_vector_fmt(newSize)));
+    }
   }
 }
 
@@ -520,8 +544,7 @@ GapWindowId gap_pal_window_create(GapPal* pal, const GapVector size) {
       .xdgSurface  = xdgSurface,
       .xdgToplevel = xdgToplevel,
   };
-  window->params[GapParam_WindowSize]          = size;
-  window->params[GapParam_WindowSizeRequested] = size;
+  window->params[GapParam_WindowSize] = size;
 
   window->xdgSurfaceListener = (struct xdg_surface_listener){
       .configure = xdg_surface_configure,
@@ -610,10 +633,31 @@ void gap_pal_window_title_set(GapPal* pal, const GapWindowId windowId, const Str
 
 void gap_pal_window_resize(
     GapPal* pal, const GapWindowId windowId, GapVector size, const bool fullscreen) {
-  (void)pal;
-  (void)windowId;
-  (void)size;
-  (void)fullscreen;
+  GapPalWindow* window = pal_window(pal, windowId);
+
+  if (size.width < pal_window_min_width) {
+    size.width = pal_window_min_width;
+  }
+  if (size.height < pal_window_min_height) {
+    size.height = pal_window_min_height;
+  }
+
+  log_d(
+      "Updating window size",
+      log_param("id", fmt_int(windowId)),
+      log_param("size", gap_vector_fmt(size)),
+      log_param("fullscreen", fmt_bool(fullscreen)));
+
+  if (fullscreen) {
+    // Pass null for output to use whichever output the window is currently on.
+    xdg_toplevel_set_fullscreen(&window->wl->api, window->xdgToplevel, null);
+  } else {
+    xdg_toplevel_unset_fullscreen(&window->wl->api, window->xdgToplevel);
+    // Hint the compositor toward the requested size by locking min == max.
+    xdg_toplevel_set_min_size(&window->wl->api, window->xdgToplevel, size.width, size.height);
+    xdg_toplevel_set_max_size(&window->wl->api, window->xdgToplevel, size.width, size.height);
+  }
+  wl_surface_commit(&window->wl->api, window->wlSurface);
 }
 
 void gap_pal_window_cursor_hide(GapPal* pal, const GapWindowId windowId, const bool hidden) {

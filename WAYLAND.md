@@ -167,8 +167,9 @@ The following functions currently silently do nothing:
 
 | Function | Notes |
 |---|---|
-| `gap_pal_window_resize` | Call `xdg_toplevel_set_max_size` / handle configure events |
+| ~~`gap_pal_window_resize`~~ | Done: fullscreen via `xdg_toplevel_set_fullscreen/unset_fullscreen`; windowed size via `set_min_size`/`set_max_size`; `GapPalWindowFlags_Fullscreen` updated from `xdg_toplevel_configure` states |
 | `gap_pal_window_cursor_hide/capture/confine` | Requires `zwp_pointer_constraints_v1` (add XML to `run.wlgen`) |
+| WM-initiated fullscreen not reflected in `win->mode` | `GapPalWindowFlags_Fullscreen` is correctly set from the compositor's `xdg_toplevel_configure` states, but `window.c` never reads it back. Doing so naively causes a feedback loop: the app-requested fullscreen state and the compositor-confirmed state are out of sync during the roundtrip, so reading the flag before confirmation fights the WM. Fix requires tracking pending fullscreen state in `GapPalWindow`. |
 | `gap_pal_window_cursor_set` | Requires `wl_cursor` / `wl_pointer_set_cursor` |
 | `gap_pal_window_cursor_pos_set` | Not possible on Wayland (pointer warp unsupported) |
 | `gap_pal_window_icon_set` | No standard Wayland protocol; compositor-specific |
