@@ -155,6 +155,35 @@ Linux button defines (`BTN_LEFT = 0x110` etc.) are defined locally — no `<linu
 
 Re-enter the dev shell (`nix develop`) after any `flake.nix` change.
 
+## Present timing investigation
+
+### `present-timing` (`VK_EXT_present_timing`)
+
+The runtime log shows `present-timing: false` and `present-at-relative: false`. Here is why.
+
+**Blocker 1 — extension not yet in Mesa 26.0.x.**
+`VK_EXT_present_timing` is listed in Mesa's `new_features.txt` as targeting **Mesa 26.1**. The RADV implementation (in `src/amd/vulkan/radv_physical_device.c`) gates exposure on `radv_calibrated_timestamps_enabled()`, which is true for Phoenix (not Raven/Raven2), and calibrated timestamps are available. But the feature missed the 26.0 branch cut — nixpkgs unstable (Mesa 26.0.2) is one release behind. Expect it with Mesa 26.1.
+
+**Blocker 2 — present-stage mismatch (will need a code fix).**
+Mesa's Wayland WSI (`wsi_common_wayland.c`) reports:
+```c
+wait->presentStageQueries = VK_PRESENT_STAGE_IMAGE_FIRST_PIXEL_OUT_BIT_EXT;
+```
+But `swapchain_timing_present_stage` in `swapchain.c` is `VK_PRESENT_STAGE_REQUEST_DEQUEUED_BIT_EXT`, chosen to work around XWayland not supporting `PIXEL_OUT`. The comment even notes `PIXEL_OUT` is the ideal. On native Wayland the stage must be switched to `VK_PRESENT_STAGE_IMAGE_FIRST_PIXEL_OUT_BIT_EXT` — otherwise the `presentTiming` surface-capability check will fail even with a Mesa that exposes the extension.
+
+**Compositor side is ready.** Hyprland advertises `wp_presentation` (with `CLOCK_MONOTONIC`), `wp_fifo_manager_v1`, and `wp_commit_timing_manager_v1` (when `render:commit_timing_enabled = 1`), satisfying all Mesa WSI requirements.
+
+### `present-at-relative`
+
+`presentAtRelativeTimeSupported` in `VkPresentTimingSurfaceCapabilitiesEXT` is initialized to `VK_FALSE` in Mesa's Wayland WSI and **never set to true** — not even in the current Mesa HEAD. The RADV device feature `presentAtRelativeTime = true` is set, but the WSI surface capability (which our code checks) is not. Mesa hasn't implemented this on the Wayland compositor path yet.
+
+### Action items (deferred until Mesa 26.1 ships)
+
+1. Change `swapchain_timing_present_stage` to `VK_PRESENT_STAGE_IMAGE_FIRST_PIXEL_OUT_BIT_EXT` when running on native Wayland.
+2. `present-at-relative` requires a Mesa-side fix; no action needed on our end.
+
+---
+
 ## Current status
 
 - Build: **passes** (`cmake --build build`)
