@@ -190,6 +190,10 @@ But `swapchain_timing_present_stage` in `swapchain.c` is `VK_PRESENT_STAGE_REQUE
 - Unit tests: **all pass** (`cmake --build build --target test`)
 - `ninja run.volo`: opens a window, Vulkan swapchain works, mouse cursor position and buttons work, keyboard input not yet implemented.
 
+## Known issues / deferred
+
+- **Scroll speed**: `wl_pointer.axis` values are passed as raw integer pixels (`value >> 8`). On this setup Hyprland sends smooth-scroll events of ~6–8 pixels each (rather than one clean 15px-per-click event), so scroll feels faster than XCB/Win32's ±1 per click. Fixing this properly requires accumulating `wl_fixed_t` values and emitting steps at a 15px threshold — deferred until further into the Wayland implementation.
+
 ## What still needs to be done
 
 The following functions currently silently do nothing:

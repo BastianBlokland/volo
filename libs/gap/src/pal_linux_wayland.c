@@ -4,9 +4,9 @@
 #include "core/dynlib.h"
 #include "core/dynstring.h"
 #include "log/logger.h"
+#include "wayland/wayland.h"
 
 #include "pal.h"
-#include "wayland/wayland.h"
 
 static const char* to_null_term_scratch(const String str) {
   const Mem mem = alloc_alloc(g_allocScratch, str.size + 1, 1);
@@ -25,12 +25,13 @@ static const char* to_null_term_scratch(const String str) {
 static const i32 pal_window_min_width  = 128;
 static const i32 pal_window_min_height = 128;
 
+
 // Linux input event button codes (from linux/input-event-codes.h).
-#define BTN_LEFT   0x110
-#define BTN_RIGHT  0x111
+#define BTN_LEFT 0x110
+#define BTN_RIGHT 0x111
 #define BTN_MIDDLE 0x112
-#define BTN_SIDE   0x113
-#define BTN_EXTRA  0x114
+#define BTN_SIDE 0x113
+#define BTN_EXTRA 0x114
 
 typedef struct {
   DynLib*             lib;
@@ -45,6 +46,8 @@ typedef struct {
 
   struct wl_seat*    seat;
   struct wl_pointer* pointer;
+
+
 
   struct wl_registry_listener registryListener;
   struct xdg_wm_base_listener xdgWmBaseListener;
@@ -75,8 +78,8 @@ struct sGapPal {
   Allocator* alloc;
   DynArray   windows; // GapPalWindow[]
 
-  Wayland        wl;
-  GapPalWindow*  pointerFocus; // Window currently under the pointer (null if none).
+  Wayland       wl;
+  GapPalWindow* pointerFocus; // Window currently under the pointer (null if none).
 };
 
 static GapPalWindow* pal_maybe_window(GapPal* pal, const GapWindowId id) {
@@ -147,12 +150,18 @@ static void pal_event_scroll(GapPalWindow* window, const GapVector delta) {
 
 static GapKey pal_map_pointer_button(const u32 linuxButton) {
   switch (linuxButton) {
-  case BTN_LEFT:   return GapKey_MouseLeft;
-  case BTN_RIGHT:  return GapKey_MouseRight;
-  case BTN_MIDDLE: return GapKey_MouseMiddle;
-  case BTN_SIDE:   return GapKey_MouseExtra1;
-  case BTN_EXTRA:  return GapKey_MouseExtra2;
-  default:         return GapKey_MouseLeft; // Fallback; should not be reached.
+  case BTN_LEFT:
+    return GapKey_MouseLeft;
+  case BTN_RIGHT:
+    return GapKey_MouseRight;
+  case BTN_MIDDLE:
+    return GapKey_MouseMiddle;
+  case BTN_SIDE:
+    return GapKey_MouseExtra1;
+  case BTN_EXTRA:
+    return GapKey_MouseExtra2;
+  default:
+    return GapKey_MouseLeft; // Fallback; should not be reached.
   }
 }
 
@@ -162,13 +171,13 @@ static void wl_registry_global(
     void* data, struct wl_registry* registry, u32 name, const char* interface, u32 version) {
   Wayland* wl = data;
   if (string_eq(string_from_null_term(interface), string_lit("wl_compositor"))) {
-    wl->compositor        = wlRegistryBind(&wl->api, registry, name, version, &wl_compositor_interface, 6);
+    wl->compositor = wlRegistryBind(&wl->api, registry, name, version, &wl_compositor_interface, 6);
     wl->compositorVersion = wl_compositor_get_version(&wl->api, wl->compositor);
   } else if (string_eq(string_from_null_term(interface), string_lit("xdg_wm_base"))) {
-    wl->xdgWmBase        = wlRegistryBind(&wl->api, registry, name, version, &xdg_wm_base_interface, 1);
+    wl->xdgWmBase = wlRegistryBind(&wl->api, registry, name, version, &xdg_wm_base_interface, 1);
     wl->xdgWmBaseVersion = xdg_wm_base_get_version(&wl->api, wl->xdgWmBase);
   } else if (string_eq(string_from_null_term(interface), string_lit("wl_seat"))) {
-    wl->seat = wlRegistryBind(&wl->api, registry, name, version, &wl_seat_interface, 1);
+    wl->seat = wlRegistryBind(&wl->api, registry, name, version, &wl_seat_interface, 9);
   }
 }
 
@@ -195,8 +204,8 @@ static void xdg_toplevel_configure(
   (void)top;
 
   // Parse the states array to detect fullscreen.
-  bool                fullscreen = false;
-  const u32* const    stateEnd   = (const u32*)((u8*)states->data + states->size);
+  bool             fullscreen = false;
+  const u32* const stateEnd   = (const u32*)((u8*)states->data + states->size);
   for (const u32* s = states->data; s != stateEnd; ++s) {
     if (*s == XDG_TOPLEVEL_STATE_FULLSCREEN) {
       fullscreen = true;
@@ -228,24 +237,27 @@ static void xdg_toplevel_close(void* data, struct xdg_toplevel* top) {
   window->flags |= GapPalWindowFlags_CloseRequested;
 }
 
-static void xdg_toplevel_noop_configure_bounds(
-    void* data, struct xdg_toplevel* top, i32 w, i32 h) {
+static void xdg_toplevel_noop_configure_bounds(void* data, struct xdg_toplevel* top, i32 w, i32 h) {
   (void)data;
   (void)top;
   (void)w;
   (void)h;
 }
 
-static void xdg_toplevel_noop_wm_capabilities(
-    void* data, struct xdg_toplevel* top, struct wl_array* caps) {
+static void
+xdg_toplevel_noop_wm_capabilities(void* data, struct xdg_toplevel* top, struct wl_array* caps) {
   (void)data;
   (void)top;
   (void)caps;
 }
 
 static void wl_pointer_enter(
-    void* data, struct wl_pointer* ptr, u32 serial,
-    struct wl_surface* surface, i32 surfaceX, i32 surfaceY) {
+    void*              data,
+    struct wl_pointer* ptr,
+    u32                serial,
+    struct wl_surface* surface,
+    i32                surfaceX,
+    i32                surfaceY) {
   GapPal* pal = data;
   (void)ptr;
   (void)serial;
@@ -254,8 +266,8 @@ static void wl_pointer_enter(
   pal->pointerFocus = pal_maybe_window(pal, (GapWindowId)surface);
 }
 
-static void wl_pointer_leave(
-    void* data, struct wl_pointer* ptr, u32 serial, struct wl_surface* surface) {
+static void
+wl_pointer_leave(void* data, struct wl_pointer* ptr, u32 serial, struct wl_surface* surface) {
   GapPal* pal = data;
   (void)ptr;
   (void)serial;
@@ -263,15 +275,15 @@ static void wl_pointer_leave(
   pal->pointerFocus = null;
 }
 
-static void wl_pointer_motion(
-    void* data, struct wl_pointer* ptr, u32 time, i32 surfaceX, i32 surfaceY) {
+static void
+wl_pointer_motion(void* data, struct wl_pointer* ptr, u32 time, i32 surfaceX, i32 surfaceY) {
   GapPal* pal = data;
   (void)ptr;
   (void)time;
   if (!pal->pointerFocus) {
     return;
   }
-  GapPalWindow* window     = pal->pointerFocus;
+  GapPalWindow* window       = pal->pointerFocus;
   const i32     windowHeight = (i32)window->params[GapParam_WindowSize].height;
   // wl_fixed_t is 24.8 fixed-point; shift right 8 bits to get integer pixels.
   // Flip y: Wayland origin is top-left, GapVector origin is bottom-left.
@@ -279,8 +291,8 @@ static void wl_pointer_motion(
   pal_event_cursor(window, pos);
 }
 
-static void wl_pointer_button(
-    void* data, struct wl_pointer* ptr, u32 serial, u32 time, u32 button, u32 state) {
+static void
+wl_pointer_button(void* data, struct wl_pointer* ptr, u32 serial, u32 time, u32 button, u32 state) {
   GapPal* pal = data;
   (void)ptr;
   (void)serial;
@@ -296,14 +308,20 @@ static void wl_pointer_button(
   }
 }
 
-static void wl_pointer_axis(
-    void* data, struct wl_pointer* ptr, u32 time, u32 axis, i32 value) {
-  (void)data;
+static void wl_pointer_axis(void* data, struct wl_pointer* ptr, u32 time, u32 axis, i32 value) {
+  GapPal* pal = data;
   (void)ptr;
   (void)time;
-  (void)axis;
-  (void)value;
-  // Handled via axis_discrete for integer scroll steps; ignored here.
+  if (!pal->pointerFocus) {
+    return;
+  }
+  // wl_fixed_t is 24.8 fixed-point; shift right 8 to get integer pixels.
+  // Positive axis = scroll down/right; negate y to match our bottom-left convention.
+  const i32       pixels = value >> 8;
+  const GapVector delta  = axis == WL_POINTER_AXIS_VERTICAL_SCROLL
+      ? gap_vector(0, -pixels)
+      : gap_vector(pixels, 0);
+  pal_event_scroll(pal->pointerFocus, delta);
 }
 
 static void wl_pointer_frame(void* data, struct wl_pointer* ptr) {
@@ -324,30 +342,24 @@ static void wl_pointer_axis_stop(void* data, struct wl_pointer* ptr, u32 time, u
   (void)axis;
 }
 
-static void wl_pointer_axis_discrete(
-    void* data, struct wl_pointer* ptr, u32 axis, i32 discrete) {
-  GapPal* pal = data;
+static void wl_pointer_axis_discrete(void* data, struct wl_pointer* ptr, u32 axis, i32 discrete) {
+  (void)data;
   (void)ptr;
-  if (!pal->pointerFocus) {
-    return;
-  }
-  // Positive discrete = scroll down / right; negate y to match our bottom-left convention.
-  const GapVector delta = axis == WL_POINTER_AXIS_VERTICAL_SCROLL
-      ? gap_vector(0, -discrete)
-      : gap_vector(discrete, 0);
-  pal_event_scroll(pal->pointerFocus, delta);
+  (void)axis;
+  (void)discrete;
+  // Scroll is handled via the axis event (always sent alongside axis_discrete).
 }
 
-static void wl_pointer_axis_value120(
-    void* data, struct wl_pointer* ptr, u32 axis, i32 value120) {
+static void wl_pointer_axis_value120(void* data, struct wl_pointer* ptr, u32 axis, i32 value120) {
   (void)data;
   (void)ptr;
   (void)axis;
   (void)value120;
+  // Scroll is handled via the axis event (sent for all sources) in wl_pointer_frame.
 }
 
-static void wl_pointer_axis_relative_direction(
-    void* data, struct wl_pointer* ptr, u32 axis, u32 direction) {
+static void
+wl_pointer_axis_relative_direction(void* data, struct wl_pointer* ptr, u32 axis, u32 direction) {
   (void)data;
   (void)ptr;
   (void)axis;
@@ -360,16 +372,16 @@ static void wl_seat_capabilities(void* data, struct wl_seat* seat, u32 caps) {
   if ((caps & WL_SEAT_CAPABILITY_POINTER) && !pal->wl.pointer) {
     pal->wl.pointer         = wl_seat_get_pointer(&pal->wl.api, pal->wl.seat);
     pal->wl.pointerListener = (struct wl_pointer_listener){
-        .enter                  = wl_pointer_enter,
-        .leave                  = wl_pointer_leave,
-        .motion                 = wl_pointer_motion,
-        .button                 = wl_pointer_button,
-        .axis                   = wl_pointer_axis,
-        .frame                  = wl_pointer_frame,
-        .axis_source            = wl_pointer_axis_source,
-        .axis_stop              = wl_pointer_axis_stop,
-        .axis_discrete          = wl_pointer_axis_discrete,
-        .axis_value120          = wl_pointer_axis_value120,
+        .enter                   = wl_pointer_enter,
+        .leave                   = wl_pointer_leave,
+        .motion                  = wl_pointer_motion,
+        .button                  = wl_pointer_button,
+        .axis                    = wl_pointer_axis,
+        .frame                   = wl_pointer_frame,
+        .axis_source             = wl_pointer_axis_source,
+        .axis_stop               = wl_pointer_axis_stop,
+        .axis_discrete           = wl_pointer_axis_discrete,
+        .axis_value120           = wl_pointer_axis_value120,
         .axis_relative_direction = wl_pointer_axis_relative_direction,
     };
     wl_pointer_add_listener(&pal->wl.api, pal->wl.pointer, &pal->wl.pointerListener, pal);
@@ -385,8 +397,7 @@ static void wl_seat_name(void* data, struct wl_seat* seat, const char* name) {
 // -- Initialization --
 
 static bool pal_init_wl(Allocator* alloc, Wayland* out) {
-  DynLibResult res =
-      dynlib_load(alloc, string_lit("libwayland-client.so"), &out->lib);
+  DynLibResult res = dynlib_load(alloc, string_lit("libwayland-client.so"), &out->lib);
   if (res != DynLibResult_Success) {
     log_e(
         "Failed to load Wayland ('libwayland-client.so')",
@@ -482,10 +493,10 @@ GapPal* gap_pal_create(Allocator* alloc) {
       log_param("xdg-wm-base-version", fmt_int(wl.xdgWmBaseVersion)));
 
   GapPal* pal = alloc_alloc_t(alloc, GapPal);
-  *pal = (GapPal){
-      .alloc   = alloc,
-      .windows = dynarray_create_t(alloc, GapPalWindow, 1),
-      .wl      = wl,
+  *pal        = (GapPal){
+             .alloc   = alloc,
+             .windows = dynarray_create_t(alloc, GapPalWindow, 1),
+             .wl      = wl,
   };
 
   pal_init_wl_seat(pal);
@@ -495,7 +506,8 @@ GapPal* gap_pal_create(Allocator* alloc) {
 
 void gap_pal_destroy(GapPal* pal) {
   while (pal->windows.size) {
-    gap_pal_window_destroy(pal, (GapWindowId)dynarray_at_t(&pal->windows, 0, GapPalWindow)->wlSurface);
+    gap_pal_window_destroy(
+        pal, (GapWindowId)dynarray_at_t(&pal->windows, 0, GapPalWindow)->wlSurface);
   }
   dynarray_destroy(&pal->windows);
   pal_destroy_wl(&pal->wl);
@@ -531,18 +543,18 @@ bool gap_pal_key_label(const GapPal* pal, const GapKey key, DynString* out) {
 GapWindowId gap_pal_window_create(GapPal* pal, const GapVector size) {
   Wayland* wl = &pal->wl;
 
-  struct wl_surface*   wlSurface   = wl_compositor_create_surface(&wl->api, wl->compositor);
-  struct xdg_surface*  xdgSurface  = xdg_wm_base_get_xdg_surface(&wl->api, wl->xdgWmBase, wlSurface);
+  struct wl_surface*   wlSurface  = wl_compositor_create_surface(&wl->api, wl->compositor);
+  struct xdg_surface*  xdgSurface = xdg_wm_base_get_xdg_surface(&wl->api, wl->xdgWmBase, wlSurface);
   struct xdg_toplevel* xdgToplevel = xdg_surface_get_toplevel(&wl->api, xdgSurface);
   xdg_toplevel_set_app_id(&wl->api, xdgToplevel, "volo");
 
-  GapPalWindow* window  = dynarray_push_t(&pal->windows, GapPalWindow);
-  *window               = (GapPalWindow){
-      .inputText   = dynstring_create(pal->alloc, 64),
-      .wl          = wl,
-      .wlSurface   = wlSurface,
-      .xdgSurface  = xdgSurface,
-      .xdgToplevel = xdgToplevel,
+  GapPalWindow* window = dynarray_push_t(&pal->windows, GapPalWindow);
+  *window              = (GapPalWindow){
+                   .inputText   = dynstring_create(pal->alloc, 64),
+                   .wl          = wl,
+                   .wlSurface   = wlSurface,
+                   .xdgSurface  = xdgSurface,
+                   .xdgToplevel = xdgToplevel,
   };
   window->params[GapParam_WindowSize] = size;
 
