@@ -916,8 +916,21 @@ GapWindowId gap_pal_window_create(GapPal* pal, const GapVector size) {
   xdg_toplevel_add_listener(&wl->api, xdgToplevel, &window->xdgToplevelListener, window);
 
   // Initial commit triggers the compositor to send a configure event.
+  // Also fires preferred_scale, giving us the correct surfaceScale120.
   wl_surface_commit(&wl->api, wlSurface);
+  wl->api.display_roundtrip(wl->display);
 
+  // Now that surfaceScale120 is correct, compute the logical size and set the viewport
+  // destination. Without this, the compositor has no viewport destination and assumes
+  // buffer_scale=1, so a physical-pixel buffer appears at the wrong (too large) logical size.
+  const i32 logW = (i32)((i64)size.width * 120 / window->surfaceScale120);
+  const i32 logH = (i32)((i64)size.height * 120 / window->surfaceScale120);
+  window->logicalWidth  = logW;
+  window->logicalHeight = logH;
+  if (window->viewport) {
+    wp_viewport_set_destination(&wl->api, window->viewport, logW, logH);
+  }
+  wl_surface_commit(&wl->api, wlSurface);
   wl->api.display_roundtrip(wl->display);
 
   log_i("Wayland window created", log_param("surface", fmt_int((uptr)wlSurface)));
@@ -1015,12 +1028,18 @@ void gap_pal_window_resize(
     xdg_toplevel_set_fullscreen(&window->wl->api, window->xdgToplevel, null);
   } else {
     xdg_toplevel_unset_fullscreen(&window->wl->api, window->xdgToplevel);
-    // min/max size are in logical units; convert from physical pixels.
+    // Convert physical to logical and update viewport destination so the compositor knows
+    // our logical size. Do not set max_size so the user can still resize the window.
     const u32 scale120  = window->surfaceScale120;
     const i32 logWidth  = (i32)((i64)size.width * 120 / scale120);
     const i32 logHeight = (i32)((i64)size.height * 120 / scale120);
-    xdg_toplevel_set_min_size(&window->wl->api, window->xdgToplevel, logWidth, logHeight);
-    xdg_toplevel_set_max_size(&window->wl->api, window->xdgToplevel, logWidth, logHeight);
+    xdg_toplevel_set_min_size(&window->wl->api, window->xdgToplevel, pal_window_min_width, pal_window_min_height);
+    xdg_toplevel_set_max_size(&window->wl->api, window->xdgToplevel, 0, 0);
+    if (window->viewport) {
+      wp_viewport_set_destination(&window->wl->api, window->viewport, logWidth, logHeight);
+    }
+    window->logicalWidth  = logWidth;
+    window->logicalHeight = logHeight;
   }
   wl_surface_commit(&window->wl->api, window->wlSurface);
 }
