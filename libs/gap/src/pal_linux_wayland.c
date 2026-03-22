@@ -148,6 +148,24 @@ static void pal_event_scroll(GapPalWindow* window, const GapVector delta) {
   window->flags |= GapPalWindowFlags_Scrolled;
 }
 
+static void pal_event_focus_gained(GapPalWindow* window) {
+  if (window->flags & GapPalWindowFlags_Focused) {
+    return;
+  }
+  window->flags |= GapPalWindowFlags_Focused | GapPalWindowFlags_FocusGained;
+  log_d("Window focus gained", log_param("id", fmt_int((uptr)window->wlSurface)));
+}
+
+static void pal_event_focus_lost(GapPalWindow* window) {
+  if (!(window->flags & GapPalWindowFlags_Focused)) {
+    return;
+  }
+  window->flags &= ~GapPalWindowFlags_Focused;
+  window->flags |= GapPalWindowFlags_FocusLost;
+  gap_keyset_clear(&window->keysDown);
+  log_d("Window focus lost", log_param("id", fmt_int((uptr)window->wlSurface)));
+}
+
 static GapKey pal_map_pointer_button(const u32 linuxButton) {
   switch (linuxButton) {
   case BTN_LEFT:
@@ -203,18 +221,26 @@ static void xdg_toplevel_configure(
   GapPalWindow* window = data;
   (void)top;
 
-  // Parse the states array to detect fullscreen.
-  bool             fullscreen = false;
+  // Parse the states array to detect fullscreen and activation.
+  bool             fullscreen = false, activated = false;
   const u32* const stateEnd   = (const u32*)((u8*)states->data + states->size);
   for (const u32* s = states->data; s != stateEnd; ++s) {
     if (*s == XDG_TOPLEVEL_STATE_FULLSCREEN) {
       fullscreen = true;
+    }
+    if (*s == XDG_TOPLEVEL_STATE_ACTIVATED) {
+      activated = true;
     }
   }
   if (fullscreen) {
     window->flags |= GapPalWindowFlags_Fullscreen;
   } else {
     window->flags &= ~GapPalWindowFlags_Fullscreen;
+  }
+  if (activated) {
+    pal_event_focus_gained(window);
+  } else {
+    pal_event_focus_lost(window);
   }
 
   if (width > 0 && height > 0) {
