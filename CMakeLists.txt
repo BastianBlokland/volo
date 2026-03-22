@@ -179,6 +179,8 @@ add_custom_target(run.wlgen
     --schema
       "$ENV{VOLO_WAYLAND_DATADIR}/wayland.xml"
       "$ENV{VOLO_WAYLAND_PROTOCOLS_DATADIR}/stable/xdg-shell/xdg-shell.xml"
+      "$ENV{VOLO_WAYLAND_PROTOCOLS_DATADIR}/stable/viewporter/viewporter.xml"
+      "$ENV{VOLO_WAYLAND_PROTOCOLS_DATADIR}/staging/fractional-scale/fractional-scale-v1.xml"
   VERBATIM USES_TERMINAL)
 
 add_custom_target(run.idgen

@@ -42,6 +42,7 @@ typedef struct {
   i32               physWidthMm, physHeightMm;
   i32               modeWidthPx, modeHeightPx;
   i32               refreshMHz;
+  i32               scale; // integer buffer scale factor (1 if not set)
 } WlOutput;
 
 typedef struct {
@@ -58,14 +59,18 @@ typedef struct {
   struct wl_seat*    seat;
   struct wl_pointer* pointer;
 
+  struct wp_fractional_scale_manager_v1* fracScaleManager;
+  struct wp_viewporter*                  viewporter;
+
   DynArray outputs; // WlOutput[]
 
-  struct wl_registry_listener registryListener;
-  struct xdg_wm_base_listener xdgWmBaseListener;
-  struct wl_seat_listener     seatListener;
-  struct wl_pointer_listener  pointerListener;
-  struct wl_output_listener   outputListener;
-  struct wl_surface_listener  surfaceListener;
+  struct wl_registry_listener              registryListener;
+  struct xdg_wm_base_listener              xdgWmBaseListener;
+  struct wl_seat_listener                  seatListener;
+  struct wl_pointer_listener               pointerListener;
+  struct wl_output_listener                outputListener;
+  struct wl_surface_listener               surfaceListener;
+  struct wp_fractional_scale_v1_listener   fracScaleListener;
 } Wayland;
 
 typedef struct {
@@ -78,10 +83,14 @@ typedef struct {
   f32               refreshRate;
   u16               dpi;
 
-  Wayland*             wl;
-  struct wl_surface*   wlSurface;
-  struct xdg_surface*  xdgSurface;
-  struct xdg_toplevel* xdgToplevel;
+  u32                            surfaceScale120; // fractional scale: physical = ceil(logical * scale120 / 120)
+  i32                            logicalWidth, logicalHeight; // last configure logical size
+  Wayland*                       wl;
+  struct wl_surface*             wlSurface;
+  struct xdg_surface*            xdgSurface;
+  struct xdg_toplevel*           xdgToplevel;
+  struct wp_fractional_scale_v1* fracScale; // null if protocol unavailable
+  struct wp_viewport*            viewport;  // null if protocol unavailable
 
   struct xdg_surface_listener  xdgSurfaceListener;
   struct xdg_toplevel_listener xdgToplevelListener;
@@ -300,14 +309,17 @@ static void wl_output_done(void* data, struct wl_output* obj) {
   log_i(
       "Wayland output",
       log_param("name", fmt_text(out->name)),
+      log_param("scale", fmt_int(out->scale)),
       log_param("refresh-rate", fmt_float(refreshRate)),
       log_param("dpi", fmt_int(dpi)));
 }
 
 static void wl_output_scale(void* data, struct wl_output* obj, i32 factor) {
-  (void)data;
-  (void)obj;
-  (void)factor;
+  Wayland*  wl  = data;
+  WlOutput* out = wl_find_output(wl, obj);
+  if (out) {
+    out->scale = factor;
+  }
 }
 
 static void wl_output_name(void* data, struct wl_output* obj, const char* name) {
@@ -323,6 +335,44 @@ static void wl_output_description(void* data, struct wl_output* obj, const char*
   (void)data;
   (void)obj;
   (void)desc;
+}
+
+// -- Fractional scale helpers --
+
+/**
+ * Convert a logical size to physical pixels using fractional scale (in 1/120ths).
+ * physical = ceil(logical * scale120 / 120)
+ */
+static i32 pal_logical_to_physical(const i32 logical, const u32 scale120) {
+  return (i32)(((i64)logical * scale120 + 119) / 120);
+}
+
+static void wp_fractional_scale_preferred_scale(
+    void* data, struct wp_fractional_scale_v1* obj, u32 scale) {
+  GapPalWindow* window = data;
+  (void)obj;
+  if (window->surfaceScale120 == scale) {
+    return;
+  }
+  window->surfaceScale120 = scale;
+  // Recompute physical size from stored logical size (if a configure has been received).
+  if (window->logicalWidth > 0 && window->logicalHeight > 0) {
+    if (window->viewport) {
+      wp_viewport_set_destination(
+          &window->wl->api, window->viewport, window->logicalWidth, window->logicalHeight);
+    }
+    const GapVector newSize = gap_vector(
+        pal_logical_to_physical(window->logicalWidth, scale),
+        pal_logical_to_physical(window->logicalHeight, scale));
+    if (!gap_vector_equal(window->params[GapParam_WindowSize], newSize)) {
+      window->params[GapParam_WindowSize] = newSize;
+      window->flags |= GapPalWindowFlags_Resized;
+    }
+  }
+  log_d(
+      "Surface fractional scale changed",
+      log_param("id", fmt_int((uptr)window->wlSurface)),
+      log_param("scale120", fmt_int(scale)));
 }
 
 // -- wl_surface callbacks --
@@ -350,10 +400,18 @@ static void wl_surface_leave(void* data, struct wl_surface* surface, struct wl_o
 }
 
 static void
-wl_surface_noop_preferred_buffer_scale(void* data, struct wl_surface* surface, i32 factor) {
-  (void)data;
-  (void)surface;
-  (void)factor;
+wl_surface_preferred_buffer_scale(void* data, struct wl_surface* surface, i32 factor) {
+  GapPal*       pal    = data;
+  GapPalWindow* window = pal_maybe_window(pal, (GapWindowId)surface);
+  if (!window || window->fracScale) {
+    return; // fractional scale protocol provides a more precise value
+  }
+  const u32 scale120 = (u32)factor * 120;
+  if (window->surfaceScale120 == scale120) {
+    return;
+  }
+  window->surfaceScale120 = scale120;
+  wl_surface_set_buffer_scale(&window->wl->api, surface, factor);
 }
 
 static void
@@ -382,6 +440,14 @@ static void wl_registry_global(
                  .wlOutput = wlRegistryBind(&wl->api, registry, name, version, &wl_output_interface, 4),
     };
     wl_output_add_listener(&wl->api, out->wlOutput, &wl->outputListener, wl);
+  } else if (string_eq(
+                 string_from_null_term(interface),
+                 string_lit("wp_fractional_scale_manager_v1"))) {
+    wl->fracScaleManager = wlRegistryBind(
+        &wl->api, registry, name, version, &wp_fractional_scale_manager_v1_interface, 1);
+  } else if (string_eq(string_from_null_term(interface), string_lit("wp_viewporter"))) {
+    wl->viewporter =
+        wlRegistryBind(&wl->api, registry, name, version, &wp_viewporter_interface, 1);
   }
 }
 
@@ -430,7 +496,16 @@ static void xdg_toplevel_configure(
   }
 
   if (width > 0 && height > 0) {
-    const GapVector newSize = gap_vector(width, height);
+    window->logicalWidth  = width;
+    window->logicalHeight = height;
+    if (window->viewport) {
+      // Tell the compositor how the physical buffer maps to the logical window area.
+      wp_viewport_set_destination(&window->wl->api, window->viewport, width, height);
+    }
+    // xdg_toplevel configure gives logical (surface) coords; convert to physical pixels.
+    const GapVector newSize = gap_vector(
+        pal_logical_to_physical(width, window->surfaceScale120),
+        pal_logical_to_physical(height, window->surfaceScale120));
     if (!gap_vector_equal(window->params[GapParam_WindowSize], newSize)) {
       window->params[GapParam_WindowSize] = newSize;
       window->flags |= GapPalWindowFlags_Resized;
@@ -497,9 +572,11 @@ wl_pointer_motion(void* data, struct wl_pointer* ptr, u32 time, i32 surfaceX, i3
   }
   GapPalWindow* window       = pal->pointerFocus;
   const i32     windowHeight = (i32)window->params[GapParam_WindowSize].height;
-  // wl_fixed_t is 24.8 fixed-point; shift right 8 bits to get integer pixels.
-  // Flip y: Wayland origin is top-left, GapVector origin is bottom-left.
-  const GapVector pos = gap_vector(surfaceX >> 8, windowHeight - (surfaceY >> 8));
+  // wl_fixed_t is 24.8 fixed-point; shift right 8 bits to get logical pixels.
+  // Convert logical to physical and flip y (Wayland top-left, GapVector bottom-left).
+  const i32       physX = pal_logical_to_physical(surfaceX >> 8, window->surfaceScale120);
+  const i32       physY = pal_logical_to_physical(surfaceY >> 8, window->surfaceScale120);
+  const GapVector pos   = gap_vector(physX, windowHeight - physY);
   pal_event_cursor(window, pos);
 }
 
@@ -611,13 +688,16 @@ static void pal_init_wl_outputs(GapPal* pal) {
   pal->wl.surfaceListener = (struct wl_surface_listener){
       .enter                      = wl_surface_enter,
       .leave                      = wl_surface_leave,
-      .preferred_buffer_scale     = wl_surface_noop_preferred_buffer_scale,
+      .preferred_buffer_scale     = wl_surface_preferred_buffer_scale,
       .preferred_buffer_transform = wl_surface_noop_preferred_buffer_transform,
   };
 }
 
 static bool pal_init_wl(Allocator* alloc, Wayland* out) {
   out->outputs        = dynarray_create_t(alloc, WlOutput, 4);
+  out->fracScaleListener = (struct wp_fractional_scale_v1_listener){
+      .preferred_scale = wp_fractional_scale_preferred_scale,
+  };
   out->outputListener = (struct wl_output_listener){
       .geometry    = wl_output_geometry,
       .mode        = wl_output_mode,
@@ -707,6 +787,12 @@ static void pal_destroy_wl(Wayland* wl) {
     wl_output_release(&wl->api, out->wlOutput);
   }
   dynarray_destroy(&wl->outputs);
+  if (wl->viewporter) {
+    wp_viewporter_destroy(&wl->api, wl->viewporter);
+  }
+  if (wl->fracScaleManager) {
+    wp_fractional_scale_manager_v1_destroy(&wl->api, wl->fracScaleManager);
+  }
   xdg_wm_base_destroy(&wl->api, wl->xdgWmBase);
   wl_compositor_destroy(&wl->api, wl->compositor);
   wl_registry_destroy(&wl->api, wl->registry);
@@ -784,19 +870,37 @@ GapWindowId gap_pal_window_create(GapPal* pal, const GapVector size) {
   struct xdg_toplevel* xdgToplevel = xdg_surface_get_toplevel(&wl->api, xdgSurface);
   xdg_toplevel_set_app_id(&wl->api, xdgToplevel, "volo");
 
+  // Use the integer scale of the first known output as initial estimate.
+  // Updated to the exact fractional scale via wp_fractional_scale_v1.preferred_scale.
+  const i32 initIntScale =
+      wl->outputs.size ? math_max(dynarray_at_t(&wl->outputs, 0, WlOutput)->scale, 1) : 1;
+
   GapPalWindow* window = dynarray_push_t(&pal->windows, GapPalWindow);
   *window              = (GapPalWindow){
-                   .inputText   = dynstring_create(pal->alloc, 64),
-                   .refreshRate = pal_window_default_refresh_rate,
-                   .dpi         = pal_window_default_dpi,
-                   .wl          = wl,
-                   .wlSurface   = wlSurface,
-                   .xdgSurface  = xdgSurface,
-                   .xdgToplevel = xdgToplevel,
+                   .inputText      = dynstring_create(pal->alloc, 64),
+                   .refreshRate    = pal_window_default_refresh_rate,
+                   .dpi            = pal_window_default_dpi,
+                   .surfaceScale120 = (u32)initIntScale * 120,
+                   .wl             = wl,
+                   .wlSurface      = wlSurface,
+                   .xdgSurface     = xdgSurface,
+                   .xdgToplevel    = xdgToplevel,
   };
   window->params[GapParam_WindowSize] = size;
 
   wl_surface_add_listener(&wl->api, wlSurface, &wl->surfaceListener, pal);
+
+  if (wl->fracScaleManager && wl->viewporter) {
+    // Fractional scaling: get exact scale and use viewport to map buffer to logical area.
+    window->fracScale = wp_fractional_scale_manager_v1_get_fractional_scale(
+        &wl->api, wl->fracScaleManager, wlSurface);
+    wp_fractional_scale_v1_add_listener(
+        &wl->api, window->fracScale, &wl->fracScaleListener, window);
+    window->viewport = wp_viewporter_get_viewport(&wl->api, wl->viewporter, wlSurface);
+  } else {
+    // Fallback: tell compositor our buffer is in physical pixels.
+    wl_surface_set_buffer_scale(&wl->api, wlSurface, initIntScale);
+  }
 
   window->xdgSurfaceListener = (struct xdg_surface_listener){
       .configure = xdg_surface_configure,
@@ -830,6 +934,12 @@ void gap_pal_window_destroy(GapPal* pal, const GapWindowId windowId) {
       pal->pointerFocus = null;
     }
     Wayland* wl = &pal->wl;
+    if (window->viewport) {
+      wp_viewport_destroy(&wl->api, window->viewport);
+    }
+    if (window->fracScale) {
+      wp_fractional_scale_v1_destroy(&wl->api, window->fracScale);
+    }
     if (window->xdgToplevel) {
       xdg_toplevel_destroy(&wl->api, window->xdgToplevel);
     }
@@ -905,9 +1015,12 @@ void gap_pal_window_resize(
     xdg_toplevel_set_fullscreen(&window->wl->api, window->xdgToplevel, null);
   } else {
     xdg_toplevel_unset_fullscreen(&window->wl->api, window->xdgToplevel);
-    // Hint the compositor toward the requested size by locking min == max.
-    xdg_toplevel_set_min_size(&window->wl->api, window->xdgToplevel, size.width, size.height);
-    xdg_toplevel_set_max_size(&window->wl->api, window->xdgToplevel, size.width, size.height);
+    // min/max size are in logical units; convert from physical pixels.
+    const u32 scale120  = window->surfaceScale120;
+    const i32 logWidth  = (i32)((i64)size.width * 120 / scale120);
+    const i32 logHeight = (i32)((i64)size.height * 120 / scale120);
+    xdg_toplevel_set_min_size(&window->wl->api, window->xdgToplevel, logWidth, logHeight);
+    xdg_toplevel_set_max_size(&window->wl->api, window->xdgToplevel, logWidth, logHeight);
   }
   wl_surface_commit(&window->wl->api, window->wlSurface);
 }

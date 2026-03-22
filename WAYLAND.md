@@ -18,6 +18,8 @@ cmake --build build --target run.wlgen
 The generator is configured in the root `CMakeLists.txt` `run.wlgen` target, which passes:
 - `$ENV{VOLO_WAYLAND_DATADIR}/wayland.xml` (core protocol)
 - `$ENV{VOLO_WAYLAND_PROTOCOLS_DATADIR}/stable/xdg-shell/xdg-shell.xml`
+- `$ENV{VOLO_WAYLAND_PROTOCOLS_DATADIR}/stable/viewporter/viewporter.xml`
+- `$ENV{VOLO_WAYLAND_PROTOCOLS_DATADIR}/staging/fractional-scale/fractional-scale-v1.xml`
 
 Both env vars are set by `flake.nix` from the `wayland-scanner` and `wayland-protocols` Nix packages.
 
@@ -74,11 +76,31 @@ typedef struct {
   struct wl_seat*    seat;
   struct wl_pointer* pointer;
 
-  struct wl_registry_listener  registryListener;
-  struct xdg_wm_base_listener  xdgWmBaseListener;
-  struct wl_seat_listener      seatListener;
-  struct wl_pointer_listener   pointerListener;
+  struct wp_fractional_scale_manager_v1* fracScaleManager;
+  struct wp_viewporter*                  viewporter;
+
+  DynArray outputs; // WlOutput[]
+
+  struct wl_registry_listener            registryListener;
+  struct xdg_wm_base_listener            xdgWmBaseListener;
+  struct wl_seat_listener                seatListener;
+  struct wl_pointer_listener             pointerListener;
+  struct wl_output_listener              outputListener;
+  struct wl_surface_listener             surfaceListener;
+  struct wp_fractional_scale_v1_listener fracScaleListener;
 } Wayland;
+```
+
+#### `WlOutput` struct
+```c
+typedef struct {
+  struct wl_output* wlOutput;
+  String            name; // heap-allocated via g_allocHeap
+  i32               physWidthMm, physHeightMm;
+  i32               modeWidthPx, modeHeightPx;
+  i32               refreshMHz;
+  i32               scale; // integer buffer scale (from wl_output.scale event)
+} WlOutput;
 ```
 
 #### `GapPal` struct
@@ -91,41 +113,55 @@ struct sGapPal {
 };
 ```
 
-#### `GapPalWindow` struct additions
+#### `GapPalWindow` struct
 ```c
-Wayland*             wl;           // back-pointer for use in listener callbacks
-struct wl_surface*   wlSurface;
-struct xdg_surface*  xdgSurface;
-struct xdg_toplevel* xdgToplevel;
-struct xdg_surface_listener  xdgSurfaceListener;   // stored here for lifetime
-struct xdg_toplevel_listener xdgToplevelListener;  // stored here for lifetime
+GapPalWindowFlags flags;
+// ...display info, key sets, input text, clipboard...
+u32                            surfaceScale120; // fractional scale in 1/120ths units
+i32                            logicalWidth, logicalHeight; // last configure logical size
+Wayland*                       wl;
+struct wl_surface*             wlSurface;
+struct xdg_surface*            xdgSurface;
+struct xdg_toplevel*           xdgToplevel;
+struct wp_fractional_scale_v1* fracScale; // null if protocol unavailable
+struct wp_viewport*            viewport;  // null if protocol unavailable
+struct xdg_surface_listener    xdgSurfaceListener;
+struct xdg_toplevel_listener   xdgToplevelListener;
 ```
 
 #### Initialization flow
-`pal_init_wl(Wayland* out)`:
-1. `dynlib_load` → `libwayland-client.so`
-2. `wlLoad(&out->lib, &out->api)` → populates the `WlFuncs` table via dlsym
-3. `out->api.display_connect(null)` → connect to default display
-4. `wl_display_get_registry(display)` (generated wrapper, not a libwayland export)
-5. `wl_registry_add_listener(...)` with `data = wl`, then `display_roundtrip` to enumerate globals
-6. In `wl_registry_global`: bind `wl_compositor`, `xdg_wm_base`, and `wl_seat` via `wlRegistryBind`
-7. `xdg_wm_base_add_listener(...)` for ping/pong keepalives
+
+`pal_init_wl(Allocator* alloc, Wayland* out)`:
+1. Initializes `outputListener` and `fracScaleListener` structs (must be done before the roundtrip so they are ready when `wl_registry_global` binds outputs)
+2. `dynlib_load` → `libwayland-client.so`
+3. `wlLoad(&out->lib, &out->api)` → populates the `WlFuncs` table via dlsym
+4. `out->api.display_connect(null)` → connect to default display
+5. `wl_display_get_registry(display)` (generated wrapper, not a libwayland export)
+6. `wl_registry_add_listener(...)` with `data = wl`, then `display_roundtrip` to enumerate globals
+7. In `wl_registry_global`: bind `wl_compositor`, `xdg_wm_base`, `wl_seat`, `wl_output` (v4), `wp_fractional_scale_manager_v1`, `wp_viewporter` via `wlRegistryBind`. Output listener is registered immediately at bind time so events (geometry/mode/name/done) are not dropped.
+8. `xdg_wm_base_add_listener(...)` for ping/pong keepalives
 
 `pal_init_wl_seat(GapPal* pal)` — called after `GapPal*` is allocated so callbacks can look up windows:
 1. `wl_seat_add_listener(...)` with `data = pal`
 2. `display_roundtrip` → triggers `wl_seat_capabilities`
 3. In `wl_seat_capabilities`: if pointer capability present, `wl_seat_get_pointer(...)`, then `wl_pointer_add_listener(...)` with `data = pal`
 
-Note: registry callbacks use `data = Wayland*`; seat/pointer callbacks use `data = GapPal*` (needed to look up windows by surface pointer).
+`pal_init_wl_outputs(GapPal* pal)`:
+- Initializes `surfaceListener` (enter/leave/preferred_buffer_scale/preferred_buffer_transform)
+
+Note: registry callbacks use `data = Wayland*`; seat/pointer/surface callbacks use `data = GapPal*` (needed to look up windows by surface pointer). Output callbacks use `data = Wayland*` since they are registered at bind time during the registry roundtrip, before `GapPal*` is allocated.
 
 #### Window creation flow (`gap_pal_window_create`)
 1. `wl_compositor_create_surface(...)` → `wl_surface*`
 2. `xdg_wm_base_get_xdg_surface(..., wlSurface)` → `xdg_surface*`
 3. `xdg_surface_get_toplevel(...)` → `xdg_toplevel*`
-4. `xdg_surface_add_listener(...)` + `xdg_toplevel_add_listener(...)` for configure/close events
-5. `xdg_toplevel_set_app_id(...)` → `"volo"` (used by window managers to float/tile the window)
-6. `wl_surface_commit(...)` triggers compositor configure
-7. `display_roundtrip` to process the configure event
+4. `xdg_toplevel_set_app_id(...)` → `"volo"`
+5. `xdg_surface_add_listener(...)` + `xdg_toplevel_add_listener(...)` for configure/close events
+6. `wl_surface_add_listener(...)` for enter/leave/preferred_buffer_scale events
+7. If `fracScaleManager` and `viewporter` are available: create per-surface `wp_fractional_scale_v1` and `wp_viewport`, register `fracScaleListener` with `data = window`
+8. Otherwise (fallback): `wl_surface_set_buffer_scale(initIntScale)`
+9. `wl_surface_commit(...)` triggers compositor configure
+10. `display_roundtrip` to process the configure event (and the initial `preferred_scale` event)
 
 #### `gap_pal_update` / `gap_pal_flush`
 - `update`: clears volatile state, calls `api.display_dispatch_pending` (non-blocking)
@@ -137,13 +173,54 @@ Calls `xdg_toplevel_set_title(...)` with a null-terminated scratch copy of the t
 #### `gap_pal_native_app_handle`
 Returns `(uptr)pal->wl.display` — needed by Vulkan for `VkWaylandSurfaceCreateInfoKHR`.
 
+#### Focus events
+`xdg_toplevel_configure` includes a `wl_array` of states. The states are scanned for:
+- `XDG_TOPLEVEL_STATE_FULLSCREEN` → sets/clears `GapPalWindowFlags_Fullscreen`
+- `XDG_TOPLEVEL_STATE_ACTIVATED` → calls `pal_event_focus_gained` / `pal_event_focus_lost`
+
+On focus loss, `gap_keyset_clear(&window->keysDown)` is called to prevent stuck keys.
+
+#### Display info (name, DPI, refresh rate)
+`wl_output` is bound at version 4 (required for the `name` event). The output listener is
+registered inside `wl_registry_global` at bind time — output events (`geometry`, `mode`,
+`scale`, `name`, `done`) are sent immediately after bind, so the listener must be in place
+before the registry roundtrip or they are silently dropped by libwayland.
+
+`wl_surface_enter` fires when the surface enters an output. At that point the matching
+`WlOutput` is looked up and the window's display name, refresh rate, and DPI are updated.
+
+#### Fractional scaling
+
+Wayland's `xdg_toplevel_configure` always delivers sizes in **logical (surface-local) coordinates**.
+Converting to physical pixels requires knowing the scale factor:
+
+- `wl_output.scale` — integer only; returns the ceiling (e.g. 2 for a 1.5× fractional setup). Incorrect for fractional scaling.
+- `wl_surface.preferred_buffer_scale` — also an integer ceiling. Used as a fallback when `wp_fractional_scale_v1` is unavailable.
+- `wp_fractional_scale_v1.preferred_scale` — exact fractional scale in units of 1/120th (e.g. 180 = 1.5×). This is the authoritative source.
+
+Scale is stored as `surfaceScale120` (u32, in 1/120ths). Physical pixels are computed as:
+```c
+physical = ceil(logical * surfaceScale120 / 120)
+```
+
+The `wp_viewporter` protocol is used alongside `wp_fractional_scale_v1`. After receiving the
+logical size from `xdg_toplevel_configure`, we call:
+```c
+wp_viewport_set_destination(&wl->api, window->viewport, logicalWidth, logicalHeight);
+```
+This tells the compositor that our physical buffer maps to exactly `logicalWidth × logicalHeight`
+logical pixels. Combined with a buffer rendered at the exact physical size, the compositor can
+blit the buffer to the screen 1:1 without any scaling — enabling direct scanout.
+
+`wl_surface_preferred_buffer_scale` is ignored when `wp_fractional_scale_v1` is active.
+
 #### Mouse input
 Pointer events are dispatched through the `wl_pointer_listener`:
 - `enter`: sets `pal->pointerFocus` by matching `wl_surface*` to a window
 - `leave`: clears `pal->pointerFocus`
-- `motion`: converts `wl_fixed_t` → pixels (`>> 8`), flips Y axis (Wayland top-left vs. gap bottom-left), calls `pal_event_cursor`
+- `motion`: converts `wl_fixed_t` → logical pixels (`>> 8`), converts logical to physical via `surfaceScale120`, flips Y axis (Wayland top-left vs. gap bottom-left), calls `pal_event_cursor`
 - `button`: maps Linux `BTN_LEFT/RIGHT/MIDDLE/SIDE/EXTRA` → `GapKey_MouseLeft/Right/Middle/X1/X2`, calls `pal_event_press` / `pal_event_release`
-- `axis_discrete`: maps vertical/horizontal scroll to `pal_event_scroll`; raw `axis` events are ignored
+- `axis`: maps vertical/horizontal scroll to `pal_event_scroll`
 
 Linux button defines (`BTN_LEFT = 0x110` etc.) are defined locally — no `<linux/input.h>` dependency.
 
@@ -188,11 +265,12 @@ But `swapchain_timing_present_stage` in `swapchain.c` is `VK_PRESENT_STAGE_REQUE
 
 - Build: **passes** (`cmake --build build`)
 - Unit tests: **all pass** (`cmake --build build --target test`)
-- `ninja run.volo`: opens a window, Vulkan swapchain works, mouse cursor position and buttons work, keyboard input not yet implemented.
+- `ninja run.volo`: opens a window, Vulkan swapchain works, mouse cursor position and buttons work, window focus/unfocus events work, display name/DPI/refresh rate reported correctly, fractional scaling correct (2880×1800 physical on eDP-1 at 1.5× scale). Keyboard input not yet implemented.
 
 ## Known issues / deferred
 
 - **Scroll speed**: `wl_pointer.axis` values are passed as raw integer pixels (`value >> 8`). On this setup Hyprland sends smooth-scroll events of ~6–8 pixels each (rather than one clean 15px-per-click event), so scroll feels faster than XCB/Win32's ±1 per click. Fixing this properly requires accumulating `wl_fixed_t` values and emitting steps at a 15px threshold — deferred until further into the Wayland implementation.
+- **Saved prefs**: if the game was previously run with a broken scale implementation, `build/game/volo.prefs` will contain a wrong window size. Delete it to reset to defaults.
 
 ## What still needs to be done
 
@@ -200,7 +278,6 @@ The following functions currently silently do nothing:
 
 | Function | Notes |
 |---|---|
-| ~~`gap_pal_window_resize`~~ | Done: fullscreen via `xdg_toplevel_set_fullscreen/unset_fullscreen`; windowed size via `set_min_size`/`set_max_size`; `GapPalWindowFlags_Fullscreen` updated from `xdg_toplevel_configure` states |
 | `gap_pal_window_cursor_hide/capture/confine` | Requires `zwp_pointer_constraints_v1` (add XML to `run.wlgen`) |
 | WM-initiated fullscreen not reflected in `win->mode` | `GapPalWindowFlags_Fullscreen` is correctly set from the compositor's `xdg_toplevel_configure` states, but `window.c` never reads it back. Doing so naively causes a feedback loop: the app-requested fullscreen state and the compositor-confirmed state are out of sync during the roundtrip, so reading the flag before confirmation fights the WM. Fix requires tracking pending fullscreen state in `GapPalWindow`. |
 | `gap_pal_window_cursor_set` | Requires `wl_cursor` / `wl_pointer_set_cursor` |
@@ -210,8 +287,6 @@ The following functions currently silently do nothing:
 | `gap_pal_key_label` | Needs `xkbcommon` integration (same as XCB path) |
 | `gap_pal_window_clip_copy/paste` | Requires `wl_data_device_manager` protocol |
 | Keyboard input | Bind `wl_keyboard` from seat capabilities; integrate `xkbcommon` for key → `GapKey` mapping |
-| Display info (DPI, refresh rate, name) | Requires binding `wl_output` and its events |
-| Fullscreen | Call `xdg_toplevel_set_fullscreen(...)` |
 
 The next logical step is **keyboard input**:
 1. In `wl_seat_capabilities`: if keyboard capability present, `wl_seat_get_keyboard(...)`, add `wl_keyboard_listener`
