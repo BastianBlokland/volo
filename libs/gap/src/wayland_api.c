@@ -40,7 +40,7 @@ bool wlLoad(const DynLib* lib, WlFuncs* out) {
 }
 
 void* wlRegistryBind(
-    WlFuncs* api, struct wl_registry* registry, u32 name, u32 version,
+    const WlFuncs* api, struct wl_registry* registry, u32 name, u32 version,
     const struct wl_interface* iface, u32 maxVersion) {
   const u32 bindVersion = version < maxVersion ? version : maxVersion;
   return api->proxy_marshal_flags(
@@ -421,902 +421,872 @@ const struct wl_interface wp_viewport_interface = {"wp_viewport", 1, 3, wp_viewp
 const struct wl_interface wp_fractional_scale_manager_v1_interface = {"wp_fractional_scale_manager_v1", 1, 2, wp_fractional_scale_manager_v1_requests, 0, null};
 const struct wl_interface wp_fractional_scale_v1_interface = {"wp_fractional_scale_v1", 1, 1, wp_fractional_scale_v1_requests, 1, wp_fractional_scale_v1_events};
 
-u32 wl_display_get_version(WlFuncs* api, struct wl_display* obj) {
+u32 wl_display_get_version(const WlFuncs* api, struct wl_display* obj) {
   return api->proxy_get_version((struct wl_proxy*)obj);
 }
-void wl_display_add_listener(WlFuncs* api, struct wl_display* obj, const struct wl_display_listener* listener, void* data) {
+void wl_display_add_listener(const WlFuncs* api, struct wl_display* obj, const struct wl_display_listener* listener, void* data) {
   api->proxy_add_listener((struct wl_proxy*)obj, (void(**)(void))listener, data);
 }
-
-struct wl_callback* wl_display_sync(WlFuncs* api, struct wl_display* obj) {
+struct wl_callback* wl_display_sync(const WlFuncs* api, struct wl_display* obj) {
   return api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WL_DISPLAY_SYNC, &wl_callback_interface,
       api->proxy_get_version((struct wl_proxy*)obj),
       0, null);
 }
-struct wl_registry* wl_display_get_registry(WlFuncs* api, struct wl_display* obj) {
+struct wl_registry* wl_display_get_registry(const WlFuncs* api, struct wl_display* obj) {
   return api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WL_DISPLAY_GET_REGISTRY, &wl_registry_interface,
       api->proxy_get_version((struct wl_proxy*)obj),
       0, null);
 }
 
-u32 wl_registry_get_version(WlFuncs* api, struct wl_registry* obj) {
+u32 wl_registry_get_version(const WlFuncs* api, struct wl_registry* obj) {
   return api->proxy_get_version((struct wl_proxy*)obj);
 }
-void wl_registry_destroy(WlFuncs* api, struct wl_registry* obj) {
+void wl_registry_destroy(const WlFuncs* api, struct wl_registry* obj) {
   api->proxy_destroy((struct wl_proxy*)obj);
 }
-void wl_registry_add_listener(WlFuncs* api, struct wl_registry* obj, const struct wl_registry_listener* listener, void* data) {
+void wl_registry_add_listener(const WlFuncs* api, struct wl_registry* obj, const struct wl_registry_listener* listener, void* data) {
   api->proxy_add_listener((struct wl_proxy*)obj, (void(**)(void))listener, data);
 }
 
-u32 wl_callback_get_version(WlFuncs* api, struct wl_callback* obj) {
+u32 wl_callback_get_version(const WlFuncs* api, struct wl_callback* obj) {
   return api->proxy_get_version((struct wl_proxy*)obj);
 }
-void wl_callback_destroy(WlFuncs* api, struct wl_callback* obj) {
+void wl_callback_destroy(const WlFuncs* api, struct wl_callback* obj) {
   api->proxy_destroy((struct wl_proxy*)obj);
 }
-void wl_callback_add_listener(WlFuncs* api, struct wl_callback* obj, const struct wl_callback_listener* listener, void* data) {
+void wl_callback_add_listener(const WlFuncs* api, struct wl_callback* obj, const struct wl_callback_listener* listener, void* data) {
   api->proxy_add_listener((struct wl_proxy*)obj, (void(**)(void))listener, data);
 }
 
-u32 wl_compositor_get_version(WlFuncs* api, struct wl_compositor* obj) {
+u32 wl_compositor_get_version(const WlFuncs* api, struct wl_compositor* obj) {
   return api->proxy_get_version((struct wl_proxy*)obj);
 }
-void wl_compositor_destroy(WlFuncs* api, struct wl_compositor* obj) {
+void wl_compositor_destroy(const WlFuncs* api, struct wl_compositor* obj) {
   api->proxy_destroy((struct wl_proxy*)obj);
 }
-
-struct wl_surface* wl_compositor_create_surface(WlFuncs* api, struct wl_compositor* obj) {
+struct wl_surface* wl_compositor_create_surface(const WlFuncs* api, struct wl_compositor* obj) {
   return api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WL_COMPOSITOR_CREATE_SURFACE, &wl_surface_interface,
       api->proxy_get_version((struct wl_proxy*)obj),
       0, null);
 }
-struct wl_region* wl_compositor_create_region(WlFuncs* api, struct wl_compositor* obj) {
+struct wl_region* wl_compositor_create_region(const WlFuncs* api, struct wl_compositor* obj) {
   return api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WL_COMPOSITOR_CREATE_REGION, &wl_region_interface,
       api->proxy_get_version((struct wl_proxy*)obj),
       0, null);
 }
 
-u32 wl_shm_pool_get_version(WlFuncs* api, struct wl_shm_pool* obj) {
+u32 wl_shm_pool_get_version(const WlFuncs* api, struct wl_shm_pool* obj) {
   return api->proxy_get_version((struct wl_proxy*)obj);
 }
-
-struct wl_buffer* wl_shm_pool_create_buffer(WlFuncs* api, struct wl_shm_pool* obj, i32 offset, i32 width, i32 height, i32 stride, u32 format) {
+struct wl_buffer* wl_shm_pool_create_buffer(const WlFuncs* api, struct wl_shm_pool* obj, i32 offset, i32 width, i32 height, i32 stride, u32 format) {
   return api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WL_SHM_POOL_CREATE_BUFFER, &wl_buffer_interface,
       api->proxy_get_version((struct wl_proxy*)obj),
       0, null, offset, width, height, stride, format);
 }
-void wl_shm_pool_destroy(WlFuncs* api, struct wl_shm_pool* obj) {
+void wl_shm_pool_destroy(const WlFuncs* api, struct wl_shm_pool* obj) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WL_SHM_POOL_DESTROY, null,
       api->proxy_get_version((struct wl_proxy*)obj),
       WL_MARSHAL_FLAG_DESTROY);
 }
-void wl_shm_pool_resize(WlFuncs* api, struct wl_shm_pool* obj, i32 size) {
+void wl_shm_pool_resize(const WlFuncs* api, struct wl_shm_pool* obj, i32 size) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WL_SHM_POOL_RESIZE, null,
       api->proxy_get_version((struct wl_proxy*)obj),
       0, size);
 }
 
-u32 wl_shm_get_version(WlFuncs* api, struct wl_shm* obj) {
+u32 wl_shm_get_version(const WlFuncs* api, struct wl_shm* obj) {
   return api->proxy_get_version((struct wl_proxy*)obj);
 }
-void wl_shm_add_listener(WlFuncs* api, struct wl_shm* obj, const struct wl_shm_listener* listener, void* data) {
+void wl_shm_add_listener(const WlFuncs* api, struct wl_shm* obj, const struct wl_shm_listener* listener, void* data) {
   api->proxy_add_listener((struct wl_proxy*)obj, (void(**)(void))listener, data);
 }
-
-struct wl_shm_pool* wl_shm_create_pool(WlFuncs* api, struct wl_shm* obj, i32 fd, i32 size) {
+struct wl_shm_pool* wl_shm_create_pool(const WlFuncs* api, struct wl_shm* obj, i32 fd, i32 size) {
   return api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WL_SHM_CREATE_POOL, &wl_shm_pool_interface,
       api->proxy_get_version((struct wl_proxy*)obj),
       0, null, fd, size);
 }
-void wl_shm_release(WlFuncs* api, struct wl_shm* obj) {
+void wl_shm_release(const WlFuncs* api, struct wl_shm* obj) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WL_SHM_RELEASE, null,
       api->proxy_get_version((struct wl_proxy*)obj),
       WL_MARSHAL_FLAG_DESTROY);
 }
 
-u32 wl_buffer_get_version(WlFuncs* api, struct wl_buffer* obj) {
+u32 wl_buffer_get_version(const WlFuncs* api, struct wl_buffer* obj) {
   return api->proxy_get_version((struct wl_proxy*)obj);
 }
-void wl_buffer_add_listener(WlFuncs* api, struct wl_buffer* obj, const struct wl_buffer_listener* listener, void* data) {
+void wl_buffer_add_listener(const WlFuncs* api, struct wl_buffer* obj, const struct wl_buffer_listener* listener, void* data) {
   api->proxy_add_listener((struct wl_proxy*)obj, (void(**)(void))listener, data);
 }
-
-void wl_buffer_destroy(WlFuncs* api, struct wl_buffer* obj) {
+void wl_buffer_destroy(const WlFuncs* api, struct wl_buffer* obj) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WL_BUFFER_DESTROY, null,
       api->proxy_get_version((struct wl_proxy*)obj),
       WL_MARSHAL_FLAG_DESTROY);
 }
 
-u32 wl_data_offer_get_version(WlFuncs* api, struct wl_data_offer* obj) {
+u32 wl_data_offer_get_version(const WlFuncs* api, struct wl_data_offer* obj) {
   return api->proxy_get_version((struct wl_proxy*)obj);
 }
-void wl_data_offer_add_listener(WlFuncs* api, struct wl_data_offer* obj, const struct wl_data_offer_listener* listener, void* data) {
+void wl_data_offer_add_listener(const WlFuncs* api, struct wl_data_offer* obj, const struct wl_data_offer_listener* listener, void* data) {
   api->proxy_add_listener((struct wl_proxy*)obj, (void(**)(void))listener, data);
 }
-
-void wl_data_offer_accept(WlFuncs* api, struct wl_data_offer* obj, u32 serial, const char* mime_type) {
+void wl_data_offer_accept(const WlFuncs* api, struct wl_data_offer* obj, u32 serial, const char* mime_type) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WL_DATA_OFFER_ACCEPT, null,
       api->proxy_get_version((struct wl_proxy*)obj),
       0, serial, mime_type);
 }
-void wl_data_offer_receive(WlFuncs* api, struct wl_data_offer* obj, const char* mime_type, i32 fd) {
+void wl_data_offer_receive(const WlFuncs* api, struct wl_data_offer* obj, const char* mime_type, i32 fd) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WL_DATA_OFFER_RECEIVE, null,
       api->proxy_get_version((struct wl_proxy*)obj),
       0, mime_type, fd);
 }
-void wl_data_offer_destroy(WlFuncs* api, struct wl_data_offer* obj) {
+void wl_data_offer_destroy(const WlFuncs* api, struct wl_data_offer* obj) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WL_DATA_OFFER_DESTROY, null,
       api->proxy_get_version((struct wl_proxy*)obj),
       WL_MARSHAL_FLAG_DESTROY);
 }
-void wl_data_offer_finish(WlFuncs* api, struct wl_data_offer* obj) {
+void wl_data_offer_finish(const WlFuncs* api, struct wl_data_offer* obj) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WL_DATA_OFFER_FINISH, null,
       api->proxy_get_version((struct wl_proxy*)obj),
       0);
 }
-void wl_data_offer_set_actions(WlFuncs* api, struct wl_data_offer* obj, u32 dnd_actions, u32 preferred_action) {
+void wl_data_offer_set_actions(const WlFuncs* api, struct wl_data_offer* obj, u32 dnd_actions, u32 preferred_action) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WL_DATA_OFFER_SET_ACTIONS, null,
       api->proxy_get_version((struct wl_proxy*)obj),
       0, dnd_actions, preferred_action);
 }
 
-u32 wl_data_source_get_version(WlFuncs* api, struct wl_data_source* obj) {
+u32 wl_data_source_get_version(const WlFuncs* api, struct wl_data_source* obj) {
   return api->proxy_get_version((struct wl_proxy*)obj);
 }
-void wl_data_source_add_listener(WlFuncs* api, struct wl_data_source* obj, const struct wl_data_source_listener* listener, void* data) {
+void wl_data_source_add_listener(const WlFuncs* api, struct wl_data_source* obj, const struct wl_data_source_listener* listener, void* data) {
   api->proxy_add_listener((struct wl_proxy*)obj, (void(**)(void))listener, data);
 }
-
-void wl_data_source_offer(WlFuncs* api, struct wl_data_source* obj, const char* mime_type) {
+void wl_data_source_offer(const WlFuncs* api, struct wl_data_source* obj, const char* mime_type) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WL_DATA_SOURCE_OFFER, null,
       api->proxy_get_version((struct wl_proxy*)obj),
       0, mime_type);
 }
-void wl_data_source_destroy(WlFuncs* api, struct wl_data_source* obj) {
+void wl_data_source_destroy(const WlFuncs* api, struct wl_data_source* obj) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WL_DATA_SOURCE_DESTROY, null,
       api->proxy_get_version((struct wl_proxy*)obj),
       WL_MARSHAL_FLAG_DESTROY);
 }
-void wl_data_source_set_actions(WlFuncs* api, struct wl_data_source* obj, u32 dnd_actions) {
+void wl_data_source_set_actions(const WlFuncs* api, struct wl_data_source* obj, u32 dnd_actions) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WL_DATA_SOURCE_SET_ACTIONS, null,
       api->proxy_get_version((struct wl_proxy*)obj),
       0, dnd_actions);
 }
 
-u32 wl_data_device_get_version(WlFuncs* api, struct wl_data_device* obj) {
+u32 wl_data_device_get_version(const WlFuncs* api, struct wl_data_device* obj) {
   return api->proxy_get_version((struct wl_proxy*)obj);
 }
-void wl_data_device_add_listener(WlFuncs* api, struct wl_data_device* obj, const struct wl_data_device_listener* listener, void* data) {
+void wl_data_device_add_listener(const WlFuncs* api, struct wl_data_device* obj, const struct wl_data_device_listener* listener, void* data) {
   api->proxy_add_listener((struct wl_proxy*)obj, (void(**)(void))listener, data);
 }
-
-void wl_data_device_start_drag(WlFuncs* api, struct wl_data_device* obj, struct wl_data_source* source, struct wl_surface* origin, struct wl_surface* icon, u32 serial) {
+void wl_data_device_start_drag(const WlFuncs* api, struct wl_data_device* obj, struct wl_data_source* source, struct wl_surface* origin, struct wl_surface* icon, u32 serial) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WL_DATA_DEVICE_START_DRAG, null,
       api->proxy_get_version((struct wl_proxy*)obj),
       0, source, origin, icon, serial);
 }
-void wl_data_device_set_selection(WlFuncs* api, struct wl_data_device* obj, struct wl_data_source* source, u32 serial) {
+void wl_data_device_set_selection(const WlFuncs* api, struct wl_data_device* obj, struct wl_data_source* source, u32 serial) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WL_DATA_DEVICE_SET_SELECTION, null,
       api->proxy_get_version((struct wl_proxy*)obj),
       0, source, serial);
 }
-void wl_data_device_release(WlFuncs* api, struct wl_data_device* obj) {
+void wl_data_device_release(const WlFuncs* api, struct wl_data_device* obj) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WL_DATA_DEVICE_RELEASE, null,
       api->proxy_get_version((struct wl_proxy*)obj),
       WL_MARSHAL_FLAG_DESTROY);
 }
 
-u32 wl_data_device_manager_get_version(WlFuncs* api, struct wl_data_device_manager* obj) {
+u32 wl_data_device_manager_get_version(const WlFuncs* api, struct wl_data_device_manager* obj) {
   return api->proxy_get_version((struct wl_proxy*)obj);
 }
-void wl_data_device_manager_destroy(WlFuncs* api, struct wl_data_device_manager* obj) {
+void wl_data_device_manager_destroy(const WlFuncs* api, struct wl_data_device_manager* obj) {
   api->proxy_destroy((struct wl_proxy*)obj);
 }
-
-struct wl_data_source* wl_data_device_manager_create_data_source(WlFuncs* api, struct wl_data_device_manager* obj) {
+struct wl_data_source* wl_data_device_manager_create_data_source(const WlFuncs* api, struct wl_data_device_manager* obj) {
   return api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WL_DATA_DEVICE_MANAGER_CREATE_DATA_SOURCE, &wl_data_source_interface,
       api->proxy_get_version((struct wl_proxy*)obj),
       0, null);
 }
-struct wl_data_device* wl_data_device_manager_get_data_device(WlFuncs* api, struct wl_data_device_manager* obj, struct wl_seat* seat) {
+struct wl_data_device* wl_data_device_manager_get_data_device(const WlFuncs* api, struct wl_data_device_manager* obj, struct wl_seat* seat) {
   return api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WL_DATA_DEVICE_MANAGER_GET_DATA_DEVICE, &wl_data_device_interface,
       api->proxy_get_version((struct wl_proxy*)obj),
       0, null, seat);
 }
 
-u32 wl_shell_get_version(WlFuncs* api, struct wl_shell* obj) {
+u32 wl_shell_get_version(const WlFuncs* api, struct wl_shell* obj) {
   return api->proxy_get_version((struct wl_proxy*)obj);
 }
-void wl_shell_destroy(WlFuncs* api, struct wl_shell* obj) {
+void wl_shell_destroy(const WlFuncs* api, struct wl_shell* obj) {
   api->proxy_destroy((struct wl_proxy*)obj);
 }
-
-struct wl_shell_surface* wl_shell_get_shell_surface(WlFuncs* api, struct wl_shell* obj, struct wl_surface* surface) {
+struct wl_shell_surface* wl_shell_get_shell_surface(const WlFuncs* api, struct wl_shell* obj, struct wl_surface* surface) {
   return api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WL_SHELL_GET_SHELL_SURFACE, &wl_shell_surface_interface,
       api->proxy_get_version((struct wl_proxy*)obj),
       0, null, surface);
 }
 
-u32 wl_shell_surface_get_version(WlFuncs* api, struct wl_shell_surface* obj) {
+u32 wl_shell_surface_get_version(const WlFuncs* api, struct wl_shell_surface* obj) {
   return api->proxy_get_version((struct wl_proxy*)obj);
 }
-void wl_shell_surface_destroy(WlFuncs* api, struct wl_shell_surface* obj) {
+void wl_shell_surface_destroy(const WlFuncs* api, struct wl_shell_surface* obj) {
   api->proxy_destroy((struct wl_proxy*)obj);
 }
-void wl_shell_surface_add_listener(WlFuncs* api, struct wl_shell_surface* obj, const struct wl_shell_surface_listener* listener, void* data) {
+void wl_shell_surface_add_listener(const WlFuncs* api, struct wl_shell_surface* obj, const struct wl_shell_surface_listener* listener, void* data) {
   api->proxy_add_listener((struct wl_proxy*)obj, (void(**)(void))listener, data);
 }
-
-void wl_shell_surface_pong(WlFuncs* api, struct wl_shell_surface* obj, u32 serial) {
+void wl_shell_surface_pong(const WlFuncs* api, struct wl_shell_surface* obj, u32 serial) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WL_SHELL_SURFACE_PONG, null,
       api->proxy_get_version((struct wl_proxy*)obj),
       0, serial);
 }
-void wl_shell_surface_move(WlFuncs* api, struct wl_shell_surface* obj, struct wl_seat* seat, u32 serial) {
+void wl_shell_surface_move(const WlFuncs* api, struct wl_shell_surface* obj, struct wl_seat* seat, u32 serial) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WL_SHELL_SURFACE_MOVE, null,
       api->proxy_get_version((struct wl_proxy*)obj),
       0, seat, serial);
 }
-void wl_shell_surface_resize(WlFuncs* api, struct wl_shell_surface* obj, struct wl_seat* seat, u32 serial, u32 edges) {
+void wl_shell_surface_resize(const WlFuncs* api, struct wl_shell_surface* obj, struct wl_seat* seat, u32 serial, u32 edges) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WL_SHELL_SURFACE_RESIZE, null,
       api->proxy_get_version((struct wl_proxy*)obj),
       0, seat, serial, edges);
 }
-void wl_shell_surface_set_toplevel(WlFuncs* api, struct wl_shell_surface* obj) {
+void wl_shell_surface_set_toplevel(const WlFuncs* api, struct wl_shell_surface* obj) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WL_SHELL_SURFACE_SET_TOPLEVEL, null,
       api->proxy_get_version((struct wl_proxy*)obj),
       0);
 }
-void wl_shell_surface_set_transient(WlFuncs* api, struct wl_shell_surface* obj, struct wl_surface* parent, i32 x, i32 y, u32 flags) {
+void wl_shell_surface_set_transient(const WlFuncs* api, struct wl_shell_surface* obj, struct wl_surface* parent, i32 x, i32 y, u32 flags) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WL_SHELL_SURFACE_SET_TRANSIENT, null,
       api->proxy_get_version((struct wl_proxy*)obj),
       0, parent, x, y, flags);
 }
-void wl_shell_surface_set_fullscreen(WlFuncs* api, struct wl_shell_surface* obj, u32 method, u32 framerate, struct wl_output* output) {
+void wl_shell_surface_set_fullscreen(const WlFuncs* api, struct wl_shell_surface* obj, u32 method, u32 framerate, struct wl_output* output) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WL_SHELL_SURFACE_SET_FULLSCREEN, null,
       api->proxy_get_version((struct wl_proxy*)obj),
       0, method, framerate, output);
 }
-void wl_shell_surface_set_popup(WlFuncs* api, struct wl_shell_surface* obj, struct wl_seat* seat, u32 serial, struct wl_surface* parent, i32 x, i32 y, u32 flags) {
+void wl_shell_surface_set_popup(const WlFuncs* api, struct wl_shell_surface* obj, struct wl_seat* seat, u32 serial, struct wl_surface* parent, i32 x, i32 y, u32 flags) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WL_SHELL_SURFACE_SET_POPUP, null,
       api->proxy_get_version((struct wl_proxy*)obj),
       0, seat, serial, parent, x, y, flags);
 }
-void wl_shell_surface_set_maximized(WlFuncs* api, struct wl_shell_surface* obj, struct wl_output* output) {
+void wl_shell_surface_set_maximized(const WlFuncs* api, struct wl_shell_surface* obj, struct wl_output* output) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WL_SHELL_SURFACE_SET_MAXIMIZED, null,
       api->proxy_get_version((struct wl_proxy*)obj),
       0, output);
 }
-void wl_shell_surface_set_title(WlFuncs* api, struct wl_shell_surface* obj, const char* title) {
+void wl_shell_surface_set_title(const WlFuncs* api, struct wl_shell_surface* obj, const char* title) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WL_SHELL_SURFACE_SET_TITLE, null,
       api->proxy_get_version((struct wl_proxy*)obj),
       0, title);
 }
-void wl_shell_surface_set_class(WlFuncs* api, struct wl_shell_surface* obj, const char* class_) {
+void wl_shell_surface_set_class(const WlFuncs* api, struct wl_shell_surface* obj, const char* class_) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WL_SHELL_SURFACE_SET_CLASS, null,
       api->proxy_get_version((struct wl_proxy*)obj),
       0, class_);
 }
 
-u32 wl_surface_get_version(WlFuncs* api, struct wl_surface* obj) {
+u32 wl_surface_get_version(const WlFuncs* api, struct wl_surface* obj) {
   return api->proxy_get_version((struct wl_proxy*)obj);
 }
-void wl_surface_add_listener(WlFuncs* api, struct wl_surface* obj, const struct wl_surface_listener* listener, void* data) {
+void wl_surface_add_listener(const WlFuncs* api, struct wl_surface* obj, const struct wl_surface_listener* listener, void* data) {
   api->proxy_add_listener((struct wl_proxy*)obj, (void(**)(void))listener, data);
 }
-
-void wl_surface_destroy(WlFuncs* api, struct wl_surface* obj) {
+void wl_surface_destroy(const WlFuncs* api, struct wl_surface* obj) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WL_SURFACE_DESTROY, null,
       api->proxy_get_version((struct wl_proxy*)obj),
       WL_MARSHAL_FLAG_DESTROY);
 }
-void wl_surface_attach(WlFuncs* api, struct wl_surface* obj, struct wl_buffer* buffer, i32 x, i32 y) {
+void wl_surface_attach(const WlFuncs* api, struct wl_surface* obj, struct wl_buffer* buffer, i32 x, i32 y) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WL_SURFACE_ATTACH, null,
       api->proxy_get_version((struct wl_proxy*)obj),
       0, buffer, x, y);
 }
-void wl_surface_damage(WlFuncs* api, struct wl_surface* obj, i32 x, i32 y, i32 width, i32 height) {
+void wl_surface_damage(const WlFuncs* api, struct wl_surface* obj, i32 x, i32 y, i32 width, i32 height) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WL_SURFACE_DAMAGE, null,
       api->proxy_get_version((struct wl_proxy*)obj),
       0, x, y, width, height);
 }
-struct wl_callback* wl_surface_frame(WlFuncs* api, struct wl_surface* obj) {
+struct wl_callback* wl_surface_frame(const WlFuncs* api, struct wl_surface* obj) {
   return api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WL_SURFACE_FRAME, &wl_callback_interface,
       api->proxy_get_version((struct wl_proxy*)obj),
       0, null);
 }
-void wl_surface_set_opaque_region(WlFuncs* api, struct wl_surface* obj, struct wl_region* region) {
+void wl_surface_set_opaque_region(const WlFuncs* api, struct wl_surface* obj, struct wl_region* region) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WL_SURFACE_SET_OPAQUE_REGION, null,
       api->proxy_get_version((struct wl_proxy*)obj),
       0, region);
 }
-void wl_surface_set_input_region(WlFuncs* api, struct wl_surface* obj, struct wl_region* region) {
+void wl_surface_set_input_region(const WlFuncs* api, struct wl_surface* obj, struct wl_region* region) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WL_SURFACE_SET_INPUT_REGION, null,
       api->proxy_get_version((struct wl_proxy*)obj),
       0, region);
 }
-void wl_surface_commit(WlFuncs* api, struct wl_surface* obj) {
+void wl_surface_commit(const WlFuncs* api, struct wl_surface* obj) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WL_SURFACE_COMMIT, null,
       api->proxy_get_version((struct wl_proxy*)obj),
       0);
 }
-void wl_surface_set_buffer_transform(WlFuncs* api, struct wl_surface* obj, i32 transform) {
+void wl_surface_set_buffer_transform(const WlFuncs* api, struct wl_surface* obj, i32 transform) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WL_SURFACE_SET_BUFFER_TRANSFORM, null,
       api->proxy_get_version((struct wl_proxy*)obj),
       0, transform);
 }
-void wl_surface_set_buffer_scale(WlFuncs* api, struct wl_surface* obj, i32 scale) {
+void wl_surface_set_buffer_scale(const WlFuncs* api, struct wl_surface* obj, i32 scale) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WL_SURFACE_SET_BUFFER_SCALE, null,
       api->proxy_get_version((struct wl_proxy*)obj),
       0, scale);
 }
-void wl_surface_damage_buffer(WlFuncs* api, struct wl_surface* obj, i32 x, i32 y, i32 width, i32 height) {
+void wl_surface_damage_buffer(const WlFuncs* api, struct wl_surface* obj, i32 x, i32 y, i32 width, i32 height) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WL_SURFACE_DAMAGE_BUFFER, null,
       api->proxy_get_version((struct wl_proxy*)obj),
       0, x, y, width, height);
 }
-void wl_surface_offset(WlFuncs* api, struct wl_surface* obj, i32 x, i32 y) {
+void wl_surface_offset(const WlFuncs* api, struct wl_surface* obj, i32 x, i32 y) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WL_SURFACE_OFFSET, null,
       api->proxy_get_version((struct wl_proxy*)obj),
       0, x, y);
 }
 
-u32 wl_seat_get_version(WlFuncs* api, struct wl_seat* obj) {
+u32 wl_seat_get_version(const WlFuncs* api, struct wl_seat* obj) {
   return api->proxy_get_version((struct wl_proxy*)obj);
 }
-void wl_seat_add_listener(WlFuncs* api, struct wl_seat* obj, const struct wl_seat_listener* listener, void* data) {
+void wl_seat_add_listener(const WlFuncs* api, struct wl_seat* obj, const struct wl_seat_listener* listener, void* data) {
   api->proxy_add_listener((struct wl_proxy*)obj, (void(**)(void))listener, data);
 }
-
-struct wl_pointer* wl_seat_get_pointer(WlFuncs* api, struct wl_seat* obj) {
+struct wl_pointer* wl_seat_get_pointer(const WlFuncs* api, struct wl_seat* obj) {
   return api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WL_SEAT_GET_POINTER, &wl_pointer_interface,
       api->proxy_get_version((struct wl_proxy*)obj),
       0, null);
 }
-struct wl_keyboard* wl_seat_get_keyboard(WlFuncs* api, struct wl_seat* obj) {
+struct wl_keyboard* wl_seat_get_keyboard(const WlFuncs* api, struct wl_seat* obj) {
   return api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WL_SEAT_GET_KEYBOARD, &wl_keyboard_interface,
       api->proxy_get_version((struct wl_proxy*)obj),
       0, null);
 }
-struct wl_touch* wl_seat_get_touch(WlFuncs* api, struct wl_seat* obj) {
+struct wl_touch* wl_seat_get_touch(const WlFuncs* api, struct wl_seat* obj) {
   return api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WL_SEAT_GET_TOUCH, &wl_touch_interface,
       api->proxy_get_version((struct wl_proxy*)obj),
       0, null);
 }
-void wl_seat_release(WlFuncs* api, struct wl_seat* obj) {
+void wl_seat_release(const WlFuncs* api, struct wl_seat* obj) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WL_SEAT_RELEASE, null,
       api->proxy_get_version((struct wl_proxy*)obj),
       WL_MARSHAL_FLAG_DESTROY);
 }
 
-u32 wl_pointer_get_version(WlFuncs* api, struct wl_pointer* obj) {
+u32 wl_pointer_get_version(const WlFuncs* api, struct wl_pointer* obj) {
   return api->proxy_get_version((struct wl_proxy*)obj);
 }
-void wl_pointer_add_listener(WlFuncs* api, struct wl_pointer* obj, const struct wl_pointer_listener* listener, void* data) {
+void wl_pointer_add_listener(const WlFuncs* api, struct wl_pointer* obj, const struct wl_pointer_listener* listener, void* data) {
   api->proxy_add_listener((struct wl_proxy*)obj, (void(**)(void))listener, data);
 }
-
-void wl_pointer_set_cursor(WlFuncs* api, struct wl_pointer* obj, u32 serial, struct wl_surface* surface, i32 hotspot_x, i32 hotspot_y) {
+void wl_pointer_set_cursor(const WlFuncs* api, struct wl_pointer* obj, u32 serial, struct wl_surface* surface, i32 hotspot_x, i32 hotspot_y) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WL_POINTER_SET_CURSOR, null,
       api->proxy_get_version((struct wl_proxy*)obj),
       0, serial, surface, hotspot_x, hotspot_y);
 }
-void wl_pointer_release(WlFuncs* api, struct wl_pointer* obj) {
+void wl_pointer_release(const WlFuncs* api, struct wl_pointer* obj) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WL_POINTER_RELEASE, null,
       api->proxy_get_version((struct wl_proxy*)obj),
       WL_MARSHAL_FLAG_DESTROY);
 }
 
-u32 wl_keyboard_get_version(WlFuncs* api, struct wl_keyboard* obj) {
+u32 wl_keyboard_get_version(const WlFuncs* api, struct wl_keyboard* obj) {
   return api->proxy_get_version((struct wl_proxy*)obj);
 }
-void wl_keyboard_add_listener(WlFuncs* api, struct wl_keyboard* obj, const struct wl_keyboard_listener* listener, void* data) {
+void wl_keyboard_add_listener(const WlFuncs* api, struct wl_keyboard* obj, const struct wl_keyboard_listener* listener, void* data) {
   api->proxy_add_listener((struct wl_proxy*)obj, (void(**)(void))listener, data);
 }
-
-void wl_keyboard_release(WlFuncs* api, struct wl_keyboard* obj) {
+void wl_keyboard_release(const WlFuncs* api, struct wl_keyboard* obj) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WL_KEYBOARD_RELEASE, null,
       api->proxy_get_version((struct wl_proxy*)obj),
       WL_MARSHAL_FLAG_DESTROY);
 }
 
-u32 wl_touch_get_version(WlFuncs* api, struct wl_touch* obj) {
+u32 wl_touch_get_version(const WlFuncs* api, struct wl_touch* obj) {
   return api->proxy_get_version((struct wl_proxy*)obj);
 }
-void wl_touch_add_listener(WlFuncs* api, struct wl_touch* obj, const struct wl_touch_listener* listener, void* data) {
+void wl_touch_add_listener(const WlFuncs* api, struct wl_touch* obj, const struct wl_touch_listener* listener, void* data) {
   api->proxy_add_listener((struct wl_proxy*)obj, (void(**)(void))listener, data);
 }
-
-void wl_touch_release(WlFuncs* api, struct wl_touch* obj) {
+void wl_touch_release(const WlFuncs* api, struct wl_touch* obj) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WL_TOUCH_RELEASE, null,
       api->proxy_get_version((struct wl_proxy*)obj),
       WL_MARSHAL_FLAG_DESTROY);
 }
 
-u32 wl_output_get_version(WlFuncs* api, struct wl_output* obj) {
+u32 wl_output_get_version(const WlFuncs* api, struct wl_output* obj) {
   return api->proxy_get_version((struct wl_proxy*)obj);
 }
-void wl_output_add_listener(WlFuncs* api, struct wl_output* obj, const struct wl_output_listener* listener, void* data) {
+void wl_output_add_listener(const WlFuncs* api, struct wl_output* obj, const struct wl_output_listener* listener, void* data) {
   api->proxy_add_listener((struct wl_proxy*)obj, (void(**)(void))listener, data);
 }
-
-void wl_output_release(WlFuncs* api, struct wl_output* obj) {
+void wl_output_release(const WlFuncs* api, struct wl_output* obj) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WL_OUTPUT_RELEASE, null,
       api->proxy_get_version((struct wl_proxy*)obj),
       WL_MARSHAL_FLAG_DESTROY);
 }
 
-u32 wl_region_get_version(WlFuncs* api, struct wl_region* obj) {
+u32 wl_region_get_version(const WlFuncs* api, struct wl_region* obj) {
   return api->proxy_get_version((struct wl_proxy*)obj);
 }
-
-void wl_region_destroy(WlFuncs* api, struct wl_region* obj) {
+void wl_region_destroy(const WlFuncs* api, struct wl_region* obj) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WL_REGION_DESTROY, null,
       api->proxy_get_version((struct wl_proxy*)obj),
       WL_MARSHAL_FLAG_DESTROY);
 }
-void wl_region_add(WlFuncs* api, struct wl_region* obj, i32 x, i32 y, i32 width, i32 height) {
+void wl_region_add(const WlFuncs* api, struct wl_region* obj, i32 x, i32 y, i32 width, i32 height) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WL_REGION_ADD, null,
       api->proxy_get_version((struct wl_proxy*)obj),
       0, x, y, width, height);
 }
-void wl_region_subtract(WlFuncs* api, struct wl_region* obj, i32 x, i32 y, i32 width, i32 height) {
+void wl_region_subtract(const WlFuncs* api, struct wl_region* obj, i32 x, i32 y, i32 width, i32 height) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WL_REGION_SUBTRACT, null,
       api->proxy_get_version((struct wl_proxy*)obj),
       0, x, y, width, height);
 }
 
-u32 wl_subcompositor_get_version(WlFuncs* api, struct wl_subcompositor* obj) {
+u32 wl_subcompositor_get_version(const WlFuncs* api, struct wl_subcompositor* obj) {
   return api->proxy_get_version((struct wl_proxy*)obj);
 }
-
-void wl_subcompositor_destroy(WlFuncs* api, struct wl_subcompositor* obj) {
+void wl_subcompositor_destroy(const WlFuncs* api, struct wl_subcompositor* obj) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WL_SUBCOMPOSITOR_DESTROY, null,
       api->proxy_get_version((struct wl_proxy*)obj),
       WL_MARSHAL_FLAG_DESTROY);
 }
-struct wl_subsurface* wl_subcompositor_get_subsurface(WlFuncs* api, struct wl_subcompositor* obj, struct wl_surface* surface, struct wl_surface* parent) {
+struct wl_subsurface* wl_subcompositor_get_subsurface(const WlFuncs* api, struct wl_subcompositor* obj, struct wl_surface* surface, struct wl_surface* parent) {
   return api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WL_SUBCOMPOSITOR_GET_SUBSURFACE, &wl_subsurface_interface,
       api->proxy_get_version((struct wl_proxy*)obj),
       0, null, surface, parent);
 }
 
-u32 wl_subsurface_get_version(WlFuncs* api, struct wl_subsurface* obj) {
+u32 wl_subsurface_get_version(const WlFuncs* api, struct wl_subsurface* obj) {
   return api->proxy_get_version((struct wl_proxy*)obj);
 }
-
-void wl_subsurface_destroy(WlFuncs* api, struct wl_subsurface* obj) {
+void wl_subsurface_destroy(const WlFuncs* api, struct wl_subsurface* obj) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WL_SUBSURFACE_DESTROY, null,
       api->proxy_get_version((struct wl_proxy*)obj),
       WL_MARSHAL_FLAG_DESTROY);
 }
-void wl_subsurface_set_position(WlFuncs* api, struct wl_subsurface* obj, i32 x, i32 y) {
+void wl_subsurface_set_position(const WlFuncs* api, struct wl_subsurface* obj, i32 x, i32 y) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WL_SUBSURFACE_SET_POSITION, null,
       api->proxy_get_version((struct wl_proxy*)obj),
       0, x, y);
 }
-void wl_subsurface_place_above(WlFuncs* api, struct wl_subsurface* obj, struct wl_surface* sibling) {
+void wl_subsurface_place_above(const WlFuncs* api, struct wl_subsurface* obj, struct wl_surface* sibling) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WL_SUBSURFACE_PLACE_ABOVE, null,
       api->proxy_get_version((struct wl_proxy*)obj),
       0, sibling);
 }
-void wl_subsurface_place_below(WlFuncs* api, struct wl_subsurface* obj, struct wl_surface* sibling) {
+void wl_subsurface_place_below(const WlFuncs* api, struct wl_subsurface* obj, struct wl_surface* sibling) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WL_SUBSURFACE_PLACE_BELOW, null,
       api->proxy_get_version((struct wl_proxy*)obj),
       0, sibling);
 }
-void wl_subsurface_set_sync(WlFuncs* api, struct wl_subsurface* obj) {
+void wl_subsurface_set_sync(const WlFuncs* api, struct wl_subsurface* obj) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WL_SUBSURFACE_SET_SYNC, null,
       api->proxy_get_version((struct wl_proxy*)obj),
       0);
 }
-void wl_subsurface_set_desync(WlFuncs* api, struct wl_subsurface* obj) {
+void wl_subsurface_set_desync(const WlFuncs* api, struct wl_subsurface* obj) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WL_SUBSURFACE_SET_DESYNC, null,
       api->proxy_get_version((struct wl_proxy*)obj),
       0);
 }
 
-u32 wl_fixes_get_version(WlFuncs* api, struct wl_fixes* obj) {
+u32 wl_fixes_get_version(const WlFuncs* api, struct wl_fixes* obj) {
   return api->proxy_get_version((struct wl_proxy*)obj);
 }
-
-void wl_fixes_destroy(WlFuncs* api, struct wl_fixes* obj) {
+void wl_fixes_destroy(const WlFuncs* api, struct wl_fixes* obj) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WL_FIXES_DESTROY, null,
       api->proxy_get_version((struct wl_proxy*)obj),
       WL_MARSHAL_FLAG_DESTROY);
 }
-void wl_fixes_destroy_registry(WlFuncs* api, struct wl_fixes* obj, struct wl_registry* registry) {
+void wl_fixes_destroy_registry(const WlFuncs* api, struct wl_fixes* obj, struct wl_registry* registry) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WL_FIXES_DESTROY_REGISTRY, null,
       api->proxy_get_version((struct wl_proxy*)obj),
       0, registry);
 }
 
-u32 xdg_wm_base_get_version(WlFuncs* api, struct xdg_wm_base* obj) {
+u32 xdg_wm_base_get_version(const WlFuncs* api, struct xdg_wm_base* obj) {
   return api->proxy_get_version((struct wl_proxy*)obj);
 }
-void xdg_wm_base_add_listener(WlFuncs* api, struct xdg_wm_base* obj, const struct xdg_wm_base_listener* listener, void* data) {
+void xdg_wm_base_add_listener(const WlFuncs* api, struct xdg_wm_base* obj, const struct xdg_wm_base_listener* listener, void* data) {
   api->proxy_add_listener((struct wl_proxy*)obj, (void(**)(void))listener, data);
 }
-
-void xdg_wm_base_destroy(WlFuncs* api, struct xdg_wm_base* obj) {
+void xdg_wm_base_destroy(const WlFuncs* api, struct xdg_wm_base* obj) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, XDG_WM_BASE_DESTROY, null,
       api->proxy_get_version((struct wl_proxy*)obj),
       WL_MARSHAL_FLAG_DESTROY);
 }
-struct xdg_positioner* xdg_wm_base_create_positioner(WlFuncs* api, struct xdg_wm_base* obj) {
+struct xdg_positioner* xdg_wm_base_create_positioner(const WlFuncs* api, struct xdg_wm_base* obj) {
   return api->proxy_marshal_flags(
       (struct wl_proxy*)obj, XDG_WM_BASE_CREATE_POSITIONER, &xdg_positioner_interface,
       api->proxy_get_version((struct wl_proxy*)obj),
       0, null);
 }
-struct xdg_surface* xdg_wm_base_get_xdg_surface(WlFuncs* api, struct xdg_wm_base* obj, struct wl_surface* surface) {
+struct xdg_surface* xdg_wm_base_get_xdg_surface(const WlFuncs* api, struct xdg_wm_base* obj, struct wl_surface* surface) {
   return api->proxy_marshal_flags(
       (struct wl_proxy*)obj, XDG_WM_BASE_GET_XDG_SURFACE, &xdg_surface_interface,
       api->proxy_get_version((struct wl_proxy*)obj),
       0, null, surface);
 }
-void xdg_wm_base_pong(WlFuncs* api, struct xdg_wm_base* obj, u32 serial) {
+void xdg_wm_base_pong(const WlFuncs* api, struct xdg_wm_base* obj, u32 serial) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, XDG_WM_BASE_PONG, null,
       api->proxy_get_version((struct wl_proxy*)obj),
       0, serial);
 }
 
-u32 xdg_positioner_get_version(WlFuncs* api, struct xdg_positioner* obj) {
+u32 xdg_positioner_get_version(const WlFuncs* api, struct xdg_positioner* obj) {
   return api->proxy_get_version((struct wl_proxy*)obj);
 }
-
-void xdg_positioner_destroy(WlFuncs* api, struct xdg_positioner* obj) {
+void xdg_positioner_destroy(const WlFuncs* api, struct xdg_positioner* obj) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, XDG_POSITIONER_DESTROY, null,
       api->proxy_get_version((struct wl_proxy*)obj),
       WL_MARSHAL_FLAG_DESTROY);
 }
-void xdg_positioner_set_size(WlFuncs* api, struct xdg_positioner* obj, i32 width, i32 height) {
+void xdg_positioner_set_size(const WlFuncs* api, struct xdg_positioner* obj, i32 width, i32 height) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, XDG_POSITIONER_SET_SIZE, null,
       api->proxy_get_version((struct wl_proxy*)obj),
       0, width, height);
 }
-void xdg_positioner_set_anchor_rect(WlFuncs* api, struct xdg_positioner* obj, i32 x, i32 y, i32 width, i32 height) {
+void xdg_positioner_set_anchor_rect(const WlFuncs* api, struct xdg_positioner* obj, i32 x, i32 y, i32 width, i32 height) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, XDG_POSITIONER_SET_ANCHOR_RECT, null,
       api->proxy_get_version((struct wl_proxy*)obj),
       0, x, y, width, height);
 }
-void xdg_positioner_set_anchor(WlFuncs* api, struct xdg_positioner* obj, u32 anchor) {
+void xdg_positioner_set_anchor(const WlFuncs* api, struct xdg_positioner* obj, u32 anchor) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, XDG_POSITIONER_SET_ANCHOR, null,
       api->proxy_get_version((struct wl_proxy*)obj),
       0, anchor);
 }
-void xdg_positioner_set_gravity(WlFuncs* api, struct xdg_positioner* obj, u32 gravity) {
+void xdg_positioner_set_gravity(const WlFuncs* api, struct xdg_positioner* obj, u32 gravity) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, XDG_POSITIONER_SET_GRAVITY, null,
       api->proxy_get_version((struct wl_proxy*)obj),
       0, gravity);
 }
-void xdg_positioner_set_constraint_adjustment(WlFuncs* api, struct xdg_positioner* obj, u32 constraint_adjustment) {
+void xdg_positioner_set_constraint_adjustment(const WlFuncs* api, struct xdg_positioner* obj, u32 constraint_adjustment) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, XDG_POSITIONER_SET_CONSTRAINT_ADJUSTMENT, null,
       api->proxy_get_version((struct wl_proxy*)obj),
       0, constraint_adjustment);
 }
-void xdg_positioner_set_offset(WlFuncs* api, struct xdg_positioner* obj, i32 x, i32 y) {
+void xdg_positioner_set_offset(const WlFuncs* api, struct xdg_positioner* obj, i32 x, i32 y) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, XDG_POSITIONER_SET_OFFSET, null,
       api->proxy_get_version((struct wl_proxy*)obj),
       0, x, y);
 }
-void xdg_positioner_set_reactive(WlFuncs* api, struct xdg_positioner* obj) {
+void xdg_positioner_set_reactive(const WlFuncs* api, struct xdg_positioner* obj) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, XDG_POSITIONER_SET_REACTIVE, null,
       api->proxy_get_version((struct wl_proxy*)obj),
       0);
 }
-void xdg_positioner_set_parent_size(WlFuncs* api, struct xdg_positioner* obj, i32 parent_width, i32 parent_height) {
+void xdg_positioner_set_parent_size(const WlFuncs* api, struct xdg_positioner* obj, i32 parent_width, i32 parent_height) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, XDG_POSITIONER_SET_PARENT_SIZE, null,
       api->proxy_get_version((struct wl_proxy*)obj),
       0, parent_width, parent_height);
 }
-void xdg_positioner_set_parent_configure(WlFuncs* api, struct xdg_positioner* obj, u32 serial) {
+void xdg_positioner_set_parent_configure(const WlFuncs* api, struct xdg_positioner* obj, u32 serial) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, XDG_POSITIONER_SET_PARENT_CONFIGURE, null,
       api->proxy_get_version((struct wl_proxy*)obj),
       0, serial);
 }
 
-u32 xdg_surface_get_version(WlFuncs* api, struct xdg_surface* obj) {
+u32 xdg_surface_get_version(const WlFuncs* api, struct xdg_surface* obj) {
   return api->proxy_get_version((struct wl_proxy*)obj);
 }
-void xdg_surface_add_listener(WlFuncs* api, struct xdg_surface* obj, const struct xdg_surface_listener* listener, void* data) {
+void xdg_surface_add_listener(const WlFuncs* api, struct xdg_surface* obj, const struct xdg_surface_listener* listener, void* data) {
   api->proxy_add_listener((struct wl_proxy*)obj, (void(**)(void))listener, data);
 }
-
-void xdg_surface_destroy(WlFuncs* api, struct xdg_surface* obj) {
+void xdg_surface_destroy(const WlFuncs* api, struct xdg_surface* obj) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, XDG_SURFACE_DESTROY, null,
       api->proxy_get_version((struct wl_proxy*)obj),
       WL_MARSHAL_FLAG_DESTROY);
 }
-struct xdg_toplevel* xdg_surface_get_toplevel(WlFuncs* api, struct xdg_surface* obj) {
+struct xdg_toplevel* xdg_surface_get_toplevel(const WlFuncs* api, struct xdg_surface* obj) {
   return api->proxy_marshal_flags(
       (struct wl_proxy*)obj, XDG_SURFACE_GET_TOPLEVEL, &xdg_toplevel_interface,
       api->proxy_get_version((struct wl_proxy*)obj),
       0, null);
 }
-struct xdg_popup* xdg_surface_get_popup(WlFuncs* api, struct xdg_surface* obj, struct xdg_surface* parent, struct xdg_positioner* positioner) {
+struct xdg_popup* xdg_surface_get_popup(const WlFuncs* api, struct xdg_surface* obj, struct xdg_surface* parent, struct xdg_positioner* positioner) {
   return api->proxy_marshal_flags(
       (struct wl_proxy*)obj, XDG_SURFACE_GET_POPUP, &xdg_popup_interface,
       api->proxy_get_version((struct wl_proxy*)obj),
       0, null, parent, positioner);
 }
-void xdg_surface_set_window_geometry(WlFuncs* api, struct xdg_surface* obj, i32 x, i32 y, i32 width, i32 height) {
+void xdg_surface_set_window_geometry(const WlFuncs* api, struct xdg_surface* obj, i32 x, i32 y, i32 width, i32 height) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, XDG_SURFACE_SET_WINDOW_GEOMETRY, null,
       api->proxy_get_version((struct wl_proxy*)obj),
       0, x, y, width, height);
 }
-void xdg_surface_ack_configure(WlFuncs* api, struct xdg_surface* obj, u32 serial) {
+void xdg_surface_ack_configure(const WlFuncs* api, struct xdg_surface* obj, u32 serial) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, XDG_SURFACE_ACK_CONFIGURE, null,
       api->proxy_get_version((struct wl_proxy*)obj),
       0, serial);
 }
 
-u32 xdg_toplevel_get_version(WlFuncs* api, struct xdg_toplevel* obj) {
+u32 xdg_toplevel_get_version(const WlFuncs* api, struct xdg_toplevel* obj) {
   return api->proxy_get_version((struct wl_proxy*)obj);
 }
-void xdg_toplevel_add_listener(WlFuncs* api, struct xdg_toplevel* obj, const struct xdg_toplevel_listener* listener, void* data) {
+void xdg_toplevel_add_listener(const WlFuncs* api, struct xdg_toplevel* obj, const struct xdg_toplevel_listener* listener, void* data) {
   api->proxy_add_listener((struct wl_proxy*)obj, (void(**)(void))listener, data);
 }
-
-void xdg_toplevel_destroy(WlFuncs* api, struct xdg_toplevel* obj) {
+void xdg_toplevel_destroy(const WlFuncs* api, struct xdg_toplevel* obj) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, XDG_TOPLEVEL_DESTROY, null,
       api->proxy_get_version((struct wl_proxy*)obj),
       WL_MARSHAL_FLAG_DESTROY);
 }
-void xdg_toplevel_set_parent(WlFuncs* api, struct xdg_toplevel* obj, struct xdg_toplevel* parent) {
+void xdg_toplevel_set_parent(const WlFuncs* api, struct xdg_toplevel* obj, struct xdg_toplevel* parent) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, XDG_TOPLEVEL_SET_PARENT, null,
       api->proxy_get_version((struct wl_proxy*)obj),
       0, parent);
 }
-void xdg_toplevel_set_title(WlFuncs* api, struct xdg_toplevel* obj, const char* title) {
+void xdg_toplevel_set_title(const WlFuncs* api, struct xdg_toplevel* obj, const char* title) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, XDG_TOPLEVEL_SET_TITLE, null,
       api->proxy_get_version((struct wl_proxy*)obj),
       0, title);
 }
-void xdg_toplevel_set_app_id(WlFuncs* api, struct xdg_toplevel* obj, const char* app_id) {
+void xdg_toplevel_set_app_id(const WlFuncs* api, struct xdg_toplevel* obj, const char* app_id) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, XDG_TOPLEVEL_SET_APP_ID, null,
       api->proxy_get_version((struct wl_proxy*)obj),
       0, app_id);
 }
-void xdg_toplevel_show_window_menu(WlFuncs* api, struct xdg_toplevel* obj, struct wl_seat* seat, u32 serial, i32 x, i32 y) {
+void xdg_toplevel_show_window_menu(const WlFuncs* api, struct xdg_toplevel* obj, struct wl_seat* seat, u32 serial, i32 x, i32 y) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, XDG_TOPLEVEL_SHOW_WINDOW_MENU, null,
       api->proxy_get_version((struct wl_proxy*)obj),
       0, seat, serial, x, y);
 }
-void xdg_toplevel_move(WlFuncs* api, struct xdg_toplevel* obj, struct wl_seat* seat, u32 serial) {
+void xdg_toplevel_move(const WlFuncs* api, struct xdg_toplevel* obj, struct wl_seat* seat, u32 serial) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, XDG_TOPLEVEL_MOVE, null,
       api->proxy_get_version((struct wl_proxy*)obj),
       0, seat, serial);
 }
-void xdg_toplevel_resize(WlFuncs* api, struct xdg_toplevel* obj, struct wl_seat* seat, u32 serial, u32 edges) {
+void xdg_toplevel_resize(const WlFuncs* api, struct xdg_toplevel* obj, struct wl_seat* seat, u32 serial, u32 edges) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, XDG_TOPLEVEL_RESIZE, null,
       api->proxy_get_version((struct wl_proxy*)obj),
       0, seat, serial, edges);
 }
-void xdg_toplevel_set_max_size(WlFuncs* api, struct xdg_toplevel* obj, i32 width, i32 height) {
+void xdg_toplevel_set_max_size(const WlFuncs* api, struct xdg_toplevel* obj, i32 width, i32 height) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, XDG_TOPLEVEL_SET_MAX_SIZE, null,
       api->proxy_get_version((struct wl_proxy*)obj),
       0, width, height);
 }
-void xdg_toplevel_set_min_size(WlFuncs* api, struct xdg_toplevel* obj, i32 width, i32 height) {
+void xdg_toplevel_set_min_size(const WlFuncs* api, struct xdg_toplevel* obj, i32 width, i32 height) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, XDG_TOPLEVEL_SET_MIN_SIZE, null,
       api->proxy_get_version((struct wl_proxy*)obj),
       0, width, height);
 }
-void xdg_toplevel_set_maximized(WlFuncs* api, struct xdg_toplevel* obj) {
+void xdg_toplevel_set_maximized(const WlFuncs* api, struct xdg_toplevel* obj) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, XDG_TOPLEVEL_SET_MAXIMIZED, null,
       api->proxy_get_version((struct wl_proxy*)obj),
       0);
 }
-void xdg_toplevel_unset_maximized(WlFuncs* api, struct xdg_toplevel* obj) {
+void xdg_toplevel_unset_maximized(const WlFuncs* api, struct xdg_toplevel* obj) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, XDG_TOPLEVEL_UNSET_MAXIMIZED, null,
       api->proxy_get_version((struct wl_proxy*)obj),
       0);
 }
-void xdg_toplevel_set_fullscreen(WlFuncs* api, struct xdg_toplevel* obj, struct wl_output* output) {
+void xdg_toplevel_set_fullscreen(const WlFuncs* api, struct xdg_toplevel* obj, struct wl_output* output) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, XDG_TOPLEVEL_SET_FULLSCREEN, null,
       api->proxy_get_version((struct wl_proxy*)obj),
       0, output);
 }
-void xdg_toplevel_unset_fullscreen(WlFuncs* api, struct xdg_toplevel* obj) {
+void xdg_toplevel_unset_fullscreen(const WlFuncs* api, struct xdg_toplevel* obj) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, XDG_TOPLEVEL_UNSET_FULLSCREEN, null,
       api->proxy_get_version((struct wl_proxy*)obj),
       0);
 }
-void xdg_toplevel_set_minimized(WlFuncs* api, struct xdg_toplevel* obj) {
+void xdg_toplevel_set_minimized(const WlFuncs* api, struct xdg_toplevel* obj) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, XDG_TOPLEVEL_SET_MINIMIZED, null,
       api->proxy_get_version((struct wl_proxy*)obj),
       0);
 }
 
-u32 xdg_popup_get_version(WlFuncs* api, struct xdg_popup* obj) {
+u32 xdg_popup_get_version(const WlFuncs* api, struct xdg_popup* obj) {
   return api->proxy_get_version((struct wl_proxy*)obj);
 }
-void xdg_popup_add_listener(WlFuncs* api, struct xdg_popup* obj, const struct xdg_popup_listener* listener, void* data) {
+void xdg_popup_add_listener(const WlFuncs* api, struct xdg_popup* obj, const struct xdg_popup_listener* listener, void* data) {
   api->proxy_add_listener((struct wl_proxy*)obj, (void(**)(void))listener, data);
 }
-
-void xdg_popup_destroy(WlFuncs* api, struct xdg_popup* obj) {
+void xdg_popup_destroy(const WlFuncs* api, struct xdg_popup* obj) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, XDG_POPUP_DESTROY, null,
       api->proxy_get_version((struct wl_proxy*)obj),
       WL_MARSHAL_FLAG_DESTROY);
 }
-void xdg_popup_grab(WlFuncs* api, struct xdg_popup* obj, struct wl_seat* seat, u32 serial) {
+void xdg_popup_grab(const WlFuncs* api, struct xdg_popup* obj, struct wl_seat* seat, u32 serial) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, XDG_POPUP_GRAB, null,
       api->proxy_get_version((struct wl_proxy*)obj),
       0, seat, serial);
 }
-void xdg_popup_reposition(WlFuncs* api, struct xdg_popup* obj, struct xdg_positioner* positioner, u32 token) {
+void xdg_popup_reposition(const WlFuncs* api, struct xdg_popup* obj, struct xdg_positioner* positioner, u32 token) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, XDG_POPUP_REPOSITION, null,
       api->proxy_get_version((struct wl_proxy*)obj),
       0, positioner, token);
 }
 
-u32 wp_viewporter_get_version(WlFuncs* api, struct wp_viewporter* obj) {
+u32 wp_viewporter_get_version(const WlFuncs* api, struct wp_viewporter* obj) {
   return api->proxy_get_version((struct wl_proxy*)obj);
 }
-
-void wp_viewporter_destroy(WlFuncs* api, struct wp_viewporter* obj) {
+void wp_viewporter_destroy(const WlFuncs* api, struct wp_viewporter* obj) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WP_VIEWPORTER_DESTROY, null,
       api->proxy_get_version((struct wl_proxy*)obj),
       WL_MARSHAL_FLAG_DESTROY);
 }
-struct wp_viewport* wp_viewporter_get_viewport(WlFuncs* api, struct wp_viewporter* obj, struct wl_surface* surface) {
+struct wp_viewport* wp_viewporter_get_viewport(const WlFuncs* api, struct wp_viewporter* obj, struct wl_surface* surface) {
   return api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WP_VIEWPORTER_GET_VIEWPORT, &wp_viewport_interface,
       api->proxy_get_version((struct wl_proxy*)obj),
       0, null, surface);
 }
 
-u32 wp_viewport_get_version(WlFuncs* api, struct wp_viewport* obj) {
+u32 wp_viewport_get_version(const WlFuncs* api, struct wp_viewport* obj) {
   return api->proxy_get_version((struct wl_proxy*)obj);
 }
-
-void wp_viewport_destroy(WlFuncs* api, struct wp_viewport* obj) {
+void wp_viewport_destroy(const WlFuncs* api, struct wp_viewport* obj) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WP_VIEWPORT_DESTROY, null,
       api->proxy_get_version((struct wl_proxy*)obj),
       WL_MARSHAL_FLAG_DESTROY);
 }
-void wp_viewport_set_source(WlFuncs* api, struct wp_viewport* obj, WlFixed x, WlFixed y, WlFixed width, WlFixed height) {
+void wp_viewport_set_source(const WlFuncs* api, struct wp_viewport* obj, WlFixed x, WlFixed y, WlFixed width, WlFixed height) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WP_VIEWPORT_SET_SOURCE, null,
       api->proxy_get_version((struct wl_proxy*)obj),
       0, x, y, width, height);
 }
-void wp_viewport_set_destination(WlFuncs* api, struct wp_viewport* obj, i32 width, i32 height) {
+void wp_viewport_set_destination(const WlFuncs* api, struct wp_viewport* obj, i32 width, i32 height) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WP_VIEWPORT_SET_DESTINATION, null,
       api->proxy_get_version((struct wl_proxy*)obj),
       0, width, height);
 }
 
-u32 wp_fractional_scale_manager_v1_get_version(WlFuncs* api, struct wp_fractional_scale_manager_v1* obj) {
+u32 wp_fractional_scale_manager_v1_get_version(const WlFuncs* api, struct wp_fractional_scale_manager_v1* obj) {
   return api->proxy_get_version((struct wl_proxy*)obj);
 }
-
-void wp_fractional_scale_manager_v1_destroy(WlFuncs* api, struct wp_fractional_scale_manager_v1* obj) {
+void wp_fractional_scale_manager_v1_destroy(const WlFuncs* api, struct wp_fractional_scale_manager_v1* obj) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WP_FRACTIONAL_SCALE_MANAGER_V1_DESTROY, null,
       api->proxy_get_version((struct wl_proxy*)obj),
       WL_MARSHAL_FLAG_DESTROY);
 }
-struct wp_fractional_scale_v1* wp_fractional_scale_manager_v1_get_fractional_scale(WlFuncs* api, struct wp_fractional_scale_manager_v1* obj, struct wl_surface* surface) {
+struct wp_fractional_scale_v1* wp_fractional_scale_manager_v1_get_fractional_scale(const WlFuncs* api, struct wp_fractional_scale_manager_v1* obj, struct wl_surface* surface) {
   return api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WP_FRACTIONAL_SCALE_MANAGER_V1_GET_FRACTIONAL_SCALE, &wp_fractional_scale_v1_interface,
       api->proxy_get_version((struct wl_proxy*)obj),
       0, null, surface);
 }
 
-u32 wp_fractional_scale_v1_get_version(WlFuncs* api, struct wp_fractional_scale_v1* obj) {
+u32 wp_fractional_scale_v1_get_version(const WlFuncs* api, struct wp_fractional_scale_v1* obj) {
   return api->proxy_get_version((struct wl_proxy*)obj);
 }
-void wp_fractional_scale_v1_add_listener(WlFuncs* api, struct wp_fractional_scale_v1* obj, const struct wp_fractional_scale_v1_listener* listener, void* data) {
+void wp_fractional_scale_v1_add_listener(const WlFuncs* api, struct wp_fractional_scale_v1* obj, const struct wp_fractional_scale_v1_listener* listener, void* data) {
   api->proxy_add_listener((struct wl_proxy*)obj, (void(**)(void))listener, data);
 }
-
-void wp_fractional_scale_v1_destroy(WlFuncs* api, struct wp_fractional_scale_v1* obj) {
+void wp_fractional_scale_v1_destroy(const WlFuncs* api, struct wp_fractional_scale_v1* obj) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WP_FRACTIONAL_SCALE_V1_DESTROY, null,
       api->proxy_get_version((struct wl_proxy*)obj),

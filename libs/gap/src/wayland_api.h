@@ -55,14 +55,14 @@ typedef struct {
   int                 (SYS_DECL* display_roundtrip)(struct wl_display*);
   int                 (SYS_DECL* display_flush)(struct wl_display*);
   int                 (SYS_DECL* proxy_add_listener)(struct wl_proxy*, void(**)(void), void*);
-  void*               (SYS_DECL* proxy_marshal_flags)(struct wl_proxy*, u32, const struct wl_interface*, u32, u32, ...);
+  void*               (SYS_DECL* proxy_marshal_flags)(struct wl_proxy*, u32 opcode, const struct wl_interface*, u32 version, u32 flags, ...);
   u32                 (SYS_DECL* proxy_get_version)(struct wl_proxy*);
   void                (SYS_DECL* proxy_destroy)(struct wl_proxy*);
 } WlFuncs;
 
-bool wlLoad(const DynLib* lib, WlFuncs* out);
+bool wlLoad(const DynLib*, WlFuncs*);
 
-void* wlRegistryBind(WlFuncs*, struct wl_registry*, u32 name, u32 version, const struct wl_interface*, u32 maxVersion);
+void* wlRegistryBind(const WlFuncs*, struct wl_registry*, u32 name, u32 version, const struct wl_interface*, u32 maxVersion);
 
 struct wl_callback;
 struct wl_compositor;
@@ -143,11 +143,10 @@ struct wl_display_listener {
   void (*delete_id)(void* data, struct wl_display*, u32 id);
 };
 
-u32 wl_display_get_version(WlFuncs* api, struct wl_display* obj);
-void wl_display_add_listener(WlFuncs* api, struct wl_display* obj, const struct wl_display_listener* listener, void* data);
-
-struct wl_callback* wl_display_sync(WlFuncs* api, struct wl_display* obj);
-struct wl_registry* wl_display_get_registry(WlFuncs* api, struct wl_display* obj);
+u32 wl_display_get_version(const WlFuncs*, struct wl_display*);
+void wl_display_add_listener(const WlFuncs*, struct wl_display*, const struct wl_display_listener*, void*);
+struct wl_callback* wl_display_sync(const WlFuncs*, struct wl_display*);
+struct wl_registry* wl_display_get_registry(const WlFuncs*, struct wl_display*);
 
 #define WL_REGISTRY_BIND 0
 
@@ -156,42 +155,41 @@ struct wl_registry_listener {
   void (*global_remove)(void* data, struct wl_registry*, u32 name);
 };
 
-u32 wl_registry_get_version(WlFuncs* api, struct wl_registry* obj);
-void wl_registry_destroy(WlFuncs* api, struct wl_registry* obj);
-void wl_registry_add_listener(WlFuncs* api, struct wl_registry* obj, const struct wl_registry_listener* listener, void* data);
+u32 wl_registry_get_version(const WlFuncs*, struct wl_registry*);
+void wl_registry_destroy(const WlFuncs*, struct wl_registry*);
+void wl_registry_add_listener(const WlFuncs*, struct wl_registry*, const struct wl_registry_listener*, void*);
 
 struct wl_callback_listener {
   void (*done)(void* data, struct wl_callback*, u32 callback_data);
 };
 
-u32 wl_callback_get_version(WlFuncs* api, struct wl_callback* obj);
-void wl_callback_destroy(WlFuncs* api, struct wl_callback* obj);
-void wl_callback_add_listener(WlFuncs* api, struct wl_callback* obj, const struct wl_callback_listener* listener, void* data);
+u32 wl_callback_get_version(const WlFuncs*, struct wl_callback*);
+void wl_callback_destroy(const WlFuncs*, struct wl_callback*);
+void wl_callback_add_listener(const WlFuncs*, struct wl_callback*, const struct wl_callback_listener*, void*);
 
 #define WL_COMPOSITOR_CREATE_SURFACE 0
 #define WL_COMPOSITOR_CREATE_REGION 1
 
-u32 wl_compositor_get_version(WlFuncs* api, struct wl_compositor* obj);
-void wl_compositor_destroy(WlFuncs* api, struct wl_compositor* obj);
-
-struct wl_surface* wl_compositor_create_surface(WlFuncs* api, struct wl_compositor* obj);
-struct wl_region* wl_compositor_create_region(WlFuncs* api, struct wl_compositor* obj);
+u32 wl_compositor_get_version(const WlFuncs*, struct wl_compositor*);
+void wl_compositor_destroy(const WlFuncs*, struct wl_compositor*);
+struct wl_surface* wl_compositor_create_surface(const WlFuncs*, struct wl_compositor*);
+struct wl_region* wl_compositor_create_region(const WlFuncs*, struct wl_compositor*);
 
 #define WL_SHM_POOL_CREATE_BUFFER 0
 #define WL_SHM_POOL_DESTROY 1
 #define WL_SHM_POOL_RESIZE 2
 
-u32 wl_shm_pool_get_version(WlFuncs* api, struct wl_shm_pool* obj);
-
-struct wl_buffer* wl_shm_pool_create_buffer(WlFuncs* api, struct wl_shm_pool* obj, i32 offset, i32 width, i32 height, i32 stride, u32 format);
-void wl_shm_pool_destroy(WlFuncs* api, struct wl_shm_pool* obj);
-void wl_shm_pool_resize(WlFuncs* api, struct wl_shm_pool* obj, i32 size);
+u32 wl_shm_pool_get_version(const WlFuncs*, struct wl_shm_pool*);
+struct wl_buffer* wl_shm_pool_create_buffer(const WlFuncs*, struct wl_shm_pool*, i32 offset, i32 width, i32 height, i32 stride, u32 format);
+void wl_shm_pool_destroy(const WlFuncs*, struct wl_shm_pool*);
+void wl_shm_pool_resize(const WlFuncs*, struct wl_shm_pool*, i32 size);
 
 enum wl_shm_error {
   WL_SHM_ERROR_INVALID_FORMAT = 0,
   WL_SHM_ERROR_INVALID_STRIDE = 1,
   WL_SHM_ERROR_INVALID_FD = 2,
 };
+
 enum wl_shm_format {
   WL_SHM_FORMAT_ARGB8888 = 0,
   WL_SHM_FORMAT_XRGB8888 = 1,
@@ -325,11 +323,10 @@ struct wl_shm_listener {
   void (*format)(void* data, struct wl_shm*, u32 format);
 };
 
-u32 wl_shm_get_version(WlFuncs* api, struct wl_shm* obj);
-void wl_shm_add_listener(WlFuncs* api, struct wl_shm* obj, const struct wl_shm_listener* listener, void* data);
-
-struct wl_shm_pool* wl_shm_create_pool(WlFuncs* api, struct wl_shm* obj, i32 fd, i32 size);
-void wl_shm_release(WlFuncs* api, struct wl_shm* obj);
+u32 wl_shm_get_version(const WlFuncs*, struct wl_shm*);
+void wl_shm_add_listener(const WlFuncs*, struct wl_shm*, const struct wl_shm_listener*, void*);
+struct wl_shm_pool* wl_shm_create_pool(const WlFuncs*, struct wl_shm*, i32 fd, i32 size);
+void wl_shm_release(const WlFuncs*, struct wl_shm*);
 
 #define WL_BUFFER_DESTROY 0
 
@@ -337,10 +334,9 @@ struct wl_buffer_listener {
   void (*release)(void* data, struct wl_buffer*);
 };
 
-u32 wl_buffer_get_version(WlFuncs* api, struct wl_buffer* obj);
-void wl_buffer_add_listener(WlFuncs* api, struct wl_buffer* obj, const struct wl_buffer_listener* listener, void* data);
-
-void wl_buffer_destroy(WlFuncs* api, struct wl_buffer* obj);
+u32 wl_buffer_get_version(const WlFuncs*, struct wl_buffer*);
+void wl_buffer_add_listener(const WlFuncs*, struct wl_buffer*, const struct wl_buffer_listener*, void*);
+void wl_buffer_destroy(const WlFuncs*, struct wl_buffer*);
 
 enum wl_data_offer_error {
   WL_DATA_OFFER_ERROR_INVALID_FINISH = 0,
@@ -361,14 +357,13 @@ struct wl_data_offer_listener {
   void (*action)(void* data, struct wl_data_offer*, u32 dnd_action);
 };
 
-u32 wl_data_offer_get_version(WlFuncs* api, struct wl_data_offer* obj);
-void wl_data_offer_add_listener(WlFuncs* api, struct wl_data_offer* obj, const struct wl_data_offer_listener* listener, void* data);
-
-void wl_data_offer_accept(WlFuncs* api, struct wl_data_offer* obj, u32 serial, const char* mime_type);
-void wl_data_offer_receive(WlFuncs* api, struct wl_data_offer* obj, const char* mime_type, i32 fd);
-void wl_data_offer_destroy(WlFuncs* api, struct wl_data_offer* obj);
-void wl_data_offer_finish(WlFuncs* api, struct wl_data_offer* obj);
-void wl_data_offer_set_actions(WlFuncs* api, struct wl_data_offer* obj, u32 dnd_actions, u32 preferred_action);
+u32 wl_data_offer_get_version(const WlFuncs*, struct wl_data_offer*);
+void wl_data_offer_add_listener(const WlFuncs*, struct wl_data_offer*, const struct wl_data_offer_listener*, void*);
+void wl_data_offer_accept(const WlFuncs*, struct wl_data_offer*, u32 serial, const char* mime_type);
+void wl_data_offer_receive(const WlFuncs*, struct wl_data_offer*, const char* mime_type, i32 fd);
+void wl_data_offer_destroy(const WlFuncs*, struct wl_data_offer*);
+void wl_data_offer_finish(const WlFuncs*, struct wl_data_offer*);
+void wl_data_offer_set_actions(const WlFuncs*, struct wl_data_offer*, u32 dnd_actions, u32 preferred_action);
 
 enum wl_data_source_error {
   WL_DATA_SOURCE_ERROR_INVALID_ACTION_MASK = 0,
@@ -388,12 +383,11 @@ struct wl_data_source_listener {
   void (*action)(void* data, struct wl_data_source*, u32 dnd_action);
 };
 
-u32 wl_data_source_get_version(WlFuncs* api, struct wl_data_source* obj);
-void wl_data_source_add_listener(WlFuncs* api, struct wl_data_source* obj, const struct wl_data_source_listener* listener, void* data);
-
-void wl_data_source_offer(WlFuncs* api, struct wl_data_source* obj, const char* mime_type);
-void wl_data_source_destroy(WlFuncs* api, struct wl_data_source* obj);
-void wl_data_source_set_actions(WlFuncs* api, struct wl_data_source* obj, u32 dnd_actions);
+u32 wl_data_source_get_version(const WlFuncs*, struct wl_data_source*);
+void wl_data_source_add_listener(const WlFuncs*, struct wl_data_source*, const struct wl_data_source_listener*, void*);
+void wl_data_source_offer(const WlFuncs*, struct wl_data_source*, const char* mime_type);
+void wl_data_source_destroy(const WlFuncs*, struct wl_data_source*);
+void wl_data_source_set_actions(const WlFuncs*, struct wl_data_source*, u32 dnd_actions);
 
 enum wl_data_device_error {
   WL_DATA_DEVICE_ERROR_ROLE = 0,
@@ -413,12 +407,11 @@ struct wl_data_device_listener {
   void (*selection)(void* data, struct wl_data_device*, struct wl_data_offer* id);
 };
 
-u32 wl_data_device_get_version(WlFuncs* api, struct wl_data_device* obj);
-void wl_data_device_add_listener(WlFuncs* api, struct wl_data_device* obj, const struct wl_data_device_listener* listener, void* data);
-
-void wl_data_device_start_drag(WlFuncs* api, struct wl_data_device* obj, struct wl_data_source* source, struct wl_surface* origin, struct wl_surface* icon, u32 serial);
-void wl_data_device_set_selection(WlFuncs* api, struct wl_data_device* obj, struct wl_data_source* source, u32 serial);
-void wl_data_device_release(WlFuncs* api, struct wl_data_device* obj);
+u32 wl_data_device_get_version(const WlFuncs*, struct wl_data_device*);
+void wl_data_device_add_listener(const WlFuncs*, struct wl_data_device*, const struct wl_data_device_listener*, void*);
+void wl_data_device_start_drag(const WlFuncs*, struct wl_data_device*, struct wl_data_source* source, struct wl_surface* origin, struct wl_surface* icon, u32 serial);
+void wl_data_device_set_selection(const WlFuncs*, struct wl_data_device*, struct wl_data_source* source, u32 serial);
+void wl_data_device_release(const WlFuncs*, struct wl_data_device*);
 
 enum wl_data_device_manager_dnd_action {
   WL_DATA_DEVICE_MANAGER_DND_ACTION_NONE = 0,
@@ -430,11 +423,10 @@ enum wl_data_device_manager_dnd_action {
 #define WL_DATA_DEVICE_MANAGER_CREATE_DATA_SOURCE 0
 #define WL_DATA_DEVICE_MANAGER_GET_DATA_DEVICE 1
 
-u32 wl_data_device_manager_get_version(WlFuncs* api, struct wl_data_device_manager* obj);
-void wl_data_device_manager_destroy(WlFuncs* api, struct wl_data_device_manager* obj);
-
-struct wl_data_source* wl_data_device_manager_create_data_source(WlFuncs* api, struct wl_data_device_manager* obj);
-struct wl_data_device* wl_data_device_manager_get_data_device(WlFuncs* api, struct wl_data_device_manager* obj, struct wl_seat* seat);
+u32 wl_data_device_manager_get_version(const WlFuncs*, struct wl_data_device_manager*);
+void wl_data_device_manager_destroy(const WlFuncs*, struct wl_data_device_manager*);
+struct wl_data_source* wl_data_device_manager_create_data_source(const WlFuncs*, struct wl_data_device_manager*);
+struct wl_data_device* wl_data_device_manager_get_data_device(const WlFuncs*, struct wl_data_device_manager*, struct wl_seat* seat);
 
 enum wl_shell_error {
   WL_SHELL_ERROR_ROLE = 0,
@@ -442,10 +434,9 @@ enum wl_shell_error {
 
 #define WL_SHELL_GET_SHELL_SURFACE 0
 
-u32 wl_shell_get_version(WlFuncs* api, struct wl_shell* obj);
-void wl_shell_destroy(WlFuncs* api, struct wl_shell* obj);
-
-struct wl_shell_surface* wl_shell_get_shell_surface(WlFuncs* api, struct wl_shell* obj, struct wl_surface* surface);
+u32 wl_shell_get_version(const WlFuncs*, struct wl_shell*);
+void wl_shell_destroy(const WlFuncs*, struct wl_shell*);
+struct wl_shell_surface* wl_shell_get_shell_surface(const WlFuncs*, struct wl_shell*, struct wl_surface* surface);
 
 enum wl_shell_surface_resize {
   WL_SHELL_SURFACE_RESIZE_NONE = 0,
@@ -458,9 +449,11 @@ enum wl_shell_surface_resize {
   WL_SHELL_SURFACE_RESIZE_TOP_RIGHT = 9,
   WL_SHELL_SURFACE_RESIZE_BOTTOM_RIGHT = 10,
 };
+
 enum wl_shell_surface_transient {
   WL_SHELL_SURFACE_TRANSIENT_INACTIVE = 1,
 };
+
 enum wl_shell_surface_fullscreen_method {
   WL_SHELL_SURFACE_FULLSCREEN_METHOD_DEFAULT = 0,
   WL_SHELL_SURFACE_FULLSCREEN_METHOD_SCALE = 1,
@@ -485,20 +478,19 @@ struct wl_shell_surface_listener {
   void (*popup_done)(void* data, struct wl_shell_surface*);
 };
 
-u32 wl_shell_surface_get_version(WlFuncs* api, struct wl_shell_surface* obj);
-void wl_shell_surface_destroy(WlFuncs* api, struct wl_shell_surface* obj);
-void wl_shell_surface_add_listener(WlFuncs* api, struct wl_shell_surface* obj, const struct wl_shell_surface_listener* listener, void* data);
-
-void wl_shell_surface_pong(WlFuncs* api, struct wl_shell_surface* obj, u32 serial);
-void wl_shell_surface_move(WlFuncs* api, struct wl_shell_surface* obj, struct wl_seat* seat, u32 serial);
-void wl_shell_surface_resize(WlFuncs* api, struct wl_shell_surface* obj, struct wl_seat* seat, u32 serial, u32 edges);
-void wl_shell_surface_set_toplevel(WlFuncs* api, struct wl_shell_surface* obj);
-void wl_shell_surface_set_transient(WlFuncs* api, struct wl_shell_surface* obj, struct wl_surface* parent, i32 x, i32 y, u32 flags);
-void wl_shell_surface_set_fullscreen(WlFuncs* api, struct wl_shell_surface* obj, u32 method, u32 framerate, struct wl_output* output);
-void wl_shell_surface_set_popup(WlFuncs* api, struct wl_shell_surface* obj, struct wl_seat* seat, u32 serial, struct wl_surface* parent, i32 x, i32 y, u32 flags);
-void wl_shell_surface_set_maximized(WlFuncs* api, struct wl_shell_surface* obj, struct wl_output* output);
-void wl_shell_surface_set_title(WlFuncs* api, struct wl_shell_surface* obj, const char* title);
-void wl_shell_surface_set_class(WlFuncs* api, struct wl_shell_surface* obj, const char* class_);
+u32 wl_shell_surface_get_version(const WlFuncs*, struct wl_shell_surface*);
+void wl_shell_surface_destroy(const WlFuncs*, struct wl_shell_surface*);
+void wl_shell_surface_add_listener(const WlFuncs*, struct wl_shell_surface*, const struct wl_shell_surface_listener*, void*);
+void wl_shell_surface_pong(const WlFuncs*, struct wl_shell_surface*, u32 serial);
+void wl_shell_surface_move(const WlFuncs*, struct wl_shell_surface*, struct wl_seat* seat, u32 serial);
+void wl_shell_surface_resize(const WlFuncs*, struct wl_shell_surface*, struct wl_seat* seat, u32 serial, u32 edges);
+void wl_shell_surface_set_toplevel(const WlFuncs*, struct wl_shell_surface*);
+void wl_shell_surface_set_transient(const WlFuncs*, struct wl_shell_surface*, struct wl_surface* parent, i32 x, i32 y, u32 flags);
+void wl_shell_surface_set_fullscreen(const WlFuncs*, struct wl_shell_surface*, u32 method, u32 framerate, struct wl_output* output);
+void wl_shell_surface_set_popup(const WlFuncs*, struct wl_shell_surface*, struct wl_seat* seat, u32 serial, struct wl_surface* parent, i32 x, i32 y, u32 flags);
+void wl_shell_surface_set_maximized(const WlFuncs*, struct wl_shell_surface*, struct wl_output* output);
+void wl_shell_surface_set_title(const WlFuncs*, struct wl_shell_surface*, const char* title);
+void wl_shell_surface_set_class(const WlFuncs*, struct wl_shell_surface*, const char* class_);
 
 enum wl_surface_error {
   WL_SURFACE_ERROR_INVALID_SCALE = 0,
@@ -527,26 +519,26 @@ struct wl_surface_listener {
   void (*preferred_buffer_transform)(void* data, struct wl_surface*, u32 transform);
 };
 
-u32 wl_surface_get_version(WlFuncs* api, struct wl_surface* obj);
-void wl_surface_add_listener(WlFuncs* api, struct wl_surface* obj, const struct wl_surface_listener* listener, void* data);
-
-void wl_surface_destroy(WlFuncs* api, struct wl_surface* obj);
-void wl_surface_attach(WlFuncs* api, struct wl_surface* obj, struct wl_buffer* buffer, i32 x, i32 y);
-void wl_surface_damage(WlFuncs* api, struct wl_surface* obj, i32 x, i32 y, i32 width, i32 height);
-struct wl_callback* wl_surface_frame(WlFuncs* api, struct wl_surface* obj);
-void wl_surface_set_opaque_region(WlFuncs* api, struct wl_surface* obj, struct wl_region* region);
-void wl_surface_set_input_region(WlFuncs* api, struct wl_surface* obj, struct wl_region* region);
-void wl_surface_commit(WlFuncs* api, struct wl_surface* obj);
-void wl_surface_set_buffer_transform(WlFuncs* api, struct wl_surface* obj, i32 transform);
-void wl_surface_set_buffer_scale(WlFuncs* api, struct wl_surface* obj, i32 scale);
-void wl_surface_damage_buffer(WlFuncs* api, struct wl_surface* obj, i32 x, i32 y, i32 width, i32 height);
-void wl_surface_offset(WlFuncs* api, struct wl_surface* obj, i32 x, i32 y);
+u32 wl_surface_get_version(const WlFuncs*, struct wl_surface*);
+void wl_surface_add_listener(const WlFuncs*, struct wl_surface*, const struct wl_surface_listener*, void*);
+void wl_surface_destroy(const WlFuncs*, struct wl_surface*);
+void wl_surface_attach(const WlFuncs*, struct wl_surface*, struct wl_buffer* buffer, i32 x, i32 y);
+void wl_surface_damage(const WlFuncs*, struct wl_surface*, i32 x, i32 y, i32 width, i32 height);
+struct wl_callback* wl_surface_frame(const WlFuncs*, struct wl_surface*);
+void wl_surface_set_opaque_region(const WlFuncs*, struct wl_surface*, struct wl_region* region);
+void wl_surface_set_input_region(const WlFuncs*, struct wl_surface*, struct wl_region* region);
+void wl_surface_commit(const WlFuncs*, struct wl_surface*);
+void wl_surface_set_buffer_transform(const WlFuncs*, struct wl_surface*, i32 transform);
+void wl_surface_set_buffer_scale(const WlFuncs*, struct wl_surface*, i32 scale);
+void wl_surface_damage_buffer(const WlFuncs*, struct wl_surface*, i32 x, i32 y, i32 width, i32 height);
+void wl_surface_offset(const WlFuncs*, struct wl_surface*, i32 x, i32 y);
 
 enum wl_seat_capability {
   WL_SEAT_CAPABILITY_POINTER = 1,
   WL_SEAT_CAPABILITY_KEYBOARD = 2,
   WL_SEAT_CAPABILITY_TOUCH = 4,
 };
+
 enum wl_seat_error {
   WL_SEAT_ERROR_MISSING_CAPABILITY = 0,
 };
@@ -561,31 +553,34 @@ struct wl_seat_listener {
   void (*name)(void* data, struct wl_seat*, const char* name);
 };
 
-u32 wl_seat_get_version(WlFuncs* api, struct wl_seat* obj);
-void wl_seat_add_listener(WlFuncs* api, struct wl_seat* obj, const struct wl_seat_listener* listener, void* data);
-
-struct wl_pointer* wl_seat_get_pointer(WlFuncs* api, struct wl_seat* obj);
-struct wl_keyboard* wl_seat_get_keyboard(WlFuncs* api, struct wl_seat* obj);
-struct wl_touch* wl_seat_get_touch(WlFuncs* api, struct wl_seat* obj);
-void wl_seat_release(WlFuncs* api, struct wl_seat* obj);
+u32 wl_seat_get_version(const WlFuncs*, struct wl_seat*);
+void wl_seat_add_listener(const WlFuncs*, struct wl_seat*, const struct wl_seat_listener*, void*);
+struct wl_pointer* wl_seat_get_pointer(const WlFuncs*, struct wl_seat*);
+struct wl_keyboard* wl_seat_get_keyboard(const WlFuncs*, struct wl_seat*);
+struct wl_touch* wl_seat_get_touch(const WlFuncs*, struct wl_seat*);
+void wl_seat_release(const WlFuncs*, struct wl_seat*);
 
 enum wl_pointer_error {
   WL_POINTER_ERROR_ROLE = 0,
 };
+
 enum wl_pointer_button_state {
   WL_POINTER_BUTTON_STATE_RELEASED = 0,
   WL_POINTER_BUTTON_STATE_PRESSED = 1,
 };
+
 enum wl_pointer_axis {
   WL_POINTER_AXIS_VERTICAL_SCROLL = 0,
   WL_POINTER_AXIS_HORIZONTAL_SCROLL = 1,
 };
+
 enum wl_pointer_axis_source {
   WL_POINTER_AXIS_SOURCE_WHEEL = 0,
   WL_POINTER_AXIS_SOURCE_FINGER = 1,
   WL_POINTER_AXIS_SOURCE_CONTINUOUS = 2,
   WL_POINTER_AXIS_SOURCE_WHEEL_TILT = 3,
 };
+
 enum wl_pointer_axis_relative_direction {
   WL_POINTER_AXIS_RELATIVE_DIRECTION_IDENTICAL = 0,
   WL_POINTER_AXIS_RELATIVE_DIRECTION_INVERTED = 1,
@@ -608,16 +603,16 @@ struct wl_pointer_listener {
   void (*axis_relative_direction)(void* data, struct wl_pointer*, u32 axis, u32 direction);
 };
 
-u32 wl_pointer_get_version(WlFuncs* api, struct wl_pointer* obj);
-void wl_pointer_add_listener(WlFuncs* api, struct wl_pointer* obj, const struct wl_pointer_listener* listener, void* data);
-
-void wl_pointer_set_cursor(WlFuncs* api, struct wl_pointer* obj, u32 serial, struct wl_surface* surface, i32 hotspot_x, i32 hotspot_y);
-void wl_pointer_release(WlFuncs* api, struct wl_pointer* obj);
+u32 wl_pointer_get_version(const WlFuncs*, struct wl_pointer*);
+void wl_pointer_add_listener(const WlFuncs*, struct wl_pointer*, const struct wl_pointer_listener*, void*);
+void wl_pointer_set_cursor(const WlFuncs*, struct wl_pointer*, u32 serial, struct wl_surface* surface, i32 hotspot_x, i32 hotspot_y);
+void wl_pointer_release(const WlFuncs*, struct wl_pointer*);
 
 enum wl_keyboard_keymap_format {
   WL_KEYBOARD_KEYMAP_FORMAT_NO_KEYMAP = 0,
   WL_KEYBOARD_KEYMAP_FORMAT_XKB_V1 = 1,
 };
+
 enum wl_keyboard_key_state {
   WL_KEYBOARD_KEY_STATE_RELEASED = 0,
   WL_KEYBOARD_KEY_STATE_PRESSED = 1,
@@ -635,10 +630,9 @@ struct wl_keyboard_listener {
   void (*repeat_info)(void* data, struct wl_keyboard*, i32 rate, i32 delay);
 };
 
-u32 wl_keyboard_get_version(WlFuncs* api, struct wl_keyboard* obj);
-void wl_keyboard_add_listener(WlFuncs* api, struct wl_keyboard* obj, const struct wl_keyboard_listener* listener, void* data);
-
-void wl_keyboard_release(WlFuncs* api, struct wl_keyboard* obj);
+u32 wl_keyboard_get_version(const WlFuncs*, struct wl_keyboard*);
+void wl_keyboard_add_listener(const WlFuncs*, struct wl_keyboard*, const struct wl_keyboard_listener*, void*);
+void wl_keyboard_release(const WlFuncs*, struct wl_keyboard*);
 
 #define WL_TOUCH_RELEASE 0
 
@@ -652,10 +646,9 @@ struct wl_touch_listener {
   void (*orientation)(void* data, struct wl_touch*, i32 id, WlFixed orientation);
 };
 
-u32 wl_touch_get_version(WlFuncs* api, struct wl_touch* obj);
-void wl_touch_add_listener(WlFuncs* api, struct wl_touch* obj, const struct wl_touch_listener* listener, void* data);
-
-void wl_touch_release(WlFuncs* api, struct wl_touch* obj);
+u32 wl_touch_get_version(const WlFuncs*, struct wl_touch*);
+void wl_touch_add_listener(const WlFuncs*, struct wl_touch*, const struct wl_touch_listener*, void*);
+void wl_touch_release(const WlFuncs*, struct wl_touch*);
 
 enum wl_output_subpixel {
   WL_OUTPUT_SUBPIXEL_UNKNOWN = 0,
@@ -665,6 +658,7 @@ enum wl_output_subpixel {
   WL_OUTPUT_SUBPIXEL_VERTICAL_RGB = 4,
   WL_OUTPUT_SUBPIXEL_VERTICAL_BGR = 5,
 };
+
 enum wl_output_transform {
   WL_OUTPUT_TRANSFORM_NORMAL = 0,
   WL_OUTPUT_TRANSFORM_90 = 1,
@@ -675,6 +669,7 @@ enum wl_output_transform {
   WL_OUTPUT_TRANSFORM_FLIPPED_180 = 6,
   WL_OUTPUT_TRANSFORM_FLIPPED_270 = 7,
 };
+
 enum wl_output_mode {
   WL_OUTPUT_MODE_CURRENT = 1,
   WL_OUTPUT_MODE_PREFERRED = 2,
@@ -691,20 +686,18 @@ struct wl_output_listener {
   void (*description)(void* data, struct wl_output*, const char* description);
 };
 
-u32 wl_output_get_version(WlFuncs* api, struct wl_output* obj);
-void wl_output_add_listener(WlFuncs* api, struct wl_output* obj, const struct wl_output_listener* listener, void* data);
-
-void wl_output_release(WlFuncs* api, struct wl_output* obj);
+u32 wl_output_get_version(const WlFuncs*, struct wl_output*);
+void wl_output_add_listener(const WlFuncs*, struct wl_output*, const struct wl_output_listener*, void*);
+void wl_output_release(const WlFuncs*, struct wl_output*);
 
 #define WL_REGION_DESTROY 0
 #define WL_REGION_ADD 1
 #define WL_REGION_SUBTRACT 2
 
-u32 wl_region_get_version(WlFuncs* api, struct wl_region* obj);
-
-void wl_region_destroy(WlFuncs* api, struct wl_region* obj);
-void wl_region_add(WlFuncs* api, struct wl_region* obj, i32 x, i32 y, i32 width, i32 height);
-void wl_region_subtract(WlFuncs* api, struct wl_region* obj, i32 x, i32 y, i32 width, i32 height);
+u32 wl_region_get_version(const WlFuncs*, struct wl_region*);
+void wl_region_destroy(const WlFuncs*, struct wl_region*);
+void wl_region_add(const WlFuncs*, struct wl_region*, i32 x, i32 y, i32 width, i32 height);
+void wl_region_subtract(const WlFuncs*, struct wl_region*, i32 x, i32 y, i32 width, i32 height);
 
 enum wl_subcompositor_error {
   WL_SUBCOMPOSITOR_ERROR_BAD_SURFACE = 0,
@@ -714,10 +707,9 @@ enum wl_subcompositor_error {
 #define WL_SUBCOMPOSITOR_DESTROY 0
 #define WL_SUBCOMPOSITOR_GET_SUBSURFACE 1
 
-u32 wl_subcompositor_get_version(WlFuncs* api, struct wl_subcompositor* obj);
-
-void wl_subcompositor_destroy(WlFuncs* api, struct wl_subcompositor* obj);
-struct wl_subsurface* wl_subcompositor_get_subsurface(WlFuncs* api, struct wl_subcompositor* obj, struct wl_surface* surface, struct wl_surface* parent);
+u32 wl_subcompositor_get_version(const WlFuncs*, struct wl_subcompositor*);
+void wl_subcompositor_destroy(const WlFuncs*, struct wl_subcompositor*);
+struct wl_subsurface* wl_subcompositor_get_subsurface(const WlFuncs*, struct wl_subcompositor*, struct wl_surface* surface, struct wl_surface* parent);
 
 enum wl_subsurface_error {
   WL_SUBSURFACE_ERROR_BAD_SURFACE = 0,
@@ -730,22 +722,20 @@ enum wl_subsurface_error {
 #define WL_SUBSURFACE_SET_SYNC 4
 #define WL_SUBSURFACE_SET_DESYNC 5
 
-u32 wl_subsurface_get_version(WlFuncs* api, struct wl_subsurface* obj);
-
-void wl_subsurface_destroy(WlFuncs* api, struct wl_subsurface* obj);
-void wl_subsurface_set_position(WlFuncs* api, struct wl_subsurface* obj, i32 x, i32 y);
-void wl_subsurface_place_above(WlFuncs* api, struct wl_subsurface* obj, struct wl_surface* sibling);
-void wl_subsurface_place_below(WlFuncs* api, struct wl_subsurface* obj, struct wl_surface* sibling);
-void wl_subsurface_set_sync(WlFuncs* api, struct wl_subsurface* obj);
-void wl_subsurface_set_desync(WlFuncs* api, struct wl_subsurface* obj);
+u32 wl_subsurface_get_version(const WlFuncs*, struct wl_subsurface*);
+void wl_subsurface_destroy(const WlFuncs*, struct wl_subsurface*);
+void wl_subsurface_set_position(const WlFuncs*, struct wl_subsurface*, i32 x, i32 y);
+void wl_subsurface_place_above(const WlFuncs*, struct wl_subsurface*, struct wl_surface* sibling);
+void wl_subsurface_place_below(const WlFuncs*, struct wl_subsurface*, struct wl_surface* sibling);
+void wl_subsurface_set_sync(const WlFuncs*, struct wl_subsurface*);
+void wl_subsurface_set_desync(const WlFuncs*, struct wl_subsurface*);
 
 #define WL_FIXES_DESTROY 0
 #define WL_FIXES_DESTROY_REGISTRY 1
 
-u32 wl_fixes_get_version(WlFuncs* api, struct wl_fixes* obj);
-
-void wl_fixes_destroy(WlFuncs* api, struct wl_fixes* obj);
-void wl_fixes_destroy_registry(WlFuncs* api, struct wl_fixes* obj, struct wl_registry* registry);
+u32 wl_fixes_get_version(const WlFuncs*, struct wl_fixes*);
+void wl_fixes_destroy(const WlFuncs*, struct wl_fixes*);
+void wl_fixes_destroy_registry(const WlFuncs*, struct wl_fixes*, struct wl_registry* registry);
 
 enum xdg_wm_base_error {
   XDG_WM_BASE_ERROR_ROLE = 0,
@@ -766,17 +756,17 @@ struct xdg_wm_base_listener {
   void (*ping)(void* data, struct xdg_wm_base*, u32 serial);
 };
 
-u32 xdg_wm_base_get_version(WlFuncs* api, struct xdg_wm_base* obj);
-void xdg_wm_base_add_listener(WlFuncs* api, struct xdg_wm_base* obj, const struct xdg_wm_base_listener* listener, void* data);
-
-void xdg_wm_base_destroy(WlFuncs* api, struct xdg_wm_base* obj);
-struct xdg_positioner* xdg_wm_base_create_positioner(WlFuncs* api, struct xdg_wm_base* obj);
-struct xdg_surface* xdg_wm_base_get_xdg_surface(WlFuncs* api, struct xdg_wm_base* obj, struct wl_surface* surface);
-void xdg_wm_base_pong(WlFuncs* api, struct xdg_wm_base* obj, u32 serial);
+u32 xdg_wm_base_get_version(const WlFuncs*, struct xdg_wm_base*);
+void xdg_wm_base_add_listener(const WlFuncs*, struct xdg_wm_base*, const struct xdg_wm_base_listener*, void*);
+void xdg_wm_base_destroy(const WlFuncs*, struct xdg_wm_base*);
+struct xdg_positioner* xdg_wm_base_create_positioner(const WlFuncs*, struct xdg_wm_base*);
+struct xdg_surface* xdg_wm_base_get_xdg_surface(const WlFuncs*, struct xdg_wm_base*, struct wl_surface* surface);
+void xdg_wm_base_pong(const WlFuncs*, struct xdg_wm_base*, u32 serial);
 
 enum xdg_positioner_error {
   XDG_POSITIONER_ERROR_INVALID_INPUT = 0,
 };
+
 enum xdg_positioner_anchor {
   XDG_POSITIONER_ANCHOR_NONE = 0,
   XDG_POSITIONER_ANCHOR_TOP = 1,
@@ -788,6 +778,7 @@ enum xdg_positioner_anchor {
   XDG_POSITIONER_ANCHOR_TOP_RIGHT = 7,
   XDG_POSITIONER_ANCHOR_BOTTOM_RIGHT = 8,
 };
+
 enum xdg_positioner_gravity {
   XDG_POSITIONER_GRAVITY_NONE = 0,
   XDG_POSITIONER_GRAVITY_TOP = 1,
@@ -799,6 +790,7 @@ enum xdg_positioner_gravity {
   XDG_POSITIONER_GRAVITY_TOP_RIGHT = 7,
   XDG_POSITIONER_GRAVITY_BOTTOM_RIGHT = 8,
 };
+
 enum xdg_positioner_constraint_adjustment {
   XDG_POSITIONER_CONSTRAINT_ADJUSTMENT_NONE = 0,
   XDG_POSITIONER_CONSTRAINT_ADJUSTMENT_SLIDE_X = 1,
@@ -820,18 +812,17 @@ enum xdg_positioner_constraint_adjustment {
 #define XDG_POSITIONER_SET_PARENT_SIZE 8
 #define XDG_POSITIONER_SET_PARENT_CONFIGURE 9
 
-u32 xdg_positioner_get_version(WlFuncs* api, struct xdg_positioner* obj);
-
-void xdg_positioner_destroy(WlFuncs* api, struct xdg_positioner* obj);
-void xdg_positioner_set_size(WlFuncs* api, struct xdg_positioner* obj, i32 width, i32 height);
-void xdg_positioner_set_anchor_rect(WlFuncs* api, struct xdg_positioner* obj, i32 x, i32 y, i32 width, i32 height);
-void xdg_positioner_set_anchor(WlFuncs* api, struct xdg_positioner* obj, u32 anchor);
-void xdg_positioner_set_gravity(WlFuncs* api, struct xdg_positioner* obj, u32 gravity);
-void xdg_positioner_set_constraint_adjustment(WlFuncs* api, struct xdg_positioner* obj, u32 constraint_adjustment);
-void xdg_positioner_set_offset(WlFuncs* api, struct xdg_positioner* obj, i32 x, i32 y);
-void xdg_positioner_set_reactive(WlFuncs* api, struct xdg_positioner* obj);
-void xdg_positioner_set_parent_size(WlFuncs* api, struct xdg_positioner* obj, i32 parent_width, i32 parent_height);
-void xdg_positioner_set_parent_configure(WlFuncs* api, struct xdg_positioner* obj, u32 serial);
+u32 xdg_positioner_get_version(const WlFuncs*, struct xdg_positioner*);
+void xdg_positioner_destroy(const WlFuncs*, struct xdg_positioner*);
+void xdg_positioner_set_size(const WlFuncs*, struct xdg_positioner*, i32 width, i32 height);
+void xdg_positioner_set_anchor_rect(const WlFuncs*, struct xdg_positioner*, i32 x, i32 y, i32 width, i32 height);
+void xdg_positioner_set_anchor(const WlFuncs*, struct xdg_positioner*, u32 anchor);
+void xdg_positioner_set_gravity(const WlFuncs*, struct xdg_positioner*, u32 gravity);
+void xdg_positioner_set_constraint_adjustment(const WlFuncs*, struct xdg_positioner*, u32 constraint_adjustment);
+void xdg_positioner_set_offset(const WlFuncs*, struct xdg_positioner*, i32 x, i32 y);
+void xdg_positioner_set_reactive(const WlFuncs*, struct xdg_positioner*);
+void xdg_positioner_set_parent_size(const WlFuncs*, struct xdg_positioner*, i32 parent_width, i32 parent_height);
+void xdg_positioner_set_parent_configure(const WlFuncs*, struct xdg_positioner*, u32 serial);
 
 enum xdg_surface_error {
   XDG_SURFACE_ERROR_NOT_CONSTRUCTED = 1,
@@ -852,20 +843,20 @@ struct xdg_surface_listener {
   void (*configure)(void* data, struct xdg_surface*, u32 serial);
 };
 
-u32 xdg_surface_get_version(WlFuncs* api, struct xdg_surface* obj);
-void xdg_surface_add_listener(WlFuncs* api, struct xdg_surface* obj, const struct xdg_surface_listener* listener, void* data);
-
-void xdg_surface_destroy(WlFuncs* api, struct xdg_surface* obj);
-struct xdg_toplevel* xdg_surface_get_toplevel(WlFuncs* api, struct xdg_surface* obj);
-struct xdg_popup* xdg_surface_get_popup(WlFuncs* api, struct xdg_surface* obj, struct xdg_surface* parent, struct xdg_positioner* positioner);
-void xdg_surface_set_window_geometry(WlFuncs* api, struct xdg_surface* obj, i32 x, i32 y, i32 width, i32 height);
-void xdg_surface_ack_configure(WlFuncs* api, struct xdg_surface* obj, u32 serial);
+u32 xdg_surface_get_version(const WlFuncs*, struct xdg_surface*);
+void xdg_surface_add_listener(const WlFuncs*, struct xdg_surface*, const struct xdg_surface_listener*, void*);
+void xdg_surface_destroy(const WlFuncs*, struct xdg_surface*);
+struct xdg_toplevel* xdg_surface_get_toplevel(const WlFuncs*, struct xdg_surface*);
+struct xdg_popup* xdg_surface_get_popup(const WlFuncs*, struct xdg_surface*, struct xdg_surface* parent, struct xdg_positioner* positioner);
+void xdg_surface_set_window_geometry(const WlFuncs*, struct xdg_surface*, i32 x, i32 y, i32 width, i32 height);
+void xdg_surface_ack_configure(const WlFuncs*, struct xdg_surface*, u32 serial);
 
 enum xdg_toplevel_error {
   XDG_TOPLEVEL_ERROR_INVALID_RESIZE_EDGE = 0,
   XDG_TOPLEVEL_ERROR_INVALID_PARENT = 1,
   XDG_TOPLEVEL_ERROR_INVALID_SIZE = 2,
 };
+
 enum xdg_toplevel_resize_edge {
   XDG_TOPLEVEL_RESIZE_EDGE_NONE = 0,
   XDG_TOPLEVEL_RESIZE_EDGE_TOP = 1,
@@ -877,6 +868,7 @@ enum xdg_toplevel_resize_edge {
   XDG_TOPLEVEL_RESIZE_EDGE_TOP_RIGHT = 9,
   XDG_TOPLEVEL_RESIZE_EDGE_BOTTOM_RIGHT = 10,
 };
+
 enum xdg_toplevel_state {
   XDG_TOPLEVEL_STATE_MAXIMIZED = 1,
   XDG_TOPLEVEL_STATE_FULLSCREEN = 2,
@@ -892,6 +884,7 @@ enum xdg_toplevel_state {
   XDG_TOPLEVEL_STATE_CONSTRAINED_TOP = 12,
   XDG_TOPLEVEL_STATE_CONSTRAINED_BOTTOM = 13,
 };
+
 enum xdg_toplevel_wm_capabilities {
   XDG_TOPLEVEL_WM_CAPABILITIES_WINDOW_MENU = 1,
   XDG_TOPLEVEL_WM_CAPABILITIES_MAXIMIZE = 2,
@@ -921,23 +914,22 @@ struct xdg_toplevel_listener {
   void (*wm_capabilities)(void* data, struct xdg_toplevel*, struct wl_array* capabilities);
 };
 
-u32 xdg_toplevel_get_version(WlFuncs* api, struct xdg_toplevel* obj);
-void xdg_toplevel_add_listener(WlFuncs* api, struct xdg_toplevel* obj, const struct xdg_toplevel_listener* listener, void* data);
-
-void xdg_toplevel_destroy(WlFuncs* api, struct xdg_toplevel* obj);
-void xdg_toplevel_set_parent(WlFuncs* api, struct xdg_toplevel* obj, struct xdg_toplevel* parent);
-void xdg_toplevel_set_title(WlFuncs* api, struct xdg_toplevel* obj, const char* title);
-void xdg_toplevel_set_app_id(WlFuncs* api, struct xdg_toplevel* obj, const char* app_id);
-void xdg_toplevel_show_window_menu(WlFuncs* api, struct xdg_toplevel* obj, struct wl_seat* seat, u32 serial, i32 x, i32 y);
-void xdg_toplevel_move(WlFuncs* api, struct xdg_toplevel* obj, struct wl_seat* seat, u32 serial);
-void xdg_toplevel_resize(WlFuncs* api, struct xdg_toplevel* obj, struct wl_seat* seat, u32 serial, u32 edges);
-void xdg_toplevel_set_max_size(WlFuncs* api, struct xdg_toplevel* obj, i32 width, i32 height);
-void xdg_toplevel_set_min_size(WlFuncs* api, struct xdg_toplevel* obj, i32 width, i32 height);
-void xdg_toplevel_set_maximized(WlFuncs* api, struct xdg_toplevel* obj);
-void xdg_toplevel_unset_maximized(WlFuncs* api, struct xdg_toplevel* obj);
-void xdg_toplevel_set_fullscreen(WlFuncs* api, struct xdg_toplevel* obj, struct wl_output* output);
-void xdg_toplevel_unset_fullscreen(WlFuncs* api, struct xdg_toplevel* obj);
-void xdg_toplevel_set_minimized(WlFuncs* api, struct xdg_toplevel* obj);
+u32 xdg_toplevel_get_version(const WlFuncs*, struct xdg_toplevel*);
+void xdg_toplevel_add_listener(const WlFuncs*, struct xdg_toplevel*, const struct xdg_toplevel_listener*, void*);
+void xdg_toplevel_destroy(const WlFuncs*, struct xdg_toplevel*);
+void xdg_toplevel_set_parent(const WlFuncs*, struct xdg_toplevel*, struct xdg_toplevel* parent);
+void xdg_toplevel_set_title(const WlFuncs*, struct xdg_toplevel*, const char* title);
+void xdg_toplevel_set_app_id(const WlFuncs*, struct xdg_toplevel*, const char* app_id);
+void xdg_toplevel_show_window_menu(const WlFuncs*, struct xdg_toplevel*, struct wl_seat* seat, u32 serial, i32 x, i32 y);
+void xdg_toplevel_move(const WlFuncs*, struct xdg_toplevel*, struct wl_seat* seat, u32 serial);
+void xdg_toplevel_resize(const WlFuncs*, struct xdg_toplevel*, struct wl_seat* seat, u32 serial, u32 edges);
+void xdg_toplevel_set_max_size(const WlFuncs*, struct xdg_toplevel*, i32 width, i32 height);
+void xdg_toplevel_set_min_size(const WlFuncs*, struct xdg_toplevel*, i32 width, i32 height);
+void xdg_toplevel_set_maximized(const WlFuncs*, struct xdg_toplevel*);
+void xdg_toplevel_unset_maximized(const WlFuncs*, struct xdg_toplevel*);
+void xdg_toplevel_set_fullscreen(const WlFuncs*, struct xdg_toplevel*, struct wl_output* output);
+void xdg_toplevel_unset_fullscreen(const WlFuncs*, struct xdg_toplevel*);
+void xdg_toplevel_set_minimized(const WlFuncs*, struct xdg_toplevel*);
 
 enum xdg_popup_error {
   XDG_POPUP_ERROR_INVALID_GRAB = 0,
@@ -953,12 +945,11 @@ struct xdg_popup_listener {
   void (*repositioned)(void* data, struct xdg_popup*, u32 token);
 };
 
-u32 xdg_popup_get_version(WlFuncs* api, struct xdg_popup* obj);
-void xdg_popup_add_listener(WlFuncs* api, struct xdg_popup* obj, const struct xdg_popup_listener* listener, void* data);
-
-void xdg_popup_destroy(WlFuncs* api, struct xdg_popup* obj);
-void xdg_popup_grab(WlFuncs* api, struct xdg_popup* obj, struct wl_seat* seat, u32 serial);
-void xdg_popup_reposition(WlFuncs* api, struct xdg_popup* obj, struct xdg_positioner* positioner, u32 token);
+u32 xdg_popup_get_version(const WlFuncs*, struct xdg_popup*);
+void xdg_popup_add_listener(const WlFuncs*, struct xdg_popup*, const struct xdg_popup_listener*, void*);
+void xdg_popup_destroy(const WlFuncs*, struct xdg_popup*);
+void xdg_popup_grab(const WlFuncs*, struct xdg_popup*, struct wl_seat* seat, u32 serial);
+void xdg_popup_reposition(const WlFuncs*, struct xdg_popup*, struct xdg_positioner* positioner, u32 token);
 
 enum wp_viewporter_error {
   WP_VIEWPORTER_ERROR_VIEWPORT_EXISTS = 0,
@@ -967,10 +958,9 @@ enum wp_viewporter_error {
 #define WP_VIEWPORTER_DESTROY 0
 #define WP_VIEWPORTER_GET_VIEWPORT 1
 
-u32 wp_viewporter_get_version(WlFuncs* api, struct wp_viewporter* obj);
-
-void wp_viewporter_destroy(WlFuncs* api, struct wp_viewporter* obj);
-struct wp_viewport* wp_viewporter_get_viewport(WlFuncs* api, struct wp_viewporter* obj, struct wl_surface* surface);
+u32 wp_viewporter_get_version(const WlFuncs*, struct wp_viewporter*);
+void wp_viewporter_destroy(const WlFuncs*, struct wp_viewporter*);
+struct wp_viewport* wp_viewporter_get_viewport(const WlFuncs*, struct wp_viewporter*, struct wl_surface* surface);
 
 enum wp_viewport_error {
   WP_VIEWPORT_ERROR_BAD_VALUE = 0,
@@ -983,11 +973,10 @@ enum wp_viewport_error {
 #define WP_VIEWPORT_SET_SOURCE 1
 #define WP_VIEWPORT_SET_DESTINATION 2
 
-u32 wp_viewport_get_version(WlFuncs* api, struct wp_viewport* obj);
-
-void wp_viewport_destroy(WlFuncs* api, struct wp_viewport* obj);
-void wp_viewport_set_source(WlFuncs* api, struct wp_viewport* obj, WlFixed x, WlFixed y, WlFixed width, WlFixed height);
-void wp_viewport_set_destination(WlFuncs* api, struct wp_viewport* obj, i32 width, i32 height);
+u32 wp_viewport_get_version(const WlFuncs*, struct wp_viewport*);
+void wp_viewport_destroy(const WlFuncs*, struct wp_viewport*);
+void wp_viewport_set_source(const WlFuncs*, struct wp_viewport*, WlFixed x, WlFixed y, WlFixed width, WlFixed height);
+void wp_viewport_set_destination(const WlFuncs*, struct wp_viewport*, i32 width, i32 height);
 
 enum wp_fractional_scale_manager_v1_error {
   WP_FRACTIONAL_SCALE_MANAGER_V1_ERROR_FRACTIONAL_SCALE_EXISTS = 0,
@@ -996,10 +985,9 @@ enum wp_fractional_scale_manager_v1_error {
 #define WP_FRACTIONAL_SCALE_MANAGER_V1_DESTROY 0
 #define WP_FRACTIONAL_SCALE_MANAGER_V1_GET_FRACTIONAL_SCALE 1
 
-u32 wp_fractional_scale_manager_v1_get_version(WlFuncs* api, struct wp_fractional_scale_manager_v1* obj);
-
-void wp_fractional_scale_manager_v1_destroy(WlFuncs* api, struct wp_fractional_scale_manager_v1* obj);
-struct wp_fractional_scale_v1* wp_fractional_scale_manager_v1_get_fractional_scale(WlFuncs* api, struct wp_fractional_scale_manager_v1* obj, struct wl_surface* surface);
+u32 wp_fractional_scale_manager_v1_get_version(const WlFuncs*, struct wp_fractional_scale_manager_v1*);
+void wp_fractional_scale_manager_v1_destroy(const WlFuncs*, struct wp_fractional_scale_manager_v1*);
+struct wp_fractional_scale_v1* wp_fractional_scale_manager_v1_get_fractional_scale(const WlFuncs*, struct wp_fractional_scale_manager_v1*, struct wl_surface* surface);
 
 #define WP_FRACTIONAL_SCALE_V1_DESTROY 0
 
@@ -1007,9 +995,8 @@ struct wp_fractional_scale_v1_listener {
   void (*preferred_scale)(void* data, struct wp_fractional_scale_v1*, u32 scale);
 };
 
-u32 wp_fractional_scale_v1_get_version(WlFuncs* api, struct wp_fractional_scale_v1* obj);
-void wp_fractional_scale_v1_add_listener(WlFuncs* api, struct wp_fractional_scale_v1* obj, const struct wp_fractional_scale_v1_listener* listener, void* data);
-
-void wp_fractional_scale_v1_destroy(WlFuncs* api, struct wp_fractional_scale_v1* obj);
+u32 wp_fractional_scale_v1_get_version(const WlFuncs*, struct wp_fractional_scale_v1*);
+void wp_fractional_scale_v1_add_listener(const WlFuncs*, struct wp_fractional_scale_v1*, const struct wp_fractional_scale_v1_listener*, void*);
+void wp_fractional_scale_v1_destroy(const WlFuncs*, struct wp_fractional_scale_v1*);
 
 // clang-format on

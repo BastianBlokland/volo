@@ -320,10 +320,7 @@ static void wlgen_write_header_iface(WlGenContext* ctx, XmlDoc* doc, const XmlNo
       wlgen_write_upper3(&ctx->out, ifaceName, enumName, entryName);
       fmt_write(&ctx->out, " = {},\n", fmt_int(value));
     }
-    fmt_write(&ctx->out, "};\n");
-  }
-  if (hasEnum) {
-    fmt_write(&ctx->out, "\n");
+    fmt_write(&ctx->out, "};\n\n");
   }
 
   // Request opcodes.
@@ -388,34 +385,32 @@ WriteWrappers:;
     }
   }
 
-  fmt_write(&ctx->out, "u32 {}_get_version(WlFuncs* api, struct {}* obj)", fmt_text(ifaceName), fmt_text(ifaceName));
   if (headerOnly) {
-    fmt_write(&ctx->out, ";\n");
+    fmt_write(&ctx->out, "u32 {}_get_version(const WlFuncs*, struct {}*);\n", fmt_text(ifaceName), fmt_text(ifaceName));
   } else {
+    fmt_write(&ctx->out, "u32 {}_get_version(const WlFuncs* api, struct {}* obj)", fmt_text(ifaceName), fmt_text(ifaceName));
     dynstring_append(&ctx->out, string_lit(" {\n  return api->proxy_get_version((struct wl_proxy*)obj);\n}\n"));
   }
 
   // wl_display is disconnected via display_disconnect, not proxy_destroy.
   const bool isDisplay = string_eq(ifaceName, string_lit("wl_display"));
   if (!hasDestructor && !isDisplay) {
-    fmt_write(&ctx->out, "void {}_destroy(WlFuncs* api, struct {}* obj)", fmt_text(ifaceName), fmt_text(ifaceName));
     if (headerOnly) {
-      fmt_write(&ctx->out, ";\n");
+      fmt_write(&ctx->out, "void {}_destroy(const WlFuncs*, struct {}*);\n", fmt_text(ifaceName), fmt_text(ifaceName));
     } else {
+      fmt_write(&ctx->out, "void {}_destroy(const WlFuncs* api, struct {}* obj)", fmt_text(ifaceName), fmt_text(ifaceName));
       dynstring_append(&ctx->out, string_lit(" {\n  api->proxy_destroy((struct wl_proxy*)obj);\n}\n"));
     }
   }
 
   if (hasEvents) {
-    fmt_write(&ctx->out, "void {}_add_listener(WlFuncs* api, struct {}* obj, const struct {}_listener* listener, void* data)", fmt_text(ifaceName), fmt_text(ifaceName), fmt_text(ifaceName));
     if (headerOnly) {
-      fmt_write(&ctx->out, ";\n");
+      fmt_write(&ctx->out, "void {}_add_listener(const WlFuncs*, struct {}*, const struct {}_listener*, void*);\n", fmt_text(ifaceName), fmt_text(ifaceName), fmt_text(ifaceName));
     } else {
+      fmt_write(&ctx->out, "void {}_add_listener(const WlFuncs* api, struct {}* obj, const struct {}_listener* listener, void* data)", fmt_text(ifaceName), fmt_text(ifaceName), fmt_text(ifaceName));
       dynstring_append(&ctx->out, string_lit(" {\n  api->proxy_add_listener((struct wl_proxy*)obj, (void(**)(void))listener, data);\n}\n"));
     }
   }
-
-  fmt_write(&ctx->out, "\n");
 
   // Request wrappers (declarations or definitions depending on headerOnly).
   bool hasWrapper = false;
@@ -461,7 +456,11 @@ WriteWrappers:;
       fmt_write(&ctx->out, "void ");
     }
     fmt_write(&ctx->out, "{}_{}", fmt_text(ifaceName), fmt_text(reqName));
-    fmt_write(&ctx->out, "(WlFuncs* api, struct {}* obj", fmt_text(ifaceName));
+    if (headerOnly) {
+      fmt_write(&ctx->out, "(const WlFuncs*, struct {}*", fmt_text(ifaceName));
+    } else {
+      fmt_write(&ctx->out, "(const WlFuncs* api, struct {}* obj", fmt_text(ifaceName));
+    }
     xml_for_children(doc, child, argNode) {
       if (xml_name_hash(doc, argNode) != g_hash_arg) {
         continue;
@@ -469,10 +468,9 @@ WriteWrappers:;
       if (string_eq(xml_attr_get(doc, argNode, g_hash_type), g_wlArgTypeNewId)) {
         continue; // New_id becomes the return value.
       }
-      const String argName = xml_attr_get(doc, argNode, g_hash_name);
       fmt_write(&ctx->out, ", ");
       wlgen_write_arg_type(ctx, doc, argNode);
-      fmt_write(&ctx->out, " {}", fmt_text(argName));
+      fmt_write(&ctx->out, " {}", fmt_text(xml_attr_get(doc, argNode, g_hash_name)));
     }
 
     if (headerOnly) {
@@ -512,9 +510,7 @@ WriteWrappers:;
     }
     fmt_write(&ctx->out, ");\n}\n");
   }
-  if (hasWrapper) {
-    fmt_write(&ctx->out, "\n");
-  }
+  fmt_write(&ctx->out, "\n");
 }
 
 static void wlgen_write_header_funcs(WlGenContext* ctx) {
@@ -530,12 +526,12 @@ static void wlgen_write_header_funcs(WlGenContext* ctx) {
   fmt_write(&ctx->out, "  int                 (SYS_DECL* display_roundtrip)(struct wl_display*);\n");
   fmt_write(&ctx->out, "  int                 (SYS_DECL* display_flush)(struct wl_display*);\n");
   fmt_write(&ctx->out, "  int                 (SYS_DECL* proxy_add_listener)(struct wl_proxy*, void(**)(void), void*);\n");
-  fmt_write(&ctx->out, "  void*               (SYS_DECL* proxy_marshal_flags)(struct wl_proxy*, u32, const struct wl_interface*, u32, u32, ...);\n");
+  fmt_write(&ctx->out, "  void*               (SYS_DECL* proxy_marshal_flags)(struct wl_proxy*, u32 opcode, const struct wl_interface*, u32 version, u32 flags, ...);\n");
   fmt_write(&ctx->out, "  u32                 (SYS_DECL* proxy_get_version)(struct wl_proxy*);\n");
   fmt_write(&ctx->out, "  void                (SYS_DECL* proxy_destroy)(struct wl_proxy*);\n");
   fmt_write(&ctx->out, "} WlFuncs;\n\n");
-  fmt_write(&ctx->out, "bool wlLoad(const DynLib* lib, WlFuncs* out);\n\n");
-  fmt_write(&ctx->out, "void* wlRegistryBind(WlFuncs*, struct wl_registry*, u32 name, u32 version, const struct wl_interface*, u32 maxVersion);\n\n");
+  fmt_write(&ctx->out, "bool wlLoad(const DynLib*, WlFuncs*);\n\n");
+  fmt_write(&ctx->out, "void* wlRegistryBind(const WlFuncs*, struct wl_registry*, u32 name, u32 version, const struct wl_interface*, u32 maxVersion);\n\n");
 }
 
 static void wlgen_write_header(WlGenContext* ctx) {
@@ -600,7 +596,7 @@ static void wlgen_write_impl_load(WlGenContext* ctx) {
   fmt_write(&ctx->out, "         out->proxy_destroy;\n");
   fmt_write(&ctx->out, "}\n\n");
   fmt_write(&ctx->out, "void* wlRegistryBind(\n");
-  fmt_write(&ctx->out, "    WlFuncs* api, struct wl_registry* registry, u32 name, u32 version,\n");
+  fmt_write(&ctx->out, "    const WlFuncs* api, struct wl_registry* registry, u32 name, u32 version,\n");
   fmt_write(&ctx->out, "    const struct wl_interface* iface, u32 maxVersion) {\n");
   fmt_write(&ctx->out, "  const u32 bindVersion = version < maxVersion ? version : maxVersion;\n");
   fmt_write(&ctx->out, "  return api->proxy_marshal_flags(\n");
