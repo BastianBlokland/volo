@@ -421,7 +421,6 @@ const struct wl_interface wp_viewport_interface = {"wp_viewport", 1, 3, wp_viewp
 const struct wl_interface wp_fractional_scale_manager_v1_interface = {"wp_fractional_scale_manager_v1", 1, 2, wp_fractional_scale_manager_v1_requests, 0, null};
 const struct wl_interface wp_fractional_scale_v1_interface = {"wp_fractional_scale_v1", 1, 1, wp_fractional_scale_v1_requests, 1, wp_fractional_scale_v1_events};
 
-// wl_display - utility wrappers.
 u32 wl_display_get_version(WlFuncs* api, struct wl_display* obj) {
   return api->proxy_get_version((struct wl_proxy*)obj);
 }
@@ -429,7 +428,6 @@ void wl_display_add_listener(WlFuncs* api, struct wl_display* obj, const struct 
   api->proxy_add_listener((struct wl_proxy*)obj, (void(**)(void))listener, data);
 }
 
-// wl_display - request wrappers.
 struct wl_callback* wl_display_sync(WlFuncs* api, struct wl_display* obj) {
   return api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WL_DISPLAY_SYNC, &wl_callback_interface,
@@ -443,7 +441,6 @@ struct wl_registry* wl_display_get_registry(WlFuncs* api, struct wl_display* obj
       0, null);
 }
 
-// wl_registry - utility wrappers.
 u32 wl_registry_get_version(WlFuncs* api, struct wl_registry* obj) {
   return api->proxy_get_version((struct wl_proxy*)obj);
 }
@@ -454,7 +451,6 @@ void wl_registry_add_listener(WlFuncs* api, struct wl_registry* obj, const struc
   api->proxy_add_listener((struct wl_proxy*)obj, (void(**)(void))listener, data);
 }
 
-// wl_callback - utility wrappers.
 u32 wl_callback_get_version(WlFuncs* api, struct wl_callback* obj) {
   return api->proxy_get_version((struct wl_proxy*)obj);
 }
@@ -465,7 +461,6 @@ void wl_callback_add_listener(WlFuncs* api, struct wl_callback* obj, const struc
   api->proxy_add_listener((struct wl_proxy*)obj, (void(**)(void))listener, data);
 }
 
-// wl_compositor - utility wrappers.
 u32 wl_compositor_get_version(WlFuncs* api, struct wl_compositor* obj) {
   return api->proxy_get_version((struct wl_proxy*)obj);
 }
@@ -473,7 +468,6 @@ void wl_compositor_destroy(WlFuncs* api, struct wl_compositor* obj) {
   api->proxy_destroy((struct wl_proxy*)obj);
 }
 
-// wl_compositor - request wrappers.
 struct wl_surface* wl_compositor_create_surface(WlFuncs* api, struct wl_compositor* obj) {
   return api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WL_COMPOSITOR_CREATE_SURFACE, &wl_surface_interface,
@@ -487,12 +481,10 @@ struct wl_region* wl_compositor_create_region(WlFuncs* api, struct wl_compositor
       0, null);
 }
 
-// wl_shm_pool - utility wrappers.
 u32 wl_shm_pool_get_version(WlFuncs* api, struct wl_shm_pool* obj) {
   return api->proxy_get_version((struct wl_proxy*)obj);
 }
 
-// wl_shm_pool - request wrappers.
 struct wl_buffer* wl_shm_pool_create_buffer(WlFuncs* api, struct wl_shm_pool* obj, i32 offset, i32 width, i32 height, i32 stride, u32 format) {
   return api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WL_SHM_POOL_CREATE_BUFFER, &wl_buffer_interface,
@@ -512,7 +504,6 @@ void wl_shm_pool_resize(WlFuncs* api, struct wl_shm_pool* obj, i32 size) {
       0, size);
 }
 
-// wl_shm - utility wrappers.
 u32 wl_shm_get_version(WlFuncs* api, struct wl_shm* obj) {
   return api->proxy_get_version((struct wl_proxy*)obj);
 }
@@ -520,7 +511,6 @@ void wl_shm_add_listener(WlFuncs* api, struct wl_shm* obj, const struct wl_shm_l
   api->proxy_add_listener((struct wl_proxy*)obj, (void(**)(void))listener, data);
 }
 
-// wl_shm - request wrappers.
 struct wl_shm_pool* wl_shm_create_pool(WlFuncs* api, struct wl_shm* obj, i32 fd, i32 size) {
   return api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WL_SHM_CREATE_POOL, &wl_shm_pool_interface,
@@ -534,7 +524,6 @@ void wl_shm_release(WlFuncs* api, struct wl_shm* obj) {
       WL_MARSHAL_FLAG_DESTROY);
 }
 
-// wl_buffer - utility wrappers.
 u32 wl_buffer_get_version(WlFuncs* api, struct wl_buffer* obj) {
   return api->proxy_get_version((struct wl_proxy*)obj);
 }
@@ -542,7 +531,6 @@ void wl_buffer_add_listener(WlFuncs* api, struct wl_buffer* obj, const struct wl
   api->proxy_add_listener((struct wl_proxy*)obj, (void(**)(void))listener, data);
 }
 
-// wl_buffer - request wrappers.
 void wl_buffer_destroy(WlFuncs* api, struct wl_buffer* obj) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WL_BUFFER_DESTROY, null,
@@ -550,7 +538,6 @@ void wl_buffer_destroy(WlFuncs* api, struct wl_buffer* obj) {
       WL_MARSHAL_FLAG_DESTROY);
 }
 
-// wl_data_offer - utility wrappers.
 u32 wl_data_offer_get_version(WlFuncs* api, struct wl_data_offer* obj) {
   return api->proxy_get_version((struct wl_proxy*)obj);
 }
@@ -558,7 +545,6 @@ void wl_data_offer_add_listener(WlFuncs* api, struct wl_data_offer* obj, const s
   api->proxy_add_listener((struct wl_proxy*)obj, (void(**)(void))listener, data);
 }
 
-// wl_data_offer - request wrappers.
 void wl_data_offer_accept(WlFuncs* api, struct wl_data_offer* obj, u32 serial, const char* mime_type) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WL_DATA_OFFER_ACCEPT, null,
@@ -590,7 +576,6 @@ void wl_data_offer_set_actions(WlFuncs* api, struct wl_data_offer* obj, u32 dnd_
       0, dnd_actions, preferred_action);
 }
 
-// wl_data_source - utility wrappers.
 u32 wl_data_source_get_version(WlFuncs* api, struct wl_data_source* obj) {
   return api->proxy_get_version((struct wl_proxy*)obj);
 }
@@ -598,7 +583,6 @@ void wl_data_source_add_listener(WlFuncs* api, struct wl_data_source* obj, const
   api->proxy_add_listener((struct wl_proxy*)obj, (void(**)(void))listener, data);
 }
 
-// wl_data_source - request wrappers.
 void wl_data_source_offer(WlFuncs* api, struct wl_data_source* obj, const char* mime_type) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WL_DATA_SOURCE_OFFER, null,
@@ -618,7 +602,6 @@ void wl_data_source_set_actions(WlFuncs* api, struct wl_data_source* obj, u32 dn
       0, dnd_actions);
 }
 
-// wl_data_device - utility wrappers.
 u32 wl_data_device_get_version(WlFuncs* api, struct wl_data_device* obj) {
   return api->proxy_get_version((struct wl_proxy*)obj);
 }
@@ -626,7 +609,6 @@ void wl_data_device_add_listener(WlFuncs* api, struct wl_data_device* obj, const
   api->proxy_add_listener((struct wl_proxy*)obj, (void(**)(void))listener, data);
 }
 
-// wl_data_device - request wrappers.
 void wl_data_device_start_drag(WlFuncs* api, struct wl_data_device* obj, struct wl_data_source* source, struct wl_surface* origin, struct wl_surface* icon, u32 serial) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WL_DATA_DEVICE_START_DRAG, null,
@@ -646,7 +628,6 @@ void wl_data_device_release(WlFuncs* api, struct wl_data_device* obj) {
       WL_MARSHAL_FLAG_DESTROY);
 }
 
-// wl_data_device_manager - utility wrappers.
 u32 wl_data_device_manager_get_version(WlFuncs* api, struct wl_data_device_manager* obj) {
   return api->proxy_get_version((struct wl_proxy*)obj);
 }
@@ -654,7 +635,6 @@ void wl_data_device_manager_destroy(WlFuncs* api, struct wl_data_device_manager*
   api->proxy_destroy((struct wl_proxy*)obj);
 }
 
-// wl_data_device_manager - request wrappers.
 struct wl_data_source* wl_data_device_manager_create_data_source(WlFuncs* api, struct wl_data_device_manager* obj) {
   return api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WL_DATA_DEVICE_MANAGER_CREATE_DATA_SOURCE, &wl_data_source_interface,
@@ -668,7 +648,6 @@ struct wl_data_device* wl_data_device_manager_get_data_device(WlFuncs* api, stru
       0, null, seat);
 }
 
-// wl_shell - utility wrappers.
 u32 wl_shell_get_version(WlFuncs* api, struct wl_shell* obj) {
   return api->proxy_get_version((struct wl_proxy*)obj);
 }
@@ -676,7 +655,6 @@ void wl_shell_destroy(WlFuncs* api, struct wl_shell* obj) {
   api->proxy_destroy((struct wl_proxy*)obj);
 }
 
-// wl_shell - request wrappers.
 struct wl_shell_surface* wl_shell_get_shell_surface(WlFuncs* api, struct wl_shell* obj, struct wl_surface* surface) {
   return api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WL_SHELL_GET_SHELL_SURFACE, &wl_shell_surface_interface,
@@ -684,7 +662,6 @@ struct wl_shell_surface* wl_shell_get_shell_surface(WlFuncs* api, struct wl_shel
       0, null, surface);
 }
 
-// wl_shell_surface - utility wrappers.
 u32 wl_shell_surface_get_version(WlFuncs* api, struct wl_shell_surface* obj) {
   return api->proxy_get_version((struct wl_proxy*)obj);
 }
@@ -695,7 +672,6 @@ void wl_shell_surface_add_listener(WlFuncs* api, struct wl_shell_surface* obj, c
   api->proxy_add_listener((struct wl_proxy*)obj, (void(**)(void))listener, data);
 }
 
-// wl_shell_surface - request wrappers.
 void wl_shell_surface_pong(WlFuncs* api, struct wl_shell_surface* obj, u32 serial) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WL_SHELL_SURFACE_PONG, null,
@@ -757,7 +733,6 @@ void wl_shell_surface_set_class(WlFuncs* api, struct wl_shell_surface* obj, cons
       0, class_);
 }
 
-// wl_surface - utility wrappers.
 u32 wl_surface_get_version(WlFuncs* api, struct wl_surface* obj) {
   return api->proxy_get_version((struct wl_proxy*)obj);
 }
@@ -765,7 +740,6 @@ void wl_surface_add_listener(WlFuncs* api, struct wl_surface* obj, const struct 
   api->proxy_add_listener((struct wl_proxy*)obj, (void(**)(void))listener, data);
 }
 
-// wl_surface - request wrappers.
 void wl_surface_destroy(WlFuncs* api, struct wl_surface* obj) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WL_SURFACE_DESTROY, null,
@@ -833,7 +807,6 @@ void wl_surface_offset(WlFuncs* api, struct wl_surface* obj, i32 x, i32 y) {
       0, x, y);
 }
 
-// wl_seat - utility wrappers.
 u32 wl_seat_get_version(WlFuncs* api, struct wl_seat* obj) {
   return api->proxy_get_version((struct wl_proxy*)obj);
 }
@@ -841,7 +814,6 @@ void wl_seat_add_listener(WlFuncs* api, struct wl_seat* obj, const struct wl_sea
   api->proxy_add_listener((struct wl_proxy*)obj, (void(**)(void))listener, data);
 }
 
-// wl_seat - request wrappers.
 struct wl_pointer* wl_seat_get_pointer(WlFuncs* api, struct wl_seat* obj) {
   return api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WL_SEAT_GET_POINTER, &wl_pointer_interface,
@@ -867,7 +839,6 @@ void wl_seat_release(WlFuncs* api, struct wl_seat* obj) {
       WL_MARSHAL_FLAG_DESTROY);
 }
 
-// wl_pointer - utility wrappers.
 u32 wl_pointer_get_version(WlFuncs* api, struct wl_pointer* obj) {
   return api->proxy_get_version((struct wl_proxy*)obj);
 }
@@ -875,7 +846,6 @@ void wl_pointer_add_listener(WlFuncs* api, struct wl_pointer* obj, const struct 
   api->proxy_add_listener((struct wl_proxy*)obj, (void(**)(void))listener, data);
 }
 
-// wl_pointer - request wrappers.
 void wl_pointer_set_cursor(WlFuncs* api, struct wl_pointer* obj, u32 serial, struct wl_surface* surface, i32 hotspot_x, i32 hotspot_y) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WL_POINTER_SET_CURSOR, null,
@@ -889,7 +859,6 @@ void wl_pointer_release(WlFuncs* api, struct wl_pointer* obj) {
       WL_MARSHAL_FLAG_DESTROY);
 }
 
-// wl_keyboard - utility wrappers.
 u32 wl_keyboard_get_version(WlFuncs* api, struct wl_keyboard* obj) {
   return api->proxy_get_version((struct wl_proxy*)obj);
 }
@@ -897,7 +866,6 @@ void wl_keyboard_add_listener(WlFuncs* api, struct wl_keyboard* obj, const struc
   api->proxy_add_listener((struct wl_proxy*)obj, (void(**)(void))listener, data);
 }
 
-// wl_keyboard - request wrappers.
 void wl_keyboard_release(WlFuncs* api, struct wl_keyboard* obj) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WL_KEYBOARD_RELEASE, null,
@@ -905,7 +873,6 @@ void wl_keyboard_release(WlFuncs* api, struct wl_keyboard* obj) {
       WL_MARSHAL_FLAG_DESTROY);
 }
 
-// wl_touch - utility wrappers.
 u32 wl_touch_get_version(WlFuncs* api, struct wl_touch* obj) {
   return api->proxy_get_version((struct wl_proxy*)obj);
 }
@@ -913,7 +880,6 @@ void wl_touch_add_listener(WlFuncs* api, struct wl_touch* obj, const struct wl_t
   api->proxy_add_listener((struct wl_proxy*)obj, (void(**)(void))listener, data);
 }
 
-// wl_touch - request wrappers.
 void wl_touch_release(WlFuncs* api, struct wl_touch* obj) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WL_TOUCH_RELEASE, null,
@@ -921,7 +887,6 @@ void wl_touch_release(WlFuncs* api, struct wl_touch* obj) {
       WL_MARSHAL_FLAG_DESTROY);
 }
 
-// wl_output - utility wrappers.
 u32 wl_output_get_version(WlFuncs* api, struct wl_output* obj) {
   return api->proxy_get_version((struct wl_proxy*)obj);
 }
@@ -929,7 +894,6 @@ void wl_output_add_listener(WlFuncs* api, struct wl_output* obj, const struct wl
   api->proxy_add_listener((struct wl_proxy*)obj, (void(**)(void))listener, data);
 }
 
-// wl_output - request wrappers.
 void wl_output_release(WlFuncs* api, struct wl_output* obj) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WL_OUTPUT_RELEASE, null,
@@ -937,12 +901,10 @@ void wl_output_release(WlFuncs* api, struct wl_output* obj) {
       WL_MARSHAL_FLAG_DESTROY);
 }
 
-// wl_region - utility wrappers.
 u32 wl_region_get_version(WlFuncs* api, struct wl_region* obj) {
   return api->proxy_get_version((struct wl_proxy*)obj);
 }
 
-// wl_region - request wrappers.
 void wl_region_destroy(WlFuncs* api, struct wl_region* obj) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WL_REGION_DESTROY, null,
@@ -962,12 +924,10 @@ void wl_region_subtract(WlFuncs* api, struct wl_region* obj, i32 x, i32 y, i32 w
       0, x, y, width, height);
 }
 
-// wl_subcompositor - utility wrappers.
 u32 wl_subcompositor_get_version(WlFuncs* api, struct wl_subcompositor* obj) {
   return api->proxy_get_version((struct wl_proxy*)obj);
 }
 
-// wl_subcompositor - request wrappers.
 void wl_subcompositor_destroy(WlFuncs* api, struct wl_subcompositor* obj) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WL_SUBCOMPOSITOR_DESTROY, null,
@@ -981,12 +941,10 @@ struct wl_subsurface* wl_subcompositor_get_subsurface(WlFuncs* api, struct wl_su
       0, null, surface, parent);
 }
 
-// wl_subsurface - utility wrappers.
 u32 wl_subsurface_get_version(WlFuncs* api, struct wl_subsurface* obj) {
   return api->proxy_get_version((struct wl_proxy*)obj);
 }
 
-// wl_subsurface - request wrappers.
 void wl_subsurface_destroy(WlFuncs* api, struct wl_subsurface* obj) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WL_SUBSURFACE_DESTROY, null,
@@ -1024,12 +982,10 @@ void wl_subsurface_set_desync(WlFuncs* api, struct wl_subsurface* obj) {
       0);
 }
 
-// wl_fixes - utility wrappers.
 u32 wl_fixes_get_version(WlFuncs* api, struct wl_fixes* obj) {
   return api->proxy_get_version((struct wl_proxy*)obj);
 }
 
-// wl_fixes - request wrappers.
 void wl_fixes_destroy(WlFuncs* api, struct wl_fixes* obj) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WL_FIXES_DESTROY, null,
@@ -1043,7 +999,6 @@ void wl_fixes_destroy_registry(WlFuncs* api, struct wl_fixes* obj, struct wl_reg
       0, registry);
 }
 
-// xdg_wm_base - utility wrappers.
 u32 xdg_wm_base_get_version(WlFuncs* api, struct xdg_wm_base* obj) {
   return api->proxy_get_version((struct wl_proxy*)obj);
 }
@@ -1051,7 +1006,6 @@ void xdg_wm_base_add_listener(WlFuncs* api, struct xdg_wm_base* obj, const struc
   api->proxy_add_listener((struct wl_proxy*)obj, (void(**)(void))listener, data);
 }
 
-// xdg_wm_base - request wrappers.
 void xdg_wm_base_destroy(WlFuncs* api, struct xdg_wm_base* obj) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, XDG_WM_BASE_DESTROY, null,
@@ -1077,12 +1031,10 @@ void xdg_wm_base_pong(WlFuncs* api, struct xdg_wm_base* obj, u32 serial) {
       0, serial);
 }
 
-// xdg_positioner - utility wrappers.
 u32 xdg_positioner_get_version(WlFuncs* api, struct xdg_positioner* obj) {
   return api->proxy_get_version((struct wl_proxy*)obj);
 }
 
-// xdg_positioner - request wrappers.
 void xdg_positioner_destroy(WlFuncs* api, struct xdg_positioner* obj) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, XDG_POSITIONER_DESTROY, null,
@@ -1144,7 +1096,6 @@ void xdg_positioner_set_parent_configure(WlFuncs* api, struct xdg_positioner* ob
       0, serial);
 }
 
-// xdg_surface - utility wrappers.
 u32 xdg_surface_get_version(WlFuncs* api, struct xdg_surface* obj) {
   return api->proxy_get_version((struct wl_proxy*)obj);
 }
@@ -1152,7 +1103,6 @@ void xdg_surface_add_listener(WlFuncs* api, struct xdg_surface* obj, const struc
   api->proxy_add_listener((struct wl_proxy*)obj, (void(**)(void))listener, data);
 }
 
-// xdg_surface - request wrappers.
 void xdg_surface_destroy(WlFuncs* api, struct xdg_surface* obj) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, XDG_SURFACE_DESTROY, null,
@@ -1184,7 +1134,6 @@ void xdg_surface_ack_configure(WlFuncs* api, struct xdg_surface* obj, u32 serial
       0, serial);
 }
 
-// xdg_toplevel - utility wrappers.
 u32 xdg_toplevel_get_version(WlFuncs* api, struct xdg_toplevel* obj) {
   return api->proxy_get_version((struct wl_proxy*)obj);
 }
@@ -1192,7 +1141,6 @@ void xdg_toplevel_add_listener(WlFuncs* api, struct xdg_toplevel* obj, const str
   api->proxy_add_listener((struct wl_proxy*)obj, (void(**)(void))listener, data);
 }
 
-// xdg_toplevel - request wrappers.
 void xdg_toplevel_destroy(WlFuncs* api, struct xdg_toplevel* obj) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, XDG_TOPLEVEL_DESTROY, null,
@@ -1278,7 +1226,6 @@ void xdg_toplevel_set_minimized(WlFuncs* api, struct xdg_toplevel* obj) {
       0);
 }
 
-// xdg_popup - utility wrappers.
 u32 xdg_popup_get_version(WlFuncs* api, struct xdg_popup* obj) {
   return api->proxy_get_version((struct wl_proxy*)obj);
 }
@@ -1286,7 +1233,6 @@ void xdg_popup_add_listener(WlFuncs* api, struct xdg_popup* obj, const struct xd
   api->proxy_add_listener((struct wl_proxy*)obj, (void(**)(void))listener, data);
 }
 
-// xdg_popup - request wrappers.
 void xdg_popup_destroy(WlFuncs* api, struct xdg_popup* obj) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, XDG_POPUP_DESTROY, null,
@@ -1306,12 +1252,10 @@ void xdg_popup_reposition(WlFuncs* api, struct xdg_popup* obj, struct xdg_positi
       0, positioner, token);
 }
 
-// wp_viewporter - utility wrappers.
 u32 wp_viewporter_get_version(WlFuncs* api, struct wp_viewporter* obj) {
   return api->proxy_get_version((struct wl_proxy*)obj);
 }
 
-// wp_viewporter - request wrappers.
 void wp_viewporter_destroy(WlFuncs* api, struct wp_viewporter* obj) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WP_VIEWPORTER_DESTROY, null,
@@ -1325,12 +1269,10 @@ struct wp_viewport* wp_viewporter_get_viewport(WlFuncs* api, struct wp_viewporte
       0, null, surface);
 }
 
-// wp_viewport - utility wrappers.
 u32 wp_viewport_get_version(WlFuncs* api, struct wp_viewport* obj) {
   return api->proxy_get_version((struct wl_proxy*)obj);
 }
 
-// wp_viewport - request wrappers.
 void wp_viewport_destroy(WlFuncs* api, struct wp_viewport* obj) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WP_VIEWPORT_DESTROY, null,
@@ -1350,12 +1292,10 @@ void wp_viewport_set_destination(WlFuncs* api, struct wp_viewport* obj, i32 widt
       0, width, height);
 }
 
-// wp_fractional_scale_manager_v1 - utility wrappers.
 u32 wp_fractional_scale_manager_v1_get_version(WlFuncs* api, struct wp_fractional_scale_manager_v1* obj) {
   return api->proxy_get_version((struct wl_proxy*)obj);
 }
 
-// wp_fractional_scale_manager_v1 - request wrappers.
 void wp_fractional_scale_manager_v1_destroy(WlFuncs* api, struct wp_fractional_scale_manager_v1* obj) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WP_FRACTIONAL_SCALE_MANAGER_V1_DESTROY, null,
@@ -1369,7 +1309,6 @@ struct wp_fractional_scale_v1* wp_fractional_scale_manager_v1_get_fractional_sca
       0, null, surface);
 }
 
-// wp_fractional_scale_v1 - utility wrappers.
 u32 wp_fractional_scale_v1_get_version(WlFuncs* api, struct wp_fractional_scale_v1* obj) {
   return api->proxy_get_version((struct wl_proxy*)obj);
 }
@@ -1377,7 +1316,6 @@ void wp_fractional_scale_v1_add_listener(WlFuncs* api, struct wp_fractional_scal
   api->proxy_add_listener((struct wl_proxy*)obj, (void(**)(void))listener, data);
 }
 
-// wp_fractional_scale_v1 - request wrappers.
 void wp_fractional_scale_v1_destroy(WlFuncs* api, struct wp_fractional_scale_v1* obj) {
   api->proxy_marshal_flags(
       (struct wl_proxy*)obj, WP_FRACTIONAL_SCALE_V1_DESTROY, null,

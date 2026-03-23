@@ -39,18 +39,14 @@ struct wl_array {
   void* data;
 };
 
-// Fixed-point number (wl_fixed_t): i32 with 8 fractional bits; divide by 256 (or >> 8) for integer pixels.
 typedef i32 WlFixed;
 
-// Flag to destroy the proxy when marshalling a request (from wayland-client-core.h).
 #define WL_MARSHAL_FLAG_DESTROY (1 << 0)
 
-// Low-level libwayland types not present in the protocol XML.
 struct wl_proxy;
 struct wl_display;
 struct wl_registry;
 
-// Function table for libwayland-client symbols, populated by wlLoad().
 typedef struct {
   struct wl_display*  (SYS_DECL* display_connect)(const char* name);
   void                (SYS_DECL* display_disconnect)(struct wl_display*);
@@ -66,10 +62,8 @@ typedef struct {
 
 bool wlLoad(const DynLib* lib, WlFuncs* out);
 
-// Bind a registry global, capping at maxVersion.
 void* wlRegistryBind(WlFuncs*, struct wl_registry*, u32 name, u32 version, const struct wl_interface*, u32 maxVersion);
 
-// Forward declarations.
 struct wl_callback;
 struct wl_compositor;
 struct wl_shm_pool;
@@ -101,7 +95,6 @@ struct wp_viewport;
 struct wp_fractional_scale_manager_v1;
 struct wp_fractional_scale_v1;
 
-// Interface objects (defined in the generated .c file).
 extern const struct wl_interface wl_display_interface;
 extern const struct wl_interface wl_registry_interface;
 extern const struct wl_interface wl_callback_interface;
@@ -135,7 +128,6 @@ extern const struct wl_interface wp_viewport_interface;
 extern const struct wl_interface wp_fractional_scale_manager_v1_interface;
 extern const struct wl_interface wp_fractional_scale_v1_interface;
 
-// wl_display - enums.
 enum wl_display_error {
   WL_DISPLAY_ERROR_INVALID_OBJECT = 0,
   WL_DISPLAY_ERROR_INVALID_METHOD = 1,
@@ -143,74 +135,58 @@ enum wl_display_error {
   WL_DISPLAY_ERROR_IMPLEMENTATION = 3,
 };
 
-// wl_display - request opcodes.
 #define WL_DISPLAY_SYNC 0
 #define WL_DISPLAY_GET_REGISTRY 1
 
-// wl_display - listener.
 struct wl_display_listener {
   void (*error)(void* data, struct wl_display*, void* object_id, u32 code, const char* message);
   void (*delete_id)(void* data, struct wl_display*, u32 id);
 };
 
-// wl_display - utility wrappers.
 u32 wl_display_get_version(WlFuncs* api, struct wl_display* obj);
 void wl_display_add_listener(WlFuncs* api, struct wl_display* obj, const struct wl_display_listener* listener, void* data);
 
-// wl_display - request wrappers.
 struct wl_callback* wl_display_sync(WlFuncs* api, struct wl_display* obj);
 struct wl_registry* wl_display_get_registry(WlFuncs* api, struct wl_display* obj);
 
-// wl_registry - request opcodes.
 #define WL_REGISTRY_BIND 0
 
-// wl_registry - listener.
 struct wl_registry_listener {
   void (*global)(void* data, struct wl_registry*, u32 name, const char* interface, u32 version);
   void (*global_remove)(void* data, struct wl_registry*, u32 name);
 };
 
-// wl_registry - utility wrappers.
 u32 wl_registry_get_version(WlFuncs* api, struct wl_registry* obj);
 void wl_registry_destroy(WlFuncs* api, struct wl_registry* obj);
 void wl_registry_add_listener(WlFuncs* api, struct wl_registry* obj, const struct wl_registry_listener* listener, void* data);
 
-// wl_callback - listener.
 struct wl_callback_listener {
   void (*done)(void* data, struct wl_callback*, u32 callback_data);
 };
 
-// wl_callback - utility wrappers.
 u32 wl_callback_get_version(WlFuncs* api, struct wl_callback* obj);
 void wl_callback_destroy(WlFuncs* api, struct wl_callback* obj);
 void wl_callback_add_listener(WlFuncs* api, struct wl_callback* obj, const struct wl_callback_listener* listener, void* data);
 
-// wl_compositor - request opcodes.
 #define WL_COMPOSITOR_CREATE_SURFACE 0
 #define WL_COMPOSITOR_CREATE_REGION 1
 
-// wl_compositor - utility wrappers.
 u32 wl_compositor_get_version(WlFuncs* api, struct wl_compositor* obj);
 void wl_compositor_destroy(WlFuncs* api, struct wl_compositor* obj);
 
-// wl_compositor - request wrappers.
 struct wl_surface* wl_compositor_create_surface(WlFuncs* api, struct wl_compositor* obj);
 struct wl_region* wl_compositor_create_region(WlFuncs* api, struct wl_compositor* obj);
 
-// wl_shm_pool - request opcodes.
 #define WL_SHM_POOL_CREATE_BUFFER 0
 #define WL_SHM_POOL_DESTROY 1
 #define WL_SHM_POOL_RESIZE 2
 
-// wl_shm_pool - utility wrappers.
 u32 wl_shm_pool_get_version(WlFuncs* api, struct wl_shm_pool* obj);
 
-// wl_shm_pool - request wrappers.
 struct wl_buffer* wl_shm_pool_create_buffer(WlFuncs* api, struct wl_shm_pool* obj, i32 offset, i32 width, i32 height, i32 stride, u32 format);
 void wl_shm_pool_destroy(WlFuncs* api, struct wl_shm_pool* obj);
 void wl_shm_pool_resize(WlFuncs* api, struct wl_shm_pool* obj, i32 size);
 
-// wl_shm - enums.
 enum wl_shm_error {
   WL_SHM_ERROR_INVALID_FORMAT = 0,
   WL_SHM_ERROR_INVALID_STRIDE = 1,
@@ -342,39 +318,30 @@ enum wl_shm_format {
   WL_SHM_FORMAT_P030 = 808661072,
 };
 
-// wl_shm - request opcodes.
 #define WL_SHM_CREATE_POOL 0
 #define WL_SHM_RELEASE 1
 
-// wl_shm - listener.
 struct wl_shm_listener {
   void (*format)(void* data, struct wl_shm*, u32 format);
 };
 
-// wl_shm - utility wrappers.
 u32 wl_shm_get_version(WlFuncs* api, struct wl_shm* obj);
 void wl_shm_add_listener(WlFuncs* api, struct wl_shm* obj, const struct wl_shm_listener* listener, void* data);
 
-// wl_shm - request wrappers.
 struct wl_shm_pool* wl_shm_create_pool(WlFuncs* api, struct wl_shm* obj, i32 fd, i32 size);
 void wl_shm_release(WlFuncs* api, struct wl_shm* obj);
 
-// wl_buffer - request opcodes.
 #define WL_BUFFER_DESTROY 0
 
-// wl_buffer - listener.
 struct wl_buffer_listener {
   void (*release)(void* data, struct wl_buffer*);
 };
 
-// wl_buffer - utility wrappers.
 u32 wl_buffer_get_version(WlFuncs* api, struct wl_buffer* obj);
 void wl_buffer_add_listener(WlFuncs* api, struct wl_buffer* obj, const struct wl_buffer_listener* listener, void* data);
 
-// wl_buffer - request wrappers.
 void wl_buffer_destroy(WlFuncs* api, struct wl_buffer* obj);
 
-// wl_data_offer - enums.
 enum wl_data_offer_error {
   WL_DATA_OFFER_ERROR_INVALID_FINISH = 0,
   WL_DATA_OFFER_ERROR_INVALID_ACTION_MASK = 1,
@@ -382,43 +349,36 @@ enum wl_data_offer_error {
   WL_DATA_OFFER_ERROR_INVALID_OFFER = 3,
 };
 
-// wl_data_offer - request opcodes.
 #define WL_DATA_OFFER_ACCEPT 0
 #define WL_DATA_OFFER_RECEIVE 1
 #define WL_DATA_OFFER_DESTROY 2
 #define WL_DATA_OFFER_FINISH 3
 #define WL_DATA_OFFER_SET_ACTIONS 4
 
-// wl_data_offer - listener.
 struct wl_data_offer_listener {
   void (*offer)(void* data, struct wl_data_offer*, const char* mime_type);
   void (*source_actions)(void* data, struct wl_data_offer*, u32 source_actions);
   void (*action)(void* data, struct wl_data_offer*, u32 dnd_action);
 };
 
-// wl_data_offer - utility wrappers.
 u32 wl_data_offer_get_version(WlFuncs* api, struct wl_data_offer* obj);
 void wl_data_offer_add_listener(WlFuncs* api, struct wl_data_offer* obj, const struct wl_data_offer_listener* listener, void* data);
 
-// wl_data_offer - request wrappers.
 void wl_data_offer_accept(WlFuncs* api, struct wl_data_offer* obj, u32 serial, const char* mime_type);
 void wl_data_offer_receive(WlFuncs* api, struct wl_data_offer* obj, const char* mime_type, i32 fd);
 void wl_data_offer_destroy(WlFuncs* api, struct wl_data_offer* obj);
 void wl_data_offer_finish(WlFuncs* api, struct wl_data_offer* obj);
 void wl_data_offer_set_actions(WlFuncs* api, struct wl_data_offer* obj, u32 dnd_actions, u32 preferred_action);
 
-// wl_data_source - enums.
 enum wl_data_source_error {
   WL_DATA_SOURCE_ERROR_INVALID_ACTION_MASK = 0,
   WL_DATA_SOURCE_ERROR_INVALID_SOURCE = 1,
 };
 
-// wl_data_source - request opcodes.
 #define WL_DATA_SOURCE_OFFER 0
 #define WL_DATA_SOURCE_DESTROY 1
 #define WL_DATA_SOURCE_SET_ACTIONS 2
 
-// wl_data_source - listener.
 struct wl_data_source_listener {
   void (*target)(void* data, struct wl_data_source*, const char* mime_type);
   void (*send)(void* data, struct wl_data_source*, const char* mime_type, i32 fd);
@@ -428,27 +388,22 @@ struct wl_data_source_listener {
   void (*action)(void* data, struct wl_data_source*, u32 dnd_action);
 };
 
-// wl_data_source - utility wrappers.
 u32 wl_data_source_get_version(WlFuncs* api, struct wl_data_source* obj);
 void wl_data_source_add_listener(WlFuncs* api, struct wl_data_source* obj, const struct wl_data_source_listener* listener, void* data);
 
-// wl_data_source - request wrappers.
 void wl_data_source_offer(WlFuncs* api, struct wl_data_source* obj, const char* mime_type);
 void wl_data_source_destroy(WlFuncs* api, struct wl_data_source* obj);
 void wl_data_source_set_actions(WlFuncs* api, struct wl_data_source* obj, u32 dnd_actions);
 
-// wl_data_device - enums.
 enum wl_data_device_error {
   WL_DATA_DEVICE_ERROR_ROLE = 0,
   WL_DATA_DEVICE_ERROR_USED_SOURCE = 1,
 };
 
-// wl_data_device - request opcodes.
 #define WL_DATA_DEVICE_START_DRAG 0
 #define WL_DATA_DEVICE_SET_SELECTION 1
 #define WL_DATA_DEVICE_RELEASE 2
 
-// wl_data_device - listener.
 struct wl_data_device_listener {
   void (*data_offer)(void* data, struct wl_data_device*, struct wl_data_offer* id);
   void (*enter)(void* data, struct wl_data_device*, u32 serial, struct wl_surface* surface, WlFixed x, WlFixed y, struct wl_data_offer* id);
@@ -458,16 +413,13 @@ struct wl_data_device_listener {
   void (*selection)(void* data, struct wl_data_device*, struct wl_data_offer* id);
 };
 
-// wl_data_device - utility wrappers.
 u32 wl_data_device_get_version(WlFuncs* api, struct wl_data_device* obj);
 void wl_data_device_add_listener(WlFuncs* api, struct wl_data_device* obj, const struct wl_data_device_listener* listener, void* data);
 
-// wl_data_device - request wrappers.
 void wl_data_device_start_drag(WlFuncs* api, struct wl_data_device* obj, struct wl_data_source* source, struct wl_surface* origin, struct wl_surface* icon, u32 serial);
 void wl_data_device_set_selection(WlFuncs* api, struct wl_data_device* obj, struct wl_data_source* source, u32 serial);
 void wl_data_device_release(WlFuncs* api, struct wl_data_device* obj);
 
-// wl_data_device_manager - enums.
 enum wl_data_device_manager_dnd_action {
   WL_DATA_DEVICE_MANAGER_DND_ACTION_NONE = 0,
   WL_DATA_DEVICE_MANAGER_DND_ACTION_COPY = 1,
@@ -475,34 +427,26 @@ enum wl_data_device_manager_dnd_action {
   WL_DATA_DEVICE_MANAGER_DND_ACTION_ASK = 4,
 };
 
-// wl_data_device_manager - request opcodes.
 #define WL_DATA_DEVICE_MANAGER_CREATE_DATA_SOURCE 0
 #define WL_DATA_DEVICE_MANAGER_GET_DATA_DEVICE 1
 
-// wl_data_device_manager - utility wrappers.
 u32 wl_data_device_manager_get_version(WlFuncs* api, struct wl_data_device_manager* obj);
 void wl_data_device_manager_destroy(WlFuncs* api, struct wl_data_device_manager* obj);
 
-// wl_data_device_manager - request wrappers.
 struct wl_data_source* wl_data_device_manager_create_data_source(WlFuncs* api, struct wl_data_device_manager* obj);
 struct wl_data_device* wl_data_device_manager_get_data_device(WlFuncs* api, struct wl_data_device_manager* obj, struct wl_seat* seat);
 
-// wl_shell - enums.
 enum wl_shell_error {
   WL_SHELL_ERROR_ROLE = 0,
 };
 
-// wl_shell - request opcodes.
 #define WL_SHELL_GET_SHELL_SURFACE 0
 
-// wl_shell - utility wrappers.
 u32 wl_shell_get_version(WlFuncs* api, struct wl_shell* obj);
 void wl_shell_destroy(WlFuncs* api, struct wl_shell* obj);
 
-// wl_shell - request wrappers.
 struct wl_shell_surface* wl_shell_get_shell_surface(WlFuncs* api, struct wl_shell* obj, struct wl_surface* surface);
 
-// wl_shell_surface - enums.
 enum wl_shell_surface_resize {
   WL_SHELL_SURFACE_RESIZE_NONE = 0,
   WL_SHELL_SURFACE_RESIZE_TOP = 1,
@@ -524,7 +468,6 @@ enum wl_shell_surface_fullscreen_method {
   WL_SHELL_SURFACE_FULLSCREEN_METHOD_FILL = 3,
 };
 
-// wl_shell_surface - request opcodes.
 #define WL_SHELL_SURFACE_PONG 0
 #define WL_SHELL_SURFACE_MOVE 1
 #define WL_SHELL_SURFACE_RESIZE 2
@@ -536,19 +479,16 @@ enum wl_shell_surface_fullscreen_method {
 #define WL_SHELL_SURFACE_SET_TITLE 8
 #define WL_SHELL_SURFACE_SET_CLASS 9
 
-// wl_shell_surface - listener.
 struct wl_shell_surface_listener {
   void (*ping)(void* data, struct wl_shell_surface*, u32 serial);
   void (*configure)(void* data, struct wl_shell_surface*, u32 edges, i32 width, i32 height);
   void (*popup_done)(void* data, struct wl_shell_surface*);
 };
 
-// wl_shell_surface - utility wrappers.
 u32 wl_shell_surface_get_version(WlFuncs* api, struct wl_shell_surface* obj);
 void wl_shell_surface_destroy(WlFuncs* api, struct wl_shell_surface* obj);
 void wl_shell_surface_add_listener(WlFuncs* api, struct wl_shell_surface* obj, const struct wl_shell_surface_listener* listener, void* data);
 
-// wl_shell_surface - request wrappers.
 void wl_shell_surface_pong(WlFuncs* api, struct wl_shell_surface* obj, u32 serial);
 void wl_shell_surface_move(WlFuncs* api, struct wl_shell_surface* obj, struct wl_seat* seat, u32 serial);
 void wl_shell_surface_resize(WlFuncs* api, struct wl_shell_surface* obj, struct wl_seat* seat, u32 serial, u32 edges);
@@ -560,7 +500,6 @@ void wl_shell_surface_set_maximized(WlFuncs* api, struct wl_shell_surface* obj, 
 void wl_shell_surface_set_title(WlFuncs* api, struct wl_shell_surface* obj, const char* title);
 void wl_shell_surface_set_class(WlFuncs* api, struct wl_shell_surface* obj, const char* class_);
 
-// wl_surface - enums.
 enum wl_surface_error {
   WL_SURFACE_ERROR_INVALID_SCALE = 0,
   WL_SURFACE_ERROR_INVALID_TRANSFORM = 1,
@@ -569,7 +508,6 @@ enum wl_surface_error {
   WL_SURFACE_ERROR_DEFUNCT_ROLE_OBJECT = 4,
 };
 
-// wl_surface - request opcodes.
 #define WL_SURFACE_DESTROY 0
 #define WL_SURFACE_ATTACH 1
 #define WL_SURFACE_DAMAGE 2
@@ -582,7 +520,6 @@ enum wl_surface_error {
 #define WL_SURFACE_DAMAGE_BUFFER 9
 #define WL_SURFACE_OFFSET 10
 
-// wl_surface - listener.
 struct wl_surface_listener {
   void (*enter)(void* data, struct wl_surface*, struct wl_output* output);
   void (*leave)(void* data, struct wl_surface*, struct wl_output* output);
@@ -590,11 +527,9 @@ struct wl_surface_listener {
   void (*preferred_buffer_transform)(void* data, struct wl_surface*, u32 transform);
 };
 
-// wl_surface - utility wrappers.
 u32 wl_surface_get_version(WlFuncs* api, struct wl_surface* obj);
 void wl_surface_add_listener(WlFuncs* api, struct wl_surface* obj, const struct wl_surface_listener* listener, void* data);
 
-// wl_surface - request wrappers.
 void wl_surface_destroy(WlFuncs* api, struct wl_surface* obj);
 void wl_surface_attach(WlFuncs* api, struct wl_surface* obj, struct wl_buffer* buffer, i32 x, i32 y);
 void wl_surface_damage(WlFuncs* api, struct wl_surface* obj, i32 x, i32 y, i32 width, i32 height);
@@ -607,7 +542,6 @@ void wl_surface_set_buffer_scale(WlFuncs* api, struct wl_surface* obj, i32 scale
 void wl_surface_damage_buffer(WlFuncs* api, struct wl_surface* obj, i32 x, i32 y, i32 width, i32 height);
 void wl_surface_offset(WlFuncs* api, struct wl_surface* obj, i32 x, i32 y);
 
-// wl_seat - enums.
 enum wl_seat_capability {
   WL_SEAT_CAPABILITY_POINTER = 1,
   WL_SEAT_CAPABILITY_KEYBOARD = 2,
@@ -617,29 +551,24 @@ enum wl_seat_error {
   WL_SEAT_ERROR_MISSING_CAPABILITY = 0,
 };
 
-// wl_seat - request opcodes.
 #define WL_SEAT_GET_POINTER 0
 #define WL_SEAT_GET_KEYBOARD 1
 #define WL_SEAT_GET_TOUCH 2
 #define WL_SEAT_RELEASE 3
 
-// wl_seat - listener.
 struct wl_seat_listener {
   void (*capabilities)(void* data, struct wl_seat*, u32 capabilities);
   void (*name)(void* data, struct wl_seat*, const char* name);
 };
 
-// wl_seat - utility wrappers.
 u32 wl_seat_get_version(WlFuncs* api, struct wl_seat* obj);
 void wl_seat_add_listener(WlFuncs* api, struct wl_seat* obj, const struct wl_seat_listener* listener, void* data);
 
-// wl_seat - request wrappers.
 struct wl_pointer* wl_seat_get_pointer(WlFuncs* api, struct wl_seat* obj);
 struct wl_keyboard* wl_seat_get_keyboard(WlFuncs* api, struct wl_seat* obj);
 struct wl_touch* wl_seat_get_touch(WlFuncs* api, struct wl_seat* obj);
 void wl_seat_release(WlFuncs* api, struct wl_seat* obj);
 
-// wl_pointer - enums.
 enum wl_pointer_error {
   WL_POINTER_ERROR_ROLE = 0,
 };
@@ -662,11 +591,9 @@ enum wl_pointer_axis_relative_direction {
   WL_POINTER_AXIS_RELATIVE_DIRECTION_INVERTED = 1,
 };
 
-// wl_pointer - request opcodes.
 #define WL_POINTER_SET_CURSOR 0
 #define WL_POINTER_RELEASE 1
 
-// wl_pointer - listener.
 struct wl_pointer_listener {
   void (*enter)(void* data, struct wl_pointer*, u32 serial, struct wl_surface* surface, WlFixed surface_x, WlFixed surface_y);
   void (*leave)(void* data, struct wl_pointer*, u32 serial, struct wl_surface* surface);
@@ -681,15 +608,12 @@ struct wl_pointer_listener {
   void (*axis_relative_direction)(void* data, struct wl_pointer*, u32 axis, u32 direction);
 };
 
-// wl_pointer - utility wrappers.
 u32 wl_pointer_get_version(WlFuncs* api, struct wl_pointer* obj);
 void wl_pointer_add_listener(WlFuncs* api, struct wl_pointer* obj, const struct wl_pointer_listener* listener, void* data);
 
-// wl_pointer - request wrappers.
 void wl_pointer_set_cursor(WlFuncs* api, struct wl_pointer* obj, u32 serial, struct wl_surface* surface, i32 hotspot_x, i32 hotspot_y);
 void wl_pointer_release(WlFuncs* api, struct wl_pointer* obj);
 
-// wl_keyboard - enums.
 enum wl_keyboard_keymap_format {
   WL_KEYBOARD_KEYMAP_FORMAT_NO_KEYMAP = 0,
   WL_KEYBOARD_KEYMAP_FORMAT_XKB_V1 = 1,
@@ -700,10 +624,8 @@ enum wl_keyboard_key_state {
   WL_KEYBOARD_KEY_STATE_REPEATED = 2,
 };
 
-// wl_keyboard - request opcodes.
 #define WL_KEYBOARD_RELEASE 0
 
-// wl_keyboard - listener.
 struct wl_keyboard_listener {
   void (*keymap)(void* data, struct wl_keyboard*, u32 format, i32 fd, u32 size);
   void (*enter)(void* data, struct wl_keyboard*, u32 serial, struct wl_surface* surface, struct wl_array* keys);
@@ -713,17 +635,13 @@ struct wl_keyboard_listener {
   void (*repeat_info)(void* data, struct wl_keyboard*, i32 rate, i32 delay);
 };
 
-// wl_keyboard - utility wrappers.
 u32 wl_keyboard_get_version(WlFuncs* api, struct wl_keyboard* obj);
 void wl_keyboard_add_listener(WlFuncs* api, struct wl_keyboard* obj, const struct wl_keyboard_listener* listener, void* data);
 
-// wl_keyboard - request wrappers.
 void wl_keyboard_release(WlFuncs* api, struct wl_keyboard* obj);
 
-// wl_touch - request opcodes.
 #define WL_TOUCH_RELEASE 0
 
-// wl_touch - listener.
 struct wl_touch_listener {
   void (*down)(void* data, struct wl_touch*, u32 serial, u32 time, struct wl_surface* surface, i32 id, WlFixed x, WlFixed y);
   void (*up)(void* data, struct wl_touch*, u32 serial, u32 time, i32 id);
@@ -734,14 +652,11 @@ struct wl_touch_listener {
   void (*orientation)(void* data, struct wl_touch*, i32 id, WlFixed orientation);
 };
 
-// wl_touch - utility wrappers.
 u32 wl_touch_get_version(WlFuncs* api, struct wl_touch* obj);
 void wl_touch_add_listener(WlFuncs* api, struct wl_touch* obj, const struct wl_touch_listener* listener, void* data);
 
-// wl_touch - request wrappers.
 void wl_touch_release(WlFuncs* api, struct wl_touch* obj);
 
-// wl_output - enums.
 enum wl_output_subpixel {
   WL_OUTPUT_SUBPIXEL_UNKNOWN = 0,
   WL_OUTPUT_SUBPIXEL_NONE = 1,
@@ -765,10 +680,8 @@ enum wl_output_mode {
   WL_OUTPUT_MODE_PREFERRED = 2,
 };
 
-// wl_output - request opcodes.
 #define WL_OUTPUT_RELEASE 0
 
-// wl_output - listener.
 struct wl_output_listener {
   void (*geometry)(void* data, struct wl_output*, i32 x, i32 y, i32 physical_width, i32 physical_height, i32 subpixel, const char* make, const char* model, i32 transform);
   void (*mode)(void* data, struct wl_output*, u32 flags, i32 width, i32 height, i32 refresh);
@@ -778,49 +691,38 @@ struct wl_output_listener {
   void (*description)(void* data, struct wl_output*, const char* description);
 };
 
-// wl_output - utility wrappers.
 u32 wl_output_get_version(WlFuncs* api, struct wl_output* obj);
 void wl_output_add_listener(WlFuncs* api, struct wl_output* obj, const struct wl_output_listener* listener, void* data);
 
-// wl_output - request wrappers.
 void wl_output_release(WlFuncs* api, struct wl_output* obj);
 
-// wl_region - request opcodes.
 #define WL_REGION_DESTROY 0
 #define WL_REGION_ADD 1
 #define WL_REGION_SUBTRACT 2
 
-// wl_region - utility wrappers.
 u32 wl_region_get_version(WlFuncs* api, struct wl_region* obj);
 
-// wl_region - request wrappers.
 void wl_region_destroy(WlFuncs* api, struct wl_region* obj);
 void wl_region_add(WlFuncs* api, struct wl_region* obj, i32 x, i32 y, i32 width, i32 height);
 void wl_region_subtract(WlFuncs* api, struct wl_region* obj, i32 x, i32 y, i32 width, i32 height);
 
-// wl_subcompositor - enums.
 enum wl_subcompositor_error {
   WL_SUBCOMPOSITOR_ERROR_BAD_SURFACE = 0,
   WL_SUBCOMPOSITOR_ERROR_BAD_PARENT = 1,
 };
 
-// wl_subcompositor - request opcodes.
 #define WL_SUBCOMPOSITOR_DESTROY 0
 #define WL_SUBCOMPOSITOR_GET_SUBSURFACE 1
 
-// wl_subcompositor - utility wrappers.
 u32 wl_subcompositor_get_version(WlFuncs* api, struct wl_subcompositor* obj);
 
-// wl_subcompositor - request wrappers.
 void wl_subcompositor_destroy(WlFuncs* api, struct wl_subcompositor* obj);
 struct wl_subsurface* wl_subcompositor_get_subsurface(WlFuncs* api, struct wl_subcompositor* obj, struct wl_surface* surface, struct wl_surface* parent);
 
-// wl_subsurface - enums.
 enum wl_subsurface_error {
   WL_SUBSURFACE_ERROR_BAD_SURFACE = 0,
 };
 
-// wl_subsurface - request opcodes.
 #define WL_SUBSURFACE_DESTROY 0
 #define WL_SUBSURFACE_SET_POSITION 1
 #define WL_SUBSURFACE_PLACE_ABOVE 2
@@ -828,10 +730,8 @@ enum wl_subsurface_error {
 #define WL_SUBSURFACE_SET_SYNC 4
 #define WL_SUBSURFACE_SET_DESYNC 5
 
-// wl_subsurface - utility wrappers.
 u32 wl_subsurface_get_version(WlFuncs* api, struct wl_subsurface* obj);
 
-// wl_subsurface - request wrappers.
 void wl_subsurface_destroy(WlFuncs* api, struct wl_subsurface* obj);
 void wl_subsurface_set_position(WlFuncs* api, struct wl_subsurface* obj, i32 x, i32 y);
 void wl_subsurface_place_above(WlFuncs* api, struct wl_subsurface* obj, struct wl_surface* sibling);
@@ -839,18 +739,14 @@ void wl_subsurface_place_below(WlFuncs* api, struct wl_subsurface* obj, struct w
 void wl_subsurface_set_sync(WlFuncs* api, struct wl_subsurface* obj);
 void wl_subsurface_set_desync(WlFuncs* api, struct wl_subsurface* obj);
 
-// wl_fixes - request opcodes.
 #define WL_FIXES_DESTROY 0
 #define WL_FIXES_DESTROY_REGISTRY 1
 
-// wl_fixes - utility wrappers.
 u32 wl_fixes_get_version(WlFuncs* api, struct wl_fixes* obj);
 
-// wl_fixes - request wrappers.
 void wl_fixes_destroy(WlFuncs* api, struct wl_fixes* obj);
 void wl_fixes_destroy_registry(WlFuncs* api, struct wl_fixes* obj, struct wl_registry* registry);
 
-// xdg_wm_base - enums.
 enum xdg_wm_base_error {
   XDG_WM_BASE_ERROR_ROLE = 0,
   XDG_WM_BASE_ERROR_DEFUNCT_SURFACES = 1,
@@ -861,28 +757,23 @@ enum xdg_wm_base_error {
   XDG_WM_BASE_ERROR_UNRESPONSIVE = 6,
 };
 
-// xdg_wm_base - request opcodes.
 #define XDG_WM_BASE_DESTROY 0
 #define XDG_WM_BASE_CREATE_POSITIONER 1
 #define XDG_WM_BASE_GET_XDG_SURFACE 2
 #define XDG_WM_BASE_PONG 3
 
-// xdg_wm_base - listener.
 struct xdg_wm_base_listener {
   void (*ping)(void* data, struct xdg_wm_base*, u32 serial);
 };
 
-// xdg_wm_base - utility wrappers.
 u32 xdg_wm_base_get_version(WlFuncs* api, struct xdg_wm_base* obj);
 void xdg_wm_base_add_listener(WlFuncs* api, struct xdg_wm_base* obj, const struct xdg_wm_base_listener* listener, void* data);
 
-// xdg_wm_base - request wrappers.
 void xdg_wm_base_destroy(WlFuncs* api, struct xdg_wm_base* obj);
 struct xdg_positioner* xdg_wm_base_create_positioner(WlFuncs* api, struct xdg_wm_base* obj);
 struct xdg_surface* xdg_wm_base_get_xdg_surface(WlFuncs* api, struct xdg_wm_base* obj, struct wl_surface* surface);
 void xdg_wm_base_pong(WlFuncs* api, struct xdg_wm_base* obj, u32 serial);
 
-// xdg_positioner - enums.
 enum xdg_positioner_error {
   XDG_POSITIONER_ERROR_INVALID_INPUT = 0,
 };
@@ -918,7 +809,6 @@ enum xdg_positioner_constraint_adjustment {
   XDG_POSITIONER_CONSTRAINT_ADJUSTMENT_RESIZE_Y = 32,
 };
 
-// xdg_positioner - request opcodes.
 #define XDG_POSITIONER_DESTROY 0
 #define XDG_POSITIONER_SET_SIZE 1
 #define XDG_POSITIONER_SET_ANCHOR_RECT 2
@@ -930,10 +820,8 @@ enum xdg_positioner_constraint_adjustment {
 #define XDG_POSITIONER_SET_PARENT_SIZE 8
 #define XDG_POSITIONER_SET_PARENT_CONFIGURE 9
 
-// xdg_positioner - utility wrappers.
 u32 xdg_positioner_get_version(WlFuncs* api, struct xdg_positioner* obj);
 
-// xdg_positioner - request wrappers.
 void xdg_positioner_destroy(WlFuncs* api, struct xdg_positioner* obj);
 void xdg_positioner_set_size(WlFuncs* api, struct xdg_positioner* obj, i32 width, i32 height);
 void xdg_positioner_set_anchor_rect(WlFuncs* api, struct xdg_positioner* obj, i32 x, i32 y, i32 width, i32 height);
@@ -945,7 +833,6 @@ void xdg_positioner_set_reactive(WlFuncs* api, struct xdg_positioner* obj);
 void xdg_positioner_set_parent_size(WlFuncs* api, struct xdg_positioner* obj, i32 parent_width, i32 parent_height);
 void xdg_positioner_set_parent_configure(WlFuncs* api, struct xdg_positioner* obj, u32 serial);
 
-// xdg_surface - enums.
 enum xdg_surface_error {
   XDG_SURFACE_ERROR_NOT_CONSTRUCTED = 1,
   XDG_SURFACE_ERROR_ALREADY_CONSTRUCTED = 2,
@@ -955,30 +842,25 @@ enum xdg_surface_error {
   XDG_SURFACE_ERROR_DEFUNCT_ROLE_OBJECT = 6,
 };
 
-// xdg_surface - request opcodes.
 #define XDG_SURFACE_DESTROY 0
 #define XDG_SURFACE_GET_TOPLEVEL 1
 #define XDG_SURFACE_GET_POPUP 2
 #define XDG_SURFACE_SET_WINDOW_GEOMETRY 3
 #define XDG_SURFACE_ACK_CONFIGURE 4
 
-// xdg_surface - listener.
 struct xdg_surface_listener {
   void (*configure)(void* data, struct xdg_surface*, u32 serial);
 };
 
-// xdg_surface - utility wrappers.
 u32 xdg_surface_get_version(WlFuncs* api, struct xdg_surface* obj);
 void xdg_surface_add_listener(WlFuncs* api, struct xdg_surface* obj, const struct xdg_surface_listener* listener, void* data);
 
-// xdg_surface - request wrappers.
 void xdg_surface_destroy(WlFuncs* api, struct xdg_surface* obj);
 struct xdg_toplevel* xdg_surface_get_toplevel(WlFuncs* api, struct xdg_surface* obj);
 struct xdg_popup* xdg_surface_get_popup(WlFuncs* api, struct xdg_surface* obj, struct xdg_surface* parent, struct xdg_positioner* positioner);
 void xdg_surface_set_window_geometry(WlFuncs* api, struct xdg_surface* obj, i32 x, i32 y, i32 width, i32 height);
 void xdg_surface_ack_configure(WlFuncs* api, struct xdg_surface* obj, u32 serial);
 
-// xdg_toplevel - enums.
 enum xdg_toplevel_error {
   XDG_TOPLEVEL_ERROR_INVALID_RESIZE_EDGE = 0,
   XDG_TOPLEVEL_ERROR_INVALID_PARENT = 1,
@@ -1017,7 +899,6 @@ enum xdg_toplevel_wm_capabilities {
   XDG_TOPLEVEL_WM_CAPABILITIES_MINIMIZE = 4,
 };
 
-// xdg_toplevel - request opcodes.
 #define XDG_TOPLEVEL_DESTROY 0
 #define XDG_TOPLEVEL_SET_PARENT 1
 #define XDG_TOPLEVEL_SET_TITLE 2
@@ -1033,7 +914,6 @@ enum xdg_toplevel_wm_capabilities {
 #define XDG_TOPLEVEL_UNSET_FULLSCREEN 12
 #define XDG_TOPLEVEL_SET_MINIMIZED 13
 
-// xdg_toplevel - listener.
 struct xdg_toplevel_listener {
   void (*configure)(void* data, struct xdg_toplevel*, i32 width, i32 height, struct wl_array* states);
   void (*close)(void* data, struct xdg_toplevel*);
@@ -1041,11 +921,9 @@ struct xdg_toplevel_listener {
   void (*wm_capabilities)(void* data, struct xdg_toplevel*, struct wl_array* capabilities);
 };
 
-// xdg_toplevel - utility wrappers.
 u32 xdg_toplevel_get_version(WlFuncs* api, struct xdg_toplevel* obj);
 void xdg_toplevel_add_listener(WlFuncs* api, struct xdg_toplevel* obj, const struct xdg_toplevel_listener* listener, void* data);
 
-// xdg_toplevel - request wrappers.
 void xdg_toplevel_destroy(WlFuncs* api, struct xdg_toplevel* obj);
 void xdg_toplevel_set_parent(WlFuncs* api, struct xdg_toplevel* obj, struct xdg_toplevel* parent);
 void xdg_toplevel_set_title(WlFuncs* api, struct xdg_toplevel* obj, const char* title);
@@ -1061,49 +939,39 @@ void xdg_toplevel_set_fullscreen(WlFuncs* api, struct xdg_toplevel* obj, struct 
 void xdg_toplevel_unset_fullscreen(WlFuncs* api, struct xdg_toplevel* obj);
 void xdg_toplevel_set_minimized(WlFuncs* api, struct xdg_toplevel* obj);
 
-// xdg_popup - enums.
 enum xdg_popup_error {
   XDG_POPUP_ERROR_INVALID_GRAB = 0,
 };
 
-// xdg_popup - request opcodes.
 #define XDG_POPUP_DESTROY 0
 #define XDG_POPUP_GRAB 1
 #define XDG_POPUP_REPOSITION 2
 
-// xdg_popup - listener.
 struct xdg_popup_listener {
   void (*configure)(void* data, struct xdg_popup*, i32 x, i32 y, i32 width, i32 height);
   void (*popup_done)(void* data, struct xdg_popup*);
   void (*repositioned)(void* data, struct xdg_popup*, u32 token);
 };
 
-// xdg_popup - utility wrappers.
 u32 xdg_popup_get_version(WlFuncs* api, struct xdg_popup* obj);
 void xdg_popup_add_listener(WlFuncs* api, struct xdg_popup* obj, const struct xdg_popup_listener* listener, void* data);
 
-// xdg_popup - request wrappers.
 void xdg_popup_destroy(WlFuncs* api, struct xdg_popup* obj);
 void xdg_popup_grab(WlFuncs* api, struct xdg_popup* obj, struct wl_seat* seat, u32 serial);
 void xdg_popup_reposition(WlFuncs* api, struct xdg_popup* obj, struct xdg_positioner* positioner, u32 token);
 
-// wp_viewporter - enums.
 enum wp_viewporter_error {
   WP_VIEWPORTER_ERROR_VIEWPORT_EXISTS = 0,
 };
 
-// wp_viewporter - request opcodes.
 #define WP_VIEWPORTER_DESTROY 0
 #define WP_VIEWPORTER_GET_VIEWPORT 1
 
-// wp_viewporter - utility wrappers.
 u32 wp_viewporter_get_version(WlFuncs* api, struct wp_viewporter* obj);
 
-// wp_viewporter - request wrappers.
 void wp_viewporter_destroy(WlFuncs* api, struct wp_viewporter* obj);
 struct wp_viewport* wp_viewporter_get_viewport(WlFuncs* api, struct wp_viewporter* obj, struct wl_surface* surface);
 
-// wp_viewport - enums.
 enum wp_viewport_error {
   WP_VIEWPORT_ERROR_BAD_VALUE = 0,
   WP_VIEWPORT_ERROR_BAD_SIZE = 1,
@@ -1111,48 +979,37 @@ enum wp_viewport_error {
   WP_VIEWPORT_ERROR_NO_SURFACE = 3,
 };
 
-// wp_viewport - request opcodes.
 #define WP_VIEWPORT_DESTROY 0
 #define WP_VIEWPORT_SET_SOURCE 1
 #define WP_VIEWPORT_SET_DESTINATION 2
 
-// wp_viewport - utility wrappers.
 u32 wp_viewport_get_version(WlFuncs* api, struct wp_viewport* obj);
 
-// wp_viewport - request wrappers.
 void wp_viewport_destroy(WlFuncs* api, struct wp_viewport* obj);
 void wp_viewport_set_source(WlFuncs* api, struct wp_viewport* obj, WlFixed x, WlFixed y, WlFixed width, WlFixed height);
 void wp_viewport_set_destination(WlFuncs* api, struct wp_viewport* obj, i32 width, i32 height);
 
-// wp_fractional_scale_manager_v1 - enums.
 enum wp_fractional_scale_manager_v1_error {
   WP_FRACTIONAL_SCALE_MANAGER_V1_ERROR_FRACTIONAL_SCALE_EXISTS = 0,
 };
 
-// wp_fractional_scale_manager_v1 - request opcodes.
 #define WP_FRACTIONAL_SCALE_MANAGER_V1_DESTROY 0
 #define WP_FRACTIONAL_SCALE_MANAGER_V1_GET_FRACTIONAL_SCALE 1
 
-// wp_fractional_scale_manager_v1 - utility wrappers.
 u32 wp_fractional_scale_manager_v1_get_version(WlFuncs* api, struct wp_fractional_scale_manager_v1* obj);
 
-// wp_fractional_scale_manager_v1 - request wrappers.
 void wp_fractional_scale_manager_v1_destroy(WlFuncs* api, struct wp_fractional_scale_manager_v1* obj);
 struct wp_fractional_scale_v1* wp_fractional_scale_manager_v1_get_fractional_scale(WlFuncs* api, struct wp_fractional_scale_manager_v1* obj, struct wl_surface* surface);
 
-// wp_fractional_scale_v1 - request opcodes.
 #define WP_FRACTIONAL_SCALE_V1_DESTROY 0
 
-// wp_fractional_scale_v1 - listener.
 struct wp_fractional_scale_v1_listener {
   void (*preferred_scale)(void* data, struct wp_fractional_scale_v1*, u32 scale);
 };
 
-// wp_fractional_scale_v1 - utility wrappers.
 u32 wp_fractional_scale_v1_get_version(WlFuncs* api, struct wp_fractional_scale_v1* obj);
 void wp_fractional_scale_v1_add_listener(WlFuncs* api, struct wp_fractional_scale_v1* obj, const struct wp_fractional_scale_v1_listener* listener, void* data);
 
-// wp_fractional_scale_v1 - request wrappers.
 void wp_fractional_scale_v1_destroy(WlFuncs* api, struct wp_fractional_scale_v1* obj);
 
 // clang-format on

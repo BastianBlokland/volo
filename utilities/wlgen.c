@@ -261,7 +261,6 @@ static void wlgen_write_prolog(WlGenContext* ctx) {
 // ----- Write header -----
 
 static void wlgen_write_header_forward_decls(WlGenContext* ctx) {
-  fmt_write(&ctx->out, "// Forward declarations.\n");
   dynarray_for_t(&ctx->protocols, WlGenProtocol, proto) {
     xml_for_children(proto->doc, proto->root, ifaceNode) {
       if (xml_name_hash(proto->doc, ifaceNode) != g_hash_interface) {
@@ -279,7 +278,6 @@ static void wlgen_write_header_forward_decls(WlGenContext* ctx) {
 }
 
 static void wlgen_write_header_iface_externs(WlGenContext* ctx) {
-  fmt_write(&ctx->out, "// Interface objects (defined in the generated .c file).\n");
   dynarray_for_t(&ctx->protocols, WlGenProtocol, proto) {
     xml_for_children(proto->doc, proto->root, ifaceNode) {
       if (xml_name_hash(proto->doc, ifaceNode) != g_hash_interface) {
@@ -306,7 +304,6 @@ static void wlgen_write_header_iface(WlGenContext* ctx, XmlDoc* doc, const XmlNo
       continue;
     }
     if (!hasEnum) {
-      fmt_write(&ctx->out, "// {} - enums.\n", fmt_text(ifaceName));
       hasEnum = true;
     }
     const String enumName = xml_attr_get(doc, child, g_hash_name);
@@ -337,7 +334,6 @@ static void wlgen_write_header_iface(WlGenContext* ctx, XmlDoc* doc, const XmlNo
       continue;
     }
     if (!hasRequest) {
-      fmt_write(&ctx->out, "// {} - request opcodes.\n", fmt_text(ifaceName));
       hasRequest = true;
     }
     const String reqName = xml_attr_get(doc, child, g_hash_name);
@@ -357,15 +353,10 @@ static void wlgen_write_header_iface(WlGenContext* ctx, XmlDoc* doc, const XmlNo
       continue;
     }
     if (!hasEvent) {
-      fmt_write(&ctx->out, "// {} - listener.\n", fmt_text(ifaceName));
       fmt_write(&ctx->out, "struct {}_listener {\n", fmt_text(ifaceName));
       hasEvent = true;
     }
     const String evtName    = xml_attr_get(doc, child, g_hash_name);
-    const String evtSummary = xml_attr_get(doc, child, g_hash_summary);
-    if (!string_is_empty(evtSummary)) {
-      fmt_write(&ctx->out, "  // {}\n", fmt_text(evtSummary));
-    }
     fmt_write(&ctx->out, "  void (*{})(void* data, struct {}*", fmt_text(evtName), fmt_text(ifaceName));
     xml_for_children(doc, child, argNode) {
       if (xml_name_hash(doc, argNode) != g_hash_arg) {
@@ -396,9 +387,6 @@ WriteWrappers:;
       }
     }
   }
-
-  // Per-interface utility wrappers.
-  fmt_write(&ctx->out, "// {} - utility wrappers.\n", fmt_text(ifaceName));
 
   fmt_write(&ctx->out, "u32 {}_get_version(WlFuncs* api, struct {}* obj)", fmt_text(ifaceName), fmt_text(ifaceName));
   if (headerOnly) {
@@ -463,7 +451,6 @@ WriteWrappers:;
     }
 
     if (!hasWrapper) {
-      fmt_write(&ctx->out, "// {} - request wrappers.\n", fmt_text(ifaceName));
       hasWrapper = true;
     }
 
@@ -531,13 +518,10 @@ WriteWrappers:;
 }
 
 static void wlgen_write_header_funcs(WlGenContext* ctx) {
-  fmt_write(&ctx->out, "// Flag to destroy the proxy when marshalling a request (from wayland-client-core.h).\n");
   fmt_write(&ctx->out, "#define WL_MARSHAL_FLAG_DESTROY (1 << 0)\n\n");
-  fmt_write(&ctx->out, "// Low-level libwayland types not present in the protocol XML.\n");
   fmt_write(&ctx->out, "struct wl_proxy;\n");
   fmt_write(&ctx->out, "struct wl_display;\n");
   fmt_write(&ctx->out, "struct wl_registry;\n\n");
-  fmt_write(&ctx->out, "// Function table for libwayland-client symbols, populated by wlLoad().\n");
   fmt_write(&ctx->out, "typedef struct {\n");
   fmt_write(&ctx->out, "  struct wl_display*  (SYS_DECL* display_connect)(const char* name);\n");
   fmt_write(&ctx->out, "  void                (SYS_DECL* display_disconnect)(struct wl_display*);\n");
@@ -551,7 +535,6 @@ static void wlgen_write_header_funcs(WlGenContext* ctx) {
   fmt_write(&ctx->out, "  void                (SYS_DECL* proxy_destroy)(struct wl_proxy*);\n");
   fmt_write(&ctx->out, "} WlFuncs;\n\n");
   fmt_write(&ctx->out, "bool wlLoad(const DynLib* lib, WlFuncs* out);\n\n");
-  fmt_write(&ctx->out, "// Bind a registry global, capping at maxVersion.\n");
   fmt_write(&ctx->out, "void* wlRegistryBind(WlFuncs*, struct wl_registry*, u32 name, u32 version, const struct wl_interface*, u32 maxVersion);\n\n");
 }
 
@@ -578,7 +561,6 @@ static void wlgen_write_header(WlGenContext* ctx) {
   fmt_write(&ctx->out, "  usize size, alloc;\n");
   fmt_write(&ctx->out, "  void* data;\n");
   fmt_write(&ctx->out, "};\n\n");
-  fmt_write(&ctx->out, "// Fixed-point number (wl_fixed_t): i32 with 8 fractional bits; divide by 256 (or >> 8) for integer pixels.\n");
   fmt_write(&ctx->out, "typedef i32 WlFixed;\n\n");
 
   wlgen_write_header_funcs(ctx);
