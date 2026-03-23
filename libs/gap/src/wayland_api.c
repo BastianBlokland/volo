@@ -85,7 +85,7 @@ static const struct wl_message wl_shm_pool_requests[] = {
 static const struct wl_interface* wl_shm_create_pool_types[] = {&wl_shm_pool_interface, null, null, };
 static const struct wl_message wl_shm_requests[] = {
   {"create_pool", "nhi", wl_shm_create_pool_types},
-  {"release", "", null},
+  {"release", "2", null},
 };
 static const struct wl_message wl_shm_events[] = {
   {"format", "u", null},
@@ -100,26 +100,26 @@ static const struct wl_message wl_data_offer_requests[] = {
   {"accept", "u?s", null},
   {"receive", "sh", null},
   {"destroy", "", null},
-  {"finish", "", null},
-  {"set_actions", "uu", null},
+  {"finish", "3", null},
+  {"set_actions", "3uu", null},
 };
 static const struct wl_message wl_data_offer_events[] = {
   {"offer", "s", null},
-  {"source_actions", "u", null},
-  {"action", "u", null},
+  {"source_actions", "3u", null},
+  {"action", "3u", null},
 };
 static const struct wl_message wl_data_source_requests[] = {
   {"offer", "s", null},
   {"destroy", "", null},
-  {"set_actions", "u", null},
+  {"set_actions", "3u", null},
 };
 static const struct wl_message wl_data_source_events[] = {
   {"target", "?s", null},
   {"send", "sh", null},
   {"cancelled", "", null},
-  {"dnd_drop_performed", "", null},
-  {"dnd_finished", "", null},
-  {"action", "u", null},
+  {"dnd_drop_performed", "3", null},
+  {"dnd_finished", "3", null},
+  {"action", "3u", null},
 };
 static const struct wl_interface* wl_data_device_start_drag_types[] = {&wl_data_source_interface, &wl_surface_interface, &wl_surface_interface, null, };
 static const struct wl_interface* wl_data_device_set_selection_types[] = {&wl_data_source_interface, null, };
@@ -129,7 +129,7 @@ static const struct wl_interface* wl_data_device_selection_types[] = {&wl_data_o
 static const struct wl_message wl_data_device_requests[] = {
   {"start_drag", "?oo?ou", wl_data_device_start_drag_types},
   {"set_selection", "?ou", wl_data_device_set_selection_types},
-  {"release", "", null},
+  {"release", "2", null},
 };
 static const struct wl_message wl_data_device_events[] = {
   {"data_offer", "n", wl_data_device_data_offer_types},
@@ -186,16 +186,16 @@ static const struct wl_message wl_surface_requests[] = {
   {"set_opaque_region", "?o", wl_surface_set_opaque_region_types},
   {"set_input_region", "?o", wl_surface_set_input_region_types},
   {"commit", "", null},
-  {"set_buffer_transform", "i", null},
-  {"set_buffer_scale", "i", null},
-  {"damage_buffer", "iiii", null},
-  {"offset", "ii", null},
+  {"set_buffer_transform", "2i", null},
+  {"set_buffer_scale", "3i", null},
+  {"damage_buffer", "4iiii", null},
+  {"offset", "5ii", null},
 };
 static const struct wl_message wl_surface_events[] = {
   {"enter", "o", wl_surface_enter_types},
   {"leave", "o", wl_surface_leave_types},
-  {"preferred_buffer_scale", "i", null},
-  {"preferred_buffer_transform", "u", null},
+  {"preferred_buffer_scale", "6i", null},
+  {"preferred_buffer_transform", "6u", null},
 };
 static const struct wl_interface* wl_seat_get_pointer_types[] = {&wl_pointer_interface, };
 static const struct wl_interface* wl_seat_get_keyboard_types[] = {&wl_keyboard_interface, };
@@ -204,18 +204,18 @@ static const struct wl_message wl_seat_requests[] = {
   {"get_pointer", "n", wl_seat_get_pointer_types},
   {"get_keyboard", "n", wl_seat_get_keyboard_types},
   {"get_touch", "n", wl_seat_get_touch_types},
-  {"release", "", null},
+  {"release", "5", null},
 };
 static const struct wl_message wl_seat_events[] = {
   {"capabilities", "u", null},
-  {"name", "s", null},
+  {"name", "2s", null},
 };
 static const struct wl_interface* wl_pointer_set_cursor_types[] = {null, &wl_surface_interface, null, null, };
 static const struct wl_interface* wl_pointer_enter_types[] = {null, &wl_surface_interface, null, null, };
 static const struct wl_interface* wl_pointer_leave_types[] = {null, &wl_surface_interface, };
 static const struct wl_message wl_pointer_requests[] = {
   {"set_cursor", "u?oii", wl_pointer_set_cursor_types},
-  {"release", "", null},
+  {"release", "3", null},
 };
 static const struct wl_message wl_pointer_events[] = {
   {"enter", "uoff", wl_pointer_enter_types},
@@ -223,17 +223,17 @@ static const struct wl_message wl_pointer_events[] = {
   {"motion", "uff", null},
   {"button", "uuuu", null},
   {"axis", "uuf", null},
-  {"frame", "", null},
-  {"axis_source", "u", null},
-  {"axis_stop", "uu", null},
-  {"axis_discrete", "ui", null},
-  {"axis_value120", "ui", null},
-  {"axis_relative_direction", "uu", null},
+  {"frame", "5", null},
+  {"axis_source", "5u", null},
+  {"axis_stop", "5uu", null},
+  {"axis_discrete", "5ui", null},
+  {"axis_value120", "8ui", null},
+  {"axis_relative_direction", "9uu", null},
 };
 static const struct wl_interface* wl_keyboard_enter_types[] = {null, &wl_surface_interface, null, };
 static const struct wl_interface* wl_keyboard_leave_types[] = {null, &wl_surface_interface, };
 static const struct wl_message wl_keyboard_requests[] = {
-  {"release", "", null},
+  {"release", "3", null},
 };
 static const struct wl_message wl_keyboard_events[] = {
   {"keymap", "uhu", null},
@@ -241,11 +241,11 @@ static const struct wl_message wl_keyboard_events[] = {
   {"leave", "uo", wl_keyboard_leave_types},
   {"key", "uuuu", null},
   {"modifiers", "uuuuu", null},
-  {"repeat_info", "ii", null},
+  {"repeat_info", "4ii", null},
 };
 static const struct wl_interface* wl_touch_down_types[] = {null, null, &wl_surface_interface, null, null, null, };
 static const struct wl_message wl_touch_requests[] = {
-  {"release", "", null},
+  {"release", "3", null},
 };
 static const struct wl_message wl_touch_events[] = {
   {"down", "uuoiff", wl_touch_down_types},
@@ -253,19 +253,19 @@ static const struct wl_message wl_touch_events[] = {
   {"motion", "uiff", null},
   {"frame", "", null},
   {"cancel", "", null},
-  {"shape", "iff", null},
-  {"orientation", "if", null},
+  {"shape", "6iff", null},
+  {"orientation", "6if", null},
 };
 static const struct wl_message wl_output_requests[] = {
-  {"release", "", null},
+  {"release", "3", null},
 };
 static const struct wl_message wl_output_events[] = {
   {"geometry", "iiiiissi", null},
   {"mode", "uiii", null},
-  {"done", "", null},
-  {"scale", "i", null},
-  {"name", "s", null},
-  {"description", "s", null},
+  {"done", "2", null},
+  {"scale", "2i", null},
+  {"name", "4s", null},
+  {"description", "4s", null},
 };
 static const struct wl_message wl_region_requests[] = {
   {"destroy", "", null},
@@ -311,9 +311,9 @@ static const struct wl_message xdg_positioner_requests[] = {
   {"set_gravity", "u", null},
   {"set_constraint_adjustment", "u", null},
   {"set_offset", "ii", null},
-  {"set_reactive", "", null},
-  {"set_parent_size", "ii", null},
-  {"set_parent_configure", "u", null},
+  {"set_reactive", "3", null},
+  {"set_parent_size", "3ii", null},
+  {"set_parent_configure", "3u", null},
 };
 static const struct wl_interface* xdg_surface_get_toplevel_types[] = {&xdg_toplevel_interface, };
 static const struct wl_interface* xdg_surface_get_popup_types[] = {&xdg_popup_interface, &xdg_surface_interface, &xdg_positioner_interface, };
@@ -351,20 +351,20 @@ static const struct wl_message xdg_toplevel_requests[] = {
 static const struct wl_message xdg_toplevel_events[] = {
   {"configure", "iia", null},
   {"close", "", null},
-  {"configure_bounds", "ii", null},
-  {"wm_capabilities", "a", null},
+  {"configure_bounds", "4ii", null},
+  {"wm_capabilities", "5a", null},
 };
 static const struct wl_interface* xdg_popup_grab_types[] = {&wl_seat_interface, null, };
 static const struct wl_interface* xdg_popup_reposition_types[] = {&xdg_positioner_interface, null, };
 static const struct wl_message xdg_popup_requests[] = {
   {"destroy", "", null},
   {"grab", "ou", xdg_popup_grab_types},
-  {"reposition", "ou", xdg_popup_reposition_types},
+  {"reposition", "3ou", xdg_popup_reposition_types},
 };
 static const struct wl_message xdg_popup_events[] = {
   {"configure", "iiii", null},
   {"popup_done", "", null},
-  {"repositioned", "u", null},
+  {"repositioned", "3u", null},
 };
 static const struct wl_interface* wp_viewporter_get_viewport_types[] = {&wp_viewport_interface, &wl_surface_interface, };
 static const struct wl_message wp_viewporter_requests[] = {
@@ -423,9 +423,6 @@ const struct wl_interface wp_fractional_scale_v1_interface = {"wp_fractional_sca
 
 u32 wl_display_get_version(const WlFuncs* api, struct wl_display* obj) {
   return api->proxy_get_version((struct wl_proxy*)obj);
-}
-void wl_display_add_listener(const WlFuncs* api, struct wl_display* obj, const struct wl_display_listener* listener, void* data) {
-  api->proxy_add_listener((struct wl_proxy*)obj, (void(**)(void))listener, data);
 }
 struct wl_callback* wl_display_sync(const WlFuncs* api, struct wl_display* obj) {
   return api->proxy_marshal_flags(

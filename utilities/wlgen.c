@@ -42,6 +42,7 @@
   WLGEN_HASH(name)                                                                                 \
   WLGEN_HASH(protocol)                                                                             \
   WLGEN_HASH(request)                                                                              \
+  WLGEN_HASH(since)                                                                                \
   WLGEN_HASH(summary)                                                                              \
   WLGEN_HASH(type)                                                                                 \
   WLGEN_HASH(value)                                                                                \
@@ -403,7 +404,7 @@ WriteWrappers:;
     }
   }
 
-  if (hasEvents) {
+  if (hasEvents && !isDisplay) {
     if (headerOnly) {
       fmt_write(&ctx->out, "void {}_add_listener(const WlFuncs*, struct {}*, const struct {}_listener*, void*);\n", fmt_text(ifaceName), fmt_text(ifaceName), fmt_text(ifaceName));
     } else {
@@ -607,6 +608,13 @@ static void wlgen_write_impl_load(WlGenContext* ctx) {
 
 // Write the signature string characters for a request or event XML node.
 static void wlgen_write_message_signature(WlGenContext* ctx, XmlDoc* doc, const XmlNode msgNode) {
+  const String since = xml_attr_get(doc, msgNode, g_hash_since);
+  if (!string_is_empty(since)) {
+    const i64 sinceVer = wlgen_parse_int(since);
+    if (sinceVer > 1) {
+      fmt_write(&ctx->out, "{}", fmt_int(sinceVer));
+    }
+  }
   xml_for_children(doc, msgNode, argNode) {
     if (xml_name_hash(doc, argNode) != g_hash_arg) {
       continue;
