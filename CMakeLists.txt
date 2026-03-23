@@ -175,7 +175,7 @@ add_custom_target(run.vkgen
   COMMAND vkgen "${CMAKE_SOURCE_DIR}/libs/rend/src/rvk/vulkan_api" VERBATIM USES_TERMINAL)
 
 add_custom_target(run.wlgen
-  COMMAND wlgen "${CMAKE_SOURCE_DIR}/libs/gap/src/wayland/wayland"
+  COMMAND wlgen "${CMAKE_SOURCE_DIR}/libs/gap/src/wayland_api"
     --schema
       "$ENV{VOLO_WAYLAND_DATADIR}/wayland.xml"
       "$ENV{VOLO_WAYLAND_PROTOCOLS_DATADIR}/stable/xdg-shell/xdg-shell.xml"

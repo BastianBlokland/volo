@@ -5,7 +5,7 @@
 #include "core/dynstring.h"
 #include "core/math.h"
 #include "log/logger.h"
-#include "wayland/wayland.h"
+#include "wayland_api.h"
 
 #include "pal.h"
 

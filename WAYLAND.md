@@ -25,7 +25,7 @@ Both env vars are set by `flake.nix` from the `wayland-scanner` and `wayland-pro
 
 #### What `wlgen` generates
 
-**`libs/gap/src/wayland/wayland.h`** — self-contained header (no system includes beyond `core/forward.h`):
+**`libs/gap/src/wayland_api.h`** — self-contained header (no system includes beyond `core/forward.h`):
 - Inline struct definitions: `wl_message`, `wl_interface`, `wl_array`
 - `WL_MARSHAL_FLAG_DESTROY` constant
 - `struct wl_proxy` forward declaration
@@ -39,7 +39,7 @@ Both env vars are set by `flake.nix` from the `wayland-scanner` and `wayland-pro
   - Utility wrapper declarations: `<iface>_get_version`, `<iface>_destroy` (if no protocol destructor), `<iface>_add_listener` (if has events)
   - Request wrapper declarations: one typed function per request
 
-**`libs/gap/src/wayland/wayland.c`** — implementation:
+**`libs/gap/src/wayland_api.c`** — implementation:
 - `wlLoad` definition: calls `dynlib_symbol` for each of the 10 libwayland symbols
 - `wlRegistryBind` definition: calls `proxy_marshal_flags(WL_REGISTRY_BIND, ...)` capping at `maxVersion`
 - Per-message `static const struct wl_interface* <iface>_<msg>_types[]` arrays for any message whose signature contains `o` (object) or `n` (new_id) args — required by `wl_closure_lookup_objects` inside libwayland. Each entry points to `&<iface>_interface` for typed object/new_id args, or `null` for untyped ones. Untyped `new_id` occupies 3 slots (`sun`) each null.
@@ -58,7 +58,7 @@ The generated files are committed to the repository. Re-run `run.wlgen` after ch
 ### 2. PAL implementation (`libs/gap/src/pal_linux_wayland.c`)
 
 Uses the same dlopen pattern as `pal_linux_xcb.c`. All protocol types, opcodes, and
-function signatures come from the generated `wayland/wayland.h` — no manual definitions remain.
+function signatures come from the generated `wayland_api.h` — no manual definitions remain.
 
 #### `Wayland` struct
 ```c
@@ -309,9 +309,8 @@ libs/gap/
   src/pal.c                          — selects pal_linux_wayland.c when VOLO_WAYLAND defined
   src/pal_linux_wayland.c            — main implementation file
   src/pal_linux_xcb.c                — reference implementation (dlopen pattern, struct layout)
-  src/wayland/
-    wayland.h                        — generated; included by the PAL
-    wayland.c                        — generated; compiled into gap lib
+  src/wayland_api.h                  — generated; included by the PAL
+  src/wayland_api.c                  — generated; compiled into gap lib
 
 CMakeLists.txt                       — run.wlgen target (calls wlgen with XML paths)
 flake.nix                            — wayland runtime dep + wlgen env vars

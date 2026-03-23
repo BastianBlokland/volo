@@ -9,7 +9,7 @@ add_library(gap STATIC
   src/platform.c
   src/register.c
   src/window.c
-  $<$<BOOL:${VOLO_WAYLAND}>:src/wayland/wayland.c>
+  $<$<BOOL:${VOLO_WAYLAND}>:src/wayland_api.c>
   )
 target_include_directories(gap PUBLIC include)
 target_link_libraries(gap PUBLIC core ecs)
