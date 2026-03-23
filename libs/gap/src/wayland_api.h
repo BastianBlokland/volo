@@ -143,7 +143,6 @@ struct wl_display_listener {
   void (*delete_id)(void* data, struct wl_display*, u32 id);
 };
 
-u32 wl_display_get_version(const WlFuncs*, struct wl_display*);
 struct wl_callback* wl_display_sync(const WlFuncs*, struct wl_display*);
 struct wl_registry* wl_display_get_registry(const WlFuncs*, struct wl_display*);
 

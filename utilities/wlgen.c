@@ -386,15 +386,18 @@ WriteWrappers:;
     }
   }
 
-  if (headerOnly) {
-    fmt_write(&ctx->out, "u32 {}_get_version(const WlFuncs*, struct {}*);\n", fmt_text(ifaceName), fmt_text(ifaceName));
-  } else {
-    fmt_write(&ctx->out, "u32 {}_get_version(const WlFuncs* api, struct {}* obj)", fmt_text(ifaceName), fmt_text(ifaceName));
-    dynstring_append(&ctx->out, string_lit(" {\n  return api->proxy_get_version((struct wl_proxy*)obj);\n}\n\n"));
-  }
-
   // wl_display is disconnected via display_disconnect, not proxy_destroy.
+  // proxy_get_version on wl_display always returns 0 (it's not bound via wl_registry_bind).
   const bool isDisplay = string_eq(ifaceName, string_lit("wl_display"));
+
+  if (!isDisplay) {
+    if (headerOnly) {
+      fmt_write(&ctx->out, "u32 {}_get_version(const WlFuncs*, struct {}*);\n", fmt_text(ifaceName), fmt_text(ifaceName));
+    } else {
+      fmt_write(&ctx->out, "u32 {}_get_version(const WlFuncs* api, struct {}* obj)", fmt_text(ifaceName), fmt_text(ifaceName));
+      dynstring_append(&ctx->out, string_lit(" {\n  return api->proxy_get_version((struct wl_proxy*)obj);\n}\n\n"));
+    }
+  }
   if (!hasDestructor && !isDisplay) {
     if (headerOnly) {
       fmt_write(&ctx->out, "void {}_destroy(const WlFuncs*, struct {}*);\n", fmt_text(ifaceName), fmt_text(ifaceName));
@@ -682,27 +685,32 @@ static void wlgen_write_msg_types(
       "static const struct wl_interface* {}_{}_types[] = {",
       fmt_text(ifaceName),
       fmt_text(msgName));
+  bool firstArg = true;
   xml_for_children(doc, msgNode, argNode) {
     if (xml_name_hash(doc, argNode) != g_hash_arg) {
       continue;
     }
-    const String type  = xml_attr_get(doc, argNode, g_hash_type);
-    const String iface = xml_attr_get(doc, argNode, g_hash_interface);
+    if (!firstArg) {
+      dynstring_append(&ctx->out, string_lit(", "));
+    }
+    firstArg               = false;
+    const String type      = xml_attr_get(doc, argNode, g_hash_type);
+    const String iface     = xml_attr_get(doc, argNode, g_hash_interface);
     if (string_eq(type, g_wlArgTypeObject)) {
       if (string_is_empty(iface)) {
-        dynstring_append(&ctx->out, string_lit("null, "));
+        dynstring_append(&ctx->out, string_lit("null"));
       } else {
-        fmt_write(&ctx->out, "&{}_interface, ", fmt_text(iface));
+        fmt_write(&ctx->out, "&{}_interface", fmt_text(iface));
       }
     } else if (string_eq(type, g_wlArgTypeNewId)) {
       if (string_is_empty(iface)) {
         // Untyped new_id expands to s (null) + u (null) + n (null) in the signature.
-        dynstring_append(&ctx->out, string_lit("null, null, null, "));
+        dynstring_append(&ctx->out, string_lit("null, null, null"));
       } else {
-        fmt_write(&ctx->out, "&{}_interface, ", fmt_text(iface));
+        fmt_write(&ctx->out, "&{}_interface", fmt_text(iface));
       }
     } else {
-      dynstring_append(&ctx->out, string_lit("null, "));
+      dynstring_append(&ctx->out, string_lit("null"));
     }
   }
   dynstring_append(&ctx->out, string_lit("};\n"));
