@@ -390,7 +390,7 @@ WriteWrappers:;
     fmt_write(&ctx->out, "u32 {}_get_version(const WlFuncs*, struct {}*);\n", fmt_text(ifaceName), fmt_text(ifaceName));
   } else {
     fmt_write(&ctx->out, "u32 {}_get_version(const WlFuncs* api, struct {}* obj)", fmt_text(ifaceName), fmt_text(ifaceName));
-    dynstring_append(&ctx->out, string_lit(" {\n  return api->proxy_get_version((struct wl_proxy*)obj);\n}\n"));
+    dynstring_append(&ctx->out, string_lit(" {\n  return api->proxy_get_version((struct wl_proxy*)obj);\n}\n\n"));
   }
 
   // wl_display is disconnected via display_disconnect, not proxy_destroy.
@@ -400,7 +400,7 @@ WriteWrappers:;
       fmt_write(&ctx->out, "void {}_destroy(const WlFuncs*, struct {}*);\n", fmt_text(ifaceName), fmt_text(ifaceName));
     } else {
       fmt_write(&ctx->out, "void {}_destroy(const WlFuncs* api, struct {}* obj)", fmt_text(ifaceName), fmt_text(ifaceName));
-      dynstring_append(&ctx->out, string_lit(" {\n  api->proxy_destroy((struct wl_proxy*)obj);\n}\n"));
+      dynstring_append(&ctx->out, string_lit(" {\n  api->proxy_destroy((struct wl_proxy*)obj);\n}\n\n"));
     }
   }
 
@@ -409,7 +409,7 @@ WriteWrappers:;
       fmt_write(&ctx->out, "void {}_add_listener(const WlFuncs*, struct {}*, const struct {}_listener*, void*);\n", fmt_text(ifaceName), fmt_text(ifaceName), fmt_text(ifaceName));
     } else {
       fmt_write(&ctx->out, "void {}_add_listener(const WlFuncs* api, struct {}* obj, const struct {}_listener* listener, void* data)", fmt_text(ifaceName), fmt_text(ifaceName), fmt_text(ifaceName));
-      dynstring_append(&ctx->out, string_lit(" {\n  api->proxy_add_listener((struct wl_proxy*)obj, (void(**)(void))listener, data);\n}\n"));
+      dynstring_append(&ctx->out, string_lit(" {\n  api->proxy_add_listener((struct wl_proxy*)obj, (void(**)(void))listener, data);\n}\n\n"));
     }
   }
 
@@ -509,9 +509,11 @@ WriteWrappers:;
       }
       fmt_write(&ctx->out, ", {}", fmt_text(xml_attr_get(doc, argNode, g_hash_name)));
     }
-    fmt_write(&ctx->out, ");\n}\n");
+    fmt_write(&ctx->out, ");\n}\n\n");
   }
-  fmt_write(&ctx->out, "\n");
+  if (headerOnly) {
+    fmt_write(&ctx->out, "\n");
+  }
 }
 
 static void wlgen_write_header_funcs(WlGenContext* ctx) {
@@ -577,25 +579,24 @@ static void wlgen_write_header(WlGenContext* ctx) {
 
 // ----- Write implementation -----
 
+static void wlgen_write_impl_load_sym(WlGenContext* ctx, const char* field, const char* sym) {
+  fmt_write(&ctx->out, "  if (!(out->{} = dynlib_symbol(lib, string_lit(\"{}\")))) ", fmt_text(string_from_null_term(field)), fmt_text(string_from_null_term(sym)));
+  dynstring_append(&ctx->out, string_lit("{ return false; }\n"));
+}
+
 static void wlgen_write_impl_load(WlGenContext* ctx) {
-  fmt_write(&ctx->out, "bool wlLoad(const DynLib* lib, WlFuncs* out) {\n");
-  fmt_write(&ctx->out, "  out->display_connect          = dynlib_symbol(lib, string_lit(\"wl_display_connect\"));\n");
-  fmt_write(&ctx->out, "  out->display_disconnect       = dynlib_symbol(lib, string_lit(\"wl_display_disconnect\"));\n");
-  fmt_write(&ctx->out, "  out->display_dispatch         = dynlib_symbol(lib, string_lit(\"wl_display_dispatch\"));\n");
-  fmt_write(&ctx->out, "  out->display_dispatch_pending = dynlib_symbol(lib, string_lit(\"wl_display_dispatch_pending\"));\n");
-  fmt_write(&ctx->out, "  out->display_roundtrip        = dynlib_symbol(lib, string_lit(\"wl_display_roundtrip\"));\n");
-  fmt_write(&ctx->out, "  out->display_flush            = dynlib_symbol(lib, string_lit(\"wl_display_flush\"));\n");
-  fmt_write(&ctx->out, "  out->proxy_add_listener       = dynlib_symbol(lib, string_lit(\"wl_proxy_add_listener\"));\n");
-  fmt_write(&ctx->out, "  out->proxy_marshal_flags      = dynlib_symbol(lib, string_lit(\"wl_proxy_marshal_flags\"));\n");
-  fmt_write(&ctx->out, "  out->proxy_get_version        = dynlib_symbol(lib, string_lit(\"wl_proxy_get_version\"));\n");
-  fmt_write(&ctx->out, "  out->proxy_destroy            = dynlib_symbol(lib, string_lit(\"wl_proxy_destroy\"));\n");
-  fmt_write(&ctx->out, "  return out->display_connect && out->display_disconnect &&\n");
-  fmt_write(&ctx->out, "         out->display_dispatch && out->display_dispatch_pending &&\n");
-  fmt_write(&ctx->out, "         out->display_roundtrip && out->display_flush &&\n");
-  fmt_write(&ctx->out, "         out->proxy_add_listener && out->proxy_marshal_flags &&\n");
-  fmt_write(&ctx->out, "         out->proxy_get_version &&\n");
-  fmt_write(&ctx->out, "         out->proxy_destroy;\n");
-  fmt_write(&ctx->out, "}\n\n");
+  dynstring_append(&ctx->out, string_lit("bool wlLoad(const DynLib* lib, WlFuncs* out) {\n"));
+  wlgen_write_impl_load_sym(ctx, "display_connect",          "wl_display_connect");
+  wlgen_write_impl_load_sym(ctx, "display_disconnect",       "wl_display_disconnect");
+  wlgen_write_impl_load_sym(ctx, "display_dispatch",         "wl_display_dispatch");
+  wlgen_write_impl_load_sym(ctx, "display_dispatch_pending", "wl_display_dispatch_pending");
+  wlgen_write_impl_load_sym(ctx, "display_roundtrip",        "wl_display_roundtrip");
+  wlgen_write_impl_load_sym(ctx, "display_flush",            "wl_display_flush");
+  wlgen_write_impl_load_sym(ctx, "proxy_add_listener",       "wl_proxy_add_listener");
+  wlgen_write_impl_load_sym(ctx, "proxy_marshal_flags",      "wl_proxy_marshal_flags");
+  wlgen_write_impl_load_sym(ctx, "proxy_get_version",        "wl_proxy_get_version");
+  wlgen_write_impl_load_sym(ctx, "proxy_destroy",            "wl_proxy_destroy");
+  dynstring_append(&ctx->out, string_lit("  return true;\n}\n\n"));
   fmt_write(&ctx->out, "void* wlRegistryBind(\n");
   fmt_write(&ctx->out, "    const WlFuncs* api, struct wl_registry* registry, u32 name, u32 version,\n");
   fmt_write(&ctx->out, "    const struct wl_interface* iface, u32 maxVersion) {\n");
@@ -784,7 +785,7 @@ static void wlgen_write_impl(WlGenContext* ctx) {
   fmt_write(&ctx->out, "// clang-format off\n");
   wlgen_write_prolog(ctx);
   fmt_write(&ctx->out, "\n");
-  fmt_write(&ctx->out, "#include \"{}.h\"\n", fmt_text(ctx->outName));
+  fmt_write(&ctx->out, "#include \"{}.h\"\n\n", fmt_text(ctx->outName));
   fmt_write(&ctx->out, "#include \"core/dynlib.h\"\n");
   fmt_write(&ctx->out, "#include \"core/string.h\"\n\n");
 
