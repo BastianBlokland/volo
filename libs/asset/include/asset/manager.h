@@ -70,6 +70,12 @@ AssetManagerComp* asset_manager_create_mem(
     EcsWorld*, AssetManagerFlags, const AssetMemRecord* records, usize recordCount);
 
 /**
+ * Register additional asset repository to allow reading files from the user file-system with the
+ * '{id}:{path}' syntax.
+ */
+bool asset_manager_add_userfs(AssetManagerComp*, String id);
+
+/**
  * Check if dev support is enabled.
  */
 bool asset_dev_support(const AssetManagerComp*);
