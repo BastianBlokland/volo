@@ -656,7 +656,7 @@ void ui_editor_update(
         editor_select_line(editor);
         break;
       }
-    } else {
+    } else if (!firstUpdate) {
       ui_editor_stop(editor);
       return;
     }

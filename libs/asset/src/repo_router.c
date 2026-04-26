@@ -133,8 +133,6 @@ typedef struct {
   AssetRepoQueryHandler  userHandler;
 } RouterQueryContext;
 
-typedef void (*AssetRepoQueryHandler)(void* ctx, String assetId);
-
 static void asset_repo_router_query_handler(void* ctx, const String assetId) {
   RouterQueryContext* queryCtx = ctx;
   queryCtx->userHandler(
