@@ -23,6 +23,10 @@
 #define script_builtin_funcs_max 48
 #define script_tracked_mem_keys_max 32
 
+ASSERT(
+    script_tracked_mem_keys_max >= script_binder_max_mem_keys,
+    "Tracked-mem-keys slots must fit all binder mem-keys");
+
 typedef struct {
   StringHash idHash;
   ScriptVal  val;
@@ -915,7 +919,7 @@ static bool read_track_mem_access(
       const String keyStr = stringtable_lookup(ctx->stringtable, key);
       if (!string_is_empty(keyStr)) {
         const String label = fmt_write_scratch("${}", fmt_text(keyStr));
-        trackedKey->sym    = script_sym_push_mem_key(ctx->syms, label, key);
+        trackedKey->sym    = script_sym_push_mem_key(ctx->syms, label, string_empty, key);
         if (!sentinel_check(trackedKey->sym)) {
           script_sym_push_ref(ctx->syms, trackedKey->sym, refKind, range);
         }
@@ -2134,6 +2138,26 @@ static void read_sym_push_extern(ScriptReadContext* ctx) {
   }
 }
 
+static void read_sym_push_mem_keys(ScriptReadContext* ctx) {
+  if (!ctx->syms || !ctx->binder) {
+    return;
+  }
+  if (!(script_binder_flags(ctx->binder) & ScriptBinderFlags_DevSupport)) {
+    return; // Development support not enabled for the binder and thus contains no memory-keys.
+  }
+  const u8 binderKeyCount = script_binder_mem_key_count(ctx->binder);
+  for (u8 i = 0; i != binderKeyCount; ++i) {
+    const StringHash key    = script_binder_mem_key_name(ctx->binder, i);
+    const String     keyStr = stringtable_lookup(g_stringtable, key);
+    if (!string_is_empty(keyStr)) {
+      const String doc           = script_binder_mem_key_doc(ctx->binder, i);
+      const String label         = fmt_write_scratch("${}", fmt_text(keyStr));
+      ctx->trackedMemKeys[i].key = key;
+      ctx->trackedMemKeys[i].sym = script_sym_push_mem_key(ctx->syms, label, doc, key);
+    }
+  }
+}
+
 static void script_link_binder(ScriptDoc* doc, const ScriptBinder* binder) {
   const ScriptBinderHash hash = script_binder_hash(binder);
   if (doc->binderHash && doc->binderHash != hash) {
@@ -2189,6 +2213,7 @@ ScriptExpr script_read(
   read_sym_push_keywords(&ctx);
   read_sym_push_builtin(&ctx);
   read_sym_push_extern(&ctx);
+  read_sym_push_mem_keys(&ctx);
 
   ScriptExpr expr = read_expr_block(&ctx, ScriptBlockType_Implicit, read_pos_current(&ctx));
   if (!sentinel_check(expr)) {

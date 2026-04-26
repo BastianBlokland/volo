@@ -316,7 +316,8 @@ ScriptSym script_sym_push_var(
       });
 }
 
-ScriptSym script_sym_push_mem_key(ScriptSymBag* bag, const String label, const StringHash key) {
+ScriptSym script_sym_push_mem_key(
+    ScriptSymBag* bag, const String label, const String doc, const StringHash key) {
   diag_assert(!string_is_empty(label));
 
   if (!(bag->mask & script_sym_mask(ScriptSymKind_MemoryKey))) {
@@ -329,6 +330,7 @@ ScriptSym script_sym_push_mem_key(ScriptSymBag* bag, const String label, const S
       &(ScriptSymData){
           .kind            = ScriptSymKind_MemoryKey,
           .label           = string_dup(bag->allocTransient, label),
+          .doc             = string_maybe_dup(bag->allocTransient, doc),
           .validRange      = script_range_sentinel,
           .data.memKey.key = key,
       });

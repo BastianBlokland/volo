@@ -2,6 +2,7 @@
 #include "script/forward.h"
 
 #define script_binder_max_funcs 96
+#define script_binder_max_mem_keys 16
 #define script_binder_slot_sentinel sentinel_u16
 
 typedef u16 ScriptBinderSlot;
@@ -105,6 +106,15 @@ ScriptBinderSlot script_binder_next(const ScriptBinder*, ScriptBinderSlot);
  * Pre-condition: Binder has been finalized.
  */
 ScriptVal script_binder_exec(const ScriptBinder*, ScriptBinderSlot, void* ctx, ScriptBinderCall*);
+
+/**
+ * Declare a memory key that is pre-defined for scripts using this binder.
+ * Pre-condition: Binder has not been finalized.
+ */
+void       script_binder_mem_key_push(ScriptBinder*, String name, String doc);
+u8         script_binder_mem_key_count(const ScriptBinder*);
+StringHash script_binder_mem_key_name(const ScriptBinder*, u8 index);
+String     script_binder_mem_key_doc(const ScriptBinder*, u8 index);
 
 /**
  * Binder serialization utils.

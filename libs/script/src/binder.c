@@ -31,7 +31,7 @@ static const String g_scriptBinderFlagNames[] = {
 
 struct sScriptBinder {
   Allocator*        alloc;
-  Allocator*        allocAux; // (chunked) bump allocator for axillary data (eg signatures).
+  Allocator*        allocAux; // (chunked) bump allocator for auxiliary data (eg signatures).
   String            name;
   String            filter; // File-filter glob pattern.
   ScriptBinderFlags flags : 8;
@@ -42,6 +42,11 @@ struct sScriptBinder {
   StringHash        names[script_binder_max_funcs];
   String            docs[script_binder_max_funcs];
   ScriptSig*        sigs[script_binder_max_funcs];
+
+  // Built-in memory keys (dev only).
+  u8         memKeyCount;
+  StringHash memKeyNames[script_binder_max_mem_keys];
+  String     memKeyDocs[script_binder_max_mem_keys];
 };
 
 static i8 binder_index_compare(const void* ctx, const usize a, const usize b) {
@@ -100,7 +105,7 @@ String script_binder_name(const ScriptBinder* binder) { return binder->name; }
 ScriptBinderFlags script_binder_flags(const ScriptBinder* binder) { return binder->flags; }
 
 void script_binder_filter_set(ScriptBinder* binder, const String globPattern) {
-  // NOTE: The old filter will not be cleaned up from the auxillary data until destruction.
+  // NOTE: The old filter will not be cleaned up from the auxiliary data until destruction.
   binder->filter = string_maybe_dup(binder->allocAux, globPattern);
 }
 
@@ -130,7 +135,7 @@ void script_binder_declare(
   diag_assert_msg(!binder->finalized, "Binder already finalized");
   diag_assert_msg(binder->count < script_binder_max_funcs, "Declared function count exceeds max");
 
-  // TODO: Add error when auxillary allocator runs out of space.
+  // TODO: Add error when auxiliary allocator runs out of space.
 
   binder->funcs[binder->count] = func ? func : binder_func_fallback;
   if (binder->flags & ScriptBinderFlags_DevSupport) {
@@ -217,6 +222,33 @@ ScriptVal script_binder_exec(
   return binder->funcs[func](ctx, call);
 }
 
+void script_binder_mem_key_push(ScriptBinder* binder, const String name, const String doc) {
+  diag_assert(!string_is_empty(name));
+  diag_assert_msg(!binder->finalized, "Binder already finalized");
+  diag_assert_msg(
+      binder->memKeyCount < script_binder_max_mem_keys, "Declared mem-key count exceeds max");
+
+  // TODO: Add error when auxiliary allocator runs out of space.
+  if (binder->flags & ScriptBinderFlags_DevSupport &&
+      binder->memKeyCount != script_binder_max_mem_keys) {
+    binder->memKeyNames[binder->memKeyCount] = stringtable_add(g_stringtable, name);
+    binder->memKeyDocs[binder->memKeyCount]  = string_maybe_dup(binder->allocAux, doc);
+    ++binder->memKeyCount;
+  }
+}
+
+u8 script_binder_mem_key_count(const ScriptBinder* binder) { return binder->memKeyCount; }
+
+StringHash script_binder_mem_key_name(const ScriptBinder* binder, const u8 index) {
+  diag_assert(index < binder->memKeyCount);
+  return binder->memKeyNames[index];
+}
+
+String script_binder_mem_key_doc(const ScriptBinder* binder, const u8 index) {
+  diag_assert(index < binder->memKeyCount);
+  return binder->memKeyDocs[index];
+}
+
 static JsonVal binder_mask_to_json(JsonDoc* d, const ScriptMask mask) {
   if (mask == script_mask_any) {
     return json_add_string(d, string_lit("any"));
@@ -299,6 +331,18 @@ void script_binder_write(DynString* str, const ScriptBinder* b) {
     json_add_field_lit(doc, obj, "filter", json_add_string(doc, b->filter));
   }
   json_add_field_lit(doc, obj, "functions", funcsArr);
+
+  if (b->memKeyCount) {
+    const JsonVal memKeysArr = json_add_array(doc);
+    for (u8 i = 0; i != b->memKeyCount; ++i) {
+      const String  keyName = stringtable_lookup(g_stringtable, b->memKeyNames[i]);
+      const JsonVal keyObj  = json_add_object(doc);
+      json_add_field_lit(doc, keyObj, "name", json_add_string(doc, keyName));
+      json_add_field_lit(doc, keyObj, "doc", json_add_string(doc, b->memKeyDocs[i]));
+      json_add_elem(doc, memKeysArr, keyObj);
+    }
+    json_add_field_lit(doc, obj, "memoryKeys", memKeysArr);
+  }
 
   json_write(str, doc, obj, &json_write_opts(.mode = JsonWriteMode_Compact));
   json_destroy(doc);
@@ -434,6 +478,20 @@ ScriptBinder* script_binder_read(Allocator* alloc, const String str) {
     goto Done;
   }
   json_for_elems(doc, funcsVal, f) { success &= binder_func_from_json(out, doc, f); }
+
+  const JsonVal memKeysVal = json_field_lit(doc, root, "memoryKeys");
+  if (!sentinel_check(memKeysVal) && json_type(doc, memKeysVal) == JsonType_Array) {
+    json_for_elems(doc, memKeysVal, memKey) {
+      if (json_type(doc, memKey) != JsonType_Object) {
+        continue;
+      }
+      const String keyName = binder_string_from_json(doc, json_field_lit(doc, memKey, "name"));
+      const String keyDoc  = binder_string_from_json(doc, json_field_lit(doc, memKey, "doc"));
+      if (!string_is_empty(keyName)) {
+        script_binder_mem_key_push(out, keyName, keyDoc);
+      }
+    }
+  }
 
 Done:
   json_destroy(doc);
