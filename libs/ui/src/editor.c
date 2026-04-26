@@ -28,7 +28,7 @@ typedef enum {
   UiEditorFlags_Dirty       = 1 << 4,
   UiEditorFlags_SelectMode  = 1 << 5,
 
-  EiEditorFlags_Volatile = UiEditorFlags_FirstUpdate | UiEditorFlags_Dirty,
+  UiEditorFlags_Volatile = UiEditorFlags_FirstUpdate | UiEditorFlags_Dirty,
 
   UiEditorFlags_Start = UiEditorFlags_Active | UiEditorFlags_FirstUpdate |
                         UiEditorFlags_FirstClick | UiEditorFlags_Dirty,
@@ -619,9 +619,9 @@ void ui_editor_update(
     return;
   }
 
-  const bool       readonly    = (editor->filter & UiTextFilter_Readonly) != 0;
-  const bool       isHovering  = hover.id == editor->textElement;
-  const bool       dragging    = gap_window_key_down(win, GapKey_MouseLeft) && !editor->click.repeat;
+  const bool       readonly   = (editor->filter & UiTextFilter_Readonly) != 0;
+  const bool       isHovering = hover.id == editor->textElement;
+  const bool       dragging   = gap_window_key_down(win, GapKey_MouseLeft) && !editor->click.repeat;
   const bool       firstUpdate = (editor->flags & UiEditorFlags_FirstUpdate) != 0;
   const bool       firstClick  = (editor->flags & UiEditorFlags_FirstClick) != 0;
   const TimeSteady timeNow     = time_steady_clock();
@@ -753,14 +753,14 @@ void ui_editor_update(
   editor_viewport_update(editor, textInfo);
   editor_visual_slices_update(editor, timeNow);
   editor_visual_text_update(editor);
-  editor->flags &= ~EiEditorFlags_Volatile;
+  editor->flags &= ~UiEditorFlags_Volatile;
 }
 
 void ui_editor_stop(UiEditor* editor) {
   editor_select_mode_stop(editor);
   editor->flags &=
       ~(UiEditorFlags_Active | UiEditorFlags_FirstClick | UiEditorFlags_FirstDrag |
-        EiEditorFlags_Volatile);
+        UiEditorFlags_Volatile);
   editor->textElement = sentinel_u64;
   editor->click       = (UiEditorClickInfo){0};
 }
