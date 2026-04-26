@@ -95,7 +95,7 @@ static RegSet reg_alloc_set(Context* ctx, const u8 count) {
   }
   const u32 maxIndex = script_prog_regs - count;
   u64       mask     = (u64_lit(1) << count) - 1;
-  for (u32 i = 0; i != maxIndex; ++i, mask <<= 1) {
+  for (u32 i = 0; i <= maxIndex; ++i, mask <<= 1) {
     if ((ctx->regAvailability & mask) == mask) {
       ctx->regAvailability &= ~mask;
       return (RegSet){.begin = (RegId)i, .count = count};
@@ -755,14 +755,20 @@ compile_intr_loop(Context* ctx, const Target tgt, const ScriptExpr* args) {
   return err;
 }
 
-static ScriptCompileError compile_intr_continue(Context* ctx) {
+static ScriptCompileError compile_intr_continue(Context* ctx, const Target tgt) {
   diag_assert(!sentinel_check(ctx->loopLabelIncrement));
+  if (!tgt.optional) {
+    emit_unary(ctx, ScriptOp_ValueNull, tgt.reg);
+  }
   emit_jump(ctx, ctx->loopLabelIncrement);
   return ScriptCompileError_None;
 }
 
-static ScriptCompileError compile_intr_break(Context* ctx) {
+static ScriptCompileError compile_intr_break(Context* ctx, const Target tgt) {
   diag_assert(!sentinel_check(ctx->loopLabelEnd));
+  if (!tgt.optional) {
+    emit_unary(ctx, ScriptOp_ValueNull, tgt.reg);
+  }
   emit_jump(ctx, ctx->loopLabelEnd);
   return ScriptCompileError_None;
 }
@@ -773,9 +779,9 @@ static ScriptCompileError compile_intr(Context* ctx, const Target tgt, const Scr
   const ScriptExpr*          args = expr_set_data(ctx->doc, data->argSet);
   switch (data->intrinsic) {
   case ScriptIntrinsic_Continue:
-    return compile_intr_continue(ctx);
+    return compile_intr_continue(ctx, tgt);
   case ScriptIntrinsic_Break:
-    return compile_intr_break(ctx);
+    return compile_intr_break(ctx, tgt);
   case ScriptIntrinsic_Return: {
     if (expr_is_null(ctx, args[0])) {
       emit_op(ctx, ScriptOp_ReturnNull);
