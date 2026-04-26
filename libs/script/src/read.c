@@ -1943,7 +1943,7 @@ static ScriptExpr read_expr_primary(ScriptReadContext* ctx) {
     if (UNLIKELY(sentinel_check(val))) {
       return read_fail_structural(ctx);
     }
-    const ScriptRange     rangeInclExpr = read_range_until_next(ctx, start);
+    const ScriptRange     rangeInclExpr = script_range(start, script_expr_range(ctx->doc, val).end);
     const ScriptIntrinsic intr          = token_op_unary(token.kind);
     const ScriptExpr      intrArgs[]    = {val};
     return script_add_intrinsic(ctx->doc, rangeInclExpr, intr, intrArgs);
