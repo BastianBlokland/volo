@@ -49,3 +49,16 @@ typedef void (*DataVisitor)(void* ctx, Mem data);
  * Can either be used to post-process the data or gather statistics.
  */
 void data_visit(const DataReg*, DataMeta, Mem data, DataType, void* ctx, DataVisitor);
+
+/**
+ * Add a new entry to a container.
+ * Returns the memory for the new entry. NOTE: The new entry is not initialized.
+ * Pre-condition: meta.container supports adding (HeapArray or DynArray).
+ */
+Mem data_container_push(const DataReg*, Allocator* alloc, DataMeta, Mem data);
+
+/**
+ * Remove an entry at the specified index from a container.
+ * Pre-condition: meta.container supports removing (HeapArray or DynArray).
+ */
+void data_container_remove(const DataReg*, Allocator* alloc, DataMeta, Mem data, usize index);
