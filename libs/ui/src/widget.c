@@ -1007,22 +1007,35 @@ bool ui_textbox_with_opts(UiCanvasComp* canvas, DynString* text, const UiTextbox
   ui_canvas_draw_glyph(canvas, UiShape_Square, 10, UiFlags_None);
   ui_style_pop(canvas);
 
-  // Start editing on press.
-  if (!editing && status == UiStatus_Activated && !opts->blockInput) {
-    UiTextFilter filter = 0;
-    switch (opts->type) {
-    case UiTextbox_Normal:
-      break;
-    case UiTextbox_Word:
-      filter |= UiTextFilter_SingleWord;
-      break;
-    case UiTextbox_Digits:
-      filter |= UiTextFilter_DigitsOnly;
-      break;
+  const bool tabFocus = (opts->flags & UiWidget_TabFocus) != 0;
+
+  // Start editing on press or via tab focus.
+  if (!editing && !opts->blockInput) {
+    const bool activatedByClick = status == UiStatus_Activated;
+    const bool activatedByTab   = tabFocus && ui_canvas_focus_consume(canvas);
+    if (activatedByClick || activatedByTab) {
+      UiTextFilter filter = 0;
+      switch (opts->type) {
+      case UiTextbox_Normal:
+        break;
+      case UiTextbox_Word:
+        filter |= UiTextFilter_SingleWord;
+        break;
+      case UiTextbox_Digits:
+        filter |= UiTextFilter_DigitsOnly;
+        break;
+      }
+      ui_canvas_text_editor_start(canvas, dynstring_view(text), textId, opts->maxTextLength, filter);
+      ui_canvas_sound(canvas, UiSoundType_Click);
+      editing = true;
     }
-    ui_canvas_text_editor_start(canvas, dynstring_view(text), textId, opts->maxTextLength, filter);
-    ui_canvas_sound(canvas, UiSoundType_Click);
-    editing = true;
+  }
+
+  // Tab to next field when editing.
+  if (editing && tabFocus && ui_canvas_input_tab(canvas)) {
+    ui_canvas_text_editor_stop(canvas);
+    ui_canvas_focus_next(canvas);
+    editing = false;
   }
 
   const UiFlags flags = UiFlags_AllowWordBreak | UiFlags_NoLineBreaks | UiFlags_Interactable |

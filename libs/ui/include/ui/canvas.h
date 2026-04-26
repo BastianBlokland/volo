@@ -122,6 +122,7 @@ UiLayer  ui_canvas_active_layer(const UiCanvasComp*);
 UiVector ui_canvas_resolution(const UiCanvasComp*);
 bool     ui_canvas_input_any(const UiCanvasComp*);
 bool     ui_canvas_input_control(const UiCanvasComp*);
+bool     ui_canvas_input_tab(const UiCanvasComp*);
 UiVector ui_canvas_input_delta(const UiCanvasComp*);
 UiVector ui_canvas_input_pos(const UiCanvasComp*);
 UiVector ui_canvas_input_scroll(const UiCanvasComp*);
@@ -172,7 +173,14 @@ UiId ui_canvas_draw_text_editor(UiCanvasComp*, u16 fontSize, UiAlign, UiFlags);
 void   ui_canvas_text_editor_start(UiCanvasComp*, String text, usize maxLen, UiId, UiTextFilter);
 void   ui_canvas_text_editor_stop(UiCanvasComp*);
 bool   ui_canvas_text_editor_active(const UiCanvasComp*, UiId);
+bool   ui_canvas_text_editor_active_any(const UiCanvasComp*);
 String ui_canvas_text_editor_result(UiCanvasComp*);
+
+/**
+ * Request focus to be moved to the next element.
+ */
+void ui_canvas_focus_next(UiCanvasComp*);
+bool ui_canvas_focus_consume(UiCanvasComp*);
 
 /**
  * Draw a single glyph in the current rectangle.

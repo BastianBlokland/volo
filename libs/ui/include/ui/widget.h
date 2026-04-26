@@ -11,6 +11,7 @@ typedef enum eUiWidgetFlags {
   UiWidget_Translate           = 1 << 1, // Treat the input text as a localization key.
   UiWidget_DirtyWhileEditing   = 1 << 2, // Always dirty during edit even if no changes occurred.
   UiWidget_InteractAllowSwitch = 1 << 3, // Allow switching targets while holding input down.
+  UiWidget_TabFocus            = 1 << 4, // Allow Tab key to move focus between widgets.
 } UiWidgetFlags;
 
 typedef enum {
