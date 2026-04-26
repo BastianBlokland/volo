@@ -1,13 +1,36 @@
 #include "check/spec.h"
 #include "core/alloc.h"
 #include "core/array.h"
+#include "core/bits.h"
 #include "core/dynstring.h"
 #include "core/stringtable.h"
 #include "script/binder.h"
 #include "script/diag.h"
 #include "script/read.h"
+#include "script/sym.h"
 
 #include "utils.h"
+
+static u32 test_count_syms_of_kind(const ScriptSymBag* syms, const ScriptSymKind kind) {
+  u32 count = 0;
+  for (ScriptSym s = script_sym_first(syms, script_pos_sentinel); !sentinel_check(s);
+       s           = script_sym_next(syms, script_pos_sentinel, s)) {
+    if (script_sym_kind(syms, s) == kind) {
+      ++count;
+    }
+  }
+  return count;
+}
+
+static ScriptSym test_find_sym_by_label(const ScriptSymBag* syms, const String label) {
+  for (ScriptSym s = script_sym_first(syms, script_pos_sentinel); !sentinel_check(s);
+       s           = script_sym_next(syms, script_pos_sentinel, s)) {
+    if (string_eq(script_sym_label(syms, s), label)) {
+      return s;
+    }
+  }
+  return script_sym_sentinel;
+}
 
 spec(read) {
   ScriptDoc*     doc             = null;
@@ -1251,6 +1274,52 @@ spec(read) {
       check_eq_int(rangeEnd.line, g_testData[i].endLine);
       check_eq_int(rangeEnd.column, g_testData[i].endCol);
     }
+  }
+
+  it("pre-pushes binder mem-key symbols into the sym bag") {
+    ScriptBinder* memKeyBinder =
+        script_binder_create(g_allocHeap, string_lit("test"), ScriptBinderFlags_DevSupport);
+    script_binder_mem_key_push(memKeyBinder, string_lit("Foo"), string_lit("Doc for Foo."));
+    script_binder_mem_key_push(memKeyBinder, string_lit("Bar"), string_lit("Doc for Bar."));
+    script_binder_finalize(memKeyBinder);
+
+    ScriptSymBag* syms = script_sym_bag_create(g_allocHeap, script_sym_mask_any);
+    script_read(doc, memKeyBinder, string_empty, g_stringtable, diagsNull, syms);
+
+    // Both keys should be in the bag even though the script doesn't reference them.
+    check_eq_int(test_count_syms_of_kind(syms, ScriptSymKind_MemoryKey), 2);
+
+    const ScriptSym fooSym = test_find_sym_by_label(syms, string_lit("$Foo"));
+    check_require(!sentinel_check(fooSym));
+    check_eq_string(script_sym_doc(syms, fooSym), string_lit("Doc for Foo."));
+
+    const ScriptSym barSym = test_find_sym_by_label(syms, string_lit("$Bar"));
+    check_require(!sentinel_check(barSym));
+    check_eq_string(script_sym_doc(syms, barSym), string_lit("Doc for Bar."));
+
+    script_sym_bag_destroy(syms);
+    script_binder_destroy(memKeyBinder);
+  }
+
+  it("reuses pre-pushed mem-key symbol when the script references a binder mem-key") {
+    ScriptBinder* memKeyBinder =
+        script_binder_create(g_allocHeap, string_lit("test"), ScriptBinderFlags_DevSupport);
+    script_binder_mem_key_push(memKeyBinder, string_lit("Foo"), string_lit("Doc for Foo."));
+    script_binder_finalize(memKeyBinder);
+
+    ScriptSymBag* syms = script_sym_bag_create(g_allocHeap, script_sym_mask_any);
+    script_read(doc, memKeyBinder, string_lit("$Foo"), g_stringtable, diagsNull, syms);
+
+    // Only one MemoryKey symbol should exist — no duplicate from the script reference.
+    check_eq_int(test_count_syms_of_kind(syms, ScriptSymKind_MemoryKey), 1);
+
+    // The single symbol should carry the doc from the binder declaration.
+    const ScriptSym fooSym = test_find_sym_by_label(syms, string_lit("$Foo"));
+    check_require(!sentinel_check(fooSym));
+    check_eq_string(script_sym_doc(syms, fooSym), string_lit("Doc for Foo."));
+
+    script_sym_bag_destroy(syms);
+    script_binder_destroy(memKeyBinder);
   }
 
   teardown() {

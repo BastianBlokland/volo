@@ -9,6 +9,7 @@ add_library(data STATIC
   src/read_json.c
   src/registry.c
   src/utils_clone.c
+  src/utils_container.c
   src/utils_destroy.c
   src/utils_equal.c
   src/utils_hash.c

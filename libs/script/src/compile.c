@@ -95,7 +95,7 @@ static RegSet reg_alloc_set(Context* ctx, const u8 count) {
   }
   const u32 maxIndex = script_prog_regs - count;
   u64       mask     = (u64_lit(1) << count) - 1;
-  for (u32 i = 0; i != maxIndex; ++i, mask <<= 1) {
+  for (u32 i = 0; i <= maxIndex; ++i, mask <<= 1) {
     if ((ctx->regAvailability & mask) == mask) {
       ctx->regAvailability &= ~mask;
       return (RegSet){.begin = (RegId)i, .count = count};
@@ -310,6 +310,46 @@ static bool expr_is_var_load(Context* ctx, const ScriptExpr e) {
   return expr_kind(ctx->doc, e) == ScriptExprKind_VarLoad;
 }
 
+static bool expr_is_var_load_of(Context* ctx, const ScriptExpr e, const ScriptVarId var) {
+  return expr_is_var_load(ctx, e) && expr_data(ctx->doc, e)->var_load.var == var;
+}
+
+static bool op_is_commutative(const ScriptOp op) {
+  switch (op) {
+  case ScriptOp_Equal:
+  case ScriptOp_Add:
+  case ScriptOp_Mul:
+  case ScriptOp_Min:
+  case ScriptOp_Max:
+    return true;
+  default:
+    return false;
+  }
+}
+
+static bool expr_is_commutative_inplace_bin(Context* ctx, const ScriptExpr e, ScriptOp* outOp) {
+  if (expr_kind(ctx->doc, e) != ScriptExprKind_Intrinsic) {
+    return false;
+  }
+  const ScriptExprIntrinsic* intr = &expr_data(ctx->doc, e)->intrinsic;
+  switch (intr->intrinsic) {
+  case ScriptIntrinsic_Add:
+    *outOp = ScriptOp_Add;
+    return true;
+  case ScriptIntrinsic_Mul:
+    *outOp = ScriptOp_Mul;
+    return true;
+  case ScriptIntrinsic_Min:
+    *outOp = ScriptOp_Min;
+    return true;
+  case ScriptIntrinsic_Max:
+    *outOp = ScriptOp_Max;
+    return true;
+  default:
+    return false;
+  }
+}
+
 static bool expr_is_intrinsic(Context* ctx, const ScriptExpr e, const ScriptIntrinsic intr) {
   if (expr_kind(ctx->doc, e) != ScriptExprKind_Intrinsic) {
     return false;
@@ -379,20 +419,49 @@ static ScriptCompileError compile_var_store(Context* ctx, const Target tgt, cons
     }
     ctx->varRegisters[data->var] = newReg;
   }
-  const bool preserveVarReg = script_expr_uses_var(ctx->doc, data->val, data->var);
-  RegId      exprReg;
+  const bool  preserveVarReg = script_expr_uses_var(ctx->doc, data->val, data->var);
+  const RegId varReg         = ctx->varRegisters[data->var];
+
+  // Fast path: 'var op= other' in-place mutation.
+  ScriptOp inplaceBinOp;
+  if (preserveVarReg && expr_is_commutative_inplace_bin(ctx, data->val, &inplaceBinOp)) {
+    const ScriptExprIntrinsic* valData = &expr_data(ctx->doc, data->val)->intrinsic;
+    const ScriptExpr*          valArgs = expr_set_data(ctx->doc, valData->argSet);
+
+    ScriptExpr optRhs = sentinel_u32;
+    if (expr_is_var_load_of(ctx, valArgs[0], data->var) &&
+        !script_expr_uses_var(ctx->doc, valArgs[1], data->var)) {
+      optRhs = valArgs[1];
+    } else if (
+        expr_is_var_load_of(ctx, valArgs[1], data->var) &&
+        !script_expr_uses_var(ctx->doc, valArgs[0], data->var)) {
+      optRhs = valArgs[0];
+    }
+    if (!sentinel_check(optRhs)) {
+      if ((err = compile_expr(ctx, target_reg(tgt.reg), optRhs))) {
+        return err;
+      }
+      emit_binary(ctx, inplaceBinOp, varReg, tgt.reg);
+      if (!tgt.optional) {
+        emit_move(ctx, tgt.reg, varReg);
+      }
+      return err;
+    }
+  }
+
+  RegId exprReg;
   if (preserveVarReg) {
     exprReg = tgt.reg;
   } else {
-    exprReg = ctx->varRegisters[data->var];
+    exprReg = varReg;
   }
   if ((err = compile_expr(ctx, target_reg(exprReg), data->val))) {
     return err;
   }
   if (preserveVarReg) {
-    emit_move(ctx, ctx->varRegisters[data->var], exprReg);
+    emit_move(ctx, varReg, exprReg);
   } else if (!tgt.optional) {
-    emit_move(ctx, tgt.reg, ctx->varRegisters[data->var]); // Return the stored variable.
+    emit_move(ctx, tgt.reg, varReg); // Return the stored variable.
   }
   return ScriptCompileError_None;
 }
@@ -446,6 +515,36 @@ compile_intr_unary(Context* ctx, const Target tgt, const ScriptOp op, const Scri
 static ScriptCompileError
 compile_intr_binary(Context* ctx, const Target tgt, const ScriptOp op, const ScriptExpr* args) {
   ScriptCompileError err = ScriptCompileError_None;
+
+  // Fast path: For commutative operations where arg 0 is a variable load we can swap the
+  // order and use the variable register directly avoiding a move instruction.
+  if (expr_is_var_load(ctx, args[0]) && op_is_commutative(op)) {
+    const ScriptExprVarLoad* varData = &expr_data(ctx->doc, args[0])->var_load;
+    const RegId              varReg  = ctx->varRegisters[varData->var];
+    if (!sentinel_check(varReg) && varReg != tgt.reg &&
+        !script_expr_uses_var(ctx->doc, args[1], varData->var)) {
+      if ((err = compile_expr(ctx, target_reg(tgt.reg), args[1]))) {
+        return err;
+      }
+      emit_binary(ctx, op, tgt.reg, varReg);
+      return err;
+    }
+  }
+
+  // Fast path: When arg 1 is a variable load we can use the variable register directly.
+  if (expr_is_var_load(ctx, args[1])) {
+    const ScriptExprVarLoad* varData = &expr_data(ctx->doc, args[1])->var_load;
+    const RegId              varReg  = ctx->varRegisters[varData->var];
+    if (!sentinel_check(varReg)) {
+      if ((err = compile_expr(ctx, target_reg(tgt.reg), args[0]))) {
+        return err;
+      }
+      emit_binary(ctx, op, tgt.reg, varReg);
+      return err;
+    }
+  }
+
+  // Generic path.
   if ((err = compile_expr(ctx, target_reg(tgt.reg), args[0]))) {
     return err;
   }
@@ -586,22 +685,33 @@ static ScriptCompileError compile_expr_invert(Context* ctx, const Target tgt, co
 static ScriptCompileError
 compile_intr_select(Context* ctx, const Target tgt, const ScriptExpr* args) {
   ScriptCompileError err = ScriptCompileError_None;
+
   // Condition.
-  const bool invert = compile_expr_prefer_invert(ctx, args[0]);
-  if (invert) {
-    if ((err = compile_expr_invert(ctx, target_reg_cond(tgt.reg), args[0]))) {
-      return err;
-    }
+  RegId condReg;
+  bool  invert = false;
+  if (expr_is_var_load(ctx, args[0])) {
+    // Fast-path: For a variable load we jump directly on the variable register.
+    condReg = ctx->varRegisters[expr_data(ctx->doc, args[0])->var_load.var];
+    diag_assert(!sentinel_check(condReg));
   } else {
-    if ((err = compile_expr(ctx, target_reg_cond(tgt.reg), args[0]))) {
-      return err;
+    invert = compile_expr_prefer_invert(ctx, args[0]);
+    if (invert) {
+      if ((err = compile_expr_invert(ctx, target_reg_cond(tgt.reg), args[0]))) {
+        return err;
+      }
+    } else {
+      if ((err = compile_expr(ctx, target_reg_cond(tgt.reg), args[0]))) {
+        return err;
+      }
     }
+    condReg = tgt.reg;
   }
+
   const LabelId retLabel = label_alloc(ctx), falseLabel = label_alloc(ctx);
   if (invert) {
-    emit_jump_if_truthy(ctx, tgt.reg, falseLabel);
+    emit_jump_if_truthy(ctx, condReg, falseLabel);
   } else {
-    emit_jump_if_falsy(ctx, tgt.reg, falseLabel);
+    emit_jump_if_falsy(ctx, condReg, falseLabel);
   }
 
   // If branch.
@@ -712,17 +822,32 @@ compile_intr_loop(Context* ctx, const Target tgt, const ScriptExpr* args) {
   }
   label_link(ctx, labelCond);
   if (!expr_is_true(ctx, args[1])) {
-    const bool invert = compile_expr_prefer_invert(ctx, args[1]);
-    if (invert) {
-      if ((err = compile_expr_invert(ctx, target_reg_cond(tmpReg), args[1]))) {
+    if (expr_kind(ctx->doc, args[1]) == ScriptExprKind_VarStore) {
+      /**
+       * Fast path: variable store condition (e.g. 'while (var x = itr())').
+       * Compile with optional output so the value lands directly in varReg without an extra move.
+       * Then jump on varReg.
+       */
+      const ScriptVarId condVar = expr_data(ctx->doc, args[1])->var_store.var;
+      if ((err = compile_expr(ctx, target_reg_opt(tmpReg), args[1]))) {
         return err;
       }
-      emit_jump_if_truthy(ctx, tmpReg, labelEnd);
+      const RegId condReg = ctx->varRegisters[condVar];
+      diag_assert(!sentinel_check(condReg));
+      emit_jump_if_falsy(ctx, condReg, labelEnd);
     } else {
-      if ((err = compile_expr(ctx, target_reg_cond(tmpReg), args[1]))) {
-        return err;
+      const bool invert = compile_expr_prefer_invert(ctx, args[1]);
+      if (invert) {
+        if ((err = compile_expr_invert(ctx, target_reg_cond(tmpReg), args[1]))) {
+          return err;
+        }
+        emit_jump_if_truthy(ctx, tmpReg, labelEnd);
+      } else {
+        if ((err = compile_expr(ctx, target_reg_cond(tmpReg), args[1]))) {
+          return err;
+        }
+        emit_jump_if_falsy(ctx, tmpReg, labelEnd);
       }
-      emit_jump_if_falsy(ctx, tmpReg, labelEnd);
     }
   }
 
@@ -755,14 +880,20 @@ compile_intr_loop(Context* ctx, const Target tgt, const ScriptExpr* args) {
   return err;
 }
 
-static ScriptCompileError compile_intr_continue(Context* ctx) {
+static ScriptCompileError compile_intr_continue(Context* ctx, const Target tgt) {
   diag_assert(!sentinel_check(ctx->loopLabelIncrement));
+  if (!tgt.optional) {
+    emit_unary(ctx, ScriptOp_ValueNull, tgt.reg);
+  }
   emit_jump(ctx, ctx->loopLabelIncrement);
   return ScriptCompileError_None;
 }
 
-static ScriptCompileError compile_intr_break(Context* ctx) {
+static ScriptCompileError compile_intr_break(Context* ctx, const Target tgt) {
   diag_assert(!sentinel_check(ctx->loopLabelEnd));
+  if (!tgt.optional) {
+    emit_unary(ctx, ScriptOp_ValueNull, tgt.reg);
+  }
   emit_jump(ctx, ctx->loopLabelEnd);
   return ScriptCompileError_None;
 }
@@ -773,9 +904,9 @@ static ScriptCompileError compile_intr(Context* ctx, const Target tgt, const Scr
   const ScriptExpr*          args = expr_set_data(ctx->doc, data->argSet);
   switch (data->intrinsic) {
   case ScriptIntrinsic_Continue:
-    return compile_intr_continue(ctx);
+    return compile_intr_continue(ctx, tgt);
   case ScriptIntrinsic_Break:
-    return compile_intr_break(ctx);
+    return compile_intr_break(ctx, tgt);
   case ScriptIntrinsic_Return: {
     if (expr_is_null(ctx, args[0])) {
       emit_op(ctx, ScriptOp_ReturnNull);

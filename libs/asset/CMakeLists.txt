@@ -53,6 +53,8 @@ add_library(asset STATIC
   src/repo_fs.c
   src/repo_mem.c
   src/repo_pack.c
+  src/repo_router.c
+  src/repo_userfs.c
   src/repo.c
   )
 target_include_directories(asset PUBLIC include)
