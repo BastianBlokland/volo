@@ -1,4 +1,5 @@
 #include "core/alloc.h"
+#include "core/bits.h"
 #include "core/diag.h"
 #include "core/dynstring.h"
 #include "core/search.h"
@@ -95,6 +96,46 @@ static bool prog_op_is_terminating(const ScriptOp op) {
   default:
     return false;
   }
+}
+
+INLINE_HINT static u8 prog_op_size(const ScriptOp op) {
+  // clang-format off
+  switch (op) {
+  case ScriptOp_Fail:           return 1;
+  case ScriptOp_Assert:         return 2;
+  case ScriptOp_Return:         return 2;
+  case ScriptOp_ReturnNull:     return 1;
+  case ScriptOp_Move:           return 3;
+  case ScriptOp_Jump:           return 3;
+  case ScriptOp_JumpIfTruthy:   return 4;
+  case ScriptOp_JumpIfFalsy:    return 4;
+  case ScriptOp_JumpIfNonNull:  return 4;
+  case ScriptOp_Value:          return 3;
+  case ScriptOp_ValueNull:      return 2;
+  case ScriptOp_ValueBool:      return 3;
+  case ScriptOp_ValueSmallInt:  return 3;
+  case ScriptOp_MemLoad:        return 6;
+  case ScriptOp_MemStore:       return 6;
+  case ScriptOp_MemLoadDyn:     return 2;
+  case ScriptOp_MemStoreDyn:    return 3;
+  case ScriptOp_Extern:         return 6;
+
+#define VM_OP_SIMPLE_ZERO(_OP_, _FUNC_)         case ScriptOp_##_OP_: return 2;
+#define VM_OP_SIMPLE_UNARY(_OP_, _FUNC_)        case ScriptOp_##_OP_: return 2;
+#define VM_OP_SIMPLE_BINARY(_OP_, _FUNC_)       case ScriptOp_##_OP_: return 3;
+#define VM_OP_SIMPLE_TERNARY(_OP_, _FUNC_)      case ScriptOp_##_OP_: return 4;
+#define VM_OP_SIMPLE_QUATERNARY(_OP_, _FUNC_)   case ScriptOp_##_OP_: return 5;
+
+VM_VISIT_OP_SIMPLE
+
+#undef VM_OP_SIMPLE_QUATERNARY
+#undef VM_OP_SIMPLE_TERNARY
+#undef VM_OP_SIMPLE_BINARY
+#undef VM_OP_SIMPLE_UNARY
+#undef VM_OP_SIMPLE_ZERO
+  }
+  // clang-format on
+  return 0;
 }
 
 static i8 prog_compare_loc(const void* a, const void* b) {
@@ -316,14 +357,21 @@ bool script_prog_validate(const ScriptProgram* prog, const ScriptBinder* binder)
   if (UNLIKELY(!prog->code.size || prog->code.size > u16_max)) {
     return false;
   }
-  if (UNLIKELY(!prog_op_is_terminating(mem_end(prog->code)[-1]))) {
-    return false;
-  }
-  const u8* ip    = mem_begin(prog->code);
-  const u8* ipEnd = mem_end(prog->code);
+
+  const u8* ipBegin = mem_begin(prog->code);
+  const u8* ip      = ipBegin;
+  const u8* ipEnd   = mem_end(prog->code);
+
+  // Validate instruction structure and register/value/function indices.
+  u8       validStarts[bits_to_bytes(u16_max + 1)] = {0};
+  ScriptOp lastOp                                  = ScriptOp_Fail;
   while (ip != ipEnd) {
+    // Track valid instruction starting points (valid jump targets).
+    const u16 offset = (u16)(ip - ipBegin);
+    validStarts[bits_to_bytes(offset)] |= (u8)(1u << bit_in_byte(offset));
+
     // clang-format off
-    switch ((ScriptOp)ip[0]) {
+    switch ((lastOp = (ScriptOp)ip[0])) {
     case ScriptOp_Fail:
       if (UNLIKELY((ip += 1) > ipEnd)) return false;
       continue;
@@ -343,28 +391,20 @@ bool script_prog_validate(const ScriptProgram* prog, const ScriptBinder* binder)
       if (UNLIKELY(!prog_reg_valid(ip[-2]))) return false;
       if (UNLIKELY(!prog_reg_valid(ip[-1]))) return false;
       continue;
-    case ScriptOp_Jump: {
+    case ScriptOp_Jump:
       if (UNLIKELY((ip += 3) > ipEnd)) return false;
-      const u16 ipOffset = prog_read_u16(&ip[-2]);
-      if (UNLIKELY(ipOffset >= (prog->code.size - 1))) return false;
-    } continue;
-    case ScriptOp_JumpIfTruthy: {
+      continue;
+    case ScriptOp_JumpIfTruthy:
       if (UNLIKELY((ip += 4) > ipEnd)) return false;
       if (UNLIKELY(!prog_reg_valid(ip[-3]))) return false;
-      const u16 ipOffset = prog_read_u16(&ip[-2]);
-      if (UNLIKELY(ipOffset >= (prog->code.size - 1))) return false;
-    } continue;
-    case ScriptOp_JumpIfFalsy: {
+      continue;
+    case ScriptOp_JumpIfFalsy:
       if (UNLIKELY((ip += 4) > ipEnd)) return false;
       if (UNLIKELY(!prog_reg_valid(ip[-3]))) return false;
-      const u16 ipOffset = prog_read_u16(&ip[-2]);
-      if (UNLIKELY(ipOffset >= (prog->code.size - 1))) return false;
-    } continue;
+      continue;
     case ScriptOp_JumpIfNonNull:
       if (UNLIKELY((ip += 4) > ipEnd)) return false;
       if (UNLIKELY(!prog_reg_valid(ip[-3]))) return false;
-      const u16 ipOffset = prog_read_u16(&ip[-2]);
-      if (UNLIKELY(ipOffset >= (prog->code.size - 1))) return false;
       continue;
     case ScriptOp_Value:
       if (UNLIKELY((ip += 3) > ipEnd)) return false;
@@ -451,6 +491,35 @@ bool script_prog_validate(const ScriptProgram* prog, const ScriptBinder* binder)
     // clang-format on
     return false; // Unknown op-code.
   }
+
+  if (UNLIKELY(!prog_op_is_terminating(lastOp))) {
+    return false;
+  }
+
+  // Validate jump targets land on instruction boundaries.
+  for (ip = ipBegin; ip != ipEnd; ip += prog_op_size((ScriptOp)ip[0])) {
+    u16 target;
+    // clang-format off
+    switch ((ScriptOp)ip[0]) {
+    case ScriptOp_Jump:
+      target = prog_read_u16(&ip[1]);
+      if (UNLIKELY(!(validStarts[bits_to_bytes(target)] & (u8)(1u << bit_in_byte(target))))) {
+        return false;
+      }
+      break;
+    case ScriptOp_JumpIfTruthy:
+    case ScriptOp_JumpIfFalsy:
+    case ScriptOp_JumpIfNonNull:
+      target = prog_read_u16(&ip[2]);
+      if (UNLIKELY(!(validStarts[bits_to_bytes(target)] & (u8)(1u << bit_in_byte(target))))) {
+        return false;
+      }
+      break;
+    default: break;
+    }
+    // clang-format on
+  }
+
   return true;
 }
 
