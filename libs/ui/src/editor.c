@@ -23,10 +23,15 @@ static const TimeDuration g_editorBlinkInterval  = time_second;
 typedef enum {
   UiEditorFlags_Active      = 1 << 0,
   UiEditorFlags_FirstUpdate = 1 << 1,
-  UiEditorFlags_Dirty       = 1 << 2,
-  UiEditorFlags_SelectMode  = 1 << 3,
+  UiEditorFlags_FirstClick  = 1 << 2, // Editor was activated by a mouse click.
+  UiEditorFlags_FirstDrag   = 1 << 3, // User has started dragging during this activation.
+  UiEditorFlags_Dirty       = 1 << 4,
+  UiEditorFlags_SelectMode  = 1 << 5,
 
-  EiEditorFlags_Volatile = UiEditorFlags_FirstUpdate | UiEditorFlags_Dirty
+  EiEditorFlags_Volatile = UiEditorFlags_FirstUpdate | UiEditorFlags_Dirty,
+
+  UiEditorFlags_Start = UiEditorFlags_Active | UiEditorFlags_FirstUpdate |
+                        UiEditorFlags_FirstClick | UiEditorFlags_Dirty,
 } UiEditorFlags;
 
 typedef enum {
@@ -372,6 +377,12 @@ static void editor_select_line(UiEditor* editor) {
   editor->selectEnd   = editor->text.size;
 }
 
+static void editor_select_line_keep_cursor(UiEditor* editor) {
+  editor->selectBegin = 0;
+  editor->selectEnd   = editor->text.size;
+  editor->flags |= UiEditorFlags_Dirty;
+}
+
 static void editor_select_word(UiEditor* editor) {
   const usize begin = editor_word_start_index(editor, editor->cursor);
   const usize end   = editor_word_end_index(editor, editor->cursor);
@@ -581,7 +592,7 @@ void ui_editor_start(
   if (ui_editor_active(editor)) {
     ui_editor_stop(editor);
   }
-  editor->flags |= UiEditorFlags_Active | UiEditorFlags_FirstUpdate | UiEditorFlags_Dirty;
+  editor->flags |= UiEditorFlags_Start;
   editor->filter        = filter;
   editor->textElement   = element;
   editor->maxTextLength = maxLen;
@@ -608,17 +619,28 @@ void ui_editor_update(
     return;
   }
 
-  const bool       readonly   = (editor->filter & UiTextFilter_Readonly) != 0;
-  const bool       isHovering = hover.id == editor->textElement;
-  const bool       dragging   = gap_window_key_down(win, GapKey_MouseLeft) && !editor->click.repeat;
+  const bool       readonly    = (editor->filter & UiTextFilter_Readonly) != 0;
+  const bool       isHovering  = hover.id == editor->textElement;
+  const bool       dragging    = gap_window_key_down(win, GapKey_MouseLeft) && !editor->click.repeat;
   const bool       firstUpdate = (editor->flags & UiEditorFlags_FirstUpdate) != 0;
+  const bool       firstClick  = (editor->flags & UiEditorFlags_FirstClick) != 0;
   const TimeSteady timeNow     = time_steady_clock();
 
-  if (dragging && !sentinel_check(textInfo.hoveredCharIndex)) {
-    editor_cursor_set(editor, editor_visual_index_to_text_index(editor, textInfo.hoveredCharIndex));
+  // Handle cursor dragging.
+  if (!firstUpdate && dragging && !sentinel_check(textInfo.hoveredCharIndex)) {
+    const usize newCursor = editor_visual_index_to_text_index(editor, textInfo.hoveredCharIndex);
+    if (newCursor != editor->cursor) {
+      editor_cursor_set(editor, newCursor);
+      editor->flags |= UiEditorFlags_FirstDrag;
+    }
   }
 
-  // NOTE: Assumes that the editor was started by a click.
+  // Handle non-mouse activations (immediately select-all).
+  if (firstUpdate && !gap_window_key_down(win, GapKey_MouseLeft)) {
+    editor_select_line(editor);
+    editor->flags &= ~(UiEditorFlags_FirstClick | UiEditorFlags_FirstDrag);
+  }
+
   if (gap_window_key_pressed(win, GapKey_MouseLeft) || firstUpdate) {
     editor_click(&editor->click, win, timeNow);
     if (isHovering && !sentinel_check(textInfo.hoveredCharIndex)) {
@@ -634,7 +656,7 @@ void ui_editor_update(
         editor_select_line(editor);
         break;
       }
-    } else if (!firstUpdate) {
+    } else {
       ui_editor_stop(editor);
       return;
     }
@@ -717,6 +739,14 @@ void ui_editor_update(
     return;
   }
 
+  // Auto-select all the text when activating a text-box without dragging.
+  if (firstClick && gap_window_key_released(win, GapKey_MouseLeft)) {
+    if (!(editor->flags & UiEditorFlags_FirstDrag) && !editor->click.repeat) {
+      editor_select_line_keep_cursor(editor);
+    }
+    editor->flags &= ~(UiEditorFlags_FirstClick | UiEditorFlags_FirstDrag);
+  }
+
   if (editor->flags & UiEditorFlags_Dirty) {
     editor->lastInteractTime = timeNow;
   }
@@ -728,7 +758,9 @@ void ui_editor_update(
 
 void ui_editor_stop(UiEditor* editor) {
   editor_select_mode_stop(editor);
-  editor->flags &= ~(UiEditorFlags_Active | EiEditorFlags_Volatile);
+  editor->flags &=
+      ~(UiEditorFlags_Active | UiEditorFlags_FirstClick | UiEditorFlags_FirstDrag |
+        EiEditorFlags_Volatile);
   editor->textElement = sentinel_u64;
   editor->click       = (UiEditorClickInfo){0};
 }
