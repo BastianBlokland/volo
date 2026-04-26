@@ -187,10 +187,10 @@ Dispatch:
   }
   switch ((ScriptOp)ip[0]) {
   case ScriptOp_Fail:
-    VM_PANIC(((ScriptPanic){ScriptPanic_AssertionFailed, .range = prog_loc_from_ip(prog, ip)}));
+    VM_PANIC(((ScriptPanic){ScriptPanic_ExecutionFailed, .range = prog_loc_from_ip(prog, ip)}));
   case ScriptOp_Assert:
     if (UNLIKELY(script_falsy(regs[ip[1]]))) {
-      VM_PANIC(((ScriptPanic){ScriptPanic_ExecutionFailed, .range = prog_loc_from_ip(prog, ip)}));
+      VM_PANIC(((ScriptPanic){ScriptPanic_AssertionFailed, .range = prog_loc_from_ip(prog, ip)}));
     }
     regs[ip[1]] = val_null();
     VM_NEXT(2);
