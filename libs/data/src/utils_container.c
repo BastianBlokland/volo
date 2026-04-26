@@ -20,7 +20,7 @@ static Mem container_push_heaparray(
 
     const Mem oldArrayMem = mem_create(array->values, entrySize * array->count);
     mem_cpy(newArrayMem, oldArrayMem);
-    alloc_free(g_allocHeap, oldArrayMem);
+    alloc_free(alloc, oldArrayMem);
   } else {
     diag_assert(!array->values);
   }
