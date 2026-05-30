@@ -84,9 +84,16 @@ struct sAssetSource {
 
 String asset_repo_query_result_str(AssetRepoQueryResult);
 
+typedef struct {
+  String     id;
+  AssetRepo* repo;
+} AssetRepoLane;
+
 AssetRepo* asset_repo_create_fs(String rootPath, bool portableCache);
+AssetRepo* asset_repo_create_userfs(void);
 AssetRepo* asset_repo_create_pack(String filePath);
 AssetRepo* asset_repo_create_mem(const AssetMemRecord* records, usize recordCount);
+AssetRepo* asset_repo_create_router(const AssetRepoLane lanes[], u32 laneCount);
 void       asset_repo_destroy(AssetRepo*);
 
 bool         asset_repo_path(AssetRepo* repo, String id, DynString* out);

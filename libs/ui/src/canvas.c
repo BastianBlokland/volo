@@ -58,8 +58,11 @@ typedef struct {
 typedef enum {
   UiCanvasFlags_InputAny     = 1 << 0,
   UiCanvasFlags_InputControl = 1 << 1,
+  UiCanvasFlags_InputTab     = 1 << 2,
+  UiCanvasFlags_FocusNext    = 1 << 3, // Request focus to be moved to the next element.
 
-  UiCanvasFlags_Volatile = UiCanvasFlags_InputAny | UiCanvasFlags_InputControl,
+  UiCanvasFlags_Volatile = UiCanvasFlags_InputAny | UiCanvasFlags_InputControl |
+                           UiCanvasFlags_InputTab | UiCanvasFlags_FocusNext,
 } UiCanvasFlags;
 
 ecs_comp_define(UiRendererComp) {
@@ -401,6 +404,9 @@ ecs_system_define(UiCanvasInputSys) {
     }
     if (gap_window_key_down(window, GapKey_Control)) {
       canvas->flags |= UiCanvasFlags_InputControl;
+    }
+    if (gap_window_key_pressed(window, GapKey_Tab)) {
+      canvas->flags |= UiCanvasFlags_InputTab;
     }
 
     canvas->scale       = ui_window_scale(window, settings);
@@ -818,6 +824,9 @@ bool     ui_canvas_input_any(const UiCanvasComp* comp) {
 bool ui_canvas_input_control(const UiCanvasComp* comp) {
   return (comp->flags & UiCanvasFlags_InputControl) != 0;
 }
+bool ui_canvas_input_tab(const UiCanvasComp* comp) {
+  return (comp->flags & UiCanvasFlags_InputTab) != 0;
+}
 UiVector ui_canvas_input_delta(const UiCanvasComp* comp) { return comp->inputDelta; }
 UiVector ui_canvas_input_pos(const UiCanvasComp* comp) { return comp->inputPos; }
 UiVector ui_canvas_input_scroll(const UiCanvasComp* comp) { return comp->inputScroll; }
@@ -889,6 +898,20 @@ bool ui_canvas_text_editor_active(const UiCanvasComp* comp, const UiId id) {
 
 String ui_canvas_text_editor_result(UiCanvasComp* comp) {
   return ui_editor_result_text(comp->textEditor);
+}
+
+void ui_canvas_focus_next(UiCanvasComp* comp) { comp->flags |= UiCanvasFlags_FocusNext; }
+
+bool ui_canvas_focus_consume(UiCanvasComp* comp) {
+  if (comp->flags & UiCanvasFlags_FocusNext) {
+    comp->flags &= ~UiCanvasFlags_FocusNext;
+    return true;
+  }
+  return false;
+}
+
+bool ui_canvas_text_editor_active_any(const UiCanvasComp* comp) {
+  return ui_editor_active(comp->textEditor);
 }
 
 bool ui_canvas_text_is_editing(UiCanvasComp* comp, const UiId id) {

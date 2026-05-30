@@ -754,6 +754,24 @@ AssetManagerComp* asset_manager_create_mem(
   return asset_manager_create_internal(world, repo, flags);
 }
 
+bool asset_manager_add_userfs(AssetManagerComp* manager, const String id) {
+  AssetRepo* userfsRepo = asset_repo_create_userfs();
+  if (UNLIKELY(!userfsRepo)) {
+    return false;
+  }
+  AssetRepoLane lanes[2] = {
+      {.id = string_empty, .repo = manager->repo},
+      {.id = id, .repo = userfsRepo},
+  };
+  AssetRepo* routerRepo = asset_repo_create_router(lanes, array_elems(lanes));
+  if (UNLIKELY(!routerRepo)) {
+    asset_repo_destroy(userfsRepo);
+    return false;
+  }
+  manager->repo = routerRepo;
+  return true;
+}
+
 bool asset_dev_support(const AssetManagerComp* manager) {
   return (manager->flags & AssetManagerFlags_DevSupport) != 0;
 }

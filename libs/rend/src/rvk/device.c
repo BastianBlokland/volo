@@ -226,7 +226,17 @@ NoTransferQueue:
 static VkPhysicalDevice rvk_pick_physical_device(RvkLib* lib) {
   VkPhysicalDevice vkPhysDevs[32];
   u32              vkPhysDevsCount = array_elems(vkPhysDevs);
-  rvk_call_checked(lib, enumeratePhysicalDevices, lib->vkInst, &vkPhysDevsCount, vkPhysDevs);
+
+  const VkResult enumerateResult =
+      rvk_call(lib, enumeratePhysicalDevices, lib->vkInst, &vkPhysDevsCount, vkPhysDevs);
+
+  if (UNLIKELY(enumerateResult != VK_SUCCESS && enumerateResult != VK_INCOMPLETE)) {
+    log_e(
+        "Failed to enumerate Vulkan physical devices",
+        log_param("error-code", fmt_int(enumerateResult)),
+        log_param("error", fmt_text(vkResultStr(enumerateResult))));
+    return null;
+  }
 
   VkPhysicalDevice bestVkPhysDev = null;
   i32              bestScore     = -1;

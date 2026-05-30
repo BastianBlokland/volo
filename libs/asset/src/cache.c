@@ -495,6 +495,9 @@ bool asset_cache_get(
 
 usize asset_cache_deps(
     AssetCache* c, String id, AssetRepoDep out[PARAM_ARRAY_SIZE(asset_repo_cache_deps_max)]) {
+  if (UNLIKELY(c->error)) {
+    return 0;
+  }
   const StringHash idHash = string_hash(id);
 
   usize result = 0;
