@@ -2,7 +2,7 @@
   description = "Volo Nix Dev Environment";
 
   inputs = {
-    nixpkgs.url = "nixpkgs/nixos-25.11";
+    nixpkgs.url = "nixpkgs/nixos-26.05";
     rust-overlay = {
       url = "github:oxalica/rust-overlay";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -25,7 +25,7 @@
         llvm = (pkgs.mkShellNoCC.override { stdenv = llvmPkg.stdenv; }) {
 
           packages = [
-            pkgs.nixfmt-rfc-style
+            pkgs.nixfmt
             pkgs.clang-tools
 
             llvmPkg.lld
@@ -40,8 +40,8 @@
             pkgs.vulkan-tools
             pkgs.openssl
             pkgs.vulkan-loader
-            pkgs.xorg.libxcb
-            pkgs.xorg.xcbutilkeysyms
+            pkgs.libxcb
+            pkgs.libxcb-keysyms
             pkgs.libxkbcommon
             pkgs.alsa-lib
 
@@ -59,8 +59,8 @@
               pkgs.openssl
               pkgs.shaderc
               pkgs.vulkan-loader
-              pkgs.xorg.libxcb
-              pkgs.xorg.xcbutilkeysyms
+              pkgs.libxcb
+              pkgs.libxcb-keysyms
               pkgs.libxkbcommon
               pkgs.alsa-lib
             ]
