@@ -14,6 +14,7 @@
   },
   "main": "./out/extension",
   "dependencies": {
+    "minimatch": "^5.1.7",
     "vscode-languageclient": "^9.0.1"
   },
   "devDependencies": {
@@ -33,8 +34,12 @@
     "languages": [
       {
         "id": "volo-script",
-        "aliases": [ "Volo Script" ],
-        "extensions": [ ".script" ],
+        "aliases": [
+          "Volo Script"
+        ],
+        "extensions": [
+          ".script"
+        ],
         "configuration": "./script-configuration.json",
         "icon": {
           "light": "./resources/icon_script_light.svg",
@@ -55,7 +60,11 @@
         "volo-lsp.trace.server": {
           "type": "string",
           "default": "off",
-          "enum": [ "off", "messages", "verbose" ],
+          "enum": [
+            "off",
+            "messages",
+            "verbose"
+          ],
           "description": "Control the LSP server diagnostic trace mode."
         },
         "volo-lsp.profile": {
